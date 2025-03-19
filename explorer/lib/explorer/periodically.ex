@@ -16,6 +16,7 @@ defmodule Explorer.Periodically do
     one_second = 1000
     seconds_in_an_hour = 60 * 60
 
+    :timer.send_interval(one_second * 60, :next_batch_progress) # every minute
     :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
     :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
   end
@@ -34,6 +35,18 @@ defmodule Explorer.Periodically do
     {:noreply, %{state | restakings_last_read_block: latest_block_number}}
   end
 
+  def handle_info(:next_batch_progress, state) do
+    Logger.debug("handling block progress timer")
+    remaining_time =  ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time()
+    PubSub.broadcast(Explorer.PubSub, "update_views", %{
+      next_scheduled_batch_remaining_time_percentage:
+        ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+      next_scheduled_batch_remaining_time: remaining_time
+    }) 
+      
+    {:noreply, state}
+  end
+
   # Reads and process last n blocks for new batches or batch changes
   def handle_info(:batches, state) do
     count = Map.get(state, :batches_count)
@@ -49,6 +62,8 @@ defmodule Explorer.Periodically do
     if new_count == 0 do
       Task.start(&process_unverified_batches/0)
     end
+
+    PubSub.broadcast(Explorer.PubSub, "update_views", :block_age)
 
     {:noreply, %{state | batches_count: new_count}}
   end

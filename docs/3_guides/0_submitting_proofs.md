@@ -4,6 +4,8 @@ Make sure you have Aligned installed as specified [here](../1_introduction/1_try
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
+You can check your submitted proofs on [Mainnet Explorer](https://explorer.alignedlayer.com) and [Holesky Explorer](https://holesky.explorer.alignedlayer.com).
+
 ## Supported Verifiers
 
 The following is the list of the verifiers currently supported by Aligned:
@@ -77,7 +79,7 @@ aligned deposit-to-batcher \
 This command allows the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
 - `--keystore_path` the path to the keystore.
 - `--amount` the number of ethers to transfer to the Batcher.
 - Note: `--amount` flag parameter must be with the shown format, `XX.XXether`.
@@ -94,12 +96,12 @@ aligned get-user-balance \
 These commands allow the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
 - `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Submit your proof to the batcher
 
-This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [First Aligned Application tutorial](../3_guides/2_build_your_first_aligned_application.md#app) where we explain how to generate and submit a proof using the Aligned SDK.
+This guide will focus on how to submit proofs using the Aligned CLI. To integrate the proof submission process into your application, check the [First Aligned Application tutorial](../3_guides/2_build_your_first_aligned_application.md) where we explain how to generate and submit a proof using the Aligned SDK.
 
 Proof submission is done via the `submit` command of the Aligned CLI. The arguments for the submit command are:
 
@@ -107,8 +109,11 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * `proof`: The path of the proof associated to the computation to be verified.
 * `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
 * `pub_input`: The path to the file with the public input associated with the proof.
-* `batcher_url`: The batcher websocket URL.
-* `network` to specify the netowrk to be used. Can be `devnet`, `holesky-stage` or `holesky`.
+* `batcher_url`: The batcher websocket URL. Can be:
+  * mainnet: `wss://mainnet.batcher.alignedlayer.com`
+  * holesky: `wss://batcher.alignedlayer.com`
+  * devnet: `ws://localhost:8080`
+* `network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
 * `rpc_url`: The RPC Ethereum node URL.
 * `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
 * `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
@@ -252,5 +257,5 @@ aligned submit \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```

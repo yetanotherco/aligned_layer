@@ -40,7 +40,7 @@ services:
 
   register-operator-eigenlayer:
     image: ghcr.io/yetanotherco/aligned_layer/eigenlayer-cli:latest
-    command: ["sh", "-c", "echo '' | eigenlayer operator register config-files/config-docker.yaml"]
+    command: ["sh", "-c", "echo '' | eigenlayer operator register config-files/config-operator-docker.yaml"]
     build:
       context: .
       dockerfile: docker/eigenlayer-cli.Dockerfile
@@ -58,7 +58,7 @@ services:
 
   operator-deposit-into-mock-strategy:
     image: ghcr.io/yetanotherco/aligned_layer/operator:latest
-    command: ["aligned-layer-operator", "deposit-into-strategy", "--config", "./config-files/config-docker.yaml", "--strategy-address", "0xc5a5C42992dECbae36851359345FE25997F5C42d", "--amount", "100000000000000000"]
+    command: ["aligned-layer-operator", "deposit-into-strategy", "--config", "./config-files/config-operator-docker.yaml", "--strategy-address", "0xc5a5C42992dECbae36851359345FE25997F5C42d", "--amount", "100000000000000000"]
     build:
       context: .
       dockerfile: docker/operator.Dockerfile
@@ -76,7 +76,7 @@ services:
 
   operator-register-with-aligned-layer:
     image: ghcr.io/yetanotherco/aligned_layer/operator:latest
-    command: ["aligned-layer-operator", "register", "--config", "./config-files/config-docker.yaml"]
+    command: ["aligned-layer-operator", "register", "--config", "./config-files/config-operator-docker.yaml"]
     build:
       context: .
       dockerfile: docker/operator.Dockerfile
@@ -85,7 +85,7 @@ services:
 
   operator:
     image: ghcr.io/yetanotherco/aligned_layer/operator:latest
-    command: ["aligned-layer-operator", "start", "--config", "./config-files/config-docker.yaml"]
+    command: ["aligned-layer-operator", "start", "--config", "./config-files/config-operator-docker.yaml"]
     build:
       context: .
       dockerfile: docker/operator.Dockerfile

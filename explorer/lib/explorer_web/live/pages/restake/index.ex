@@ -3,14 +3,21 @@ defmodule ExplorerWeb.Restake.Index do
 
   @impl true
   def handle_info(_, socket) do
-    restaked_amount_eth =
+    total_stake =
       socket.assigns.restake.strategy_address
       |> Strategies.get_total_staked()
-      |> EthConverter.wei_to_eth(2)
+
+    restaked_amount_eth =
+      total_stake |> EthConverter.wei_to_eth(2)
+
+    {_, restaked_amount_usd} =
+      total_stake
+      |> EthConverter.wei_to_usd(0)
 
     {:noreply,
      assign(socket,
-       restaked_amount_eth: restaked_amount_eth
+       restaked_amount_eth: restaked_amount_eth,
+       restaked_amount_usd: restaked_amount_usd
      )}
   end
 
@@ -20,12 +27,17 @@ defmodule ExplorerWeb.Restake.Index do
 
     restaked_amount_eth = restake.total_staked |> EthConverter.wei_to_eth(2)
 
+    {_, restaked_amount_usd} =
+      restake.total_staked
+      |> EthConverter.wei_to_usd(0)
+
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_restakings")
 
     {:ok,
      assign(socket,
        restake: restake,
        restaked_amount_eth: restaked_amount_eth,
+       restaked_amount_usd: restaked_amount_usd,
        page_title: "Restake #{address}"
      )}
   end
@@ -66,9 +78,12 @@ defmodule ExplorerWeb.Restake.Index do
           <h3>
             Total Restaked:
           </h3>
-          <p>
-            <%= @restaked_amount_eth |> Helpers.format_number() %> ETH
-          </p>
+          <div class="flex flex-column">
+            <p>
+              <%= @restaked_amount_eth |> Helpers.format_number() %> ETH
+             <span class="text-gray-500"> (<%= @restaked_amount_usd |> Helpers.format_number() %> USD)</span>
+            </p>
+          </div>
         </div>
         <div class="break-all">
           <h3>

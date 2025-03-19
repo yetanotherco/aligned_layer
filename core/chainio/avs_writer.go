@@ -89,7 +89,7 @@ func NewAvsWriterFromConfig(baseConfig *config.BaseConfig, ecdsaConfig *config.E
 //   - If no receipt is found, but the batch state indicates the response has already been processed, it exits
 //     without an error (returning `nil, nil`).
 //   - An error if the process encounters a fatal issue (e.g., permanent failure in verifying balances or state).
-func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, gasBumpPercentageLimit uint, timeToWaitBeforeBump time.Duration, onGasPriceBumped func(*big.Int)) (*types.Receipt, error) {
+func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMerkleRoot [32]byte, senderAddress [20]byte, nonSignerStakesAndSignature servicemanager.IBLSSignatureCheckerNonSignerStakesAndSignature, gasBumpPercentage uint, gasBumpIncrementalPercentage uint, gasBumpPercentageLimit uint, timeToWaitBeforeBump time.Duration, metrics *metrics.Metrics, onSetGasPrice func(*big.Int)) (*types.Receipt, error) {
 	txOpts := *w.Signer.GetTxOpts()
 	txOpts.NoSend = true // simulate the transaction
 	simTx, err := w.RespondToTaskV2Retryable(&txOpts, batchMerkleRoot, senderAddress, nonSignerStakesAndSignature, retry.SendToChainRetryParams())
@@ -100,7 +100,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	// Set the nonce, as we might have to replace the transaction with a higher gas price
 	txNonce := big.NewInt(int64(simTx.Nonce()))
 	txOpts.Nonce = txNonce
-	txOpts.GasPrice = simTx.GasPrice()
+	txOpts.GasPrice = nil
 	txOpts.NoSend = false
 	i := 0
 
@@ -113,7 +113,16 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		if err != nil {
 			return nil, err
 		}
-		previousTxGasPrice := txOpts.GasPrice
+
+		// if txOpts.GasPrice wasn't previously set use the fetched gasPrice
+		// this should happen on the first iteration only
+		var previousTxGasPrice *big.Int
+		if txOpts.GasPrice == nil {
+			previousTxGasPrice = gasPrice
+		} else {
+			previousTxGasPrice = txOpts.GasPrice
+		}
+
 		// in order to avoid replacement transaction underpriced
 		// the bumped gas price has to be at least 10% higher than the previous one.
 		minimumGasPriceBump := utils.CalculateGasPriceBumpBasedOnRetry(previousTxGasPrice, 10, 0, gasBumpPercentageLimit, 0)
@@ -132,6 +141,8 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			txOpts.GasPrice = minimumGasPriceBump
 		}
 
+		onSetGasPrice(txOpts.GasPrice)
+
 		if i > 0 {
 			w.logger.Infof("Trying to get old sent transaction receipt before sending a new transaction", "merkle root", batchMerkleRootHashString)
 			for _, tx := range sentTxs {
@@ -139,7 +150,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 				if receipt == nil {
 					receipt, _ = w.ClientFallback.TransactionReceipt(context.Background(), tx.Hash())
 					if receipt != nil {
-						w.checkIfAggregatorHadToPaidForBatcher(tx, batchIdentifierHash)
+						w.updateAggregatorGasCostMetrics(receipt, batchIdentifierHash)
 						return receipt, nil
 					}
 				}
@@ -152,7 +163,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 			}
 			w.logger.Infof("Batch state has not been responded yet, will send a new tx", "merkle root", batchMerkleRootHashString)
 
-			onGasPriceBumped(txOpts.GasPrice)
+			metrics.IncBumpedGasPriceForAggregatedResponse()
 		}
 
 		// We compare both Aggregator funds and Batcher balance in Aligned against respondToTaskFeeLimit
@@ -174,7 +185,7 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 		w.logger.Infof("Transaction sent, waiting for receipt", "merkle root", batchMerkleRootHashString)
 		receipt, err := utils.WaitForTransactionReceiptRetryable(w.Client, w.ClientFallback, realTx.Hash(), retry.WaitForTxRetryParams(timeToWaitBeforeBump))
 		if receipt != nil {
-			w.checkIfAggregatorHadToPaidForBatcher(realTx, batchIdentifierHash)
+			w.updateAggregatorGasCostMetrics(receipt, batchIdentifierHash)
 			return receipt, nil
 		}
 
@@ -195,18 +206,20 @@ func (w *AvsWriter) SendAggregatedResponse(batchIdentifierHash [32]byte, batchMe
 	return retry.RetryWithData(respondToTaskV2Func, retry.RespondToTaskV2())
 }
 
-// Calculates the transaction cost from the receipt and compares it with the batcher respondToTaskFeeLimit
-// if the tx cost was higher, then it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
-// otherwise nothing is done.
-func (w *AvsWriter) checkIfAggregatorHadToPaidForBatcher(tx *types.Transaction, batchIdentifierHash [32]byte) {
+// Calculates the transaction cost from the receipt and updates the total amount paid by the aggregator metric
+// Then, it compares that tx cost with the batcher respondToTaskFeeLimit.
+// If the tx cost was higher, it means the aggregator has paid the difference for the batcher (txCost - respondToTaskFeeLimit) and so metrics are updated accordingly.
+func (w *AvsWriter) updateAggregatorGasCostMetrics(receipt *types.Receipt, batchIdentifierHash [32]byte) {
 	batchState, err := w.BatchesStateRetryable(&bind.CallOpts{}, batchIdentifierHash, retry.NetworkRetryParams())
 	if err != nil {
 		return
 	}
 	respondToTaskFeeLimit := batchState.RespondToTaskFeeLimit
 
-	// NOTE we are not using tx.Cost() because tx.Cost() includes tx.Value()
-	txCost := new(big.Int).Mul(big.NewInt(int64(tx.Gas())), tx.GasPrice())
+	txCost := new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), receipt.EffectiveGasPrice)
+
+	txCostInEth := utils.WeiToEth(txCost)
+	w.metrics.AddAggregatorGasCostPaidTotal(txCostInEth)
 
 	if respondToTaskFeeLimit.Cmp(txCost) < 0 {
 		aggregatorDifferencePaid := new(big.Int).Sub(txCost, respondToTaskFeeLimit)

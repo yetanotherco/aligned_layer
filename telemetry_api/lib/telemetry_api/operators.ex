@@ -1,4 +1,6 @@
 defmodule TelemetryApi.Operators do
+  require Logger
+
   @moduledoc """
   The Operators context.
   """
@@ -9,6 +11,7 @@ defmodule TelemetryApi.Operators do
   alias TelemetryApi.Operators.Operator
   alias TelemetryApi.ContractManagers.OperatorStateRetriever
   alias TelemetryApi.ContractManagers.DelegationManager
+  alias TelemetryApi.PrometheusMetrics
 
   @doc """
   Returns the list of operators.
@@ -95,6 +98,18 @@ defmodule TelemetryApi.Operators do
         |> Enum.filter(fn {status, _} -> status == :ok end)
         |> Enum.map(fn {_, data} -> data end)
 
+      # Initialize new_operators metrics
+      Enum.map(new_operators, fn {_, op_data} ->
+        op_name_address = op_data.name <> " - " <> String.slice(op_data.address, 0..7)
+        PrometheusMetrics.initialize_operator_metrics(op_name_address)
+      end)
+
+      # If the server was restarted, initialize old_operators metrics
+      Enum.map(old_operators, fn {op, _} ->
+        op_name_address = op.name <> " - " <> String.slice(op.address, 0..7)
+        PrometheusMetrics.initialize_operator_metrics(op_name_address)
+      end)
+
       # Merge both lists
       operators = (new_operators ++ old_operators)
 
@@ -117,6 +132,7 @@ defmodule TelemetryApi.Operators do
   #    {:error, string}
   #
   defp add_operator_metadata(op_data) do
+    Logger.info("Fetching metadata for operator: #{op_data.address}")
     with {:ok, url} <- DelegationManager.get_operator_url(op_data.address),
          {:ok, metadata} <- TelemetryApi.Utils.fetch_json_data(url) do
       operator = %{
@@ -127,6 +143,17 @@ defmodule TelemetryApi.Operators do
       }
 
       {:ok, operator}
+    else
+      {:error, reason} ->
+        Logger.error("Failed to fetch metadata for operator: #{op_data.address}. Reason: #{inspect(reason)}")
+        operator = %{
+          id: op_data.id,
+          address: op_data.address,
+          stake: op_data.stake,
+          name: op_data.address
+        }
+
+        {:ok, operator}
     end
   end
 

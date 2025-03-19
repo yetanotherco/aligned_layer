@@ -37,6 +37,10 @@ impl NonPayingConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct BatcherConfigFromYaml {
+    #[serde(default = "default_aggregator_fee_percentage_multiplier")]
+    pub aggregator_fee_percentage_multiplier: u128,
+    #[serde(default = "default_aggregator_gas_cost")]
+    pub aggregator_gas_cost: u128,
     pub block_interval: u64,
     pub transaction_wait_timeout: u64,
     pub max_proof_size: usize,
@@ -85,4 +89,12 @@ impl ContractDeploymentOutput {
             .expect("Failed to read deployment output file");
         serde_json::from_str(&deployment_output).expect("Failed to parse deployment output file")
     }
+}
+
+fn default_aggregator_fee_percentage_multiplier() -> u128 {
+    aligned_sdk::core::constants::DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER
+}
+
+fn default_aggregator_gas_cost() -> u128 {
+    aligned_sdk::core::constants::DEFAULT_AGGREGATOR_GAS_COST
 }

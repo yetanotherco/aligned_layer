@@ -1,6 +1,6 @@
 {
     "chainInfo": {
-      "chainId": 17000
+      "chainId": 1
     },
     "permissions" : {
       "aggregator": "<aggregator_address>", 
@@ -18,8 +18,56 @@
     "strategyWeights": [
       [
         {
-          "0_strategy": "TBD",
-          "1_multiplier": 1e+18
+          "0_strategy": "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
+          "1_multiplier": 1000000000000000000
+        },
+        {
+          "0_strategy": "0x93c4b944D05dfe6df7645A86cd2206016c51564D",
+          "1_multiplier": 1030077629425962827
+        },
+        {
+          "0_strategy": "0x1BeE69b7dFFfA4E2d53C2a2Df135C388AD25dCD2",
+          "1_multiplier": 1102456657360376283
+        },
+        {
+          "0_strategy": "0x54945180dB7943c0ed0FEE7EdaB2Bd24620256bc",
+          "1_multiplier": 1067949170243902475
+        },
+        {
+          "0_strategy": "0x9d7eD45EE2E8FC5482fa2428f15C971e6369011d",
+          "1_multiplier": 1026158078493781538
+        },
+        {
+          "0_strategy": "0x13760F50a9d7377e4F20CB8CF9e4c26586c658ff",
+          "1_multiplier": 1152393415227598758
+        },
+        {
+          "0_strategy": "0xa4C637e0F704745D182e4D38cAb7E7485321d059",
+          "1_multiplier": 1011855761455017859
+        },
+        {
+          "0_strategy": "0x57ba429517c3473B6d34CA9aCd56c0e735b94c02",
+          "1_multiplier": 1012495275290785447
+        },
+        {
+          "0_strategy": "0x0Fe4F44beE93503346A3Ac9EE5A26b130a5796d6",
+          "1_multiplier": 1055446649335815388
+        },
+        {
+          "0_strategy": "0x7CA911E83dabf90C90dD3De5411a10F1A6112184",
+          "1_multiplier": 1035345726488000000
+        },
+        {
+          "0_strategy": "0x8CA7A5d6f3acd3A7A8bC468a8CD0FB14B6BD28b6",
+          "1_multiplier": 1081259809521793439
+        },
+        {
+          "0_strategy": "0xAe60d8180437b5C34bB956822ac2710972584473",
+          "1_multiplier": 1044315639811926396
+        },
+        {
+          "0_strategy": "0x298aFB19A105D59E74658C4C334Ff360BadE6dd2",
+          "1_multiplier": 1028802524926876401
         }
       ]
     ],

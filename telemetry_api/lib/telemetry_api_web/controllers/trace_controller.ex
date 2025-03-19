@@ -123,14 +123,14 @@ defmodule TelemetryApiWeb.TraceController do
   end
 
   @doc """
-  Registers a gas price bump in the trace of the given merkle_root
-  Method: POST aggregatorTaskGasPriceBump
+  Registers a gas price in the trace of the given merkle_root
+  Method: POST aggregatorTaskSetGasPrice
   """
-  def aggregator_task_gas_price_bumped(conn, %{
+  def aggregator_task_set_gas_price(conn, %{
         "merkle_root" => merkle_root,
-        "bumped_gas_price" => bumped_gas_price
+        "gas_price" => gas_price
       }) do
-    with :ok <- Traces.aggregator_task_gas_price_bumped(merkle_root, bumped_gas_price) do
+    with :ok <- Traces.aggregator_task_set_gas_price(merkle_root, gas_price) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)
@@ -141,8 +141,8 @@ defmodule TelemetryApiWeb.TraceController do
   Register a task sent, from the aggregator, to Ethereum in the trace of the given merkle_root
   Method: POST aggregatorTaskSent
   """
-  def aggregator_task_sent(conn, %{"merkle_root" => merkle_root, "tx_hash" => tx_hash}) do
-    with :ok <- Traces.aggregator_task_sent(merkle_root, tx_hash) do
+  def aggregator_task_sent(conn, %{"merkle_root" => merkle_root, "tx_hash" => tx_hash, "effective_gas_price" => effective_gas_price}) do
+    with :ok <- Traces.aggregator_task_sent(merkle_root, tx_hash, effective_gas_price) do
       conn
       |> put_status(:ok)
       |> render(:show_merkle, merkle_root: merkle_root)

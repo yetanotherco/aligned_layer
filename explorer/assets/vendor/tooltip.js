@@ -41,7 +41,7 @@ class Tooltip {
 	setupFloatingUI() {
 		this.cleanup = autoUpdate(this.$parent, this.$tooltip, () => {
 			computePosition(this.$parent, this.$tooltip, {
-				placement: "top",
+				placement: "bottom",
 				middleware: [offset(5), flip(), shift({ padding: 5 })]
 			}).then(({ x, y }) => {
 				Object.assign(this.$tooltip.style, {

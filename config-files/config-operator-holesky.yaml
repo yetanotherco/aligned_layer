@@ -1,0 +1,34 @@
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: 'production'
+aligned_layer_deployment_config_file_path: './contracts/script/output/holesky/alignedlayer_deployment_output.json'
+eigen_layer_deployment_config_file_path: './contracts/script/output/holesky/eigenlayer_deployment_output.json'
+eth_rpc_url: 'https://ethereum-holesky-rpc.publicnode.com' # DO NOT USE PUBLIC NODE IN PRODUCTION
+eth_rpc_url_fallback: 'https://ethereum-holesky-rpc.publicnode.com'
+eth_ws_url: 'wss://ethereum-holesky-rpc.publicnode.com' # DO NOT USE PUBLIC NODE IN PRODUCTION
+eth_ws_url_fallback: 'wss://ethereum-holesky-rpc.publicnode.com'
+eigen_metrics_ip_port_address: 'localhost:9090'
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: '<ecdsa_key_store_location_path>'
+  private_key_store_password: '<ecdsa_key_store_password>'
+
+## BLS Configurations
+bls:
+  private_key_store_path: '<bls_key_store_location_path>'
+  private_key_store_password: '<bls_key_store_password>'
+
+## Operator Configurations
+operator:
+  aggregator_rpc_server_ip_port_address: holesky.aggregator.alignedlayer.com:8090
+  operator_tracker_ip_port_address: https://holesky.telemetry.alignedlayer.com
+  address: '<operator_address>'
+  earnings_receiver_address: '<earnings_receiver_address>' #Can be the same as the operator.
+  delegation_approver_address: '0x0000000000000000000000000000000000000000'
+  staker_opt_out_window_blocks: 0
+  metadata_url: <metadata_url>
+  enable_metrics: true
+  metrics_ip_port_address: localhost:9092
+  max_batch_size: 268435456 # 256 MiB
+  last_processed_batch_filepath: 'config-files/operator.last_processed_batch.json'

@@ -31,15 +31,57 @@ defmodule EthConverter do
     |> wei_to_eth(decimal_places)
   end
 
-  def wei_to_usd(wei, decimal_places \\ 2) do
+  def wei_to_usd(wei, decimal_places \\ 0)
+
+  def wei_to_usd(nil, _), do: {:error, "nil value"}
+
+  def wei_to_usd(wei, decimal_places) do
     with eth_amount <- wei_to_eth(wei, 18),
          {:ok, eth_price} <- get_eth_price_usd() do
-      usd_value = Decimal.mult(Decimal.new(eth_amount), Decimal.new(eth_price))
+      usd_value =
+        Decimal.mult(Decimal.new(to_string(eth_amount)), Decimal.new(to_string(eth_price)))
+
       {:ok, Decimal.round(usd_value, decimal_places) |> Decimal.to_string(:normal)}
     else
       {:error, reason} -> {:error, reason}
-      _ -> {:error, "Failed to convert wei to USD"}
     end
+  end
+
+  def wei_to_usd_sf(wei, significant_figures \\ 3)
+  def wei_to_usd_sf(nil, _), do: {:error, "nil value"}
+
+  # rounds to significant figures, instead of decimal places
+  def wei_to_usd_sf(wei, significant_figures) do
+    with eth_amount <- wei_to_eth(wei, 18),
+         {:ok, eth_price} <- get_eth_price_usd() do
+      usd_value =
+        Decimal.mult(Decimal.new(to_string(eth_amount)), Decimal.new(to_string(eth_price)))
+
+      rounded_value = round_to_sf(usd_value, significant_figures)
+
+      {:ok, Decimal.to_string(rounded_value, :normal)}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp round_to_sf(%Decimal{coef: 0} = _value, _sf), do: Decimal.new("0")
+
+  defp round_to_sf(value, significant_figures) do
+    # Convert the value to a float and calculate the magnitude
+    value_float = Decimal.to_float(value)
+    magnitude = :math.log10(abs(value_float)) |> floor()
+
+    # Calculate the factor to multiply by for shifting the decimal point
+    factor = :math.pow(10, significant_figures - 1 - magnitude)
+
+    # Round, then shift back
+    rounded_value = value_float
+                    |> Kernel.*(factor)
+                    |> round()
+                    |> Kernel./(factor)
+
+    Decimal.new(Float.to_string(rounded_value))
   end
 
   def multiply_eth_by_usd(eth, usd_price) do

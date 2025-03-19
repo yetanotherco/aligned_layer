@@ -31,7 +31,7 @@ In this guide we pause and unpause the AlignedLayerServiceManager and BatcherPay
 
     ```shell
     make install_foundry
-    foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
+    foundryup -i nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
 
 ## Steps for Pausing

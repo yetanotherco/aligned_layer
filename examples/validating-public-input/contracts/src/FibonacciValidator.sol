@@ -6,10 +6,10 @@ contract FibonacciValidator {
     address public paymentServiceAddr;
 
     bytes32 public fibonacciProgramIdCommitmentSp1 =
-        0xb9fd43bd969f26da100354ebceefd56dd4c068f81cba2f152742c7ddbd9bb97e;
+        0x588277d2461159223e7a688895a8e8529ce33f54730d1528c960d3c67e468520;
     
     bytes32 public fibonacciProgramIdCommitmentRisc0 =
-        0x1894c0448514623e9de57947fdf3945eab49dc46ff2e72d0b5fb3fb41ed56db4;
+        0x52075f80c0b914b6cb8d86a2827b30b1252b58f2aa0173b993188650a538d5c5;
 
     error InvalidProgramID(string verifier, bytes32 submitted, bytes32 required); //051ce67c
 

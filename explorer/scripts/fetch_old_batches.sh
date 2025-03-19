@@ -14,6 +14,7 @@ export ALIGNED_CONFIG_FILE=$ALIGNED_CONFIG_FILE
 
 if [ "$#" -eq 0 ]; then
     echo "Error, No arguments provided."
+    echo "Try running the make target with FROM_BLOCK=<n> TO_BLOCK=<m>"
     exit 1
 elif [ "$#" -eq 2 ]; then
     # Two arguments provided, use them
@@ -21,6 +22,7 @@ elif [ "$#" -eq 2 ]; then
     TO=$2
 else
     echo "Please provide 2 arguments."
+    echo "Try running the make target with FROM_BLOCK=<n> TO_BLOCK=<m>"
     exit 1
 fi
 

@@ -15,7 +15,7 @@ defmodule TelemetryApiWeb.Router do
     post "/operatorResponse", TraceController, :register_operator_response
     post "/quorumReached", TraceController, :quorum_reached
     post "/taskError", TraceController, :task_error
-    post "/aggregatorTaskGasPriceBump", TraceController, :aggregator_task_gas_price_bumped
+    post "/aggregatorTaskSetGasPrice", TraceController, :aggregator_task_set_gas_price
     post "/aggregatorTaskSent", TraceController, :aggregator_task_sent
     post "/finishTaskTrace", TraceController, :finish_task_trace
 
@@ -29,8 +29,8 @@ defmodule TelemetryApiWeb.Router do
   scope "/versions", TelemetryApiWeb do
     pipe_through :api
 
-    get "/", OperatorController, :index
-    get "/:id", OperatorController, :show
+    get "/", OperatorController, :index_public
+    get "/:id", OperatorController, :show_public
     post "/", OperatorController, :create_or_update
   end
 

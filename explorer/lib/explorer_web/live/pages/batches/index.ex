@@ -1,6 +1,7 @@
 defmodule ExplorerWeb.Batches.Index do
   alias Phoenix.PubSub
   require Logger
+  import ExplorerWeb.BatchesTable
   use ExplorerWeb, :live_view
 
   @page_size 15
@@ -9,14 +10,21 @@ defmodule ExplorerWeb.Batches.Index do
   def mount(params, _, socket) do
     current_page = get_current_page(params)
 
-    batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+    batches =
+      Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+      |> Helpers.enrich_batches()
 
     if connected?(socket), do: PubSub.subscribe(Explorer.PubSub, "update_views")
+
+    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
 
     {:ok,
      assign(socket,
        current_page: current_page,
        batches: batches,
+       next_scheduled_batch_remaining_time_percentage:
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+       next_scheduled_batch_remaining_time: remaining_time,
        last_page: Batches.get_last_page(@page_size),
        page_title: "Batches"
      )}
@@ -26,9 +34,20 @@ defmodule ExplorerWeb.Batches.Index do
   def handle_info(_, socket) do
     current_page = socket.assigns.current_page
 
-    batches = Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+    batches =
+      Batches.get_paginated_batches(%{page: current_page, page_size: @page_size})
+      |> Helpers.enrich_batches()
 
-    {:noreply, assign(socket, batches: batches, last_page: Batches.get_last_page(@page_size))}
+    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
+
+    {:noreply,
+     assign(socket,
+       batches: batches,
+       next_scheduled_batch_remaining_time_percentage:
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+       next_scheduled_batch_remaining_time: remaining_time,
+       last_page: Batches.get_last_page(@page_size)
+     )}
   end
 
   @impl true
@@ -52,5 +71,5 @@ defmodule ExplorerWeb.Batches.Index do
     end
   end
 
-  embed_templates "*"
+  embed_templates("*")
 end

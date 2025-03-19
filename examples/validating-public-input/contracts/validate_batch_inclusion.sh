@@ -37,13 +37,13 @@ pub_input=$(jq -r '.pub_input' "../aligned-integration/batch_inclusion_data/$DAT
 
 cast send --rpc-url $RPC_URL $FIBONACCI_VALIDATOR_ADDRESS \
 	"verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256, bytes, string)" \
-    $proof_commitment \
-    $pub_input_commitment \
-    $program_id_commitment \
-    $proof_generator_addr \
-    $batch_merkle_root \
-    $merkle_proof \
-    $verification_data_batch_index \
-    $pub_input \
+    0x$proof_commitment \
+    0x$pub_input_commitment \
+    0x$program_id_commitment \
+    0x$proof_generator_addr \
+    0x$batch_merkle_root \
+    0x$merkle_proof \
+    0x$verification_data_batch_index \
+    0x$pub_input \
     $VERIFIER_ID \
     --private-key $PRIVATE_KEY

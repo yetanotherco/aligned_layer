@@ -31,3 +31,10 @@ aggregator:
   garbage_collector_tasks_age: 20 #The age of tasks that will be removed by the GC, in blocks. Suggested value for prod: '216000' (30 days)
   garbage_collector_tasks_interval: 10 #The interval of queried blocks to get an old batch. Suggested value for prod: '900' (3 hours)
   bls_service_task_timeout: 168h # The timeout of bls aggregation service tasks. Suggested value for prod '168h' (7 days)
+  gas_base_bump_percentage: 25 # Percentage to overestimate gas price when sending a task
+  gas_bump_incremental_percentage: 20 # An extra percentage to overestimate in each bump of respond to task. This is additive between tries
+  # Gas used formula = est_gas_by_node * (gas_base_bump_percentage + gas_bum_incremental_percentage * i) / 100, where i is the iteration number.
+  gas_bump_percentage_limit: 150 # The max percentage to bump the gas price.
+  # The Gas formula is percentage (gas_base_bump_percentage + gas_bump_incremental_percentage * i) / 100) is checked against this value
+  # If it is higher, it will default to `gas_bump_percentage_limit`
+  time_to_wait_before_bump: 72s # The time to wait for the receipt when responding to task. Suggested value 72 seconds (6 blocks)

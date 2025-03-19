@@ -18,7 +18,7 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
     ```shell
     make install_foundry
-    foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
+    foundryup -i nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
   
 ## AlignedServiceManager Contracts

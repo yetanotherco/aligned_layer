@@ -126,4 +126,21 @@ defmodule Restakings do
         |> EthConverter.wei_to_eth(2)
     end
   end
+  
+  def get_restaked_amount_usd() do
+    restaked_amount_wei =
+      Restakings.get_aggregated_restakings()
+      |> Map.get(:total_stake)
+
+    case restaked_amount_wei do
+      nil ->
+        nil
+
+      _ ->
+        case EthConverter.wei_to_usd(restaked_amount_wei, 0) do
+          {:ok, usd_value} -> usd_value
+          _ -> nil
+        end
+    end
+  end
 end

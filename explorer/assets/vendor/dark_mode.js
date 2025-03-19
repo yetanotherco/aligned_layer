@@ -1,10 +1,15 @@
-const localStorageKey = "theme";
+const themeCookieKey = "theme";
 
 const isDark = () => {
-	if (localStorage.getItem(localStorageKey) === "dark") return true;
-	if (localStorage.getItem(localStorageKey) === "light")
-		return false;
-	return window.matchMedia("(prefers-color-scheme: dark)").matches;
+	const theme = document.cookie
+		.split("; ")
+		.find((row) => row.startsWith(`${themeCookieKey}=`))
+		?.split("=")[1];
+	return theme == "dark";
+};
+
+const setThemeCookie = (theme) => {
+	document.cookie = `${themeCookieKey}=${theme}; path=/; max-age=31536000; SameSite=Strict;`; // would expire in a yer
 };
 
 const setupThemeToggle = () => {
@@ -15,30 +20,18 @@ const setupThemeToggle = () => {
 		const themeToggleLightIcon = document.getElementById(
 			"theme-toggle-light-icon"
 		);
-		if (
-			themeToggleDarkIcon == null ||
-			themeToggleLightIcon == null
-		)
-			return;
-		const show = dark
-			? themeToggleDarkIcon
-			: themeToggleLightIcon;
-		const hide = dark
-			? themeToggleLightIcon
-			: themeToggleDarkIcon;
+		if (themeToggleDarkIcon == null || themeToggleLightIcon == null) return;
+		const show = dark ? themeToggleDarkIcon : themeToggleLightIcon;
+		const hide = dark ? themeToggleLightIcon : themeToggleDarkIcon;
 		show.classList.remove("hidden", "text-transparent");
 		hide.classList.add("hidden", "text-transparent");
 		if (dark) {
 			document.documentElement.classList.add("dark");
+			setThemeCookie("dark");
 		} else {
 			document.documentElement.classList.remove("dark");
+			setThemeCookie("light");
 		}
-		try {
-			localStorage.setItem(
-				localStorageKey,
-				dark ? "dark" : "light"
-			);
-		} catch (_err) {}
 	};
 	toggleVisibility(isDark());
 	document
@@ -52,7 +45,7 @@ const darkModeHook = {
 	mounted() {
 		setupThemeToggle();
 	},
-	updated() {}
+	updated() {},
 };
 
 export default darkModeHook;

@@ -1,32 +1,22 @@
 <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
   <.card_preheding>Batches</.card_preheding>
+  <!-- Progress bar based on https://dev.to/mikekennedydev/progress-bar-text-colour-1gg6 -->
+  <.live_component
+  id="labeled-progress-bar"
+  module={LabeledProgressBarComponent}
+  percent_progress={@next_scheduled_batch_remaining_time_percentage}
+  label={
+    case @next_scheduled_batch_remaining_time do
+      0 -> "Next batch is around the corner!"
+      time -> "Next batch in #{time} minutes" 
+    end
+  }/>
   <%= if @batches != :empty and @batches != [] do %>
-    <.table id="batches" rows={@batches}>
-      <:col :let={batch} label="Batch Hash" class="text-left">
-        <.link navigate={~p"/batches/#{batch.merkle_root}"}>
-          <span class="inline-flex gap-x-3 col-span-2 items-center group-hover:text-foreground/80">
-            <%= Helpers.shorten_hash(batch.merkle_root, 6) %>
-            <.right_arrow />
-            <.tooltip>
-              <%= batch.merkle_root %>
-            </.tooltip>
-          </span>
-        </.link>
-      </:col>
-      <:col :let={batch} label="Status">
-        <.dynamic_badge_for_batcher status={Helpers.get_batch_status(batch)} />
-      </:col>
-      <:col :let={batch} label="Age">
-        <span class="md:px-0" title={batch.submission_timestamp}>
-          <%= batch.submission_timestamp |> Helpers.parse_timeago() %>
-        </span>
-      </:col>
-      <:col :let={batch} label="Submission Block Number">
-        <%= batch.submission_block_number |> Helpers.format_number() %>
-      </:col>
-    </.table>
+    <.card_background class="w-full overflow-x-auto sm:col-span-2">
+      <.batches_table batches={@batches} />
+    </.card_background>
   <% else %>
-    <.empty_card_background text="No batches found." />
+    <.empty_card_background text="No Batches To Display." class="sm:col-span-2" />
   <% end %>
   <div class="flex gap-x-2 items-center justify-center w-full">
     <%= if @current_page >= 2 do %>
@@ -39,9 +29,9 @@
     <%= if @current_page > 1 do %>
       <.link navigate={~p"/batches?page=#{@current_page - 1}"}>
         <.button
-          icon="arrow-left-solid"
-          icon_class="group-hover:-translate-x-1 transition-all duration-150"
-          class="text-muted-foreground size-10 group"
+          icon="arrow-right-solid"
+          icon_class="group-hover:translate-x-1 transition-all duration-150"
+          class="text-muted-foreground size-10 group rotate-180"
         >
           <span class="sr-only">Previous Page</span>
         </.button>
@@ -55,7 +45,7 @@
         type="number"
         class={
           classes([
-            "border border-foreground/20 text-muted-foreground w-20 focus:ring-primary",
+            "text-center border border-foreground/20 text-muted-foreground w-20 focus:ring-primary",
             "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
             "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
             "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"

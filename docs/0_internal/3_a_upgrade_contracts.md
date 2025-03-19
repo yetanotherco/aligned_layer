@@ -20,7 +20,7 @@ If you deployed the contract using a Multisig wallet, you can follow the [Upgrad
 
     ```sh
     make install_foundry
-    foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
+    foundryup -i nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
 
 - Add the following variables to the `.env` file:

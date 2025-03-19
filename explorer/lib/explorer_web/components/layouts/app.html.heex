@@ -1,5 +1,6 @@
-<.live_component module={NavComponent} id="navbar" />
+<.live_component module={NavComponent} id="navbar" host={@host} theme={@theme} />
 <.root_background>
   <.flash_group flash={@flash} />
   <%= @inner_content %>
 </.root_background>
+<.live_component module={FooterComponent} id="footer" />

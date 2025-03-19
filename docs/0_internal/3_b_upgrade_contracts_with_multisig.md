@@ -32,7 +32,7 @@ In this guide we make an upgrade of Aligned Layer Service Manager contract using
 
     ```shell
     make install_foundry
-    foundryup -v nightly-a428ba6ad8856611339a6319290aade3347d25d9
+    foundryup -i nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
 
 ## Steps

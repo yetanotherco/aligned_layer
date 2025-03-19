@@ -27,8 +27,12 @@ Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
 
 ### Requirements
 
-1. [Rust](https://www.rust-lang.org/tools/install)
+1. [Rust v1.80.0](https://www.rust-lang.org/tools/install)
 2. [Foundry](https://getfoundry.sh)
+
+{% hint style="info" %}
+ELF commitment was generated with Rust v1.80.1 and SP1 v3.0.0.
+{% endhint %}
 
 ### Usage
 

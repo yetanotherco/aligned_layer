@@ -13,19 +13,19 @@ generate_sp1_fibonacci_proof:
 
 submit_fibonacci_sp1_proof_devnet:
 	@cd aligned-integration && \
-	RUST_LOG=info cargo run --release -- --proving-system "SP1" --network "devnet" --batcher-url "ws://localhost:8080" --rpc-url "http://localhost:8545"
+	RUST_LOG=info cargo run --release -- --proving-system "SP1" --network "devnet" --rpc-url "http://localhost:8545"
 
 submit_fibonacci_sp1_proof:
 	@cd aligned-integration && \
-	RUST_LOG=info cargo run --release -- --keystore-path $(KEYSTORE_PATH) --proving-system "SP1"
+	RUST_LOG=info cargo run --release -- --keystore-path $(KEYSTORE_PATH) --proving-system "SP1" --network "holesky"
 
 submit_fibonacci_risc0_proof_devnet:
 	@cd aligned-integration && \
-	RUST_LOG=info cargo run --release -- --proving-system "Risc0" --network "devnet" --batcher-url "ws://localhost:8080" --rpc-url "http://localhost:8545"
+	RUST_LOG=info cargo run --release -- --proving-system "Risc0" --network "devnet" --rpc-url "http://localhost:8545"
 
 submit_fibonacci_risc0_proof:
 	@cd aligned-integration && \
-	RUST_LOG=info cargo run --release -- --keystore-path $(KEYSTORE_PATH) --proving-system "Risc0"
+	RUST_LOG=info cargo run --release -- --keystore-path $(KEYSTORE_PATH) --proving-system "Risc0" --network "holesky"
 
 verify_sp1_batch_inclusion:
 	@. ./contracts/.env  && . ./contracts/validate_batch_inclusion.sh $(FIBONACCI_VALIDATOR_ADDRESS) $(DATA_FILE_NAME) SP1

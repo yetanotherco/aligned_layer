@@ -11,7 +11,7 @@ defmodule Scripts.FetchOldBatches do
 
   def fetch_old_events(fromBlock, toBlock) do
     "Fetching old events, from #{fromBlock} to #{toBlock}" |> Logger.debug()
-    chunk_size = 32 # do in smaller chunks, if there are too many blocks to process
+    chunk_size = 500 # do in smaller chunks, if there are too many blocks to process
     chunkify(fromBlock, toBlock, chunk_size) |> Enum.each(&make_request/1)
     "✅ Done fetching old events" |> Logger.debug()
   end

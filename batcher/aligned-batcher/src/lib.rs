@@ -12,10 +12,11 @@ use retry::batcher_retryables::{
     user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
-use tokio::time::timeout;
+use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
+use batch_queue::calculate_batch_size;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -23,9 +24,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use aligned_sdk::core::constants::{
-    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, AGGREGATOR_GAS_COST, BUMP_BACKOFF_FACTOR,
-    BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY, CONNECTION_TIMEOUT,
-    CONSTANT_GAS_COST, DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER, DEFAULT_MAX_FEE_PER_PROOF,
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, BATCHER_SUBMISSION_BASE_GAS_COST,
+    BUMP_BACKOFF_FACTOR, BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY,
+    CBOR_ARRAY_MAX_OVERHEAD, CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF,
     ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
     ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
@@ -48,7 +49,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
-use types::errors::BatcherError;
+use types::errors::{BatcherError, TransactionSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::telemetry::sender::TelemetrySender;
@@ -92,6 +93,8 @@ pub struct Batcher {
     non_paying_config: Option<NonPayingConfig>,
     posting_batch: Mutex<bool>,
     disabled_verifiers: Mutex<U256>,
+    aggregator_fee_percentage_multiplier: u128,
+    aggregator_gas_cost: u128,
     pub metrics: metrics::BatcherMetrics,
     pub telemetry: TelemetrySender,
 }
@@ -112,6 +115,16 @@ impl Batcher {
         let s3_client = s3::create_client(upload_endpoint).await;
 
         let config = ConfigFromYaml::new(config_file);
+        // Ensure max_batch_bytes_size can at least hold one proof of max_proof_size,
+        // including the overhead introduced by serialization
+        assert!(
+            config.batcher.max_proof_size + CBOR_ARRAY_MAX_OVERHEAD
+                <= config.batcher.max_batch_byte_size,
+            "max_batch_bytes_size ({}) not big enough for one max_proof_size ({}) proof",
+            config.batcher.max_batch_byte_size,
+            config.batcher.max_proof_size
+        );
+
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
@@ -253,6 +266,10 @@ impl Batcher {
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
+            aggregator_fee_percentage_multiplier: config
+                .batcher
+                .aggregator_fee_percentage_multiplier,
+            aggregator_gas_cost: config.batcher.aggregator_gas_cost,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
             disabled_verifiers: Mutex::new(disabled_verifiers),
@@ -1043,10 +1060,13 @@ impl Batcher {
             BatchQueueEntryPriority::new(max_fee, nonce),
         );
 
-        info!(
-            "Current batch queue length: {}",
-            batch_state_lock.batch_queue.len()
-        );
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
+        info!("Current batch queue length: {}", queue_len);
 
         let mut proof_submitter_addr = proof_submitter_addr;
 
@@ -1116,16 +1136,17 @@ impl Batcher {
     /// an empty batch, even if the block interval has been reached.
     /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
     /// `finalize_batch` function.
+    /// This function doesn't remove the proofs from the queue.
     async fn is_batch_ready(
         &self,
         block_number: u64,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
-        let mut batch_state_lock = self.batch_state.lock().await;
+        let batch_state_lock = self.batch_state.lock().await;
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
-        if current_batch_len < 2 {
+        if current_batch_len < 1 {
             info!(
                 "Current batch has {} proofs. Waiting for more proofs...",
                 current_batch_len
@@ -1153,11 +1174,12 @@ impl Batcher {
         // Set the batch posting flag to true
         *batch_posting = true;
         let batch_queue_copy = batch_state_lock.batch_queue.clone();
-        let (resulting_batch_queue, finalized_batch) = batch_queue::try_build_batch(
+        let finalized_batch = batch_queue::try_build_batch(
             batch_queue_copy,
             gas_price,
             self.max_batch_byte_size,
             self.max_batch_proof_qty,
+            self.constant_gas_cost(),
         )
         .inspect_err(|e| {
             *batch_posting = false;
@@ -1173,7 +1195,26 @@ impl Batcher {
         })
         .ok()?;
 
-        batch_state_lock.batch_queue = resulting_batch_queue;
+        Some(finalized_batch)
+    }
+
+    /// Takes the submitted proofs and removes them from the queue.
+    /// This function should be called only AFTER the submission was confirmed onchain
+    async fn remove_proofs_from_queue(
+        &self,
+        finalized_batch: Vec<BatchQueueEntry>,
+    ) -> Result<(), BatcherError> {
+        info!("Removing proofs from queue...");
+        let mut batch_state_lock = self.batch_state.lock().await;
+
+        finalized_batch.iter().for_each(|entry| {
+            if batch_state_lock.batch_queue.remove(entry).is_none() {
+                // If this happens, we have a bug in our code
+                error!("Some proofs were not found in the queue. This should not happen.");
+            }
+        });
+
+        // now we calculate the new user_states
         let new_user_states = // proofs, max_fee_limit, total_fees_in_queue
             batch_state_lock.calculate_new_user_states_data();
 
@@ -1189,17 +1230,40 @@ impl Batcher {
             // informative error.
 
             // Now we update the user states related to the batch (proof count in batch and min fee in batch)
-            batch_state_lock.update_user_proof_count(addr, *proof_count)?;
-            batch_state_lock.update_user_max_fee_limit(addr, *max_fee_limit)?;
-            batch_state_lock.update_user_total_fees_in_queue(addr, *total_fees_in_queue)?;
+            batch_state_lock
+                .update_user_proof_count(addr, *proof_count)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_proof_count".into(),
+                ))?;
+            batch_state_lock
+                .update_user_max_fee_limit(addr, *max_fee_limit)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_max_fee_limit".into(),
+                ))?;
+            batch_state_lock
+                .update_user_total_fees_in_queue(addr, *total_fees_in_queue)
+                .ok_or(BatcherError::QueueRemoveError(
+                    "Could not update_user_total_fees_in_queue".into(),
+                ))?;
         }
 
-        Some(finalized_batch)
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
+        Ok(())
     }
 
-    /// Takes the finalized batch as input and builds the merkle tree, posts verification data batch
-    /// to s3, creates new task in Aligned contract and sends responses to all clients that added proofs
-    /// to the batch. The last uploaded batch block is updated once the task is created in Aligned.
+    /// Takes the finalized batch as input and:
+    ///     builds the merkle tree
+    ///     posts verification data batch to s3
+    ///     creates new task in Aligned contract
+    ///     removes the proofs from the queue, once they are succesfully submitted on-chain
+    ///     sends responses to all clients that added proofs to the batch.
+    /// The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(
         &self,
         block_number: u64,
@@ -1257,6 +1321,7 @@ impl Batcher {
             warn!("Failed to initialize task trace on telemetry: {:?}", e);
         }
 
+        // Here we submit the batch on-chain
         if let Err(e) = self
             .submit_batch(
                 &batch_bytes,
@@ -1275,26 +1340,29 @@ impl Batcher {
             {
                 warn!("Failed to send task status to telemetry: {:?}", e);
             }
-            for entry in finalized_batch.into_iter() {
-                if let Some(ws_sink) = entry.messaging_sink {
-                    let merkle_root = hex::encode(batch_merkle_tree.root);
-                    send_message(
-                        ws_sink.clone(),
-                        SubmitProofResponseMessage::CreateNewTaskError(
-                            merkle_root,
-                            format!("{:?}", e),
-                        ),
-                    )
-                    .await
-                } else {
-                    warn!("Websocket sink was found empty. This should only happen in tests");
+
+            // decide if i want to flush the queue:
+            match e {
+                BatcherError::TransactionSendError(
+                    TransactionSendError::SubmissionInsufficientBalance,
+                ) => {
+                    // TODO calling remove_proofs_from_queue here is a better solution, flushing only the failed batch
+                    // this would also need a message sent to the clients
+                    self.flush_queue_and_clear_nonce_cache().await;
+                }
+                _ => {
+                    // Add more cases here if we want in the future
                 }
             }
 
-            self.flush_queue_and_clear_nonce_cache().await;
-
             return Err(e);
         };
+
+        // Once the submit is succesfull, we remove the submitted proofs from the queue
+        // TODO handle error case:
+        if let Err(e) = self.remove_proofs_from_queue(finalized_batch.clone()).await {
+            error!("Unexpected error while updating queue: {:?}", e);
+        }
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
@@ -1333,6 +1401,8 @@ impl Batcher {
         batch_state_lock
             .user_states
             .insert(nonpaying_replacement_addr, nonpaying_user_state);
+
+        self.metrics.update_queue_metrics(0, 0);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
@@ -1388,32 +1458,16 @@ impl Batcher {
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
-
-        info!("Uploading batch to S3...");
-        self.upload_batch_to_s3(batch_bytes, &file_name).await?;
-
-        if let Err(e) = self
-            .telemetry
-            .task_uploaded_to_s3(&batch_merkle_root_hex)
-            .await
-        {
-            warn!("Failed to send task status to telemetry: {:?}", e);
-        };
-        info!("Batch sent to S3 with name: {}", file_name);
-
-        info!("Uploading batch to contract");
         let batch_data_pointer: String = "".to_owned() + &self.download_endpoint + "/" + &file_name;
 
         let num_proofs_in_batch = leaves.len();
-
-        let gas_per_proof = (CONSTANT_GAS_COST
+        let gas_per_proof = (self.constant_gas_cost()
             + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
             / num_proofs_in_batch as u128;
-
         let fee_per_proof = U256::from(gas_per_proof) * gas_price;
-        let fee_for_aggregator = (U256::from(AGGREGATOR_GAS_COST)
+        let fee_for_aggregator = (U256::from(self.aggregator_gas_cost)
             * gas_price
-            * U256::from(DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER))
+            * U256::from(self.aggregator_fee_percentage_multiplier))
             / U256::from(PERCENTAGE_DIVIDER);
         let respond_to_task_fee_limit = (fee_for_aggregator
             * U256::from(RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER))
@@ -1425,12 +1479,31 @@ impl Batcher {
             respond_to_task_fee_limit,
         );
 
-        let proof_submitters = finalized_batch.iter().map(|entry| entry.sender).collect();
+        let proof_submitters: Vec<Address> =
+            finalized_batch.iter().map(|entry| entry.sender).collect();
+
+        self.simulate_create_new_task(
+            *batch_merkle_root,
+            batch_data_pointer.clone(),
+            proof_submitters.clone(),
+            fee_params.clone(),
+        )
+        .await?;
 
         self.metrics
             .gas_price_used_on_latest_batch
             .set(gas_price.as_u64() as i64);
 
+        info!("Uploading batch to S3...");
+        self.upload_batch_to_s3(batch_bytes, &file_name).await?;
+        if let Err(e) = self
+            .telemetry
+            .task_uploaded_to_s3(&batch_merkle_root_hex)
+            .await
+        {
+            warn!("Failed to send task status to telemetry: {:?}", e);
+        };
+        info!("Batch sent to S3 with name: {}", file_name);
         if let Err(e) = self
             .telemetry
             .task_created(
@@ -1443,6 +1516,7 @@ impl Batcher {
             warn!("Failed to send task status to telemetry: {:?}", e);
         };
 
+        info!("Submitting batch to contract");
         match self
             .create_new_task(
                 *batch_merkle_root,
@@ -1458,10 +1532,7 @@ impl Batcher {
                 Ok(())
             }
             Err(e) => {
-                error!(
-                    "Failed to send batch to contract, batch will be lost: {:?}",
-                    e
-                );
+                error!("Failed to send batch to contract: {:?}", e);
 
                 self.metrics.reverted_batches.inc();
                 Err(e)
@@ -1480,7 +1551,63 @@ impl Batcher {
         proof_submitters: Vec<Address>,
         fee_params: CreateNewTaskFeeParams,
     ) -> Result<TransactionReceipt, BatcherError> {
-        // First, we simulate the tx
+        let start = Instant::now();
+        let result = retry_function(
+            || {
+                create_new_task_retryable(
+                    batch_merkle_root,
+                    batch_data_pointer.clone(),
+                    proof_submitters.clone(),
+                    fee_params.clone(),
+                    self.transaction_wait_timeout,
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await;
+        self.metrics
+            .create_new_task_duration
+            .set(start.elapsed().as_millis() as i64);
+        // Set to zero since it is not always executed
+        self.metrics.cancel_create_new_task_duration.set(0);
+        match result {
+            Ok(receipt) => {
+                if let Err(e) = self
+                    .telemetry
+                    .task_sent(&hex::encode(batch_merkle_root), receipt.transaction_hash)
+                    .await
+                {
+                    warn!("Failed to send task status to telemetry: {:?}", e);
+                }
+                let gas_cost = Self::gas_cost_in_eth(receipt.effective_gas_price, receipt.gas_used);
+                self.metrics
+                    .batcher_gas_cost_create_task_total
+                    .inc_by(gas_cost);
+                Ok(receipt)
+            }
+            Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
+                self.metrics.canceled_batches.inc();
+                self.cancel_create_new_task_tx(fee_params.gas_price).await;
+                Err(BatcherError::ReceiptNotFoundError)
+            }
+            Err(RetryError::Permanent(e)) | Err(RetryError::Transient(e)) => Err(e),
+        }
+    }
+
+    /// Simulates the `create_new_task` transaction by sending an `eth_call` to the RPC node.
+    /// This function does not mutate the state but verifies if it will revert under the given conditions.
+    async fn simulate_create_new_task(
+        &self,
+        batch_merkle_root: [u8; 32],
+        batch_data_pointer: String,
+        proof_submitters: Vec<Address>,
+        fee_params: CreateNewTaskFeeParams,
+    ) -> Result<(), BatcherError> {
         retry_function(
             || {
                 simulate_create_new_task_retryable(
@@ -1500,43 +1627,7 @@ impl Batcher {
         .await
         .map_err(|e| e.inner())?;
 
-        // Then, we send the real tx
-        let result = retry_function(
-            || {
-                create_new_task_retryable(
-                    batch_merkle_root,
-                    batch_data_pointer.clone(),
-                    proof_submitters.clone(),
-                    fee_params.clone(),
-                    self.transaction_wait_timeout,
-                    &self.payment_service,
-                    &self.payment_service_fallback,
-                )
-            },
-            ETHEREUM_CALL_MIN_RETRY_DELAY,
-            ETHEREUM_CALL_BACKOFF_FACTOR,
-            ETHEREUM_CALL_MAX_RETRIES,
-            ETHEREUM_CALL_MAX_RETRY_DELAY,
-        )
-        .await;
-        match result {
-            Ok(receipt) => {
-                if let Err(e) = self
-                    .telemetry
-                    .task_sent(&hex::encode(batch_merkle_root), receipt.transaction_hash)
-                    .await
-                {
-                    warn!("Failed to send task status to telemetry: {:?}", e);
-                }
-                Ok(receipt)
-            }
-            Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
-                self.metrics.canceled_batches.inc();
-                self.cancel_create_new_task_tx(fee_params.gas_price).await;
-                Err(BatcherError::ReceiptNotFoundError)
-            }
-            Err(RetryError::Permanent(e)) | Err(RetryError::Transient(e)) => Err(e),
-        }
+        Ok(())
     }
 
     /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
@@ -1546,10 +1637,11 @@ impl Batcher {
     /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
     pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
         info!("Cancelling createNewTask transaction...");
+        let start = Instant::now();
         let iteration = Arc::new(Mutex::new(0));
         let previous_gas_price = Arc::new(Mutex::new(old_tx_gas_price));
 
-        if let Err(e) = retry_function(
+        match retry_function(
             || async {
                 let mut iteration = iteration.lock().await;
                 let mut previous_gas_price = previous_gas_price.lock().await;
@@ -1585,11 +1677,38 @@ impl Batcher {
         )
         .await
         {
-            error!("Could not cancel createNewTask transaction: {e}");
-            return;
+            Ok(receipt) => {
+                info!("createNewTask transaction successfully canceled");
+                let gas_cost = Self::gas_cost_in_eth(receipt.effective_gas_price, receipt.gas_used);
+                self.metrics
+                    .batcher_gas_cost_cancel_task_total
+                    .inc_by(gas_cost);
+            }
+            Err(e) => error!("Could not cancel createNewTask transaction: {e}"),
         };
+        self.metrics
+            .cancel_create_new_task_duration
+            .set(start.elapsed().as_millis() as i64);
+    }
 
-        info!("createNewTask transaction successfully canceled");
+    fn gas_cost_in_eth(gas_price: Option<U256>, gas_used: Option<U256>) -> f64 {
+        if let (Some(gas_price), Some(gas_used)) = (gas_price, gas_used) {
+            let wei_gas_cost = gas_price
+                .checked_mul(gas_used)
+                .unwrap_or_else(U256::max_value);
+
+            // f64 is typically sufficient for transaction gas costs.
+            let max_f64_u256 = U256::from(f64::MAX as u64);
+            if wei_gas_cost > max_f64_u256 {
+                return f64::MAX;
+            }
+
+            let wei_gas_cost_f64 = wei_gas_cost.low_u128() as f64;
+            let eth_gas_cost = wei_gas_cost_f64 / 1e18;
+
+            return eth_gas_cost;
+        }
+        0.0
     }
 
     /// Only relevant for testing and for users to easily use Aligned
@@ -1643,7 +1762,7 @@ impl Batcher {
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
             client_msg.verification_data.nonce,
-            DEFAULT_MAX_FEE_PER_PROOF.into(), // 13_000 gas per proof * 100 gwei gas price (upper bound)
+            DEFAULT_MAX_FEE_PER_PROOF.into(), // 2_000 gas per proof * 100 gwei gas price (upper bound)
             self.chain_id,
             self.payment_service.address(),
         );
@@ -1731,7 +1850,8 @@ impl Batcher {
         batch_bytes: &[u8],
         file_name: &str,
     ) -> Result<(), BatcherError> {
-        retry_function(
+        let start = Instant::now();
+        let result = retry_function(
             || {
                 Self::upload_batch_to_s3_retryable(
                     batch_bytes,
@@ -1746,7 +1866,13 @@ impl Batcher {
             ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
-        .map_err(|e| BatcherError::BatchUploadError(e.to_string()))
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()));
+
+        self.metrics
+            .s3_duration
+            .set(start.elapsed().as_micros() as i64);
+
+        result
     }
 
     async fn upload_batch_to_s3_retryable(
@@ -1762,5 +1888,10 @@ impl Batcher {
                 RetryError::Transient(e.to_string())
             })?;
         Ok(())
+    }
+
+    fn constant_gas_cost(&self) -> u128 {
+        (self.aggregator_fee_percentage_multiplier * self.aggregator_gas_cost) / PERCENTAGE_DIVIDER
+            + BATCHER_SUBMISSION_BASE_GAS_COST
     }
 }

@@ -29,4 +29,28 @@ defmodule TelemetryApiWeb.OperatorJSON do
       eth_ws_url_fallback: operator.eth_ws_url_fallback
     }
   end
+
+  @doc """
+  Renders a list of operators with only public data.
+  """
+  def index_public(%{operators: operators}) do
+    for(operator <- operators, do: data_public(operator))
+  end
+
+  @doc """
+  Renders a single operator with only public data.
+  """
+  def show_public(%{operator: operator}) do
+    data_public(operator)
+  end
+
+  defp data_public(%Operator{} = operator) do
+    %{
+      address: operator.address,
+      id: operator.id,
+      stake: operator.stake,
+      name: operator.name,
+      version: operator.version
+    }
+  end
 end

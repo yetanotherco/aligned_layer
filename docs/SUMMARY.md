@@ -33,6 +33,8 @@
 * [Generating & submitting proofs of Rust code with ZKRust](3_guides/5_using_zkrust.md)
 * [Setup Aligned Infrastructure Locally](3_guides/6_setup_aligned.md)
 * [Contract Addresses](3_guides/7_contract_addresses.md)
+* [Submitting Batch Without Batcher](3_guides/8_submitting_batch_without_batcher.md)
+* [Aligned CLI](3_guides/9_aligned_cli.md)
 
 ## Operators
 
@@ -40,20 +42,23 @@
 * [Operator FAQ](operator_guides/1_operator_FAQ.md)
 * [Troubleshooting](operator_guides/2_troubleshooting.md)
 * Upgrading Guides
+    * [Upgrading to v0.14.0](operator_guides/upgrading_guides/v0_14_0.md)
     * [Upgrading to v0.10.2](operator_guides/upgrading_guides/v0_10_2.md)
     * [Upgrading to v0.9.2](operator_guides/upgrading_guides/v0_9_2.md)
 
 ## Useful links
 
-* [All the proof aggregation solutions will use RISC-V zkvms](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901/5JfikCrjdHsyqGCpqvbakrA8DZHIgj0d90i9tVOTink)
-* [Manifesto](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901/rOya8TwZvj_8kTpjDPVwTuNc1UcS0VLUr1t2nhCxYj8)
+* [Mainnet Explorer](https://explorer.alignedlayer.com)
+* [Holesky Explorer](https://holesky.explorer.alignedlayer.com)
+* [All the proof aggregation solutions will use RISC-V zkvms](https://blog.alignedlayer.com/all-the-proof-aggregation-solutions-will-use-risc-v-zkvms/)
+* [Manifesto](https://blog.alignedlayer.com/aligned-manifesto/)
 
 ## Socials
 
 * [Telegram Group](https://t.me/aligned_layer)
 * [Twitter/X](https://x.com/alignedlayer)
 * [Discord](https://discord.gg/alignedlayer)
-* [Blog](https://mirror.xyz/0x7794D1c55568270A81D8Bf39e1bcE96BEaC10901)
+* [Blog](https://blog.alignedlayer.com)
 * [Website](https://alignedlayer.com)
 * [Github](https://github.com/yetanotherco/aligned_layer)
 * [YouTube](https://www.youtube.com/@alignedlayer)

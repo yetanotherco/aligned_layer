@@ -6,7 +6,7 @@ defmodule DelegationManager do
   @first_block (case @environment do
                   "devnet" -> 0
                   "holesky" -> 1_210_000
-                  "mainnet" -> 20_020_000
+                  "mainnet" -> 19_000_000
                   _ -> raise("Invalid environment")
                 end)
 

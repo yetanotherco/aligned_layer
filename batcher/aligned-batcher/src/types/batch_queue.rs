@@ -1,6 +1,9 @@
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
-    core::types::{NoncedVerificationData, VerificationDataCommitment},
+    core::{
+        constants::CBOR_ARRAY_MAX_OVERHEAD,
+        types::{NoncedVerificationData, VerificationDataCommitment},
+    },
 };
 use ethers::types::{Address, Signature, U256};
 use priority_queue::PriorityQueue;
@@ -100,9 +103,16 @@ impl PartialOrd for BatchQueueEntryPriority {
 
 impl Ord for BatchQueueEntryPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let ord = other.max_fee.cmp(&self.max_fee);
+        // Implementation of lowest-first:
+        let ord: std::cmp::Ordering = other.max_fee.cmp(&self.max_fee);
+        // This means, less max_fee will go first
+        // We want this because we will .pop() to remove unwanted elements, low fee submitions.
+
         if ord == std::cmp::Ordering::Equal {
-            self.nonce.cmp(&other.nonce).reverse()
+            // Case of same max_fee:
+            // Implementation of biggest-first:
+            // Since we want to .pop() entries with biggest nonce first, because we want to submit low nonce first
+            self.nonce.cmp(&other.nonce)
         } else {
             ord
         }
@@ -125,7 +135,10 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
     });
 
     if let ControlFlow::Continue(batch_size) = folded_result {
-        Ok(batch_size)
+        // We over-estimate the size of the batch by at most 8 bytes.
+        // This saves us from a scenario where we actually try to send more
+        // than the maximum allowed bytes and get rejected by operators.
+        Ok(CBOR_ARRAY_MAX_OVERHEAD + batch_size)
     } else {
         Err(BatcherError::SerializationError(String::from(
             "Could not calculate size of batch",
@@ -134,29 +147,29 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
 }
 
 /// This function tries to build a batch to be submitted to Aligned.
-/// Given a copy of the current batch queue, , and applyies an algorithm to find the biggest batch
+/// Given the current batch queue applies the following algorithm to find the biggest batch
 /// of proofs from users that are willing to pay for it:
 /// 1. Traverse each batch priority queue, starting from the one with minimum max fee.
 /// 2. Calculate the `fee_per_proof` for the whole batch and compare with the `max_fee` of the entry.
 /// 3. If `fee_per_proof` is less than the `max_fee` of the current entry, submit the batch. If not, pop this entry
-///     from the queue and push it to `resulting_priority_queue`, then repeat step 1.
+///     from the queue. then repeat step 1.
 ///
-/// `resulting_priority_queue` will be the batch queue composed of all entries that were not willing to pay for the batch.
-/// This is outputted in along with the finalized batch.
+/// Returns the finalized batch.
 pub(crate) fn try_build_batch(
     batch_queue: BatchQueue,
     gas_price: U256,
     max_batch_byte_size: usize,
     max_batch_proof_qty: usize,
-) -> Result<(BatchQueue, Vec<BatchQueueEntry>), BatcherError> {
-    let mut batch_queue = batch_queue;
-    let mut batch_size = calculate_batch_size(&batch_queue)?;
-    let mut resulting_priority_queue = BatchQueue::new();
+    constant_gas_cost: u128,
+) -> Result<Vec<BatchQueueEntry>, BatcherError> {
+    let mut finalized_batch = batch_queue;
+    let mut batch_size = calculate_batch_size(&finalized_batch)?;
 
-    while let Some((entry, _)) = batch_queue.peek() {
-        let batch_len = batch_queue.len();
-        let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price);
+    while let Some((entry, _)) = finalized_batch.peek() {
+        let batch_len = finalized_batch.len();
+        let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price, constant_gas_cost);
 
+        // if batch is not acceptable:
         if batch_size > max_batch_byte_size
             || fee_per_proof > entry.nonced_verification_data.max_fee
             || batch_len > max_batch_proof_qty
@@ -173,8 +186,7 @@ pub(crate) fn try_build_batch(
                     .len();
             batch_size -= verification_data_size;
 
-            let (not_working_entry, not_working_priority) = batch_queue.pop().unwrap();
-            resulting_priority_queue.push(not_working_entry, not_working_priority);
+            finalized_batch.pop();
 
             continue;
         }
@@ -183,20 +195,17 @@ pub(crate) fn try_build_batch(
         break;
     }
 
-    // If `batch_queue_copy` is empty, this means that all the batch queue was traversed and we didn't find
+    // If `finalized_batch` is empty, this means that all the batch queue was traversed and we didn't find
     // any user willing to pay fot the fee per proof.
-    if batch_queue.is_empty() {
+    if finalized_batch.is_empty() {
         return Err(BatcherError::BatchCostTooHigh);
     }
 
-    Ok((
-        resulting_priority_queue,
-        batch_queue.clone().into_sorted_vec(),
-    ))
+    Ok(finalized_batch.clone().into_sorted_vec())
 }
 
-fn calculate_fee_per_proof(batch_len: usize, gas_price: U256) -> U256 {
-    let gas_per_proof = (crate::CONSTANT_GAS_COST
+fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost: u128) -> U256 {
+    let gas_per_proof = (constant_gas_cost
         + crate::ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
         / batch_len as u128;
 
@@ -205,6 +214,7 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256) -> U256 {
 
 #[cfg(test)]
 mod test {
+    use aligned_sdk::core::constants::DEFAULT_CONSTANT_GAS_COST;
     use aligned_sdk::core::types::ProvingSystemId;
     use aligned_sdk::core::types::VerificationData;
     use ethers::types::Address;
@@ -301,14 +311,243 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            50,
+            DEFAULT_CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
-        assert!(resulting_batch_queue.is_empty());
+        assert_eq!(
+            finalized_batch[0].nonced_verification_data.max_fee,
+            max_fee_3
+        );
+        assert_eq!(
+            finalized_batch[1].nonced_verification_data.max_fee,
+            max_fee_2
+        );
+        assert_eq!(
+            finalized_batch[2].nonced_verification_data.max_fee,
+            max_fee_1
+        );
+    }
 
-        assert_eq!(batch[0].nonced_verification_data.max_fee, max_fee_3);
-        assert_eq!(batch[1].nonced_verification_data.max_fee, max_fee_2);
-        assert_eq!(batch[2].nonced_verification_data.max_fee, max_fee_1);
+    #[test]
+    fn batch_finalization_algorithm_works_from_same_sender_same_fee() {
+        // The following information will be the same for each entry, it is just some dummy data to see
+        // algorithm working.
+
+        let proof_generator_addr = Address::random();
+        let payment_service_addr = Address::random();
+        let sender_addr = Address::random();
+        let bytes_for_verification_data = vec![42_u8; 10];
+        let dummy_signature = Signature {
+            r: U256::from(1),
+            s: U256::from(2),
+            v: 3,
+        };
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Risc0,
+            proof: bytes_for_verification_data.clone(),
+            pub_input: Some(bytes_for_verification_data.clone()),
+            verification_key: Some(bytes_for_verification_data.clone()),
+            vm_program_code: Some(bytes_for_verification_data),
+            proof_generator_addr,
+        };
+        let chain_id = U256::from(42);
+
+        // Here we create different entries for the batch queue.
+        // All with the same fee
+
+        let max_fee = U256::from(130000000000000u128);
+
+        // Entry 1
+        let nonce_1 = U256::from(1);
+        let nonced_verification_data_1 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_1,
+            max_fee,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_1: VerificationDataCommitment = nonced_verification_data_1.clone().into();
+        let entry_1 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_1,
+            vd_commitment_1,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_1 = BatchQueueEntryPriority::new(max_fee, nonce_1);
+
+        // Entry 2
+        let nonce_2 = U256::from(2);
+        let nonced_verification_data_2 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_2,
+            max_fee,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_2: VerificationDataCommitment = nonced_verification_data_2.clone().into();
+        let entry_2 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_2,
+            vd_commitment_2,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_2 = BatchQueueEntryPriority::new(max_fee, nonce_2);
+
+        // Entry 3
+        let nonce_3 = U256::from(3);
+        let nonced_verification_data_3 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_3,
+            max_fee,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_3: VerificationDataCommitment = nonced_verification_data_3.clone().into();
+        let entry_3 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_3,
+            vd_commitment_3,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_3 = BatchQueueEntryPriority::new(max_fee, nonce_3);
+
+        let mut batch_queue = BatchQueue::new();
+        batch_queue.push(entry_1, batch_priority_1);
+        batch_queue.push(entry_2, batch_priority_2);
+        batch_queue.push(entry_3, batch_priority_3);
+
+        let gas_price = U256::from(1);
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            50,
+            DEFAULT_CONSTANT_GAS_COST,
+        )
+        .unwrap();
+
+        // All entries from the batch queue should be in
+        // the finalized batch.
+        assert!(batch_queue.len() == 3);
+
+        assert_eq!(finalized_batch[0].nonced_verification_data.nonce, nonce_3);
+        assert_eq!(finalized_batch[1].nonced_verification_data.nonce, nonce_2);
+        assert_eq!(finalized_batch[2].nonced_verification_data.nonce, nonce_1);
+
+        // sanity check
+        assert_eq!(finalized_batch[2].nonced_verification_data.max_fee, max_fee);
+    }
+
+    #[test]
+    fn batch_finalization_algorithm_works_from_same_sender_same_fee_nonempty_resulting_queue() {
+        // The following information will be the same for each entry, it is just some dummy data to see
+        // algorithm working.
+
+        let proof_generator_addr = Address::random();
+        let payment_service_addr = Address::random();
+        let sender_addr = Address::random();
+        let bytes_for_verification_data = vec![42_u8; 10];
+        let dummy_signature = Signature {
+            r: U256::from(1),
+            s: U256::from(2),
+            v: 3,
+        };
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::Risc0,
+            proof: bytes_for_verification_data.clone(),
+            pub_input: Some(bytes_for_verification_data.clone()),
+            verification_key: Some(bytes_for_verification_data.clone()),
+            vm_program_code: Some(bytes_for_verification_data),
+            proof_generator_addr,
+        };
+        let chain_id = U256::from(42);
+
+        // Here we create different entries for the batch queue.
+        // All with the same fee
+
+        let max_fee = U256::from(130000000000000u128);
+
+        // Entry 1
+        let nonce_1 = U256::from(1);
+        let nonced_verification_data_1 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_1,
+            max_fee,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_1: VerificationDataCommitment = nonced_verification_data_1.clone().into();
+        let entry_1 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_1,
+            vd_commitment_1,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_1 = BatchQueueEntryPriority::new(max_fee, nonce_1);
+
+        // Entry 2
+        let nonce_2 = U256::from(2);
+        let nonced_verification_data_2 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_2,
+            max_fee,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_2: VerificationDataCommitment = nonced_verification_data_2.clone().into();
+        let entry_2 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_2,
+            vd_commitment_2,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_2 = BatchQueueEntryPriority::new(max_fee, nonce_2);
+
+        // Entry 3
+        let nonce_3 = U256::from(3);
+        let nonced_verification_data_3 = NoncedVerificationData::new(
+            verification_data.clone(),
+            nonce_3,
+            max_fee,
+            chain_id,
+            payment_service_addr,
+        );
+        let vd_commitment_3: VerificationDataCommitment = nonced_verification_data_3.clone().into();
+        let entry_3 = BatchQueueEntry::new_for_testing(
+            nonced_verification_data_3,
+            vd_commitment_3,
+            dummy_signature,
+            sender_addr,
+        );
+        let batch_priority_3 = BatchQueueEntryPriority::new(max_fee, nonce_3);
+
+        let mut batch_queue = BatchQueue::new();
+        batch_queue.push(entry_1, batch_priority_1);
+        batch_queue.push(entry_2, batch_priority_2);
+        batch_queue.push(entry_3.clone(), batch_priority_3.clone());
+
+        let gas_price = U256::from(1);
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            2,
+            DEFAULT_CONSTANT_GAS_COST,
+        )
+        .unwrap();
+
+        // One Entry from the batch_queue should not be in the finalized batch
+        // Particularly, nonce_3 is not in the finalized batch
+        assert!(batch_queue.len() == 3);
+
+        assert_eq!(finalized_batch[0].nonced_verification_data.nonce, nonce_2);
+        assert_eq!(finalized_batch[1].nonced_verification_data.nonce, nonce_1);
     }
 
     #[test]
@@ -404,13 +643,18 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            50,
+            DEFAULT_CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
-        // The resulting batch queue (entries from the old batch queue that were not willing to pay
-        // in this batch), should be empty and hence, all entries from the batch queue should be in
+        // All entries from the batch queue should be in
         // the finalized batch.
-        assert!(resulting_batch_queue.is_empty());
+        assert_eq!(batch_queue.len(), 3);
         assert_eq!(finalized_batch.len(), 3);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
@@ -515,14 +759,17 @@ mod test {
         batch_queue.push(entry_3, batch_priority_3);
 
         let gas_price = U256::from(1);
-        let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, 50).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            50,
+            DEFAULT_CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
-        // The resulting batch queue (entries from the old batch queue that were not willing to pay
-        // in this batch), should be empty and hence, all entries from the batch queue should be in
-        // the finalized batch.
-
-        assert_eq!(resulting_batch_queue.len(), 1);
+        // All but one entries from the batch queue should be in the finalized batch.
+        assert_eq!(batch_queue.len(), 3);
         assert_eq!(finalized_batch.len(), 2);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,
@@ -628,10 +875,16 @@ mod test {
         // The max batch len is 2, so the algorithm should stop at the second entry.
         let max_batch_proof_qty = 2;
 
-        let (resulting_batch_queue, finalized_batch) =
-            try_build_batch(batch_queue, gas_price, 5000000, max_batch_proof_qty).unwrap();
+        let finalized_batch = try_build_batch(
+            batch_queue.clone(),
+            gas_price,
+            5000000,
+            max_batch_proof_qty,
+            DEFAULT_CONSTANT_GAS_COST,
+        )
+        .unwrap();
 
-        assert_eq!(resulting_batch_queue.len(), 1);
+        assert_eq!(batch_queue.len(), 3);
         assert_eq!(finalized_batch.len(), 2);
         assert_eq!(
             finalized_batch[0].nonced_verification_data.max_fee,

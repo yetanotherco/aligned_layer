@@ -10,7 +10,7 @@ contract VerifierContract is ERC721URIStorage {
     address public alignedServiceManager;
     address public paymentServiceAddr;
 
-    bytes32 public elfCommitment = 0x3f99615fdf3b67a01e41b38eee75a32c778ee2fa631bd74e01c89afc2f70f5de;
+    bytes32 public elfCommitment = 0x34fdfec89da610d255d326bc440bb5754e1eb70a694f3f1dc967b3dd6c4c7033;
         
     error InvalidElf(bytes32 submittedElf); // c6d95066
 

@@ -7,7 +7,7 @@ defmodule TelemetryApi.ContractManagers.DelegationManager do
   @first_block (case @environment do
                   "devnet" -> 0
                   "holesky" -> 1_210_000
-                  "mainnet" -> 20_020_000
+                  "mainnet" -> 19_000_000
                   _ -> raise("Invalid environment")
                 end)
 
@@ -40,12 +40,17 @@ defmodule TelemetryApi.ContractManagers.DelegationManager do
     DelegationManager.EventFilters.operator_metadata_uri_updated(operator_address)
     |> Ethers.get_logs(fromBlock: @first_block)
     |> case do
+      {:ok, []} ->
+        Logger.warning("Url not found using first_block=#{@first_block}")
+        {:error, "Url not found using first_block=#{@first_block}"}
+
       {:ok, data} ->
         # The head (hd) is the most recent entry
         url = List.last(data).data |> hd()
         {:ok, url}
 
       {:error, reason} ->
+        Logger.warning("Error while fetching url: #{inspect(reason)}")
         {:error, reason}
 
       other ->

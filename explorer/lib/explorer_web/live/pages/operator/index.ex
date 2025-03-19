@@ -4,6 +4,7 @@ defmodule ExplorerWeb.Operator.Index do
   @impl true
   def handle_info(_, socket) do
     restaked_amount_eth = socket.assigns.operator.total_stake |> EthConverter.wei_to_eth(2)
+    {_, restaked_amount_usd} = socket.assigns.operator.total_stake |> EthConverter.wei_to_usd(0)
 
     restakes_by_operator = Restakings.get_restakes_by_operator_id(socket.assigns.operator.id)
 
@@ -12,6 +13,7 @@ defmodule ExplorerWeb.Operator.Index do
     {:noreply,
      assign(socket,
        restaked_amount_eth: restaked_amount_eth,
+       restaked_amount_usd: restaked_amount_usd,
        restakes_by_operator: restakes_by_operator,
        weight: weight
      )}
@@ -22,6 +24,7 @@ defmodule ExplorerWeb.Operator.Index do
     operator = Operators.get_operator_by_address(address)
 
     restaked_amount_eth = operator.total_stake |> EthConverter.wei_to_eth(2)
+    {_, restaked_amount_usd} = operator.total_stake |> EthConverter.wei_to_usd(0)
 
     restakes_by_operator = Restakings.get_restakes_by_operator_id(operator.id)
 
@@ -36,6 +39,7 @@ defmodule ExplorerWeb.Operator.Index do
        operator: operator,
        operator_id: operator.id |> Helpers.binary_to_hex_string(),
        restaked_amount_eth: restaked_amount_eth,
+       restaked_amount_usd: restaked_amount_usd,
        restakes_by_operator: restakes_by_operator,
        weight: weight,
        operator_version: operator_version,
@@ -130,7 +134,8 @@ defmodule ExplorerWeb.Operator.Index do
             Total Restaked:
           </h3>
           <p>
-            <%= @restaked_amount_eth |> Helpers.format_number() %> ETH
+            <%= @restaked_amount_eth %> ETH
+            <span class="text-gray-500">(<%= @restaked_amount_usd |> Helpers.format_number() %> USD)</span>
           </p>
         </div>
         <div>

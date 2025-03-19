@@ -57,25 +57,37 @@ defmodule Operators do
   end
 
   def get_operators_with_their_weights() do
-    total_stake = Explorer.Repo.one(
-      from(
-        o in Operators,
-        where: o.is_active == true,
-        select: sum(o.total_stake))
-    )
-
-    get_operators() |>
-      Enum.map(
-        fn operator ->
-          case operator.is_active do
-            false ->
-              Map.from_struct(operator) |> Map.put(:weight, 0)
-            true ->
-              weight = Decimal.div(operator.total_stake, total_stake)
-              Map.from_struct(operator) |> Map.put(:weight, weight)
-          end
-        end
+    total_stake =
+      Explorer.Repo.one(
+        from(
+          o in Operators,
+          where: o.is_active == true,
+          select: sum(o.total_stake)
+        )
       )
+
+    get_operators()
+    |> Enum.map(fn operator ->
+      case operator.is_active do
+        false ->
+          Map.from_struct(operator)
+          |> Map.put(:weight, 0)
+          |> Map.put(:total_stake_eth, 0)
+          |> Map.put(:total_stake_usd, 0)
+
+        true ->
+          weight = Decimal.div(operator.total_stake, total_stake)
+          total_stake_eth = operator.total_stake |> EthConverter.wei_to_eth(2)
+
+          {_, total_stake_usd} =
+            operator.total_stake |> EthConverter.wei_to_usd(0)
+
+          Map.from_struct(operator)
+          |> Map.put(:total_stake_eth, total_stake_eth)
+          |> Map.put(:total_stake_usd, total_stake_usd)
+          |> Map.put(:weight, weight)
+      end
+    end)
   end
 
   def get_amount_of_operators do

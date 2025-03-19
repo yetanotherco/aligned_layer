@@ -1,6 +1,8 @@
 defmodule DarkMode do
   use Phoenix.Component
 
+  attr(:theme, :string, required: true)
+
   def button(assigns) do
     ~H"""
     <button
@@ -13,7 +15,7 @@ defmodule DarkMode do
     >
       <svg
         id="theme-toggle-dark-icon"
-        class="w-5 h-5 text-transparent hidden"
+        class={["w-5 h-5 ", @theme == "light" && "hidden text-transparent"]}
         fill="currentColor"
         viewBox="0 0 20 20"
         xmlns="http://www.w3.org/2000/svg"
@@ -24,7 +26,7 @@ defmodule DarkMode do
 
       <svg
         id="theme-toggle-light-icon"
-        class="w-5 h-5 text-transparent"
+        class={["w-5 h-5", @theme == "dark" && "hidden text-transparent"]}
         fill="currentColor"
         viewBox="0 0 20 20"
         xmlns="http://www.w3.org/2000/svg"
@@ -38,19 +40,6 @@ defmodule DarkMode do
         </path>
       </svg>
     </button>
-
-    <script>
-      // Toggle early based on <html class="dark">
-      const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-      const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-      if (themeToggleDarkIcon != null && themeToggleLightIcon != null) {
-        let dark = document.documentElement.classList.contains('dark');
-        const show = dark ? themeToggleDarkIcon : themeToggleLightIcon
-        const hide = dark ? themeToggleLightIcon : themeToggleDarkIcon
-        show.classList.remove('hidden', 'text-transparent');
-        hide.classList.add('hidden', 'text-transparent');
-      }
-    </script>
     """
   end
 end

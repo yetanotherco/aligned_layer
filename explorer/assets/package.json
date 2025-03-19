@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "@floating-ui/dom": "^1.6.8"
+    "@floating-ui/dom": "^1.6.8",
+    "chart.js": "^4.4.7"
   },
   "devDependencies": {
     "tailwindcss-animate": "^1.0.7"

@@ -8,6 +8,10 @@ To get whitelisted,
 you need to fill out the form available [here](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform)
 and wait for the Aligned team to approve your request.
 
+### What Strategies Tokens are supported in Mainnet?
+
+The list of supported strategies can be found [here](../3_guides/7_contract_addresses.md).
+
 ### What RPC should I use?
 
 We suggest you use your own nodes for better performance and reliability. Note that the node must support HTTP and WebSockets.

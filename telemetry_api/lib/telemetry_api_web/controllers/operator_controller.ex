@@ -34,4 +34,15 @@ defmodule TelemetryApiWeb.OperatorController do
       render(conn, :show, operator: operator)
     end
   end
+
+  def index_public(conn, _params) do
+    operators = Operators.list_operators()
+    render(conn, :index_public, operators: operators)
+  end
+
+  def show_public(conn, %{"id" => address}) do
+    with {:ok, %Operator{} = operator} <- Operators.get_operator(%{address: address}) do
+      render(conn, :show_public, operator: operator)
+    end
+  end
 end

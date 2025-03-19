@@ -37,10 +37,10 @@ defmodule ExplorerWeb.CoreComponents do
       </.modal>
 
   """
-  attr :id, :string, required: true
-  attr :show, :boolean, default: false
-  attr :on_cancel, JS, default: %JS{}
-  slot :inner_block, required: true
+  attr(:id, :string, required: true)
+  attr(:show, :boolean, default: false)
+  attr(:on_cancel, JS, default: %JS{})
+  slot(:inner_block, required: true)
 
   def modal(assigns) do
     ~H"""
@@ -98,14 +98,14 @@ defmodule ExplorerWeb.CoreComponents do
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:info} phx-mounted={show("#flash")}>Welcome Back!</.flash>
   """
-  attr :id, :string, doc: "the optional id of flash container"
-  attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
-  attr :title, :string, default: nil
-  attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
-  attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
-  attr :delay, :boolean, default: false, doc: "optional 3s delay for the flash message"
+  attr(:id, :string, doc: "the optional id of flash container")
+  attr(:flash, :map, default: %{}, doc: "the map of flash messages to display")
+  attr(:title, :string, default: nil)
+  attr(:kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup")
+  attr(:rest, :global, doc: "the arbitrary HTML attributes to add to the flash container")
+  attr(:delay, :boolean, default: false, doc: "optional 3s delay for the flash message")
 
-  slot :inner_block, doc: "the optional inner block that renders the flash message"
+  slot(:inner_block, doc: "the optional inner block that renders the flash message")
 
   def flash(assigns) do
     assigns = assign_new(assigns, :id, fn -> "flash-#{assigns.kind}" end)
@@ -147,8 +147,8 @@ defmodule ExplorerWeb.CoreComponents do
 
       <.flash_group flash={@flash} />
   """
-  attr :flash, :map, required: true, doc: "the map of flash messages"
-  attr :id, :string, default: "flash-group", doc: "the optional id of flash container"
+  attr(:flash, :map, required: true, doc: "the map of flash messages")
+  attr(:id, :string, default: "flash-group", doc: "the optional id of flash container")
 
   def flash_group(assigns) do
     ~H"""
@@ -196,15 +196,16 @@ defmodule ExplorerWeb.CoreComponents do
         </:actions>
       </.simple_form>
   """
-  attr :for, :any, required: true, doc: "the datastructure for the form"
-  attr :as, :any, default: nil, doc: "the server side parameter to collect all input under"
+  attr(:for, :any, required: true, doc: "the datastructure for the form")
+  attr(:as, :any, default: nil, doc: "the server side parameter to collect all input under")
 
-  attr :rest, :global,
+  attr(:rest, :global,
     include: ~w(autocomplete name rel action enctype method novalidate target multipart),
     doc: "the arbitrary HTML attributes to apply to the form tag"
+  )
 
-  slot :inner_block, required: true
-  slot :actions, doc: "the slot for form actions, such as a submit button"
+  slot(:inner_block, required: true)
+  slot(:actions, doc: "the slot for form actions, such as a submit button")
 
   def simple_form(assigns) do
     ~H"""
@@ -227,13 +228,13 @@ defmodule ExplorerWeb.CoreComponents do
       <.button>Send!</.button>
       <.button phx-click="go" class="ml-2">Send!</.button>
   """
-  attr :type, :string, default: nil
-  attr :class, :string, default: nil
-  attr :rest, :global, include: ~w(disabled form name value)
-  attr :icon, :string, default: nil
-  attr :icon_class, :string, default: nil
+  attr(:type, :string, default: nil)
+  attr(:class, :string, default: nil)
+  attr(:rest, :global, include: ~w(disabled form name value))
+  attr(:icon, :string, default: nil)
+  attr(:icon_class, :string, default: nil)
 
-  slot :inner_block, required: true
+  slot(:inner_block, required: true)
 
   def button(assigns) do
     ~H"""
@@ -256,7 +257,7 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
   Root background component.
   """
-  slot :inner_block, default: nil
+  slot(:inner_block, default: nil)
 
   def root_background(assigns) do
     ~H"""
@@ -269,8 +270,8 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
     Renders a card background.
   """
-  attr :class, :string, default: nil
-  slot :inner_block, default: nil
+  attr(:class, :string, default: nil)
+  slot(:inner_block, default: nil)
 
   def card_background(assigns) do
     ~H"""
@@ -283,8 +284,8 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
     Renders a heading to use before entering a card.
   """
-  attr :class, :string, default: nil
-  slot :inner_block, default: nil
+  attr(:class, :string, default: nil)
+  slot(:inner_block, default: nil)
 
   def card_preheding(assigns) do
     ~H"""
@@ -302,48 +303,60 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
   Renders a card with a title and content.
   """
-  attr :class, :string, default: nil
-  attr :title, :string, default: nil
-  attr :inner_class, :string, default: nil
-
-  slot :inner_block, default: nil
+  attr(:class, :string, default: nil)
+  attr(:title, :string, default: nil)
+  attr(:subtitle, :string, default: nil)
+  attr(:inner_class, :string, default: nil)
+  attr(:header_container_class, :string, default: nil)
+  slot(:inner_block, default: nil)
 
   def card(assigns) do
     ~H"""
-    <.card_background class={@class}>
-      <h2 class="font-medium text-muted-foreground capitalize">
-        <%= @title %>
-      </h2>
-      <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
+    <.card_background class={classes(["px-10 py-8", @class])}>
+      <div class={classes(["mb-6", @header_container_class])}>
+        <h2 class="text-2xl mb-1 text-foreground font-bold">
+          <%= @title %>
+        </h2>
+        <p class="text-md text-muted-foreground"><%= @subtitle %></p>
+      </div>
+      <div class={classes(["w-full", @inner_class])}>
         <%= render_slot(@inner_block) %>
-      </span>
+      </div>
     </.card_background>
     """
   end
 
   @doc """
-  Renders a card with a link and title that has a hyperlink icon and underline on hover.
+  Renders a card with a link and title and an optional subtitle that has a hyperlink icon and underline on hover.
   """
-  attr :class, :string, default: nil
-  attr :inner_class, :string, default: nil
-  attr :title, :string, default: nil
-  attr :href, :string, default: nil
-  attr :rest, :global, include: ~w(href target navigate)
-  attr :icon, :string, default: "hero-arrow-top-right-on-square-solid"
+  attr(:class, :string, default: nil)
+  attr(:inner_class, :string, default: nil)
+  attr(:title, :string, default: nil)
+  attr(:subtitle, :string, default: nil)
+  attr(:href, :string, default: nil)
+  attr(:rest, :global, include: ~w(href target navigate))
+  attr(:icon, :string, default: "hero-arrow-top-right-on-square-solid")
 
-  slot :inner_block, default: nil
+  slot(:inner_block, default: nil)
 
   def card_link(assigns) do
     ~H"""
     <.link target="_blank" href={@href} class="group" {@rest}>
-      <.card_background class={@class}>
+      <.card_background class="h-full">
         <h2 class="font-medium text-muted-foreground capitalize group-hover:underline truncate">
           <%= @title %>
           <.icon name={@icon} class="size-4 mb-1" />
         </h2>
-        <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
-          <%= render_slot(@inner_block) %>
-        </span>
+        <div class={[classes(["flex items-center justify-between flex-wrap"])]}>
+          <span class={classes(["text-4xl font-bold slashed-zero", @inner_class])}>
+            <%= render_slot(@inner_block) %>
+          </span>
+          <%= if @subtitle != :nil do %>
+            <p class={classes(["text-s text-gray-500 slashed-zero mt-2", @inner_class])}>
+              <%= @subtitle %>
+            </p>
+          <% end %>
+        </div>
       </.card_background>
     </.link>
     """
@@ -352,7 +365,7 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
     Renders an arrow icon.
   """
-  attr :class, :string, default: nil
+  attr(:class, :string, default: nil)
 
   def right_arrow(assigns) do
     ~H"""
@@ -366,9 +379,9 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
     Renders an anchor tag.
   """
-  attr :class, :string, default: nil
-  attr :rest, :global, include: ~w(href target)
-  slot :inner_block, default: nil
+  attr(:class, :string, default: nil)
+  attr(:rest, :global, include: ~w(href target))
+  slot(:inner_block, default: nil)
 
   def a(assigns) do
     ~H"""
@@ -390,9 +403,9 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
     Renders a badge component.
   """
-  attr :class, :string, default: nil
-  attr :variant, :string, default: "accent"
-  slot :inner_block, default: nil
+  attr(:class, :string, default: nil)
+  attr(:variant, :string, default: "accent")
+  slot(:inner_block, default: nil)
 
   def badge(assigns) do
     ~H"""
@@ -419,11 +432,11 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
     Renders a dynamic badge component.
   """
-  attr :class, :string, default: nil
-  attr :status, :boolean, default: true
-  attr :falsy_text, :string
-  attr :truthy_text, :string
-  slot :inner_block, default: nil
+  attr(:class, :string, default: nil)
+  attr(:status, :boolean, default: true)
+  attr(:falsy_text, :string)
+  attr(:truthy_text, :string)
+  slot(:inner_block, default: nil)
 
   def dynamic_badge_boolean(assigns) do
     ~H"""
@@ -452,9 +465,9 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
     Renders a dynamic badge component for the batcher.
   """
-  attr :class, :string, default: nil
-  attr :status, :atom
-  slot :inner_block, default: nil
+  attr(:class, :string, default: nil)
+  attr(:status, :atom)
+  slot(:inner_block, default: nil)
 
   def dynamic_badge_for_batcher(assigns) do
     ~H"""
@@ -464,6 +477,7 @@ defmodule ExplorerWeb.CoreComponents do
           :invalid -> "destructive"
           :verified -> "accent"
           :pending -> "foreground"
+          :stale -> "destructive"
         end
       }
       class={
@@ -476,9 +490,92 @@ defmodule ExplorerWeb.CoreComponents do
         :invalid -> "Invalid"
         :verified -> "Verified"
         :pending -> "Pending"
+        :stale -> "Unverified"
       end %>
       <%= render_slot(@inner_block) %>
     </.badge>
+    """
+  end
+
+  @doc """
+    Renders a selector dropdown on hover component with buttons that trigger actions on click.
+
+    The selector allows you to display a list of options and enables the user to select a value by clicking on a button.
+    The component supports different styling variants, and the current selected value can be displayed as part of the selector.
+
+    ## Attributes
+
+    - `:class` (optional, :string) - Additional custom CSS classes to apply to the outermost div container.
+
+    - `:variant` (optional, :string, default: "accent") - The style variant of the selector.
+    - `:current_value` (required, :string) - The current value being displayed in the selector. This is usually the name of the currently selected option.
+    - `:icon` (required, :string) - The icon to show on small devices instead of `current_value`.
+    - `:options` (required, :list of tuples) - A list of options to render. Each option is a tuple containing:
+      - `name`: The display name of the option (string).
+      - `on_click`: The JavaScript `onclick` action to trigger when the option is clicked (string).
+  """
+  attr(:class, :string, default: nil)
+  attr(:variant, :string, default: "accent")
+  attr(:current_value, :list, doc: "the current selector value")
+  attr(:options, :string, doc: "the options to render")
+  attr(:icon, :string, doc: "hero icon to render on small devices")
+
+  def hover_dropdown_selector(assigns) do
+    ~H"""
+    <div class={
+      classes([
+        "px-3 py-1 rounded-full font-semibold relative group",
+        case @variant do
+          "accent" ->
+            "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
+
+          "primary" ->
+            "color-primary text-primary-foreground bg-primary group-hover:bg-primary/80"
+
+          "secondary" ->
+            "color-secondary text-secondary-foreground bg-secondary group-hover:bg-secondary/80"
+
+          "destructive" ->
+            "color-destructive text-destructive-foreground bg-destructive group-hover:bg-destructive/80"
+
+          "foreground" ->
+            "color-foreground text-background bg-foreground group-hover:bg-foreground/80"
+
+          "card" ->
+            "color-card text-card-foreground bg-card group-hover:bg-card/80"
+
+          _ ->
+            "color-accent text-accent-foreground bg-accent group-hover:bg-accent/80"
+        end,
+        @class
+      ])
+    }>
+      <.icon name={@icon} class="h-5 w-5 hidden max-md:block" />
+      <p class="pointer hidden md:block"><%= @current_value %></p>
+      <div
+        class="hidden absolute w-full right-0 group-hover:block hidden pt-3"
+        style="min-width: 100px;"
+      >
+        <div class="w-full bg-card border border-muted-foreground/30 rounded-lg">
+          <%= for {value, on_click} <- @options do %>
+            <button
+              class={
+                classes([
+                  "text-card-foreground w-full rounded-lg p-4 text-center hover:bg-accent",
+                  case @current_value do
+                    ^value -> "text-accent hover:text-accent-foreground"
+                    _ -> ""
+                  end
+                ])
+              }
+              onclick={on_click}
+            >
+              <%= value %>
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
     """
   end
 
@@ -508,30 +605,33 @@ defmodule ExplorerWeb.CoreComponents do
       <.input field={@form[:email]} type="email" />
       <.input name="my-input" errors={["oh no!"]} />
   """
-  attr :id, :any, default: nil
-  attr :name, :any
-  attr :label, :string, default: nil
-  attr :value, :any
+  attr(:id, :any, default: nil)
+  attr(:name, :any)
+  attr(:label, :string, default: nil)
+  attr(:value, :any)
 
-  attr :type, :string,
+  attr(:type, :string,
     default: "text",
     values: ~w(checkbox color date datetime-local email file month number password
                range search select tel text textarea time url week)
+  )
 
-  attr :field, Phoenix.HTML.FormField,
+  attr(:field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
+  )
 
-  attr :errors, :list, default: []
-  attr :checked, :boolean, doc: "the checked flag for checkbox inputs"
-  attr :prompt, :string, default: nil, doc: "the prompt for select inputs"
-  attr :options, :list, doc: "the options to pass to Phoenix.HTML.Form.options_for_select/2"
-  attr :multiple, :boolean, default: false, doc: "the multiple flag for select inputs"
+  attr(:errors, :list, default: [])
+  attr(:checked, :boolean, doc: "the checked flag for checkbox inputs")
+  attr(:prompt, :string, default: nil, doc: "the prompt for select inputs")
+  attr(:options, :list, doc: "the options to pass to Phoenix.HTML.Form.options_for_select/2")
+  attr(:multiple, :boolean, default: false, doc: "the multiple flag for select inputs")
 
-  attr :rest, :global,
+  attr(:rest, :global,
     include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
                 multiple pattern placeholder readonly required rows size step)
+  )
 
-  slot :inner_block
+  slot(:inner_block)
 
   def input(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
     assigns
@@ -637,8 +737,8 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
   Renders a label.
   """
-  attr :for, :string, default: nil
-  slot :inner_block, required: true
+  attr(:for, :string, default: nil)
+  slot(:inner_block, required: true)
 
   def label(assigns) do
     ~H"""
@@ -651,7 +751,7 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
   Generates a generic error message.
   """
-  slot :inner_block, required: true
+  slot(:inner_block, required: true)
 
   def error(assigns) do
     ~H"""
@@ -665,11 +765,11 @@ defmodule ExplorerWeb.CoreComponents do
   @doc """
   Renders a header with title.
   """
-  attr :class, :string, default: nil
+  attr(:class, :string, default: nil)
 
-  slot :inner_block, required: true
-  slot :subtitle
-  slot :actions
+  slot(:inner_block, required: true)
+  slot(:subtitle)
+  slot(:actions)
 
   def header(assigns) do
     ~H"""
@@ -697,21 +797,23 @@ defmodule ExplorerWeb.CoreComponents do
         <:col :let={user} label="username"><%= user.username %></:col>
       </.table>
   """
-  attr :id, :string, required: true
-  attr :rows, :list, required: true
-  attr :row_id, :any, default: nil, doc: "the function for generating the row id"
-  attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
+  attr(:id, :string, required: true)
+  attr(:rows, :list, required: true)
+  attr(:row_id, :any, default: nil, doc: "the function for generating the row id")
+  attr(:row_click, :any, default: nil, doc: "the function for handling phx-click on each row")
+  attr(:class, :any, default: nil, doc: "css class attributes for the card background")
 
-  attr :row_item, :any,
+  attr(:row_item, :any,
     default: &Function.identity/1,
     doc: "the function for mapping each row before calling the :col and :action slots"
+  )
 
   slot :col, required: true do
-    attr :label, :string
-    attr :class, :string
+    attr(:label, :string)
+    attr(:class, :string)
   end
 
-  slot :action, doc: "the slot for showing user actions in the last table column"
+  slot(:action, doc: "the slot for showing user actions in the last table column")
 
   def table(assigns) do
     assigns =
@@ -720,56 +822,46 @@ defmodule ExplorerWeb.CoreComponents do
       end
 
     ~H"""
-    <.card_background class="overflow-x-auto">
-      <table class="table-auto border-collapse w-full">
-        <thead>
-          <tr class="text-muted-foreground font-normal truncate">
-            <th
-              :for={{col, i} <- Enum.with_index(@col)}
-              class={classes(["pr-4", i == 0 && "text-left", i != 0 && "text-center"])}
-            >
-              <%= col[:label] %>
-            </th>
-            <th :if={@action != []} class="p-0 pb-4">
-              <span class="sr-only"><%= gettext("Actions") %></span>
-            </th>
-          </tr>
-        </thead>
-        <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
-          <tr
-            :for={row <- @rows}
-            id={@row_id && @row_id.(row)}
-            class="gap-y-2 [&>td]:pt-3 animate-in fade-in-0 duration-700 truncate"
+    <table class="table-auto border-collapse w-full">
+      <thead>
+        <tr class="text-muted-foreground truncate">
+          <th :for={{col, _i} <- Enum.with_index(@col)} class="text-left font-normal pb-5">
+            <%= col[:label] %>
+          </th>
+          <th :if={@action != []} class="p-0 pb-4">
+            <span class="sr-only"><%= gettext("Actions") %></span>
+          </th>
+        </tr>
+      </thead>
+      <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}>
+        <tr
+          :for={row <- @rows}
+          id={@row_id && @row_id.(row)}
+          class="gap-y-2 [&>td]:pb-4 animate-in fade-in-0 duration-700 truncate"
+        >
+          <td
+            :for={{col, _i} <- Enum.with_index(@col)}
+            phx-click={@row_click && @row_click.(row)}
+            class={classes(["p-0 pr-10", @row_click && "hover:cursor-pointer"])}
           >
-            <td
-              :for={{col, _i} <- Enum.with_index(@col)}
-              phx-click={@row_click && @row_click.(row)}
-              class={classes(["p-0", @row_click && "hover:cursor-pointer"])}
-            >
-              <div class={
-                classes([
-                  "group block normal-case font-medium text-base min-w-28",
-                  col[:class] != nil && col[:class],
-                  col[:class] == nil && "text-center font-semibold"
-                ])
-              }>
-                <%= render_slot(col, @row_item.(row)) %>
-              </div>
-            </td>
-            <td :if={@action != []} class="w-14 p-0">
-              <div class="whitespace-nowrap py-4 text-right text-sm font-medium">
-                <span
-                  :for={action <- @action}
-                  class="ml-4 font-semibold leading-6 text-muted-foreground"
-                >
-                  <%= render_slot(action, @row_item.(row)) %>
-                </span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </.card_background>
+            <div class={
+              classes([
+                "group block normal-case  text-base min-w-28"
+              ])
+            }>
+              <%= render_slot(col, @row_item.(row)) %>
+            </div>
+          </td>
+          <td :if={@action != []} class="w-14 p-0">
+            <div class="whitespace-nowrap py-4 text-left text-sm">
+              <span :for={action <- @action} class="ml-4 leading-6 text-muted-foreground">
+                <%= render_slot(action, @row_item.(row)) %>
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
     """
   end
 
@@ -781,10 +873,10 @@ defmodule ExplorerWeb.CoreComponents do
       <.empty_card_background text="No users found" />
 
   """
-  attr :class, :string, default: nil
-  attr :inner_text_class, :string, default: nil
-  attr :text, :string, default: nil
-  slot :inner_block
+  attr(:class, :string, default: nil)
+  attr(:inner_text_class, :string, default: nil)
+  attr(:text, :string, default: nil)
+  slot(:inner_block)
 
   def empty_card_background(assigns) do
     ~H"""
@@ -821,7 +913,7 @@ defmodule ExplorerWeb.CoreComponents do
       </.list>
   """
   slot :item, required: true do
-    attr :title, :string, required: true
+    attr(:title, :string, required: true)
   end
 
   def list(assigns) do
@@ -855,8 +947,8 @@ defmodule ExplorerWeb.CoreComponents do
       <.icon name="hero-x-mark-solid" />
       <.icon name="hero-arrow-path" class="ml-1 w-3 h-3 animate-spin" />
   """
-  attr :name, :string, required: true
-  attr :class, :string, default: nil
+  attr(:name, :string, required: true)
+  attr(:class, :string, default: nil)
 
   def icon(%{name: "hero-" <> _} = assigns) do
     ~H"""
@@ -948,8 +1040,8 @@ defmodule ExplorerWeb.CoreComponents do
       </.tooltip>
 
   """
-  attr :class, :string, default: nil
-  slot :inner_block, required: true
+  attr(:class, :string, default: nil)
+  slot(:inner_block, required: true)
 
   def tooltip(assigns) do
     ~H"""
@@ -978,7 +1070,7 @@ defmodule ExplorerWeb.CoreComponents do
       <.divider />
 
   """
-  attr :class, :string, default: nil
+  attr(:class, :string, default: nil)
 
   def divider(assigns) do
     ~H"""

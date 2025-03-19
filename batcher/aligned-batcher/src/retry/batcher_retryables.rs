@@ -197,7 +197,13 @@ pub async fn simulate_create_new_task_retryable(
         .gas_price(fee_params.gas_price);
     // sends an `eth_call` request to the node
     match simulation.call().await {
-        Ok(_) => Ok(()),
+        Ok(_) => {
+            info!(
+                "Simulation task for: 0x{} succeeded.",
+                hex::encode(batch_merkle_root)
+            );
+            Ok(())
+        }
         Err(ContractError::Revert(err)) => {
             // Since transaction was reverted, we don't want to retry with fallback.
             warn!("Simulated transaction reverted {:?}", err);

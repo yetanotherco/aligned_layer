@@ -8,6 +8,13 @@
 import Config
 
 config :explorer,
+  batcher_submission_gas_cost: 125000,
+  aggregator_gas_cost: 330000,
+  additional_submission_gas_cost_per_proof: 2000,
+  aggregator_fee_percentage_multiplier: 125,
+  percentage_divider: 100
+
+config :explorer,
   generators: [timestamp_type: :utc_datetime],
   tracker_api_url: System.get_env("TRACKER_API_URL")
 

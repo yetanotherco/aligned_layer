@@ -76,21 +76,42 @@ defmodule Batches do
     Explorer.Repo.one(query)
   end
 
-  def get_latest_batches(%{amount: amount}) do
+  def get_latest_verified_batch() do
+    query = from(b in Batches,
+      order_by: [desc: b.submission_block_number],
+      limit: 1,
+      where: b.is_verified,
+      select: b)
+
+    Explorer.Repo.one(query)
+  end
+
+  def get_latest_batches(%{amount: amount} = %{order_by: :desc}) do
     query = from(b in Batches,
       order_by: [desc: b.submission_block_number],
       limit: ^amount,
       select: b)
 
     Explorer.Repo.all(query)
-  end
-
-  def get_paginated_batches(%{page: page, page_size: page_size}) do
+  end 
+  
+  def get_latest_batches(%{amount: amount} = %{order_by: :asc}) do
     query = from(b in Batches,
-      order_by: [desc: b.submission_block_number],
-      limit: ^page_size,
-      offset: ^((page - 1) * page_size),
+      order_by: [asc: b.submission_block_number],
+      limit: ^amount,
       select: b)
+
+    Explorer.Repo.all(query)
+  end
+  
+  def get_paginated_batches(%{page: page, page_size: page_size}) do
+    query =
+      from(b in Batches,
+        order_by: [desc: b.submission_block_number],
+        limit: ^page_size,
+        offset: ^((page - 1) * page_size),
+        select: b
+      )
 
     Explorer.Repo.all(query)
   end
@@ -128,6 +149,19 @@ defmodule Batches do
       result -> result
     end
   end
+  
+  def get_avg_fee_per_proof() do
+    query =
+      from(b in Batches,
+        where: b.is_verified == true,
+        select: sum(b.fee_per_proof * b.amount_of_proofs) / sum(b.amount_of_proofs)
+      )
+
+    case Explorer.Repo.one(query) do
+      nil -> 0
+      result -> result
+    end
+  end
 
   def get_amount_of_verified_proofs() do
     query = from(b in Batches,
@@ -138,6 +172,28 @@ defmodule Batches do
       nil -> 0
       result -> result
     end
+  end
+
+  # The following query was built by reading:
+  # - https://hexdocs.pm/ecto/Ecto.Query.html#module-fragments
+  # - https://www.postgresql.org/docs/9.1/functions-datetime.html#FUNCTIONS-DATETIME-TABLE
+  # - https://stackoverflow.com/questions/43288914/how-to-use-date-trunc-with-timezone-in-ecto-fragment-statement
+  # - https://glennjon.es/2016/09/24/elixir-ecto-how-to-group-and-count-records-by-week.html
+  def get_daily_verified_batches_summary() do
+    submission_constant_cost = Utils.constant_batch_submission_gas_cost()
+    additional_cost_per_proof = Utils.additional_batch_submission_gas_cost_per_proof()
+
+    query = Batches
+      |> where([b], b.is_verified == true)
+      |> group_by([b], fragment("DATE_TRUNC('day', ?)", b.response_timestamp))
+      |> select([b], %{
+        date: fragment("DATE_TRUNC('day', ?)::date", b.response_timestamp),
+        amount_of_proofs: sum(b.amount_of_proofs),
+        gas_cost: sum(fragment("? + ? * ?", ^submission_constant_cost, ^additional_cost_per_proof, b.amount_of_proofs))
+      })
+      |> order_by([b], fragment("DATE_TRUNC('day', ?)", b.response_timestamp))
+
+    Explorer.Repo.all(query)
   end
 
   def insert_or_update(batch_changeset, proofs) do

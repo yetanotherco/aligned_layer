@@ -1,65 +1,97 @@
-<section class="md:max-w-[50rem] mx-auto">
-  <h1 class="text-5xl text-center font-medium tracking-tighter drop-shadow-lg text-primary mt-3">
-    Aligned Explorer
-  </h1>
-  <div class="mt-8 text-foreground px-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-    <.card_link
-      icon="hero-arrow-right-solid"
-      navigate={~p"/operators"}
-      title="Registered Active Operators"
-    >
-      <%= if @operators_registered != :empty do %>
-        <%= @operators_registered %>
-      <% else %>
-        0
+<section class="mx-auto" style="max-width: 1200px;">
+  <div class="flex justify-center items-center">
+    <h1 class="text-5xl w-fit text-center font-normal p-2 px-4 selection:bg-accent-foreground/20 selection:text-accent-foreground/80 rounded-xl tracking-tighter bg-accent drop-shadow-lg text-black mt-3">
+      Aligned Layer Explorer
+    </h1>
+  </div>
+  <div class="mt-8 text-foreground px-2 flex flex-col justify-center gap-5">
+    <.card_background class="flex lg:justify-between gap-10 px-20 py-8 flex-wrap">
+      <%= for %{title: title, value: value, tooltip_text: tooltip_text, link: link} <- @stats do %>
+        <div>
+          <.link
+            navigate={link}
+            class={[
+              "group",
+              link == nil && "cursor-default pointer-events-none"
+            ]}
+          >
+            <p class={[
+              "mb-2 text-md text-muted-foreground",
+              link != nil && "group-hover:underline"
+            ]}>
+              <%= title %>
+            </p>
+            <h3 class="text-2xl text-foreground font-bold" style="font-size: 1.6rem"><%= value %></h3>
+          </.link>
+          <%= if tooltip_text do %>
+            <.tooltip>
+              <%= tooltip_text %>
+            </.tooltip>
+          <% end %>
+        </div>
       <% end %>
-    </.card_link>
-    <.card_link icon="hero-arrow-right-solid" navigate={~p"/restake"} title="Total ETH Restaked">
-      <%= if @restaked_amount_eth != :nil and @restaked_amount_eth != :nil do %>
-        <%= @restaked_amount_eth |> Helpers.format_number() %>
-      <% else %>
-        0
-      <% end %>
-    </.card_link>
-    <.card title="verified batches">
-      <%= if @verified_batches != :empty do %>
-        <%= @verified_batches |> Helpers.format_number() %>
-      <% else %>
-        0
-      <% end %>
-    </.card>
-    <.card title="Verified Proofs" class="-mt-0.5 md:mt-0">
-      <%= if @verified_proofs != :empty do %>
-        <%= @verified_proofs |> Helpers.format_number() %>
-      <% else %>
-        0
-      <% end %>
-    </.card>
-    <.live_component module={ContractsComponent} id="contracts_card" class="sm:col-span-2" />
+    </.card_background>
+    <.live_component
+    id="labeled-progress-bar"
+    module={LabeledProgressBarComponent}
+    percent_progress={@next_scheduled_batch_remaining_time_percentage}
+    label={
+      case @next_scheduled_batch_remaining_time do
+        0 -> "Next batch is around the corner!"
+        time -> "Next batch in #{time} minutes" 
+      end
+    }/>
+    <div class="flex flex-wrap md:flex-row flex-col gap-5">
+      <.card
+        title="Cost per proof"
+        subtitle="Verification cost over time"
+        class="p-0 flex-1"
+        header_container_class="px-10 pt-8"
+      >
+        <div style="height: 200px;" class="px-4 pb-8">
+          <.bar_chart
+            id="cost_per_proof_chart"
+            points={@cost_per_proof_chart.points}
+            extra_data={@cost_per_proof_chart.extra_data}
+          />
+        </div>
+      </.card>
+      <.card
+        title="Batch size"
+        subtitle="Number of proofs in last batches"
+        class="p-0 flex-1"
+        header_container_class="px-10 pt-8"
+      >
+        <div style="height: 200px;" class="px-4 pb-8">
+          <.bar_chart
+            id="batch_size_chart"
+            points={@batch_size_chart_data.points}
+            extra_data={@batch_size_chart_data.extra_data}
+          />
+        </div>
+      </.card>
+    </div>
+
     <%= if @latest_batches != :empty and @latest_batches != [] do %>
       <.card
-        class="relative sm:col-span-2 w-full flex flex-col space-y-1"
-        inner_class="text-ellipsis overflow-hidden text-lg flex flex-col space-y-1"
-        title="Recent Batches"
+        title="Latest batches"
+        subtitle="The most recent verified batches on aligned"
+        class="overflow-x-auto"
       >
-        <.link
-          navigate={~p"/batches"}
-          class="absolute top-4 right-5 hover:underline font-medium text-muted-foreground capitalize text-sm"
-        >
-          View All
-        </.link>
-        <%= for batch <- @latest_batches do %>
-          <.link class="flex justify-between group" navigate={~p"/batches/#{batch}"}>
-            <span class="group-hover:text-foreground/80">
-              <%= Helpers.shorten_hash(batch) %>
-            </span>
-            <.right_arrow />
-            <.tooltip>
-              <%= batch %>
-            </.tooltip>
+        <.batches_table batches={@latest_batches} />
+        <div class="flex justify-center my-5">
+          <.link
+            navigate={~p"/batches"}
+            class="absolute hover:underline font-medium text-muted-foreground capitalize text-sm"
+          >
+            View All <.icon name="hero-arrow-top-right-on-square-solid" class="size-3.5 mb-1" />
           </.link>
-        <% end %>
+        </div>
       </.card>
+    <% else %>
+      <.empty_card_background text="No Batches To Display." />
     <% end %>
+
+    <.live_component module={ContractsComponent} id="contracts_card" class="" host={@host} />
   </div>
 </section>

@@ -1,5 +1,5 @@
 defmodule Numbers do
-  def format_number(number) when is_nil(number) do
+  def format_number(number) when is_nil(number) or number == :empty do
     nil
   end
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark [scrollbar-gutter:stable]">
+<html lang="en" class={"#{@theme}  [scrollbar-gutter:stable]"}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -38,11 +38,6 @@
     <meta name="csrf-token" content={get_csrf_token()} />
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
-      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark')
-      }  
     </script>
   </head>
   <body class="antialiased bg-gray-100 dark:bg-neutral-950">

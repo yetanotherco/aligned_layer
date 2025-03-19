@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 3,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -76,9 +76,9 @@
             "uid": "prometheus"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "floor(increase(aligned_operator_responses{bot=\"operator\"}[10y]))",
+          "expr": "floor(increase(aligned_operator_responses_count{bot=\"operator\"}[10y]))",
           "format": "table",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
@@ -147,9 +147,9 @@
             "uid": "prometheus"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "floor(increase(aligned_operator_responses{bot=\"operator\"}[$__range]))",
+          "expr": "floor(increase(aligned_operator_responses_count{bot=\"operator\"}[$__range]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -247,18 +247,18 @@
             "uid": "prometheus"
           },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "floor(increase(aligned_operator_responses{bot=\"operator\"}[10y]))",
+          "editorMode": "code",
+          "expr": "floor(increase(aligned_operator_responses_count{bot=\"operator\"}[10y]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{job}}",
           "range": true,
           "refId": "A",
           "useBackend": false
         }
       ],
-      "title": "Operator",
+      "title": "Operator Responses",
       "type": "timeseries"
     },
     {
@@ -319,7 +319,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(aligned_operator_responses{bot=\"operator\"}[1m]) * 60",
+          "expr": "rate(aligned_operator_responses_count{bot=\"operator\"}[1m]) * 60",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -385,7 +385,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(aligned_operator_responses{bot=\"operator\"}[1m])",
+          "expr": "rate(aligned_operator_responses_count{bot=\"operator\"}[1m])",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -481,7 +481,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(aligned_operator_responses{bot=\"operator\"}[1m]) * 60",
+          "expr": "rate(aligned_operator_responses_count{bot=\"operator\"}[1m]) * 60",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -495,7 +495,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "auto",
+  "refresh": "5s",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [],
@@ -510,6 +510,6 @@
   "timezone": "browser",
   "title": "Operator Data",
   "uid": "operator",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }

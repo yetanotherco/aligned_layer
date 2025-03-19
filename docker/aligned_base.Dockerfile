@@ -24,7 +24,7 @@ RUN rm -rf /var/lib/apt/lists/*
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Install go deps
-RUN go install github.com/maoueh/zap-pretty@latest
+RUN go install github.com/maoueh/zap-pretty@v0.3.0
 RUN go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 RUN go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
