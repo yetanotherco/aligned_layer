@@ -85,9 +85,13 @@ contract AlignedLayerServiceManager is
     }
 
     // Reinitializers:
-    // The following reinitializers have been run in testnet, so their code should remain in the codebase.
-    // But they have not been run in mainnet, so their code should not be deployed here.
+    // Notice testnet had more upgrades than mainnet. 
+    // In testnet, we executed the reinitializer(2) and reinitializer(3)
 
+    // These are not needed in Mainnet. 
+    // In the future, in case of needing to add a reinitializer, 
+    // either use reinitializer(4) or redeploy testnet from scratch
+    
     // function initializeAggregator( // applied on Testnet
     //     address _alignedAggregator
     // ) public reinitializer(2) {
@@ -100,9 +104,6 @@ contract AlignedLayerServiceManager is
     // ) public reinitializer(3) {
     //     _initializePauser(_pauserRegistry, _initialPausedStatus);
     // }
-
-    // Current Testnet initializer version: 3
-    // Current Mainnet initializer version: 1
 
     function createNewTask(
         bytes32 batchMerkleRoot,
