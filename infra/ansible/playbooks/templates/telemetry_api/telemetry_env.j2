@@ -1,0 +1,17 @@
+# Network
+export RPC_URL="{{ telemetry_aligned_rpc }}"
+export ENVIRONMENT=holesky
+export ALIGNED_CONFIG_FILE="/home/{{ ansible_user }}/repos/telemetry/aligned_layer/contracts/script/output/mainnet/alignedlayer_deployment_output.json"
+# Elixir
+export PHX_HOST="{{ telemetry_api_phx_host }}"
+export ELIXIR_HOSTNAME="{{ telemetry_api_elixir_hostname }}"
+
+# Database
+export DB_NAME="{{ postgresql_telemetry_db_name }}"
+export DB_USER="{{ postgresql_telemetry_user }}"
+export DB_PASS="{{ postgresql_telemetry_pass }}"
+export DATABASE_URL="postgresql://{{ postgresql_telemetry_user }}:{{ postgresql_telemetry_pass }}@127.0.0.1:5432/{{ postgresql_telemetry_db_name }}"
+
+export OPERATOR_FETCHER_WAIT_TIME_MS=5000
+
+export SECRET_KEY_BASE="{{ telemetry_api_secret_key_base }}"

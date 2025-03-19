@@ -1,0 +1,16 @@
+global:
+  resolve_timeout: 1m
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+route:
+  receiver: 'pagerduty-notifications'
+
+receivers:
+- name: 'pagerduty-notifications'
+  pagerduty_configs:
+  - routing_key: {{ pagerduty_routing_key }}
+    send_resolved: true
+    severity: {% raw %}'{{ .CommonLabels.severity | toLower }}'{% endraw %}
+
+    details:
+      title: {% raw %}'[{{ .CommonLabels.alertname }}] - {{ .CommonLabels.text }}'{% endraw %}

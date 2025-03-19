@@ -195,7 +195,7 @@ operator_set_eigen_sdk_go_version_error:
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
-operator_register_and_start: operator_full_registration operator_start
+operator_register_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start
 
 build_operator: deps
 	$(GET_SDK_VERSION)
@@ -1267,6 +1267,19 @@ ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
 		-i $(INVENTORY) \
 		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
 		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+ansible_explorer_deploy:
+	@ansible-playbook infra/ansible/playbooks/explorer.yaml \
+		-i $(INVENTORY)
+
+ansible_telemetry_create_env:
+	@cp -n infra/ansible/playbooks/ini/config-telemetry.ini.example infra/ansible/playbooks/ini/config-telemetry.ini
+	@echo "Config files for Telemetry created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_telemetry_deploy"
+
+ansible_telemetry_deploy:
+	@ansible-playbook infra/ansible/playbooks/telemetry.yaml \
+		-i $(INVENTORY)
 
 __ETHEREUM_PACKAGE__:  ## ____
 

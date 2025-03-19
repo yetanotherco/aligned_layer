@@ -1,9 +1,8 @@
 #![feature(slice_flatten)]
 use std::io;
+use std::str::FromStr;
 
-use aligned_sdk::core::types::{
-    AlignedVerificationData, Network, PriceEstimate, ProvingSystemId, VerificationData,
-};
+use aligned_sdk::core::types::{AlignedVerificationData, FeeEstimationType, Network, ProvingSystemId, VerificationData};
 use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
 use aligned_sdk::sdk::{get_nonce_from_ethereum, submit_and_wait_verification};
 use clap::Parser;
@@ -29,12 +28,97 @@ struct Args {
         default_value = "https://ethereum-holesky-rpc.publicnode.com"
     )]
     rpc_url: String,
-    #[arg(short, long, default_value = "wss://batcher.alignedlayer.com")]
-    batcher_url: String,
-    #[arg(short, long, default_value = "holesky")]
-    network: Network,
+    #[clap(flatten)]
+    network: NetworkArg,
     #[arg(short, long)]
     verifier_contract_address: H160,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum NetworkNameArg {
+    Devnet,
+    Holesky,
+    HoleskyStage,
+    Mainnet,
+}
+
+impl FromStr for NetworkNameArg {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "devnet" => Ok(NetworkNameArg::Devnet),
+            "holesky" => Ok(NetworkNameArg::Holesky),
+            "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
+            "mainnet" => Ok(NetworkNameArg::Mainnet),
+            _ => Err(
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                    .to_string(),
+            ),
+        }
+    }
+}
+
+#[derive(Debug, clap::Args, Clone)]
+struct NetworkArg {
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet",
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet]"
+    )]
+    network: Option<NetworkNameArg>,
+    #[arg(
+        name = "Aligned Service Manager Contract Address",
+        long = "aligned_service_manager",
+        conflicts_with("The working network's name"),
+        requires("Batcher Payment Service Contract Address"),
+        requires("Batcher URL")
+    )]
+    aligned_service_manager_address: Option<String>,
+
+    #[arg(
+        name = "Batcher Payment Service Contract Address",
+        long = "batcher_payment_service",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher URL")
+    )]
+    batcher_payment_service_address: Option<String>,
+
+    #[arg(
+        name = "Batcher URL",
+        long = "batcher_url",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher Payment Service Contract Address")
+    )]
+    batcher_url: Option<String>,
+}
+
+impl From<NetworkArg> for Network {
+    fn from(network_arg: NetworkArg) -> Self {
+        let mut processed_network_argument = network_arg.clone();
+
+        if network_arg.batcher_url.is_some()
+            || network_arg.aligned_service_manager_address.is_some()
+            || network_arg.batcher_payment_service_address.is_some()
+        {
+            processed_network_argument.network = None; // We need this because network is Devnet as default, which is not true for a Custom network
+        }
+
+        match processed_network_argument.network {
+            None => Network::Custom(
+                network_arg.aligned_service_manager_address.unwrap(),
+                network_arg.batcher_payment_service_address.unwrap(),
+                network_arg.batcher_url.unwrap(),
+            ),
+            Some(NetworkNameArg::Devnet) => Network::Devnet,
+            Some(NetworkNameArg::Holesky) => Network::Holesky,
+            Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
+            Some(NetworkNameArg::Mainnet) => Network::Mainnet,
+        }
+    }
 }
 
 #[tokio::main]
@@ -66,7 +150,7 @@ async fn main() {
         .interact()
         .expect("Failed to read user input") {   
 
-        deposit_to_aligned(U256::from(4000000000000000u128), signer.clone(), args.network).await
+        deposit_to_aligned(U256::from(4000000000000000u128), signer.clone(), args.network.clone().into()).await
         .expect("Failed to pay for proof submission");
     }
 
@@ -120,7 +204,7 @@ async fn main() {
         pub_input: None,
     };
 
-    let max_fee = estimate_fee(&rpc_url, PriceEstimate::Instant)
+    let max_fee = estimate_fee(&rpc_url, FeeEstimationType::Instant)
         .await
         .expect("failed to fetch gas price from the blockchain");
 
@@ -132,16 +216,15 @@ async fn main() {
         .expect("Failed to read user input")
     {   return; }
 
-    let nonce = get_nonce_from_ethereum(&rpc_url, wallet.address(), args.network)
+    let nonce = get_nonce_from_ethereum(&rpc_url, wallet.address(), args.network.clone().into())
         .await
         .expect("Failed to get next nonce");
 
-        println!("Submitting your proof...");
+    println!("Submitting your proof...");
 
     let aligned_verification_data = submit_and_wait_verification(
-        &args.batcher_url,
         &rpc_url,
-        args.network,
+        args.network.clone().into(),
         &verification_data,
         max_fee,
         wallet.clone(),
@@ -207,6 +290,7 @@ async fn claim_nft_with_verified_proof(
     signer: SignerMiddleware<Provider<Http>, LocalWallet>,
     verifier_contract_addr: &Address,
 ) -> anyhow::Result<()> {
+    println!("Verifier contract address: {}", verifier_contract_addr);
     let verifier_contract = VerifierContract::new(*verifier_contract_addr, signer.into());
 
     let index_in_batch = U256::from(aligned_verification_data.index_in_batch);

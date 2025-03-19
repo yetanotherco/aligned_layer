@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+      - targets:
+        # Alertmanager's default port is 9093
+        - localhost:9999
+
+# A scrape configuration containing exactly one endpoint to scrape.
+scrape_configs:
+  - job_name: "aligned-aggregator"
+    scrape_interval: 1s
+    static_configs:
+      - targets: [ "{{ prometheus_aggregator_ip }}" ]
+        labels:
+          bot: "aggregator"
+
+  - job_name: "aligned-operator"
+    scrape_interval: 1s
+    static_configs:
+      - targets: [ "{{ prometheus_operator_ip }}" ]
+        labels:
+          bot: "operator"
+  
+  - job_name: "aligned-batcher"
+    scrape_interval: 1s
+    static_configs:
+      - targets: [ "{{ prometheus_batcher_ip }}" ]
+        labels:
+          bot: "batcher"
+  
+  - job_name: "aligned-tracker"
+    scrape_interval: 1s
+    static_configs:
+      - targets: [ "{{ prometheus_tracker_ip }}" ]
+        labels:
+          bot: "tracker"
