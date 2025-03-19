@@ -90,7 +90,7 @@ contract AlignedLayerServiceManager is
 
     // These are not needed in Mainnet. 
     // In the future, in case of needing to add a reinitializer, 
-    // either use reinitializer(4) or redeploy testnet from scratch
+    // either add it as reinitializer(4) or redeploy testnet from scratch
     
     // function initializeAggregator( // applied on Testnet
     //     address _alignedAggregator
