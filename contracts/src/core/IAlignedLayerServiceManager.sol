@@ -63,8 +63,6 @@ interface IAlignedLayerServiceManager {
 
     function balanceOf(address account) external view returns (uint256);
 
-    function withdraw(uint256 amount) external;
-
     function setAggregator(address _aggregator) external;
 
     function isVerifierDisabled(
