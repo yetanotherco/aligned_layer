@@ -5,6 +5,7 @@
     ansible_ssh_user: "{{ admin_user }}"
 
   tasks:
+
     - name: Update apt and install required system packages
       become: true
       ansible.builtin.apt:

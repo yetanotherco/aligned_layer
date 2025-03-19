@@ -181,6 +181,27 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
+  def get_next_scheduled_batch_remaining_time() do
+    interval = Utils.scheduled_batch_interval()
+    latest_batch = Batches.get_latest_verified_batch()
+
+    cond do
+      latest_batch != nil ->
+        latest_batch.submission_timestamp
+        |> DateTime.add(interval, :minute)
+        |> DateTime.diff(DateTime.utc_now(), :minute)
+        |> max(0)
+
+      true ->
+        interval
+    end
+  end
+
+  def get_next_scheduled_batch_remaining_time_percentage(remaining_time) do
+    interval = Utils.scheduled_batch_interval()
+    100 * (interval - remaining_time) / interval
+  end
+
   def enrich_batches(batches) do
     batches
     |> Enum.map(fn batch ->
@@ -210,6 +231,23 @@ defmodule Utils do
   @aggregator_fee_percentage_multiplier Application.compile_env(:explorer, :aggregator_fee_percentage_multiplier)
   @percentage_divider Application.compile_env(:explorer, :percentage_divider)
   @additional_submission_gas_cost_per_proof Application.compile_env(:explorer, :additional_submission_gas_cost_per_proof)
+
+  def scheduled_batch_interval() do
+    default_value = 10
+    case System.get_env("SCHEDULED_BATCH_INTERVAL_MINUTES") do
+      nil ->
+        Logger.warning("SCHEDULED_BATCH_INTERVAL_MINUTES .env var is not set, using default value: #{default_value}")
+        default_value
+      value ->
+        try do
+          String.to_integer(value)
+        rescue
+          ArgumentError ->
+            Logger.warning("Invalid SCHEDULED_BATCH_INTERVAL_MINUTES .env var: #{value}, using default value: #{default_value}")
+            default_value
+        end
+    end
+  end
 
   def string_to_bytes32(hex_string) do
     # Remove the '0x' prefix

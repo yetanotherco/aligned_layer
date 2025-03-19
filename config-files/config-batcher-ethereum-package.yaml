@@ -1,0 +1,30 @@
+# Common variables for all the services
+# 'production' only prints info and above. 'development' also prints debug
+environment: "production"
+aligned_layer_deployment_config_file_path: "./contracts/script/output/devnet/alignedlayer_deployment_output.json"
+eigen_layer_deployment_config_file_path: "./contracts/script/output/devnet/eigenlayer_deployment_output.json"
+eth_rpc_url: "http://localhost:8545"
+eth_rpc_url_fallback: "http://localhost:8550"
+eth_ws_url: "ws://localhost:8546"
+eth_ws_url_fallback: "ws://localhost:8551"
+eigen_metrics_ip_port_address: "localhost:9090"
+
+## ECDSA Configurations
+ecdsa:
+  private_key_store_path: "config-files/anvil.batcher.ecdsa.key.json"
+  private_key_store_password: ""
+
+## Batcher configurations
+batcher:
+  block_interval: 3
+  batch_size_interval: 10
+  transaction_wait_timeout: 36000 # 3 blocks
+  max_proof_size: 67108864 # 64 MiB
+  max_batch_byte_size: 268435456 # 256 MiB
+  max_batch_proof_qty: 3000 # 3000 proofs in a batch
+  pre_verification_is_enabled: true
+  metrics_port: 9093
+  telemetry_ip_port_address: localhost:4001
+  non_paying:
+    address: 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 # Anvil address 9
+    replacement_private_key: ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 # Anvil address 1

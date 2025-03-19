@@ -31,7 +31,11 @@ defmodule EthConverter do
     |> wei_to_eth(decimal_places)
   end
 
-  def wei_to_usd(wei, decimal_places \\ 0) do
+  def wei_to_usd(wei, decimal_places \\ 0)
+
+  def wei_to_usd(nil, _), do: {:error, "nil value"}
+
+  def wei_to_usd(wei, decimal_places) do
     with eth_amount <- wei_to_eth(wei, 18),
          {:ok, eth_price} <- get_eth_price_usd() do
       usd_value =
@@ -43,8 +47,11 @@ defmodule EthConverter do
     end
   end
 
+  def wei_to_usd_sf(wei, significant_figures \\ 3)
+  def wei_to_usd_sf(nil, _), do: {:error, "nil value"}
+
   # rounds to significant figures, instead of decimal places
-  def wei_to_usd_sf(wei, significant_figures \\ 3) do
+  def wei_to_usd_sf(wei, significant_figures) do
     with eth_amount <- wei_to_eth(wei, 18),
          {:ok, eth_price} <- get_eth_price_usd() do
       usd_value =

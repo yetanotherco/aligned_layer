@@ -16,6 +16,7 @@ use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
+use batch_queue::calculate_batch_size;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -25,9 +26,9 @@ use std::time::Duration;
 use aligned_sdk::core::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, BATCHER_SUBMISSION_BASE_GAS_COST,
     BUMP_BACKOFF_FACTOR, BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY,
-    CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF, ETHEREUM_CALL_BACKOFF_FACTOR,
-    ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY, ETHEREUM_CALL_MIN_RETRY_DELAY,
-    GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
+    CBOR_ARRAY_MAX_OVERHEAD, CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF,
+    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
+    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::core::types::{
@@ -114,6 +115,16 @@ impl Batcher {
         let s3_client = s3::create_client(upload_endpoint).await;
 
         let config = ConfigFromYaml::new(config_file);
+        // Ensure max_batch_bytes_size can at least hold one proof of max_proof_size,
+        // including the overhead introduced by serialization
+        assert!(
+            config.batcher.max_proof_size + CBOR_ARRAY_MAX_OVERHEAD
+                <= config.batcher.max_batch_byte_size,
+            "max_batch_bytes_size ({}) not big enough for one max_proof_size ({}) proof",
+            config.batcher.max_batch_byte_size,
+            config.batcher.max_proof_size
+        );
+
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
@@ -1049,10 +1060,13 @@ impl Batcher {
             BatchQueueEntryPriority::new(max_fee, nonce),
         );
 
-        info!(
-            "Current batch queue length: {}",
-            batch_state_lock.batch_queue.len()
-        );
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
+        info!("Current batch queue length: {}", queue_len);
 
         let mut proof_submitter_addr = proof_submitter_addr;
 
@@ -1233,6 +1247,13 @@ impl Batcher {
                 ))?;
         }
 
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
         Ok(())
     }
 
@@ -1380,6 +1401,8 @@ impl Batcher {
         batch_state_lock
             .user_states
             .insert(nonpaying_replacement_addr, nonpaying_user_state);
+
+        self.metrics.update_queue_metrics(0, 0);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
@@ -1509,10 +1532,7 @@ impl Batcher {
                 Ok(())
             }
             Err(e) => {
-                error!(
-                    "Failed to send batch to contract, batch will be lost: {:?}",
-                    e
-                );
+                error!("Failed to send batch to contract: {:?}", e);
 
                 self.metrics.reverted_batches.inc();
                 Err(e)

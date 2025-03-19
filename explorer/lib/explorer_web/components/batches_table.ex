@@ -38,7 +38,12 @@ defmodule ExplorerWeb.BatchesTable do
             <%= "N/A" %>
         <% end %>
         <.tooltip>
-          ~= <%= EthConverter.wei_to_eth(batch.fee_per_proof, 6) %> ETH
+          <%= case EthConverter.wei_to_eth(batch.fee_per_proof, 6) do %>
+            <% nil -> %>
+              <%= "N/A" %>
+            <% eth -> %>
+              <%= "~= #{eth} ETH" %>
+          <% end %>
         </.tooltip>
       </:col>
 

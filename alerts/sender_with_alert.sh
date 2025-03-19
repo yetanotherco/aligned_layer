@@ -4,7 +4,6 @@
 # - REPETITIONS
 # - EXPLORER_URL
 # - SENDER_ADDRESS
-# - BATCHER_URL
 # - RPC_URL
 # - EXPLORER_URL
 # - NETWORK
@@ -53,6 +52,22 @@ function fetch_tx_cost() {
   fi
 }
 
+# Function to get the tx cost from the tx hash
+# @param tx_hash
+function get_number_proofs_in_batch_from_create_task_tx() {
+  if [[ -z "$1" ]]; then
+    echo 0
+  else
+    # Get the tx receipt from the blockchain
+    calldata=$(cast tx $1 --rpc-url $RPC_URL input)
+    decoded_calldata=$(cast --calldata-decode --json "createNewTask(bytes32 batchMerkleRoot, string batchDataPointer, address[] proofSubmitters, uint256 feeForAggregator, uint256 feePerProof, uint256 respondToTaskFeeLimit)" $calldata)
+    # We count the number of proofSubmitters within the tx which corresponds to the number of proofs sent in the last batch
+    number_proofs_in_batch=$(echo $decoded_calldata | jq '.[2] | [ match(","; "g")] | length + 1')
+
+    echo $number_proofs_in_batch
+  fi
+}
+
 # Function to send PagerDuty alert
 # @param message
 function send_pagerduty_alert() {
@@ -76,9 +91,16 @@ do
   mkdir -p ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 
   ## Generate Proof
-  nonce=$(aligned get-user-nonce --batcher_url $BATCHER_URL --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
+  nonce=$(aligned get-user-nonce --network $NETWORK --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
+  echo $nonce
+  if ! [[ "$nonce" =~ ^[0-9]+$ ]]; then
+    echo "Failed getting user nonce, retrying in 10 seconds"
+    sleep 10
+    continue
+  fi
+
   x=$((nonce + 1)) # So we don't have any issues with nonce = 0
-  echo "Generating proof $x != 0"
+  echo "Generating proof $x != 0, nonce: $nonce"
   go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 
   ## Send Proof
@@ -92,13 +114,31 @@ do
     --proof_generator_addr $SENDER_ADDRESS \
     --private_key $PRIVATE_KEY \
     --rpc_url $RPC_URL \
-    --batcher_url $BATCHER_URL \
     --network $NETWORK \
-    --max_fee 4000000000000000 \
+    --max_fee 0.004ether \
     2>&1)
 
   echo "$submit"
-  
+
+  submit_errors=$(echo "$submit" | grep -oE 'ERROR[^]]*]([^[]*)' | sed 's/^[^]]*]//;s/[[:space:]]*$//')
+
+  # Loop through each error found and print with the custom message
+  is_error=0
+  while IFS= read -r error; do
+      if [[ -n "$error" ]]; then
+          slack_error_message="Error submitting proof to $NETWORK: $error"
+          send_slack_message "$slack_error_message"
+          is_error=1
+      fi
+  done <<< "$submit_errors"
+
+  if [ $is_error -eq 1 ]; then
+    echo "Error submitting proofs to $NETWORK, retrying in 60 seconds"
+    send_slack_message "Error submitting proofs to $NETWORK, retrying in 60 seconds"
+    sleep 60
+    continue
+  fi
+
   echo "Waiting $VERIFICATION_WAIT_TIME seconds for verification"
   sleep $VERIFICATION_WAIT_TIME
 
@@ -113,6 +153,7 @@ do
   fi
 
   total_fee_in_wei=0
+  total_number_proofs=0
   batch_explorer_urls=()
   for batch_merkle_root in $batch_merkle_roots 
   do
@@ -127,12 +168,16 @@ do
     response_tx_hash=$(echo "$log" | grep -oE "transactionHash: 0x[[:alnum:]]{64}" | awk '{ print $2 }')
 
     # Calculate fees for transactions
+    number_proofs_in_batch=$(get_number_proofs_in_batch_from_create_task_tx $submission_tx_hash)
     submission_fee_in_wei=$(fetch_tx_cost $submission_tx_hash)
     response_fee_in_wei=$(fetch_tx_cost $response_tx_hash)
     batch_fee_in_wei=$((submission_fee_in_wei + response_fee_in_wei))
 
     # Accumulate the fee
     total_fee_in_wei=$(($total_fee_in_wei + $batch_fee_in_wei))
+
+    # Accumulate proofs in batch
+    total_number_proofs=$(($total_number_proofs + $number_proofs_in_batch))
   done
 
   # Calculate the spent amount by converting the fee to ETH
@@ -168,9 +213,9 @@ do
   done
 
   if [ $verified -eq 1 ]; then
-    slack_message="$REPETITIONS Proofs submitted and verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+    slack_message="$total_number_proofs proofs submitted and verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   else
-    slack_message="$REPETITIONS Proofs submitted but not verified. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+    slack_message="$total_number_proofs proofs submitted but not verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
   fi
 
   ## Send Update to Slack

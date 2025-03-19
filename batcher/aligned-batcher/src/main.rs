@@ -24,12 +24,15 @@ struct Cli {
     env_file: Option<String>,
     #[arg(short, long)]
     port: Option<u16>,
+    #[arg(short, long)]
+    addr: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), BatcherError> {
     let cli = Cli::parse();
     let port = cli.port.unwrap_or(8080);
+    let addr = cli.addr.unwrap_or("localhost".to_string());
 
     match cli.env_file {
         Some(env_file) => dotenvy::from_filename(env_file).ok(),
@@ -40,7 +43,7 @@ async fn main() -> Result<(), BatcherError> {
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
 
-    let addr = format!("localhost:{}", port);
+    let address = format!("{addr}:{port}");
 
     // spawn task to listening for incoming blocks
     tokio::spawn({
@@ -54,7 +57,7 @@ async fn main() -> Result<(), BatcherError> {
 
     batcher.metrics.inc_batcher_restart();
 
-    batcher.listen_connections(&addr).await?;
+    batcher.listen_connections(&address).await?;
 
     Ok(())
 }

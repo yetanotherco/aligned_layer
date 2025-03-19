@@ -13,7 +13,6 @@ else
 fi
 
 RPC=${RPC:-http://localhost:8545}
-BATCHER_CONN=${BATCHER_CONN:-ws://localhost:8080}
 if [ -z "$NETWORK" ]; then
     echo "NETWORK is not set. Setting it to devnet"
     NETWORK="devnet"
@@ -33,7 +32,6 @@ do
         --vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
         --proof_generator_addr "$random_address" \
         --network "$NETWORK" \
-        --batcher_url "$BATCHER_CONN" \
         --repetitions "2" \
         --rpc_url "$RPC"
 

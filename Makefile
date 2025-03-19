@@ -7,7 +7,9 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.13.0
+OPERATOR_VERSION=v0.14.0
+EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
+EIGEN_SDK_GO_VERSION_MAINNET=v0.1.13
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -28,6 +30,16 @@ endif
 
 ifeq ($(OS),Darwin)
 	BUILD_OPERATOR = $(MAKE) build_operator_macos
+endif
+
+ifeq ($(ENVIRONMENT), devnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_devnet
+else ifeq ($(ENVIRONMENT), testnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_testnet
+else ifeq ($(ENVIRONMENT), mainnet)
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_mainnet
+else
+	GET_SDK_VERSION = $(MAKE) operator_set_eigen_sdk_go_version_error
 endif
 
 
@@ -140,7 +152,13 @@ anvil_start_with_block_time_with_more_prefunded_accounts:
 
 _AGGREGATOR_:
 
+build_aggregator:
+	$(GET_SDK_VERSION)
+	@echo "Building aggregator"
+	@go build -o ./build/aligned-aggregator ./aggregator/cmd/main.go
+
 aggregator_start:
+	$(GET_SDK_VERSION)
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
 	2>&1 | zap-pretty
@@ -156,15 +174,31 @@ test_go_retries:
 __OPERATOR__:
 
 operator_start:
+	$(GET_SDK_VERSION)
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
+operator_set_eigen_sdk_go_version_testnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_TESTNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_TESTNET)
+
+operator_set_eigen_sdk_go_version_devnet: operator_set_eigen_sdk_go_version_mainnet
+
+operator_set_eigen_sdk_go_version_mainnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_MAINNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_MAINNET)
+
+operator_set_eigen_sdk_go_version_error:
+	@echo "Error setting Eigen SDK version, missing ENVIRONMENT. Possible values for ENVIRONMENT=<devnet|testnet|mainnet>"
+	exit 1
+
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
-operator_register_and_start: operator_full_registration operator_start
+operator_register_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start
 
 build_operator: deps
+	$(GET_SDK_VERSION)
 	$(BUILD_OPERATOR)
 
 build_operator_macos:
@@ -178,6 +212,7 @@ build_operator_linux:
 	@echo "Operator built into /operator/build/aligned-operator"
 
 update_operator:
+	$(GET_SDK_VERSION)
 	@echo "Updating Operator..."
 	@./scripts/fetch_latest_release.sh
 	@make build_operator
@@ -289,6 +324,24 @@ verifier_enable:
 verifier_disable:
 	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
 	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
+strategies_get_weight:
+	@echo "Getting weight of strategy: $(STRATEGY_INDEX)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_strategy_weight.sh $(STRATEGY_INDEX)
+
+strategies_update_weight:
+	@echo "Updating strategy weights: "
+	@echo "STRATEGY_INDICES: $(STRATEGY_INDICES)"
+	@echo "NEW_MULTIPLIERS: $(NEW_MULTIPLIERS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/update_strategy_weight.sh $(STRATEGY_INDICES) $(NEW_MULTIPLIERS)
+
+strategies_remove:
+	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
+
+strategies_get_addresses:
+	@echo "Getting strategy addresses"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_restakeable_strategies.sh
 
 __BATCHER__:
 
@@ -486,7 +539,6 @@ task_sender_send_infinite_proofs_devnet:
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url http://localhost:8545 \
-	--batcher-url ws://localhost:8080 \
 	--network devnet \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
@@ -494,8 +546,8 @@ task_sender_send_infinite_proofs_devnet:
 task_sender_test_connections_devnet:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- test-connections \
-	--batcher-url ws://localhost:8080 \
-	--num-senders $(NUM_SENDERS)
+	--num-senders $(NUM_SENDERS) \
+	--network devnet
 
 # ===== HOLESKY-STAGE =====
 task_sender_generate_and_fund_wallets_holesky_stage:
@@ -514,7 +566,6 @@ task_sender_send_infinite_proofs_holesky_stage:
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
-	--batcher-url wss://stage.batcher.alignedlayer.com  \
 	--network holesky-stage \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
@@ -522,13 +573,14 @@ task_sender_send_infinite_proofs_holesky_stage:
 task_sender_test_connections_holesky_stage:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- test-connections \
-	--batcher-url wss://stage.batcher.alignedlayer.com \
-	--num-senders $(NUM_SENDERS)
+	--num-senders $(NUM_SENDERS) \
+	--network holesky-stage
 
 __UTILS__:
 aligned_get_user_balance_devnet:
 	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
-		--user_addr $(USER_ADDR)
+		--user_addr $(USER_ADDR) \
+		--network devnet
 
 aligned_get_user_balance_holesky:
 	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
@@ -1046,11 +1098,18 @@ docker_verify_proof_submission_success:
 				verification=$$(aligned verify-proof-onchain \
 									--aligned-verification-data $${proof} \
 									--rpc_url $$(echo $(DOCKER_RPC_URL)) 2>&1); \
+				cat $${proof%.cbor}.json; \
+				echo "$$verification"; \
 				if echo "$$verification" | grep -q not; then \
 					echo "ERROR: Proof verification failed for $${proof}"; \
 					exit 1; \
 				elif echo "$$verification" | grep -q verified; then \
 					echo "Proof verification succeeded for $${proof}"; \
+				else \
+					echo "WARNING: Unexpected verification result for $${proof}"; \
+					echo "Output:"; \
+					echo "$$verification"; \
+					exit 1; \
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
@@ -1212,3 +1271,71 @@ ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
 ansible_explorer_deploy:
 	@ansible-playbook infra/ansible/playbooks/explorer.yaml \
 		-i $(INVENTORY)
+
+ansible_telemetry_create_env:
+	@cp -n infra/ansible/playbooks/ini/config-telemetry.ini.example infra/ansible/playbooks/ini/config-telemetry.ini
+	@echo "Config files for Telemetry created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_telemetry_deploy"
+
+ansible_telemetry_deploy:
+	@ansible-playbook infra/ansible/playbooks/telemetry.yaml \
+		-i $(INVENTORY)
+
+__ETHEREUM_PACKAGE__:  ## ____
+
+ethereum_package_start: ## Starts the ethereum_package environment
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
+
+ethereum_package_inspect: ## Prints detailed information about the net
+	kurtosis enclave inspect aligned
+
+ethereum_package_rm: ## Stops and removes the ethereum_package environment and used resources
+	kurtosis enclave rm aligned -f
+
+batcher_start_ethereum_package: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+aggregator_start_ethereum_package:
+	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
+
+operator_start_ethereum_package:
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+operator_register_start_ethereum_package:
+	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+
+install_spamoor: ## Instal spamoor to spam transactions
+	@echo "Installing spamoor..."
+	@git clone https://github.com/ethpandaops/spamoor.git
+	@cd spamoor && make
+	@mv spamoor/bin/spamoor $(HOME)/.local/bin
+	@rm -rf spamoor
+	@echo "======================================================================="
+	@echo "Installation complete! Run 'spamoor --help' to verify the installation."
+	@echo "If 'spamoor' is not recognized, make sure it's in your PATH by adding the following line to your shell configuration:"
+	@echo "export PATH=\$$PATH:\$$HOME/.local/bin"
+	@echo "======================================================================="
+
+# Spamoor funding wallet
+SPAMOOR_PRIVATE_KEY?=dbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+NUM_WALLETS?=1000
+TX_PER_BLOCK?=250
+# Similar to a swap
+TX_CONSUMES_GAS?=150000
+
+spamoor_send_transactions: ## Sends normal transactions and also replacement transactions
+	spamoor gasburnertx -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) \
+		--gas-units-to-burn $(TX_CONSUMES_GAS) \
+		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
+		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ -h http://127.0.0.1:8550/ -h http://127.0.0.1:8555/ -h http://127.0.0.1:8565/ \
+		--refill-amount 5 --refill-balance 2 --tipfee $(TIP_FEE) --basefee 100  \
+		2>&1 | grep -v 'checked child wallets (no funding needed)'
+
+__NODE_EXPORTER_: ##__
+
+install_node_exporter:
+	@./scripts/install_node_exporter.sh

@@ -65,7 +65,7 @@ defmodule ExplorerWeb.Restakes.Index do
         operators_registered={@operators_registered}
       />
       <%= if @assets != [] do %>
-        <.card_background>
+        <.card_background class="overflow-x-auto">
           <.table id="assets" rows={@assets}>
             <:col :let={asset} label="Token" class="text-left">
               <.link

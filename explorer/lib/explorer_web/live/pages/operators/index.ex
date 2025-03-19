@@ -54,7 +54,7 @@ defmodule ExplorerWeb.Operators.Index do
         operators_registered={@operators_registered}
       />
       <%= if @operators != [] do %>
-        <.card_background>
+        <.card_background class="overflow-x-auto">
           <.table id="operators" rows={@operators}>
             <:col :let={operator} label="Name" class="[animation-delay: 3s]">
               <.link navigate={~p"/operators/#{operator.address}"} class="flex gap-x-2">

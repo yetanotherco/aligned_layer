@@ -5,10 +5,7 @@ const isDark = () => {
 		.split("; ")
 		.find((row) => row.startsWith(`${themeCookieKey}=`))
 		?.split("=")[1];
-	return (
-		theme == "dark" ||
-		window.matchMedia("(prefers-color-scheme: dark)").matches
-	);
+	return theme == "dark";
 };
 
 const setThemeCookie = (theme) => {

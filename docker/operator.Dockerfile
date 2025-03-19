@@ -29,4 +29,4 @@ COPY contracts ./contracts
 
 ENV LD_LIBRARY_PATH=/aligned_layer/operator/risc_zero/lib/
 
-CMD ["aligned-layer-operator", "start", "--config", "./config-files/config-docker.yaml"]
+CMD ["aligned-layer-operator", "start", "--config", "./config-files/config-operator-docker.yaml"]

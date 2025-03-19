@@ -1,0 +1,141 @@
+- name: Prometheus Setup
+  hosts: "{{ host }}"
+
+  tasks:
+
+  - name: Check if Prometheus is installed
+    stat:
+      path: /usr/local/bin/prometheus
+    register: prometheus_exists
+
+  - name: Create Prometheus group
+    become: true
+    when: not prometheus_exists.stat.exists
+    group:
+      name: prometheus
+      system: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Create Prometheus user
+    become: true
+    when: not prometheus_exists.stat.exists
+    user:
+      name: prometheus
+      group: prometheus
+      shell: /sbin/nologin
+      system: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Download Prometheus
+    when: not prometheus_exists.stat.exists
+    get_url:
+      url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+      dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      mode: '0644'
+
+  - name: Extract Prometheus
+    when: not prometheus_exists.stat.exists
+    unarchive:
+      src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      dest: /tmp/
+      remote_src: yes
+
+  - name: Create Prometheus directories
+    become: true
+    when: not prometheus_exists.stat.exists
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    loop:
+      - /etc/prometheus
+      - /var/lib/prometheus
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Move Prometheus
+    become: true
+    when: not prometheus_exists.stat.exists
+    copy:
+      remote_src: true
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    with_items:
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus", dest: "/usr/local/bin/prometheus" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/promtool", dest: "/usr/local/bin/promtool" }
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Move Prometheus configuration and consoles
+    become: true
+    when: not prometheus_exists.stat.exists
+    copy:
+      remote_src: true
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    with_items:
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/consoles", dest: "/etc/prometheus/consoles" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/console_libraries", dest: "/etc/prometheus/console_libraries" }
+      - { src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus.yml", dest: "/etc/prometheus/prometheus.yml" }
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Clean up Prometheus tar and extracted directory
+    when: not prometheus_exists.stat.exists
+    file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+      - "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+      - "/tmp/prometheus-{{ prometheus_version }}.linux-amd64"
+
+  - name: Add prometheus config file
+    become: true
+    template:
+      src: prometheus/prometheus.yaml.j2
+      dest: /etc/prometheus/prometheus.yml
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+      prometheus_aggregator_ip: "{{ lookup('ini', 'prometheus_aggregator_ip', file='ini/config-telemetry.ini') }}"
+      prometheus_operator_ip: "{{ lookup('ini', 'prometheus_operator_ip', file='ini/config-telemetry.ini') }}"
+      prometheus_batcher_ip: "{{ lookup('ini', 'prometheus_batcher_ip', file='ini/config-telemetry.ini') }}"
+      prometheus_tracker_ip: "{{ lookup('ini', 'prometheus_tracker_ip', file='ini/config-telemetry.ini') }}"
+
+  - name: Add prometheus rules file
+    become: true
+    copy:
+      src: prometheus/rules.yml
+      dest: /etc/prometheus/rules.yml
+      owner: prometheus
+      group: prometheus
+      mode: '0755'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Create Prometheus systemd service
+    become: true
+    template:
+      src: services/prometheus.service.j2
+      dest: /etc/systemd/system/prometheus.service
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Enable prometheus
+    become: true
+    systemd_service:
+      name: prometheus
+      state: started
+      enabled: true
+      daemon_reload: true
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"

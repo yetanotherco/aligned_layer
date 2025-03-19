@@ -58,6 +58,7 @@
       changed_when: false
       failed_when: erlang_check.rc not in [0, 1]
 
+
     - name: Download Erlang 26.2.1-1
       become: true
       register: download_erlang
