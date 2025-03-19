@@ -188,8 +188,7 @@ contract BatcherPaymentService is
         alignedLayerServiceManager.withdraw(amount); // reverts if InsufficientBalance
         // money is now in this contract
         // we transfer it to the withdraw address
-        payable(withdrawAddress).transfer(amount); // non-reentrant since .transfer() has low gas limit. Also, Owner is a multisig.
-        // this.balance is unchanged
+        payable(withdrawAddress).transfer(amount); // non-reentrant since .transfer() has low gas limit.
     }
 
     function pause() public onlyOwner {
