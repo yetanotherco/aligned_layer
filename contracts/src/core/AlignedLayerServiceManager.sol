@@ -68,7 +68,7 @@ contract AlignedLayerServiceManager is
         address _alignedAggregator,
         IPauserRegistry _pauserRegistry,
         uint256 _initialPausedStatus
-    ) public initializer { // Applied on Testnet & Mainnet
+    ) public initializer {
         if (_initialOwner == address(0)) {
             revert InvalidAddress("initialOwner");
         }
@@ -85,12 +85,12 @@ contract AlignedLayerServiceManager is
     }
 
     // Reinitializers:
-    // Notice testnet had more upgrades than mainnet. 
-    // In testnet, we executed the reinitializer(2) and reinitializer(3)
+    // Notice Testnet had more upgrades than Mainnet. 
+    // In Testnet, we executed the reinitializer(2) and reinitializer(3)
 
     // These are not needed in Mainnet. 
     // In the future, in case of needing to add a reinitializer, 
-    // either add it as reinitializer(4) or redeploy testnet from scratch
+    // either add it as reinitializer(4) or redeploy Testnet from scratch
     
     // function initializeAggregator( // applied on Testnet
     //     address _alignedAggregator
