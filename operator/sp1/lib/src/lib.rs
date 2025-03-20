@@ -1,9 +1,9 @@
 use lazy_static::lazy_static;
 use log::error;
-use sp1_sdk::ProverClient;
+use sp1_sdk::{ProverClient, EnvProver};
 
 lazy_static! {
-    static ref PROVER_CLIENT: ProverClient = ProverClient::new();
+    static ref PROVER_CLIENT: EnvProver = ProverClient::from_env();
 }
 
 fn inner_verify_sp1_proof_ffi(

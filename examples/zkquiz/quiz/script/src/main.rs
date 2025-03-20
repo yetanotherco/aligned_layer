@@ -178,7 +178,7 @@ async fn main() {
 
     println!("Generating Proof ");
 
-    let client = ProverClient::new();
+    let client = ProverClient::from_env();
     let (pk, vk) = client.setup(ELF);
 
     let Ok(proof) = client.prove(&pk, stdin).run() else {
