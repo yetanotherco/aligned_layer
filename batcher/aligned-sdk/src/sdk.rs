@@ -196,7 +196,7 @@ async fn fetch_gas_price(
 
 /// Submits multiple proofs to the batcher to be verified in Aligned.
 /// # Arguments
-/// * `network` - The netork on which the verification will be done.
+/// * `network` - The network on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
 /// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
 /// * `wallet` - The wallet used to sign the proof.
@@ -367,7 +367,7 @@ pub async fn submit_and_wait_verification(
 
 /// Submits a proof to the batcher to be verified in Aligned.
 /// # Arguments
-/// * `chain` - The chain on which the verification will be done.
+/// * `network` - The network on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.

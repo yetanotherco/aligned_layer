@@ -109,11 +109,14 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * `proof`: The path of the proof associated to the computation to be verified.
 * `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
 * `pub_input`: The path to the file with the public input associated with the proof.
-* `batcher_url`: The batcher websocket URL. Can be:
-  * mainnet: `wss://mainnet.batcher.alignedlayer.com`
-  * holesky: `wss://batcher.alignedlayer.com`
-  * devnet: `ws://localhost:8080`
-* `network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
+* One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.
+    - Default: `devnet`
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
 * `rpc_url`: The RPC Ethereum node URL.
 * `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
 * `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
@@ -130,7 +133,6 @@ aligned submit \
 --proving_system SP1 \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
---batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
@@ -165,7 +167,6 @@ aligned submit \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --pub_input <pub_input_file> \
---batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
