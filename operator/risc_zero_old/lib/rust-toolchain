@@ -1,2 +1,0 @@
-[toolchain]
-components = ["llvm-tools", "rustc-dev", "rustfmt", "rust-src"]
