@@ -393,8 +393,8 @@ batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -403,8 +403,8 @@ batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
 		--repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
@@ -727,11 +727,11 @@ test_sp1_go_bindings_linux: build_sp1_linux
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
-# @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.elf scripts/test_files/sp1/
+# @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci_4_1_3.elf scripts/test_files/sp1/
 generate_sp1_fibonacci_proof:
 	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
-	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci.elf
-	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
+	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf
+	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci_4_1_3.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
 generate_risc_zero_empty_journal_proof:
@@ -934,8 +934,8 @@ docker_batcher_send_sp1_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system SP1 \
-              --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
-              --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
+              --proof ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+              --vm_program ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
