@@ -1,7 +1,7 @@
 # Register as an Aligned operator in testnet
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.14.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.14.0)
+> Aligned Operator [v0.15.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.15.0)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
@@ -30,7 +30,7 @@ The list of supported strategies can be found [here](../3_guides/7_contract_addr
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.14.0
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.15.0
 cd aligned_layer
 ```
 
