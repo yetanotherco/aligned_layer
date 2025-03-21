@@ -13,12 +13,18 @@ const GRACE_PERIOD_END: u32 = 1440;
 const SUB_WINDOWS_PER_WINDOW: u32 = 11;
 const SLOTS_PER_SUB_WINDOW: u32 = 7;
 
+/// The result of the comparison of security between chains done in the `select_secure_chain`
+/// function.
 #[derive(Debug, PartialEq)]
 pub enum ChainResult {
     Bridge,
     Candidate,
 }
 
+/// Given two Mina chains, `candidate` and `tip`, returns an enum variant `ChainResult` that
+/// indicates which chain is more secure.
+/// Returns `ChainResult::Bridge` if `tip` is the most secure chain. `ChainResult::Candidate`
+/// otherwise.
 pub fn select_secure_chain(
     candidate: &MinaProtocolState,
     tip: &MinaProtocolState,
