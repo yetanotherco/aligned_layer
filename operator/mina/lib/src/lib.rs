@@ -75,6 +75,11 @@ fn inner_verify_mina_state_ffi(
     verify_mina_state(proof_bytes, pub_input_bytes)
 }
 
+/// Verifies that the Mina state included in `proof_bytes` is valid.
+/// This includes checking that:
+///
+/// - The Mina state corresponds to the tip of the most secure chain
+/// - The corresponding Pickles proof is valid
 pub fn verify_mina_state(proof_bytes: &[u8], pub_input_bytes: &[u8]) -> bool {
     let proof: MinaStateProof = match bincode::deserialize(proof_bytes) {
         Ok(proof) => proof,
