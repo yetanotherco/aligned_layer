@@ -1,0 +1,11 @@
+[Unit]
+Description=Telemetry
+After=network.target
+
+[Service]
+EnvironmentFile=/home/{{ ansible_user }}/config/.env.telemetry
+WorkingDirectory=/home/{{ ansible_user }}/repos/telemetry/aligned_layer
+ExecStart=/home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/_build/prod/rel/telemetry_api/bin/telemetry_api start
+
+[Install]
+WantedBy=multi-user.target

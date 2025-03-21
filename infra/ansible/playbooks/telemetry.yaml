@@ -1,0 +1,157 @@
+- name: Run Setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: telemetry
+
+- name: Run Prometheus playbook
+  ansible.builtin.import_playbook: prometheus.yaml
+  vars:
+    host: telemetry
+    prometheus_version: "2.53.2"
+    ini_file: ini/config-telemetry.ini
+
+- name: Run Alert Manager playbook
+  ansible.builtin.import_playbook: alert_manager.yaml
+  vars:
+    host: telemetry
+    alert_manager_version: 0.27.0
+    ini_file: ini/config-telemetry.ini
+
+- name: Run Grafana playbook
+  ansible.builtin.import_playbook: grafana.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+
+- name: Run OpenTelemetry playbook
+  ansible.builtin.import_playbook: open_telemetry.yaml
+  vars:
+    host: telemetry
+    open_telemetry_version: "0.113.0"
+
+- name: Run Cassandra playbook
+  ansible.builtin.import_playbook: cassandra.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+    cassandra_version: 5.0.2
+
+- name: Run Jaeger playbook
+  ansible.builtin.import_playbook: jaeger.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+    jaeger_version: 1.63.0
+
+- name: Run Postgres 16 playbook
+  ansible.builtin.import_playbook: postgres.yaml
+  vars:
+    host: telemetry
+    ini_file: ini/config-telemetry.ini
+
+- name: Run Elixir playbook
+  ansible.builtin.import_playbook: elixir.yaml
+  vars:
+    host: telemetry
+
+- name: Run Go playbook
+  ansible.builtin.import_playbook: go.yaml
+  vars:
+    host: telemetry
+
+- name: Setup Telemetry
+  hosts: telemetry
+
+  tasks:
+
+  - name: Make sure /etc/default/tailscaled exists
+    become: true
+    file:
+      path: /etc/default/tailscaled
+      state: touch
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Clone Aligned repository
+    ansible.builtin.git:
+      repo: https://github.com/yetanotherco/aligned_layer.git
+      dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
+      version: v0.12.1
+      recursive: false
+
+  - name: Run telemetry_compile_bls_verifier target
+    make:
+      target: telemetry_compile_bls_verifier
+      chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin"
+
+  - name: Add environment file for Telemetry API
+    template:
+      src: telemetry_api/telemetry_env.j2
+      dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/.env
+    vars:
+      postgresql_telemetry_db_name: "{{ lookup('ini', 'postgresql_telemetry_db_name file=ini/config-telemetry.ini') }}"
+      postgresql_telemetry_user: "{{ lookup('ini', 'postgresql_telemetry_user file=ini/config-telemetry.ini') }}"
+      postgresql_telemetry_pass: "{{ lookup('ini', 'postgresql_telemetry_pass file=ini/config-telemetry.ini') }}"
+      telemetry_aligned_rpc: "{{ lookup('ini', 'telemetry_aligned_rpc file=ini/config-telemetry.ini') }}"
+      telemetry_api_phx_host: "{{ lookup('ini', 'telemetry_api_phx_host file=ini/config-telemetry.ini') }}"
+      telemetry_api_elixir_hostname: "{{ lookup('ini', 'telemetry_api_elixir_hostname file=ini/config-telemetry.ini') }}"
+      telemetry_api_secret_key_base: "{{ lookup('ini', 'telemetry_api_secret_key_base file=ini/config-telemetry.ini') }}"
+
+  - name: Install dependencies for Telemetry API
+    shell:
+      cmd: |
+        source .env
+        mix deps.get
+        mix phx.gen.release
+      chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
+      executable: /bin/bash
+    environment:
+      MIX_ENV: prod
+
+  - name: Build release for Telemetry API
+    shell:
+      cmd: source .env && mix release
+      chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
+      executable: /bin/bash
+      creates: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/_build/prod/rel/telemetry_api/bin/
+    environment:
+      MIX_ENV: prod
+
+  - name: Run migrations for Telemetry API
+    shell:
+      cmd: source .env && _build/prod/rel/telemetry_api/bin/migrate
+      chdir: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api
+      executable: /bin/bash
+
+  - name: Ensure ~/.config/systemd/user/ directory exists
+    file:
+      path: /home/{{ ansible_user }}/.config/systemd/user/
+      state: directory
+
+  - name: Create .env for Telemetry API systemd service
+    shell: cat /home/{{ ansible_user }}/repos/telemetry/aligned_layer/telemetry_api/.env | sed 's/export //g' > /home/{{ ansible_user }}/config/.env.telemetry
+
+  - name: Create systemd service for Telemetry API
+    template:
+      src: services/telemetry.service.j2
+      dest: /home/{{ ansible_user }}/.config/systemd/user/telemetry.service
+
+  - name: Start Telemetry API
+    systemd_service:
+      name: telemetry
+      state: started
+      enabled: true
+      daemon_reload: true
+      scope: user
+
+  handlers:
+    - name: Restart tailscale
+      become: true
+      systemd_service:
+        name: tailscaled
+        state: restarted
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+      ignore_errors: true
