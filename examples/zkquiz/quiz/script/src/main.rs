@@ -1,4 +1,3 @@
-#![feature(slice_flatten)]
 use std::io;
 use std::str::FromStr;
 
@@ -181,7 +180,7 @@ async fn main() {
     let client = ProverClient::from_env();
     let (pk, vk) = client.setup(ELF);
 
-    let Ok(proof) = client.prove(&pk, stdin).run() else {
+    let Ok(proof) = client.prove(&pk, &stdin).run() else {
         println!("Incorrect answers!");
         return;
     };
@@ -299,8 +298,10 @@ async fn claim_nft_with_verified_proof(
             .batch_inclusion_proof
             .merkle_path
             .as_slice()
+            .iter()
             .flatten()
-            .to_vec(),
+            .copied()  // Convert &u8 to u8
+            .collect::<Vec<u8>>()
     );
 
     let proving_system_aux_data_commitment_hex: String = aligned_verification_data
