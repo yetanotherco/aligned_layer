@@ -50,6 +50,14 @@ fn inner_verify_account_inclusion_ffi(
     verify_account_inclusion(proof_bytes, pub_input_bytes)
 }
 
+/// Verifies a Mina account inclusion.
+/// Verifies that exists a Merkle path composed of:
+///
+/// - The hash of the Mina account as the leaf
+/// - The ledger hash as the root
+/// - Some intermediate nodes
+///
+/// Returns `true` if the Mina account is included in the ledger hash. `false` otherwise.
 pub fn verify_account_inclusion(proof_bytes: &[u8], pub_input_bytes: &[u8]) -> bool {
     let MinaAccountProof {
         merkle_path,

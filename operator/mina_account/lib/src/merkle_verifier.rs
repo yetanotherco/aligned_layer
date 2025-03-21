@@ -4,6 +4,12 @@ use mina_curves::pasta::Fp;
 use mina_p2p_messages::v2::hash_with_kimchi;
 use std::fmt::Write;
 
+/// Verifies a Merkle Proof.
+/// This means that `merkle_leaf`, `merkle_path` and `merkle_root` conform one of the paths of a Merkle tree
+/// where `merkle_leaf` is the first node of the path, `merkle_root` is the last one and `merkle_path` is a
+/// vector of all the intermediate nodes.
+/// Returns `true` if the Merkle proof is valid. `false` otherwise.
+///
 /// Based on OpenMina's implementation
 /// https://github.com/openmina/openmina/blob/d790af59a8bd815893f7773f659351b79ed87648/ledger/src/account/account.rs#L1444
 pub fn verify_merkle_proof(merkle_leaf: Fp, merkle_path: Vec<MerkleNode>, merkle_root: Fp) -> bool {
