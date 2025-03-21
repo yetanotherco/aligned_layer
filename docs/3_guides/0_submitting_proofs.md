@@ -12,7 +12,7 @@ The following is the list of the verifiers currently supported by Aligned:
 
 - :white_check_mark: gnark - Groth16 (with BN254)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
-- :white_check_mark: SP1 [(v3.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v3.0.0)
+- :white_check_mark: SP1 [(v4.1.3)](https://github.com/succinctlabs/sp1/releases/tag/v4.1.3)
 - :white_check_mark: Risc0 [(v1.1.2)](https://github.com/risc0/risc0/releases/tag/v1.1.2)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
@@ -120,7 +120,7 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 
 ### SP1 proof
 
-The current SP1 version used in Aligned is `v3.0.0`.
+The current SP1 version used in Aligned is `v4.1.3`.
 
 The SP1 proof needs the proof file and the vm program file.
 
@@ -144,8 +144,8 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
---proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
---vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
+--proof ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+--vm_program ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
 --batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
