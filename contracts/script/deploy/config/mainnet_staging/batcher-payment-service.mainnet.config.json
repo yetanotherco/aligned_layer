@@ -1,7 +1,7 @@
 {
   "address": {
     "batcherWallet": "0xCA81D63e24C5C4E6C4fdB2859420e77c8aB565C2",
-    "alignedLayerServiceManager": "<aligned_layer_service_manager_address"
+    "alignedLayerServiceManager": "0x96b6a29D7B98519Ae66E6398BD27A76B30a5dC3f"
   },
   "amounts": {
     "gasForAggregator": "300000",
