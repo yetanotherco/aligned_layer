@@ -279,6 +279,7 @@ pub fn get_payment_service_address(network: Network) -> ethers::types::H160 {
             H160::from_str("0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b").unwrap()
         }
         Network::Mainnet => H160::from_str("0xb0567184A52cB40956df6333510d6eF35B89C8de").unwrap(),
+        Network::MainnetStage => H160::from_str("0x88ad27EfBeF16b6fC5b2E40c5155d61876f847c5").unwrap(),
     }
 }
 
@@ -290,6 +291,7 @@ pub fn get_aligned_service_manager_address(network: Network) -> ethers::types::H
             H160::from_str("0x9C5231FC88059C086Ea95712d105A2026048c39B").unwrap()
         }
         Network::Mainnet => H160::from_str("0xeF2A435e5EE44B2041100EF8cbC8ae035166606c").unwrap(),
+        Network::MainnetStage => H160::from_str("0x96b6a29D7B98519Ae66E6398BD27A76B30a5dC3f").unwrap(),
     }
 }
 
