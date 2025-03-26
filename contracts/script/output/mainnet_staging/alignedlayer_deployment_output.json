@@ -2,7 +2,7 @@
   "addresses": {
     "alignedLayerProxyAdmin": "0x0D16a82be664c337c615499f8775Ef0431703daC",
     "alignedLayerServiceManager": "0x96b6a29D7B98519Ae66E6398BD27A76B30a5dC3f",
-    "alignedLayerServiceManagerImplementation": "0x97D1f6e8AC6ed284a8b4c846A71Ad6e16E84061E",
+    "alignedLayerServiceManagerImplementation": "0x32112B2C1a2cd002a8468fCd556E9010cd817eA1",
     "blsApkRegistry": "0x1c81a981bC1605f050C4D400415c7B68f3007053",
     "blsApkRegistryImplementation": "0xd49879DD898dB153a9580627ED423832827730c2",
     "indexRegistry": "0x4f71C1ab239C967Cb8F8F7f3A3ce6547c753b70B",
@@ -15,7 +15,7 @@
     "stakeRegistry": "0x4d52a2289f9f1b126E96937193558fFD2F294DcC",
     "stakeRegistryImplementation": "0x398Fe850c9c0B10CCAEe273Af68a526AB99278D2",
     "batcherPaymentService": "0x88ad27EfBeF16b6fC5b2E40c5155d61876f847c5",
-    "batcherPaymentServiceImplementation": "0xC7834f3ca05cf00bbE39B8751eAE4C8C8c2374CD"
+    "batcherPaymentServiceImplementation": "0x184B4EBe526f18341D920E7b9A74B3F533bD6449"
   },
   "chainInfo": {
     "chainId": 1,
