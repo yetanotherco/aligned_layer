@@ -234,7 +234,7 @@ impl From<NetworkArg> for Network {
             NetworkArg::Holesky => Network::Holesky,
             NetworkArg::HoleskyStage => Network::HoleskyStage,
             NetworkArg::Mainnet => Network::Mainnet,
-            NetworkArg::MainnetStage => Network::MainnetStage
+            NetworkArg::MainnetStage => Network::MainnetStage,
         }
     }
 }
