@@ -476,7 +476,7 @@ async fn main() -> Result<(), AlignedError> {
                     Err(e) => {
                         warn!(
                             "Failed to create wallet from anvil private key: {}",
-                            e.to_string()
+                            e
                         );
                         return Ok(());
                     }
