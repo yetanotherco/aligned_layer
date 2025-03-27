@@ -46,6 +46,7 @@ Also, you have to install the following dependencies for Linux:
 
 - pkg-config
 - libssl-dev
+- g++
 
 To install foundry, run:
 
