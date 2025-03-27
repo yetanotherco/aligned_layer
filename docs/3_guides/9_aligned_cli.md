@@ -93,9 +93,9 @@ Submit a proof to the Aligned Layer batcher.
 ```bash
 aligned submit  \
 --proving_system Risc0 \
---proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
---vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
---public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 --repetitions <BURST_SIZE> \
 --keystore_path <KEYSTORE_PATH> \
 --batcher_url wss://batcher.alignedlayer.com \

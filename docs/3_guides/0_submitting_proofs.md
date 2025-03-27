@@ -13,7 +13,7 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: gnark - Groth16 (with BN254)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
 - :white_check_mark: SP1 [(v4.1.3)](https://github.com/succinctlabs/sp1/releases/tag/v4.1.3)
-- :white_check_mark: Risc0 [(v1.1.2)](https://github.com/risc0/risc0/releases/tag/v1.1.2)
+- :white_check_mark: Risc0 [(v2.0.0)](https://github.com/risc0/risc0/releases/tag/v2.0.0)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
 
@@ -156,7 +156,7 @@ aligned submit \
 
 ### Risc0 proof
 
-The current Risc0 version used in Aligned is `v1.1.2`.
+The current Risc0 version used in Aligned is `v2.0.0`.
 
 The Risc0 proof needs the proof file and the vm program file (vm program file is the image id).
 
@@ -174,12 +174,12 @@ aligned submit \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
-**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.1.2`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.1.2` or your proof will not be verified. 
+**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v2.0.0`. For generating proofs using `cargo risc-zero` please ensure you are using `v2.0.0` or your proof will not be verified. 
 
-If you can't install `cargo-risczero` `v1.1.2`, you can manually modify your `cargo.toml` on the host project to point to `v1.1.2`:
+If you can't install `cargo-risczero` `v2.0.0`, you can manually modify your `cargo.toml` on the host project to point to `v2.0.0`:
 
 ```toml
-risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.1.2", default-features = false, features = [
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v2.0.0", default-features = false, features = [
     "prove",
 ] }
 ```
@@ -191,9 +191,9 @@ risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.1.2", default-f
 rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system Risc0 \
---proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
---vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
---public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 --batcher_url wss://batcher.alignedlayer.com \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
