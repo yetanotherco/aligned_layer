@@ -283,10 +283,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
         let private_key_str = match line {
             Ok(line) => line,
             Err(err) => {
-                error!(
-                    "Could not read line from private keys file: {}",
-                    err
-                );
+                error!("Could not read line from private keys file: {}", err);
                 return;
             }
         };
