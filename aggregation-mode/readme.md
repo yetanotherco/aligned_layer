@@ -1,0 +1,3 @@
+
+## Aligned aggregation mode
+
