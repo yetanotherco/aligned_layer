@@ -148,7 +148,6 @@ aligned submit \
 --proving_system SP1 \
 --proof ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
 --vm_program ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
---batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -194,7 +193,6 @@ aligned submit \
 --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
 --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
 --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
---batcher_url wss://batcher.alignedlayer.com \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
@@ -212,7 +210,6 @@ aligned submit \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
---batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
@@ -229,7 +226,6 @@ aligned submit \
 --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
 --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
---batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -242,7 +238,6 @@ aligned submit \
 --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
 --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
 --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
---batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -255,7 +250,6 @@ aligned submit \
 --proof ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 --public_input ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 --vk ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
---batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com

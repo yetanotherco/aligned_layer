@@ -51,8 +51,6 @@ Or you can make a more complex call to submit a proof:
 (code extract from [ZKQuiz example](../3_guides/2_build_your_first_aligned_application.md#app))
 
 ```rust
-const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
-
 fn main() {
     let rpc_url = args.rpc_url.clone();
     let verification_data = VerificationData {
@@ -74,7 +72,6 @@ fn main() {
 
     // Call to SDK:
     match submit_and_wait_verification(
-        BATCHER_URL,
         &rpc_url,
         Network::Holesky,
         &verification_data,

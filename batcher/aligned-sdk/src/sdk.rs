@@ -49,16 +49,18 @@ use std::io::Write;
 use std::path::PathBuf;
 
 /// Submits multiple proofs to the batcher to be verified in Aligned and waits for the verification on-chain.
+///
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `chain` - The chain on which the verification will be done.
+/// * `network` - The network on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
-/// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
+/// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification for each proof.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
-/// * `payment_service_addr` - The address of the payment service contract.
+///
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
+///
 /// # Errors
 /// * `MissingRequiredParameter` if the verification data vector is empty.
 /// * `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
@@ -109,19 +111,21 @@ pub async fn submit_multiple_and_wait_verification(
 }
 
 /// Returns the estimated `max_fee` depending on the batch inclusion preference of the user, computed based on the current gas price, and the number of proofs in a batch.
-/// NOTE: The `max_fee` is computed from an rpc nodes max priority gas price.
+/// NOTE: The `max_fee` is computed from a rpc node's max priority gas price.
 /// To estimate the `max_fee` of a batch we compute it based on a batch size of 1 (Instant), 10 (Default), or a user supplied `number_proofs_in_batch` (Custom).
 /// The `max_fee` estimates therefore are:
-/// * `Default`: Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 10 proofs ie. 1 / 10 proofs.
+/// * `Default`: Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 10 proofs i.e. 1 / 10 proofs.
 ///        This estimates a default `max_fee` the user should specify for including there proof within the batch.
 /// * `Instant`: Specifies a `max_fee` equivalent to the cost of paying for an entire batch ensuring the user's proof is included instantly assuming the proof is not competing with others for inclusion.
 /// * `Custom (number_proofs_in_batch)`: Specifies a `max_fee` equivalent to the cost of paying 1 proof / `number_proofs_in_batch` allowing the user a user to estimate the `max_fee` precisely based on the `number_proofs_in_batch`.
 ///
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `estimate_type` - Enum specifying the type of price estimate:  Default, Instant. Custom(usize)
+/// * `fee_estimation_type` - Enum specifying the type of price estimate:  Default, Instant. Custom(usize)
+///
 /// # Returns
 /// The estimated `max_fee` in gas for a proof based on the users `FeeEstimateType` as a `U256`.
+///
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
@@ -144,12 +148,16 @@ pub async fn estimate_fee(
 
 /// Returns the `fee_per_proof` based on the current gas price for a batch compromised of `num_proofs_per_batch`
 /// i.e. (1 / `num_proofs_per_batch`).
-// NOTE: The `fee_per_proof` is computed from an rpc nodes max priority gas price.
+///
+/// NOTE: The `fee_per_proof` is computed from a rpc node's max priority gas price.
+///
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the users Ethereum RPC node.
-/// * `num_proofs_per_batch` - number of proofs within a batch.
+/// * `num_proofs_in_batch` - number of proofs within a batch.
+///
 /// # Returns
 /// * The fee per proof of a batch as a `U256`.
+///
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
@@ -195,14 +203,17 @@ async fn fetch_gas_price(
 }
 
 /// Submits multiple proofs to the batcher to be verified in Aligned.
+///
 /// # Arguments
 /// * `network` - The network on which the verification will be done.
 /// * `verification_data` - An array of verification data of each proof.
-/// * `max_fees` - An array of the maximum fee that the submitter is willing to pay for each proof verification.
+/// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification for each proof.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
+///
 /// # Returns
 /// * An array of aligned verification data obtained when submitting the proof.
+///
 /// # Errors
 /// * `MissingRequiredParameter` if the verification data vector is empty.
 /// * `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
@@ -307,16 +318,18 @@ async fn _submit_multiple(
 }
 
 /// Submits a proof to the batcher to be verified in Aligned and waits for the verification on-chain.
+///
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `chain` - The chain on which the verification will be done.
+/// * `network` - The network on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
-/// * `payment_service_addr` - The address of the payment service contract.
+///
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
+///
 /// # Errors
 /// * `MissingRequiredParameter` if the verification data vector is empty.
 /// * `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
@@ -366,14 +379,17 @@ pub async fn submit_and_wait_verification(
 }
 
 /// Submits a proof to the batcher to be verified in Aligned.
+///
 /// # Arguments
 /// * `network` - The network on which the verification will be done.
 /// * `verification_data` - The verification data of the proof.
 /// * `max_fee` - The maximum fee that the submitter is willing to pay for the verification.
 /// * `wallet` - The wallet used to sign the proof.
 /// * `nonce` - The nonce of the submitter address. See [`get_nonce_from_ethereum`] or [`get_nonce_from_batcher`].
+///
 /// # Returns
 /// * The aligned verification data obtained when submitting the proof.
+///
 /// # Errors
 /// * `MissingRequiredParameter` if the verification data vector is empty.
 /// * `ProtocolVersionMismatch` if the version of the SDK is lower than the expected one.
@@ -411,13 +427,15 @@ pub async fn submit(
 }
 
 /// Checks if the proof has been verified with Aligned and is included in the batch.
+///
 /// # Arguments
 /// * `aligned_verification_data` - The aligned verification data obtained when submitting the proofs.
-/// * `chain` - The chain on which the verification will be done.
+/// * `network` - The network on which the verification will be done.
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `payment_service_addr` - The address of the payment service.
+///
 /// # Returns
 /// * A boolean indicating whether the proof was verified on-chain and is included in the batch.
+///
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumCallError` if there is an error in the Ethereum call.
@@ -477,11 +495,14 @@ async fn _is_proof_verified(
 }
 
 /// Returns the commitment for the verification key, taking into account the corresponding proving system.
+///
 /// # Arguments
 /// * `verification_key_bytes` - The serialized contents of the verification key.
 /// * `proving_system` - The corresponding proving system ID.
+///
 /// # Returns
 /// * The commitment.
+///
 /// # Errors
 /// * None.
 pub fn get_vk_commitment(
@@ -496,14 +517,18 @@ pub fn get_vk_commitment(
 }
 
 /// Returns the next nonce for a given address from the batcher.
+///
 /// You should prefer this method instead of [`get_nonce_from_ethereum`] if you have recently sent proofs,
 /// as the batcher proofs might not yet be on ethereum,
-/// producing an out-of-sync nonce with the payment service contract on ethereum
+/// producing an out-of-sync nonce with the payment service contract on ethereum.
+///
 /// # Arguments
-/// * `address` - The user address for which the nonce will be retrieved.
 /// * `network` - The network from which the nonce will be retrieved.
+/// * `address` - The user address for which the nonce will be retrieved.
+///
 /// # Returns
 /// * The next nonce of the proof submitter account.
+///
 /// # Errors
 /// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
 pub async fn get_nonce_from_batcher(
@@ -569,11 +594,15 @@ pub async fn get_nonce_from_batcher(
 
 /// Returns the next nonce for a given address in Ethereum from aligned payment service contract.
 /// Note that it might be out of sync if you recently sent proofs. For that see [`get_nonce_from_batcher`]
+///
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
-/// * `address` - The user address for which the nonce will be retrieved.
+/// * `submitter_addr` - The user address for which the nonce will be retrieved.
+/// * `network` - The network from which the nonce will be retrieved.
+///
 /// # Returns
 /// * The next nonce of the proof submitter account from ethereum.
+///
 /// # Errors
 /// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
 pub async fn get_nonce_from_ethereum(
@@ -600,10 +629,13 @@ pub async fn get_nonce_from_ethereum(
 }
 
 /// Returns the chain ID of the Ethereum network.
+///
 /// # Arguments
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+///
 /// # Returns
 /// * The chain ID of the Ethereum network.
+///
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumCallError` if there is an error in the Ethereum call.
@@ -619,13 +651,16 @@ pub async fn get_chain_id(eth_rpc_url: &str) -> Result<u64, errors::ChainIdError
     Ok(chain_id.as_u64())
 }
 
-/// Funds the batcher payment service in name of the signer
+/// Funds the batcher payment service in name of the signer.
+///
 /// # Arguments
 /// * `amount` - The amount to be paid.
 /// * `signer` - The signer middleware of the payer.
 /// * `network` - The network on which the payment will be done.
+///
 /// # Returns
 /// * The receipt of the payment transaction.
+///
 /// # Errors
 /// * `SendError` if there is an error sending the transaction.
 /// * `SubmitError` if there is an error submitting the transaction.
@@ -656,12 +691,15 @@ pub async fn deposit_to_aligned(
 }
 
 /// Returns the balance of a user in the payment service.
+///
 /// # Arguments
 /// * `user` - The address of the user.
 /// * `eth_rpc_url` - The URL of the Ethereum RPC node.
 /// * `network` - The network on which the balance will be checked.
+///
 /// # Returns
 /// * The balance of the user in the payment service.
+///
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumCallError` if there is an error in the Ethereum call.
@@ -691,11 +729,14 @@ pub async fn get_balance_in_aligned(
 }
 
 /// Saves AlignedVerificationData in a file.
+///
 /// # Arguments
 /// * `batch_inclusion_data_directory_path` - The path of the directory where the data will be saved.
 /// * `aligned_verification_data` - The aligned verification data to be saved.
+///
 /// # Returns
 /// * Ok if the data is saved successfully.
+///
 /// # Errors
 /// * `FileError` if there is an error writing the data to the file.
 pub fn save_response(
