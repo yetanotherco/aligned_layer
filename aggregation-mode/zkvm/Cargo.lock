@@ -445,7 +445,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp1_verifier_program"
+name = "sp1_aggregator"
 version = "0.1.0"
 dependencies = [
  "serde",

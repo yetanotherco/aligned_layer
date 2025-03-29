@@ -2,7 +2,7 @@
 sp1_zkvm::entrypoint!(main);
 
 use sha2::{Digest, Sha256};
-use sp1_verifier_program::SP1CompressedProof;
+use sp1_aggregator::SP1CompressedProof;
 
 fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
     let mut hasher = Sha256::new();
@@ -18,7 +18,7 @@ fn compute_merkle_root(proofs: &[SP1CompressedProof]) -> [u8; 32] {
         .map(|chunk| match chunk {
             [a, b] => combine_hashes(&a.hash(), &b.hash()),
             [a] => combine_hashes(&a.hash(), &a.hash()),
-            _ => panic!("Unexpected chunk size in get_parent_nodes"),
+            _ => panic!("Unexpected chunk leaves"),
         })
         .collect();
 
@@ -28,7 +28,7 @@ fn compute_merkle_root(proofs: &[SP1CompressedProof]) -> [u8; 32] {
             .map(|chunk| match chunk {
                 [a, b] => combine_hashes(&a, &b),
                 [a] => combine_hashes(&a, &a),
-                _ => panic!("Unexpected chunk size in get_parent_nodes"),
+                _ => panic!("Unexpected chunk size in leaves"),
             })
             .collect()
     }
