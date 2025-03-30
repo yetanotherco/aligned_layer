@@ -65,5 +65,14 @@ rm -f "script/output/devnet/alignedlayer_deployment_output.temp1.json"
 rm -f "script/output/devnet/alignedlayer_deployment_output.temp2.json"
 
 
+# Deploy proof aggregation service contract
+forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
+    ./script/deploy/config/devnet/proof-aggregator-service.devnet.config.json \
+    ./script/output/devnet/proof_aggregation_service_deployment_output.json \
+    --rpc-url "http://localhost:8545" \
+    --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+    --broadcast \
+    --sig "run(string configPath, string outputPath)"
+
 # Kill the anvil process to save state
 pkill anvil
