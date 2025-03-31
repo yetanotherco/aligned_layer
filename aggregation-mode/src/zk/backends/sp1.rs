@@ -105,3 +105,9 @@ pub(crate) fn verify(sp1_proof: &SP1Proof, elf: &[u8]) -> Result<(), SP1Verifica
         _ => Err(SP1VerificationError::UnsupportedProof),
     }
 }
+
+pub fn vk_from_elf(elf: &[u8]) -> SP1VerifyingKey {
+    let prover = ProverClient::builder().cpu().build();
+    let (_, vk) = prover.setup(elf);
+    vk
+}

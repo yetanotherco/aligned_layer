@@ -46,6 +46,8 @@ pub struct ProofAggregator {
 pub struct Config {
     pub rpc_url: String,
     pub private_key: String,
+    pub submit_proofs_every_secs: u64,
+    pub max_proofs_in_queue: u16,
 }
 
 impl ProofAggregator {
@@ -59,8 +61,8 @@ impl ProofAggregator {
 
         Self {
             engine: ZKVMEngine::SP1,
-            submit_proof_every_secs: 10,
-            max_proofs_in_queue: 2,
+            submit_proof_every_secs: config.submit_proofs_every_secs,
+            max_proofs_in_queue: config.max_proofs_in_queue,
             proofs_queue: vec![],
             proof_aggregation_service,
         }
