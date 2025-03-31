@@ -1,21 +1,9 @@
-use super::sp1::{self, SP1AggregatedProof};
+use super::sp1::{self, SP1AggregatedProof, SP1Proof, SP1VerificationError};
 use serde::{Deserialize, Serialize};
-use sp1_aggregator::SP1CompressedProof;
 
 #[derive(Serialize, Deserialize)]
-pub enum InputProofs {
-    SP1Compressed(Vec<SP1CompressedProof>),
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ProgramInput {
-    proofs: InputProofs,
-}
-
-impl ProgramInput {
-    pub fn new(proofs: InputProofs) -> Self {
-        ProgramInput { proofs }
-    }
+pub enum ProgramInput {
+    SP1(sp1_aggregator::Input),
 }
 
 pub enum AggregatedProof {
@@ -44,7 +32,21 @@ pub enum AggregatedVerificationError {
 }
 
 pub fn aggregate_proofs(input: ProgramInput) -> Result<ProgramOutput, AggregatedVerificationError> {
-    match input.proofs {
-        InputProofs::SP1Compressed(proofs) => sp1::aggregate_proofs(proofs),
+    match input {
+        ProgramInput::SP1(input) => sp1::aggregate_proofs(input),
+    }
+}
+
+enum Proof {
+    SP1(SP1Proof),
+}
+
+enum VerificationError {
+    SP1(SP1VerificationError),
+}
+
+pub fn verify_proof(proof: &Proof) -> Result<(), VerificationError> {
+    match proof {
+        Proof::SP1(proof) => sp1::verify(proof).map_err(VerificationError::SP1),
     }
 }

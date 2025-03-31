@@ -27,3 +27,21 @@ impl SP1CompressedProof {
         hasher.finalize().into()
     }
 }
+
+#[derive(Serialize, Deserialize)]
+pub enum Proof {
+    SP1Compressed(SP1CompressedProof),
+}
+
+impl Proof {
+    pub fn hash(&self) -> [u8; 32] {
+        match self {
+            Proof::SP1Compressed(proof) => proof.hash(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Input {
+    pub proofs: Vec<Proof>,
+}

@@ -2,7 +2,7 @@
 sp1_zkvm::entrypoint!(main);
 
 use sha2::{Digest, Sha256};
-use sp1_aggregator::SP1CompressedProof;
+use sp1_aggregator::{Input, Proof};
 
 fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
     let mut hasher = Sha256::new();
@@ -12,7 +12,7 @@ fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
 }
 
 /// Computes the merkle root for the given proofs using the vk
-fn compute_merkle_root(proofs: &[SP1CompressedProof]) -> [u8; 32] {
+fn compute_merkle_root(proofs: &[Proof]) -> [u8; 32] {
     let mut leaves: Vec<[u8; 32]> = proofs
         .chunks(2)
         .map(|chunk| match chunk {
@@ -38,16 +38,20 @@ fn compute_merkle_root(proofs: &[SP1CompressedProof]) -> [u8; 32] {
 
 // TODO: Update input and use AlignedVerificationData
 pub fn main() {
-    let input = sp1_zkvm::io::read::<Vec<SP1CompressedProof>>();
+    let input = sp1_zkvm::io::read::<Input>();
 
     // Verify the proofs.
-    for proof in input.iter() {
-        let vkey = proof.vk();
-        let public_values = &proof.public_inputs;
-        let public_values_digest = Sha256::digest(public_values);
-        sp1_zkvm::lib::verify::verify_sp1_proof(&vkey, &public_values_digest.into());
+    for proof in input.proofs.iter() {
+        match proof {
+            Proof::SP1Compressed(proof) => {
+                let vkey = proof.vk();
+                let public_values = &proof.public_inputs;
+                let public_values_digest = Sha256::digest(public_values);
+                sp1_zkvm::lib::verify::verify_sp1_proof(&vkey, &public_values_digest.into());
+            }
+        }
     }
 
-    let merkle_root = compute_merkle_root(&input);
+    let merkle_root = compute_merkle_root(&input.proofs);
     sp1_zkvm::io::commit_slice(&merkle_root);
 }
