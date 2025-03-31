@@ -1,5 +1,5 @@
 pub mod aggregator;
-mod backends;
+pub mod backends;
 
 use backends::sp1::{self, SP1Proof, SP1VerificationError};
 
@@ -19,6 +19,7 @@ impl Proof {
     }
 }
 
+#[derive(Debug)]
 pub enum VerificationError {
     SP1(SP1VerificationError),
 }

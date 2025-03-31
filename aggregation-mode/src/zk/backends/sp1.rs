@@ -27,8 +27,8 @@ impl SP1Proof {
 }
 
 pub struct SP1AggregationInput {
-    proofs: Vec<SP1Proof>,
-    merkle_root: [u8; 32],
+    pub proofs: Vec<SP1Proof>,
+    pub merkle_root: [u8; 32],
 }
 
 pub(crate) fn aggregate_proofs(
@@ -86,15 +86,22 @@ pub(crate) fn aggregate_proofs(
     Ok(output)
 }
 
+#[derive(Debug)]
 pub enum SP1VerificationError {
     Verification(sp1_sdk::SP1VerificationError),
+    UnsupportedProof,
 }
 
-pub(crate) fn verify(proof: &SP1Proof, elf: &[u8]) -> Result<(), SP1VerificationError> {
+pub(crate) fn verify(sp1_proof: &SP1Proof, elf: &[u8]) -> Result<(), SP1VerificationError> {
     let client = ProverClient::from_env();
 
     let (_pk, vk) = client.setup(elf);
-    client
-        .verify(&proof.proof, &vk)
-        .map_err(SP1VerificationError::Verification)
+
+    // only sp1 compressed proofs are supported for aggregation now
+    match sp1_proof.proof.proof {
+        sp1_sdk::SP1Proof::Compressed(_) => client
+            .verify(&sp1_proof.proof, &vk)
+            .map_err(SP1VerificationError::Verification),
+        _ => Err(SP1VerificationError::UnsupportedProof),
+    }
 }
