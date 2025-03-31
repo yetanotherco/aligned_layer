@@ -1,8 +1,10 @@
 use sp1_sdk::{Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey};
 
-use super::interface::{AggregatedProof, AggregatedVerificationError, ProgramOutput};
+use crate::zk::interface::aggregator::{
+    AggregatedProof, AggregatedVerificationError, ProgramOutput,
+};
 
-const PROGRAM_ELF: &[u8] = include_bytes!("../../zkvm/sp1/elf/sp1_aggregator_program");
+const PROGRAM_ELF: &[u8] = include_bytes!("../../../zkvm/sp1/elf/sp1_aggregator_program");
 
 // TODO lock prover
 

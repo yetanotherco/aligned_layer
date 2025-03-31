@@ -1,4 +1,4 @@
-use super::sp1::{self, SP1AggregatedProof, SP1Proof, SP1VerificationError};
+use crate::zk::backends::sp1::{self, SP1AggregatedProof};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -34,19 +34,5 @@ pub enum AggregatedVerificationError {
 pub fn aggregate_proofs(input: ProgramInput) -> Result<ProgramOutput, AggregatedVerificationError> {
     match input {
         ProgramInput::SP1(input) => sp1::aggregate_proofs(input),
-    }
-}
-
-enum Proof {
-    SP1(SP1Proof),
-}
-
-enum VerificationError {
-    SP1(SP1VerificationError),
-}
-
-pub fn verify_proof(proof: &Proof) -> Result<(), VerificationError> {
-    match proof {
-        Proof::SP1(proof) => sp1::verify(proof).map_err(VerificationError::SP1),
     }
 }
