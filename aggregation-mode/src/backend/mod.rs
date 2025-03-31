@@ -1,25 +1,25 @@
-use std::{str::FromStr, time::Duration};
-
-use alloy::{
-    network::EthereumWallet,
-    primitives::Address,
-    providers::{PendingTransactionError, ProviderBuilder},
-    rpc::types::TransactionReceipt,
-    signers::local::PrivateKeySigner,
-};
-use merkle_tree::compute_proofs_merkle_root;
-use sp1_sdk::HashableKey;
-use tracing::{error, info, warn};
-use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
+pub mod config;
+mod merkle_tree;
+mod types;
 
 use crate::zk::{
     aggregator::{self, AggregatedProof, ProgramInput, ProofAggregationError},
     backends::sp1::SP1AggregationInput,
     Proof, VerificationError, ZKVMEngine,
 };
-
-mod merkle_tree;
-mod types;
+use alloy::{
+    network::EthereumWallet,
+    primitives::Address,
+    providers::{PendingTransactionError, ProviderBuilder},
+    rpc::types::TransactionReceipt,
+    signers::local::LocalSigner,
+};
+use config::Config;
+use merkle_tree::compute_proofs_merkle_root;
+use sp1_sdk::HashableKey;
+use std::{str::FromStr, time::Duration};
+use tracing::{error, info, warn};
+use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
 #[derive(Debug)]
 pub enum ProofQueueError {
@@ -43,18 +43,14 @@ pub struct ProofAggregator {
     proof_aggregation_service: AlignedProofAggregationServiceContract,
 }
 
-pub struct Config {
-    pub rpc_url: String,
-    pub private_key: String,
-    pub submit_proofs_every_secs: u64,
-    pub max_proofs_in_queue: u16,
-    pub proof_aggregation_service_address: String,
-}
-
 impl ProofAggregator {
     pub fn new(config: Config) -> Self {
-        let rpc_url = config.rpc_url.parse().expect("correct url");
-        let signer = PrivateKeySigner::from_str(&config.private_key).expect("valid string");
+        let rpc_url = config.eth_rpc_url.parse().expect("correct url");
+        let signer = LocalSigner::decrypt_keystore(
+            config.ecdsa.private_key_store_path,
+            config.ecdsa.private_key_store_password,
+        )
+        .expect("Correct keystore signer");
         let wallet = EthereumWallet::from(signer);
         let provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
         let proof_aggregation_service = AlignedProofAggregationService::new(
