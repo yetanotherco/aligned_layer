@@ -26,12 +26,12 @@ impl ProgramOutput {
 }
 
 #[derive(Debug)]
-pub enum AggregatedVerificationError {
+pub enum ProofAggregationError {
     SP1Verification(sp1_sdk::SP1VerificationError),
     SP1Proving,
 }
 
-pub fn aggregate_proofs(input: ProgramInput) -> Result<ProgramOutput, AggregatedVerificationError> {
+pub fn aggregate_proofs(input: ProgramInput) -> Result<ProgramOutput, ProofAggregationError> {
     match input {
         ProgramInput::SP1(input) => sp1::aggregate_proofs(input),
     }

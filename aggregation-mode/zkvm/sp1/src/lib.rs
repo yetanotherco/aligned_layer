@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize)]
 pub struct SP1CompressedProof {
-    vk: Vec<u8>,
+    pub vk: Vec<u8>,
     pub public_inputs: Vec<u8>,
 }
 

@@ -1,8 +1,6 @@
 use sp1_sdk::{Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey};
 
-use crate::zk::interface::aggregator::{
-    AggregatedProof, AggregatedVerificationError, ProgramOutput,
-};
+use crate::zk::aggregator::{AggregatedProof, ProgramOutput, ProofAggregationError};
 
 const PROGRAM_ELF: &[u8] = include_bytes!("../../../zkvm/sp1/elf/sp1_aggregator_program");
 
@@ -10,7 +8,15 @@ const PROGRAM_ELF: &[u8] = include_bytes!("../../../zkvm/sp1/elf/sp1_aggregator_
 
 pub struct SP1Proof {
     pub elf: Vec<u8>,
-    pub proof: Vec<u8>,
+    pub proof: SP1ProofWithPublicValues,
+}
+
+impl SP1Proof {
+    pub fn verifying_key(&self) -> SP1VerifyingKey {
+        let client = ProverClient::from_env();
+        let (_pk, vk) = client.setup(&self.elf);
+        vk
+    }
 }
 
 pub struct SP1AggregatedProof {
@@ -20,7 +26,7 @@ pub struct SP1AggregatedProof {
 
 pub(crate) fn aggregate_proofs(
     input: sp1_aggregator::Input,
-) -> Result<ProgramOutput, AggregatedVerificationError> {
+) -> Result<ProgramOutput, ProofAggregationError> {
     let mut stdin = SP1Stdin::new();
     stdin.write(&input);
 
@@ -35,12 +41,12 @@ pub(crate) fn aggregate_proofs(
         .prove(&pk, &stdin)
         .groth16()
         .run()
-        .map_err(|_| AggregatedVerificationError::SP1Proving)?;
+        .map_err(|_| ProofAggregationError::SP1Proving)?;
 
     // a sanity check, vm already performs it
     client
         .verify(&proof, &vk)
-        .map_err(AggregatedVerificationError::SP1Verification)?;
+        .map_err(ProofAggregationError::SP1Verification)?;
 
     let proof = SP1AggregatedProof { proof, vk };
 
@@ -51,19 +57,13 @@ pub(crate) fn aggregate_proofs(
 
 pub enum SP1VerificationError {
     Verification(sp1_sdk::SP1VerificationError),
-    DecodeProofBinary,
 }
 
 pub(crate) fn verify(proof: &SP1Proof) -> Result<(), SP1VerificationError> {
     let client = ProverClient::from_env();
 
     let (_pk, vk) = client.setup(&proof.elf);
-
-    if let Ok(proof) = bincode::deserialize(&proof.proof) {
-        client
-            .verify(&proof, &vk)
-            .map_err(SP1VerificationError::Verification)
-    } else {
-        Err(SP1VerificationError::DecodeProofBinary)
-    }
+    client
+        .verify(&proof.proof, &vk)
+        .map_err(SP1VerificationError::Verification)
 }
