@@ -9,7 +9,7 @@ use alloy::{
 };
 use merkle_tree::compute_proofs_merkle_root;
 use sp1_sdk::HashableKey;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
 use crate::zk::{
@@ -101,12 +101,21 @@ impl ProofAggregator {
 
         self.proofs_queue.push(proof);
 
+        info!(
+            "New proof added to queue, current length {}",
+            self.proofs_queue.len()
+        );
         Ok(())
     }
 
     async fn aggregate_and_submit_proofs_on_chain(
         &mut self,
     ) -> Result<(), AggregatedProofSubmissionError> {
+        if self.proofs_queue.len() == 0 {
+            warn!("No proofs in queue, skipping iteration...");
+            return Ok(());
+        }
+
         let proofs = self
             .proofs_queue
             .drain(0..self.proofs_queue.len())
@@ -169,6 +178,7 @@ impl ProofAggregator {
         }
     }
 
+    // TODO
     async fn send_blob_transaction(
         &self,
         leaves: Vec<[u8; 32]>,
@@ -176,5 +186,6 @@ impl ProofAggregator {
         Ok([0u8; 32])
     }
 
+    // TODO
     async fn set_aggregated_proof_as_missed(&self) {}
 }
