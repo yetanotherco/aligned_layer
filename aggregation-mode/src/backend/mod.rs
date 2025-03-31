@@ -1,25 +1,30 @@
 use std::time::Duration;
 
 use alloy::{
+    network::EthereumWallet,
     primitives::Address,
     providers::{PendingTransactionError, ProviderBuilder},
     rpc::types::TransactionReceipt,
+    signers::local::PrivateKeySigner,
 };
+use merkle_tree::compute_proofs_merkle_root;
 use sp1_sdk::HashableKey;
 use tracing::{error, info};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
 use crate::zk::{
     aggregator::{self, AggregatedProof, ProgramInput, ProofAggregationError},
-    Proof, ZKVMEngine,
+    backends::sp1::SP1AggregationInput,
+    Proof, VerificationError, ZKVMEngine,
 };
 
+mod merkle_tree;
 mod types;
 
 #[derive(Debug)]
 pub enum ProofQueueError {
     QueueMaxCapacity,
-    InvalidProof,
+    InvalidProof(VerificationError),
 }
 
 #[derive(Debug)]
@@ -42,7 +47,9 @@ impl ProofAggregator {
     // TODO read .yaml config file
     pub fn new(rpc_url: &str) -> Self {
         let rpc_url = rpc_url.parse().expect("correct url");
-        let provider = ProviderBuilder::new().on_http(rpc_url);
+        let signer = PrivateKeySigner::random();
+        let wallet = EthereumWallet::from(signer);
+        let provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
         let proof_aggregation_service =
             AlignedProofAggregationService::new(Address::default(), provider);
 
@@ -77,9 +84,9 @@ impl ProofAggregator {
         }
     }
 
-    pub fn add_proof(&mut self, proof: Proof) -> Result<(), ProofQueueError> {
-        if proof.verify().is_err() {
-            return Err(ProofQueueError::InvalidProof);
+    pub fn add_proof(&mut self, proof: Proof, elf: &[u8]) -> Result<(), ProofQueueError> {
+        if let Err(err) = proof.verify(elf) {
+            return Err(ProofQueueError::InvalidProof(err));
         };
 
         if self.proofs_queue.len() as u16 >= self.max_proofs_in_queue {
@@ -94,34 +101,26 @@ impl ProofAggregator {
     async fn aggregate_and_submit_proofs_on_chain(
         &mut self,
     ) -> Result<(), AggregatedProofSubmissionError> {
-        // TODO build merkle tree and pass as input
-
         let proofs = self
             .proofs_queue
             .drain(0..self.proofs_queue.len())
             .collect::<Vec<_>>();
 
-        let leaves: Vec<[u8; 32]> = vec![];
-        let merkle_root = [0u8; 32];
-
+        let (merkle_root, leaves) = compute_proofs_merkle_root(&proofs);
         let output = match self.engine {
             ZKVMEngine::SP1 => {
-                // convert proofs to sp1 input format
+                // only SP1 compressed proofs are supported
                 let proofs = proofs
-                    .iter()
-                    .map(|proof| match proof {
-                        Proof::SP1(proof) => sp1_aggregator::Proof::SP1Compressed(
-                            sp1_aggregator::SP1CompressedProof {
-                                public_inputs: proof.proof.public_values.to_vec(),
-                                vk: proof.verifying_key().bytes32().as_bytes().to_vec(),
-                            },
-                        ),
+                    .into_iter()
+                    .filter_map(|proof| match proof {
+                        Proof::SP1(proof) => Some(proof),
                     })
                     .collect();
-                let input = sp1_aggregator::Input { proofs };
 
-                // clean proof queue
-                self.proofs_queue = vec![];
+                let input = SP1AggregationInput {
+                    proofs,
+                    merkle_root,
+                };
 
                 aggregator::aggregate_proofs(ProgramInput::SP1(input))
                     .map_err(AggregatedProofSubmissionError::Aggregation)?
@@ -135,7 +134,6 @@ impl ProofAggregator {
         Ok(())
     }
 
-    // TODO send blob + contract transaction
     async fn send_proof_to_verify_on_chain(
         &self,
         blob_tx_hash: &[u8; 32],
@@ -152,6 +150,7 @@ impl ProofAggregator {
                         proof.proof.bytes().into(),
                     )
                     .send()
+                    // sign with aggregator wallet
                     .await
                     .map_err(
                         AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction,

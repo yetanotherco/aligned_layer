@@ -3740,6 +3740,7 @@ dependencies = [
  "bincode",
  "serde",
  "serde_json",
+ "sha3",
  "sp1-build",
  "sp1-sdk",
  "sp1_aggregator",

@@ -1,6 +1,10 @@
 use alloy::{
+    network::EthereumWallet,
     providers::{
-        fillers::{BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller},
+        fillers::{
+            BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller,
+            WalletFiller,
+        },
         Identity, RootProvider,
     },
     sol,
@@ -17,8 +21,11 @@ pub type AlignedProofAggregationServiceContract = AlignedProofAggregationService
     (),
     FillProvider<
         JoinFill<
-            Identity,
-            JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            JoinFill<
+                Identity,
+                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            >,
+            WalletFiller<EthereumWallet>,
         >,
         RootProvider,
     >,
