@@ -9,6 +9,7 @@ use alloy::{
     },
     sol,
 };
+use AlignedLayerServiceManager::AlignedLayerServiceManagerInstance;
 use AlignedProofAggregationService::AlignedProofAggregationServiceInstance;
 
 sol!(
@@ -26,6 +27,23 @@ pub type AlignedProofAggregationServiceContract = AlignedProofAggregationService
                 JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
             >,
             WalletFiller<EthereumWallet>,
+        >,
+        RootProvider,
+    >,
+>;
+
+sol!(
+    #[sol(rpc)]
+    AlignedLayerServiceManager,
+    "abi/AlignedLayerServiceManager.json"
+);
+
+pub type AlignedLayerServiceManagerContract = AlignedLayerServiceManagerInstance<
+    (),
+    FillProvider<
+        JoinFill<
+            Identity,
+            JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
         >,
         RootProvider,
     >,
