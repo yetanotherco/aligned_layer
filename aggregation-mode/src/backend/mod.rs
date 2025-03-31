@@ -1,11 +1,14 @@
 pub mod config;
+pub mod fetcher;
 mod merkle_tree;
+pub mod queue;
+mod s3;
 mod types;
 
 use crate::zk::{
     aggregator::{self, AggregatedProof, ProgramInput, ProofAggregationError},
     backends::sp1::SP1AggregationInput,
-    Proof, VerificationError, ZKVMEngine,
+    Proof, ZKVMEngine,
 };
 use alloy::{
     network::EthereumWallet,
@@ -16,16 +19,12 @@ use alloy::{
 };
 use config::Config;
 use merkle_tree::compute_proofs_merkle_root;
+use queue::ProofsQueue;
 use sp1_sdk::HashableKey;
-use std::{str::FromStr, time::Duration};
+use std::{str::FromStr, sync::Arc, time::Duration};
+use tokio::sync::Mutex;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
-
-#[derive(Debug)]
-pub enum ProofQueueError {
-    QueueMaxCapacity,
-    InvalidProof(VerificationError),
-}
 
 #[derive(Debug)]
 enum AggregatedProofSubmissionError {
@@ -38,17 +37,16 @@ enum AggregatedProofSubmissionError {
 pub struct ProofAggregator {
     engine: ZKVMEngine,
     submit_proof_every_secs: u64,
-    max_proofs_in_queue: u16,
-    proofs_queue: Vec<Proof>,
     proof_aggregation_service: AlignedProofAggregationServiceContract,
+    queue: Arc<Mutex<ProofsQueue>>,
 }
 
 impl ProofAggregator {
-    pub fn new(config: Config) -> Self {
+    pub async fn new(config: &Config, queue: Arc<Mutex<ProofsQueue>>) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("correct url");
         let signer = LocalSigner::decrypt_keystore(
-            config.ecdsa.private_key_store_path,
-            config.ecdsa.private_key_store_password,
+            config.ecdsa.private_key_store_path.clone(),
+            config.ecdsa.private_key_store_password.clone(),
         )
         .expect("Correct keystore signer");
         let wallet = EthereumWallet::from(signer);
@@ -62,14 +60,17 @@ impl ProofAggregator {
         Self {
             engine: ZKVMEngine::SP1,
             submit_proof_every_secs: config.submit_proofs_every_secs,
-            max_proofs_in_queue: config.max_proofs_in_queue,
-            proofs_queue: vec![],
             proof_aggregation_service,
+            queue,
         }
     }
 
     pub async fn start(&mut self) {
-        info!("Starting proof aggregator service");
+        info!(
+            "Starting proof aggregator service, configured to run every {}",
+            self.submit_proof_every_secs
+        );
+
         loop {
             tokio::time::sleep(Duration::from_secs(self.submit_proof_every_secs)).await;
             info!("About to aggregate and submit proof to be verified on chain");
@@ -92,36 +93,14 @@ impl ProofAggregator {
         }
     }
 
-    pub fn add_proof(&mut self, proof: Proof, elf: &[u8]) -> Result<(), ProofQueueError> {
-        if let Err(err) = proof.verify(elf) {
-            return Err(ProofQueueError::InvalidProof(err));
-        };
-
-        if self.proofs_queue.len() as u16 >= self.max_proofs_in_queue {
-            return Err(ProofQueueError::QueueMaxCapacity);
-        }
-
-        self.proofs_queue.push(proof);
-
-        info!(
-            "New proof added to queue, current length {}",
-            self.proofs_queue.len()
-        );
-        Ok(())
-    }
-
     async fn aggregate_and_submit_proofs_on_chain(
         &mut self,
     ) -> Result<(), AggregatedProofSubmissionError> {
-        if self.proofs_queue.len() == 0 {
+        let proofs = self.queue.lock().await.clear();
+        if proofs.len() == 0 {
             warn!("No proofs in queue, skipping iteration...");
             return Ok(());
         }
-
-        let proofs = self
-            .proofs_queue
-            .drain(0..self.proofs_queue.len())
-            .collect::<Vec<_>>();
 
         let (merkle_root, leaves) = compute_proofs_merkle_root(&proofs);
         let output = match self.engine {
