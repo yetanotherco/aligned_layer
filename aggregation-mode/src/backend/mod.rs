@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use alloy::{
     network::EthereumWallet,
@@ -43,11 +43,15 @@ pub struct ProofAggregator {
     proof_aggregation_service: AlignedProofAggregationServiceContract,
 }
 
+pub struct Config {
+    pub rpc_url: String,
+    pub private_key: String,
+}
+
 impl ProofAggregator {
-    // TODO read .yaml config file
-    pub fn new(rpc_url: &str) -> Self {
-        let rpc_url = rpc_url.parse().expect("correct url");
-        let signer = PrivateKeySigner::random();
+    pub fn new(config: Config) -> Self {
+        let rpc_url = config.rpc_url.parse().expect("correct url");
+        let signer = PrivateKeySigner::from_str(&config.private_key).expect("valid string");
         let wallet = EthereumWallet::from(signer);
         let provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
         let proof_aggregation_service =
@@ -127,8 +131,8 @@ impl ProofAggregator {
             }
         };
 
-        let receipt = self.send_blob_transaction(leaves).await?;
-        self.send_proof_to_verify_on_chain(&receipt.transaction_hash.0, output.proof)
+        let blob_tx_hash = self.send_blob_transaction(leaves).await?;
+        self.send_proof_to_verify_on_chain(&blob_tx_hash, output.proof)
             .await?;
 
         Ok(())
@@ -166,8 +170,8 @@ impl ProofAggregator {
     async fn send_blob_transaction(
         &self,
         leaves: Vec<[u8; 32]>,
-    ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
-        Err(AggregatedProofSubmissionError::SendBlobTransaction)
+    ) -> Result<[u8; 32], AggregatedProofSubmissionError> {
+        Ok([0u8; 32])
     }
 
     async fn set_aggregated_proof_as_missed(&self) {}
