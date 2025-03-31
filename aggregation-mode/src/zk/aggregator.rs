@@ -18,11 +18,6 @@ impl ProgramOutput {
     pub fn new(proof: AggregatedProof) -> Self {
         Self { proof }
     }
-
-    /// TODO: return the contract calldata to verify proof
-    pub fn calldata(&self) -> Vec<u8> {
-        vec![]
-    }
 }
 
 #[derive(Debug)]

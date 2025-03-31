@@ -32,7 +32,7 @@ enum AggregatedProofSubmissionError {
     Aggregation(ProofAggregationError),
     SendBlobTransaction,
     SendVerifyAggregatedProofTransaction(alloy::contract::Error),
-    GettingReceiptVerifyAggregatedProofTransaction(PendingTransactionError),
+    ReceiptError(PendingTransactionError),
 }
 
 pub struct ProofAggregator {
@@ -48,6 +48,7 @@ pub struct Config {
     pub private_key: String,
     pub submit_proofs_every_secs: u64,
     pub max_proofs_in_queue: u16,
+    pub proof_aggregation_service_address: String,
 }
 
 impl ProofAggregator {
@@ -56,8 +57,11 @@ impl ProofAggregator {
         let signer = PrivateKeySigner::from_str(&config.private_key).expect("valid string");
         let wallet = EthereumWallet::from(signer);
         let provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
-        let proof_aggregation_service =
-            AlignedProofAggregationService::new(Address::default(), provider);
+        let proof_aggregation_service = AlignedProofAggregationService::new(
+            Address::from_str(&config.proof_aggregation_service_address)
+                .expect("Address to be correct"),
+            provider,
+        );
 
         Self {
             engine: ZKVMEngine::SP1,
@@ -84,7 +88,9 @@ impl ProofAggregator {
                 }
                 Err(err) => {
                     error!("Error while aggregating and submitting proofs: {:?}", err);
-                    self.set_aggregated_proof_as_missed().await;
+                    if let Err(err) = self.set_aggregated_proof_as_missed().await {
+                        error!("Error while marking proof as failed: {:?}", err);
+                    };
                 }
             };
         }
@@ -165,15 +171,14 @@ impl ProofAggregator {
                         proof.proof.bytes().into(),
                     )
                     .send()
-                    // sign with aggregator wallet
                     .await
                     .map_err(
                         AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction,
                     )?;
 
-                res.get_receipt().await.map_err(
-                    AggregatedProofSubmissionError::GettingReceiptVerifyAggregatedProofTransaction,
-                )
+                res.get_receipt()
+                    .await
+                    .map_err(AggregatedProofSubmissionError::ReceiptError)
             }
         }
     }
@@ -186,6 +191,18 @@ impl ProofAggregator {
         Ok([0u8; 32])
     }
 
-    // TODO
-    async fn set_aggregated_proof_as_missed(&self) {}
+    async fn set_aggregated_proof_as_missed(
+        &self,
+    ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
+        let res = self
+            .proof_aggregation_service
+            .markCurrentAggregatedProofAsMissed()
+            .send()
+            .await
+            .map_err(AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction)?;
+
+        res.get_receipt()
+            .await
+            .map_err(AggregatedProofSubmissionError::ReceiptError)
+    }
 }

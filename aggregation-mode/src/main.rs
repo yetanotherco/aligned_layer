@@ -19,6 +19,7 @@ async fn main() {
 
     // TODO read proof aggregator yaml config file
     let config = Config {
+        proof_aggregation_service_address: "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc".into(),
         private_key: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6".into(),
         rpc_url: "http://localhost:8545".into(),
         max_proofs_in_queue: proofs_to_push,
