@@ -2,10 +2,11 @@
 sp1_zkvm::entrypoint!(main);
 
 use sha2::{Digest, Sha256};
+use sha3::Keccak256;
 use sp1_aggregator::{Input, Proof};
 
 fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
-    let mut hasher = Sha256::new();
+    let mut hasher = Keccak256::new();
     hasher.update(hash_a);
     hasher.update(hash_b);
     hasher.finalize().into()
@@ -53,5 +54,8 @@ pub fn main() {
     }
 
     let merkle_root = compute_merkle_root(&input.proofs);
+
+    assert_eq!(merkle_root, input.merkle_root);
+
     sp1_zkvm::io::commit_slice(&merkle_root);
 }

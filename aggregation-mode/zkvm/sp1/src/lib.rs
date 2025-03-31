@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha3::{Digest, Keccak256};
 
 #[derive(Serialize, Deserialize)]
 pub struct SP1CompressedProof {
@@ -21,7 +21,7 @@ impl SP1CompressedProof {
     }
 
     pub fn hash(&self) -> [u8; 32] {
-        let mut hasher = Sha256::new();
+        let mut hasher = Keccak256::new();
         hasher.update(&self.vk);
         hasher.update(&self.public_inputs);
         hasher.finalize().into()
@@ -44,4 +44,5 @@ impl Proof {
 #[derive(Serialize, Deserialize)]
 pub struct Input {
     pub proofs: Vec<Proof>,
+    pub merkle_root: [u8; 32],
 }
