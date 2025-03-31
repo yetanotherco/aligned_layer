@@ -1,13 +1,13 @@
-use crate::zk::backends::sp1::{self, SP1AggregatedProof};
-use serde::{Deserialize, Serialize};
+use crate::zk::backends::sp1::{self};
 
-#[derive(Serialize, Deserialize)]
+use super::backends::sp1::{SP1AggregationInput, SP1Proof};
+
 pub enum ProgramInput {
-    SP1(sp1_aggregator::Input),
+    SP1(SP1AggregationInput),
 }
 
 pub enum AggregatedProof {
-    SP1(SP1AggregatedProof),
+    SP1(SP1Proof),
 }
 
 pub struct ProgramOutput {
@@ -29,6 +29,7 @@ impl ProgramOutput {
 pub enum ProofAggregationError {
     SP1Verification(sp1_sdk::SP1VerificationError),
     SP1Proving,
+    UnsupportedProof,
 }
 
 pub fn aggregate_proofs(input: ProgramInput) -> Result<ProgramOutput, ProofAggregationError> {

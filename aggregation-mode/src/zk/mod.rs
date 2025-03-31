@@ -11,14 +11,22 @@ pub enum Proof {
     SP1(SP1Proof),
 }
 
+impl Proof {
+    pub fn hash(&self) -> [u8; 32] {
+        match self {
+            Proof::SP1(proof) => proof.hash(),
+        }
+    }
+}
+
 pub enum VerificationError {
     SP1(SP1VerificationError),
 }
 
 impl Proof {
-    pub fn verify(&self) -> Result<(), VerificationError> {
+    pub fn verify(&self, elf: &[u8]) -> Result<(), VerificationError> {
         match self {
-            Proof::SP1(proof) => sp1::verify(proof).map_err(VerificationError::SP1),
+            Proof::SP1(proof) => sp1::verify(proof, elf).map_err(VerificationError::SP1),
         }
     }
 }
