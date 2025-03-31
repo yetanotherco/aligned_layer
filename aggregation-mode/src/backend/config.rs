@@ -10,11 +10,14 @@ pub struct ECDSAConfig {
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub eth_rpc_url: String,
+    pub eth_ws_url: String,
     pub private_key: String,
     pub submit_proofs_every_secs: u64,
     pub max_proofs_in_queue: u16,
     pub proof_aggregation_service_address: String,
+    pub aligned_service_manager_address: String,
     pub ecdsa: ECDSAConfig,
+    pub bucket_name: String,
 }
 
 impl Config {
