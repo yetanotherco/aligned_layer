@@ -1,30 +1,17 @@
-use std::time::Duration;
-
-use proof_aggregator::{aggregate_proofs, InputProofs, ProgramInput};
-use tracing::{error, info};
+use proof_aggregator::backend::ProofAggregator;
 use tracing_subscriber::FmtSubscriber;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let subscriber = FmtSubscriber::builder().finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    // simulate a service that aggregates proofs every n seconds after some processing
-    loop {
-        info!("Waiting 2 seconds before aggregating proofs...");
-        std::thread::sleep(Duration::from_secs(2));
+    // TODO read proof aggregator yaml config file
 
-        let proofs = InputProofs::SP1Compressed(vec![]);
-        let input = ProgramInput::new(proofs);
-        let Ok(output) = aggregate_proofs(input) else {
-            error!("Error while aggregating and verifying proofs");
-            return;
-        };
+    let mut proof_aggregator = ProofAggregator::new("http://localhost:8545");
 
-        info!("Proof aggregated, sending to aligned verification contract...");
+    // TODO read proofs from fs
+    // proof_aggregator.add_proof(proof)
 
-        // TODO: send a blob transaction to with the merkle leaves
-        // TODO: call contract to verify proof + attach blob transaction root
-        // the contract should emit a log with the verification and the path to the blob
-        let _calldata = output.calldata();
-    }
+    proof_aggregator.start().await;
 }
