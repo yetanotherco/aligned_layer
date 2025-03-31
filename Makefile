@@ -150,6 +150,14 @@ anvil_start_with_block_time_with_more_prefunded_accounts:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
 
+__AGGREGATION_MODE__:
+start_proof_aggregator_local:
+	cargo run --manifest-path ./aggregation-mode/Cargo.toml --release -- config-files/config-proof-aggregator.yaml
+
+start_proof_aggregator_local_with_proving:
+	cd aggregation-mode && \
+	cargo run --manifest-path ./aggregation-mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
+
 _AGGREGATOR_:
 
 build_aggregator:
@@ -587,7 +595,6 @@ aligned_get_user_balance_holesky:
 		--rpc_url https://ethereum-holesky-rpc.publicnode.com \
 		--network holesky \
 		--user_addr $(USER_ADDR)
-
 
 __GENERATE_PROOFS__:
  # TODO add a default proving system

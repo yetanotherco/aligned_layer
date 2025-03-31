@@ -29,8 +29,10 @@ async fn main() {
 
     // init proof aggregator
     let config_file_path = read_config_filepath_from_args();
+    tracing::info!("Loading config from {}..", config_file_path);
     let config = Config::from_file(&config_file_path).expect("Config is valid");
     let mut proof_aggregator = ProofAggregator::new(config);
+    tracing::info!("Config loaded proof aggregator initialized");
 
     // push some proofs from fs
     for _ in 0..2 {

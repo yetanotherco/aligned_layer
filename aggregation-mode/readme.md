@@ -13,11 +13,12 @@ make deploy_aligned_contracts
 make anvil_start_with_block_time
 ```
 
-2. Compile and run aggregator (this might take long as it uses more aggressive optimization leves):
+3. Start proof aggregator:
 ```shell 
-cd aggregation-mode
-# This will compile with a mock prover
-cargo run --release
-# This will run the prover (requires powerful machine)
-cargo build --release --features prove
+# This will not run a real prover but a mocked
+make start_proof_aggregator_local
+# This will run an actual prover (requires powerful machine)
+make start_proof_aggregator_local_with_proving
 ```
+
+Note: it might take a while to compile as it uses more aggressive optimization levels.

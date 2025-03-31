@@ -1,0 +1,9 @@
+proof_aggregation_service_address: "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc"
+private_key: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
+eth_rpc_url: "http://localhost:8545"
+max_proofs_in_queue: 2
+submit_proofs_every_secs: 10
+
+ecdsa:
+  private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"
+  private_key_store_password: ""
