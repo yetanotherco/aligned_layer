@@ -1,13 +1,9 @@
-use std::{env, fs};
+use std::{env, sync::Arc};
 
-use proof_aggregator::{
-    backend::{config::Config, ProofAggregator},
-    zk::{
-        backends::sp1::{vk_from_elf, SP1Proof},
-        Proof,
-    },
+use proof_aggregator::backend::{
+    config::Config, fetcher::ProofsFetcher, queue::ProofsQueue, ProofAggregator,
 };
-use sp1_sdk::SP1ProofWithPublicValues;
+use tokio::sync::Mutex;
 use tracing_subscriber::FmtSubscriber;
 
 fn read_config_filepath_from_args() -> String {
@@ -27,30 +23,19 @@ async fn main() {
     let subscriber = FmtSubscriber::builder().finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    // init proof aggregator
+    // load config
     let config_file_path = read_config_filepath_from_args();
-    tracing::info!("Loading config from {}..", config_file_path);
+    tracing::info!("Loading config from {}...", config_file_path);
     let config = Config::from_file(&config_file_path).expect("Config is valid");
-    let mut proof_aggregator = ProofAggregator::new(config);
-    tracing::info!("Config loaded proof aggregator initialized");
+    tracing::info!("Config loaded");
 
-    // push some proofs from fs
-    for _ in 0..2 {
-        let sp1_proof =
-            SP1ProofWithPublicValues::load("scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof")
-                .expect("loading proof failed");
-        let proof_elf =
-            fs::read("scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf").expect("elf bytes");
-        let proof = Proof::SP1(SP1Proof {
-            proof: sp1_proof,
-            vk: vk_from_elf(&proof_elf),
-        });
+    let queue = Arc::new(Mutex::new(ProofsQueue::new(config.max_proofs_in_queue)));
+    let mut proof_aggregator = ProofAggregator::new(&config, queue.clone()).await;
+    let proofs_fetcher = ProofsFetcher::new(&config, queue).await;
 
-        proof_aggregator
-            .add_proof(proof, &proof_elf)
-            .expect("Proof to be valid");
-    }
+    // start tasks -> Proof aggregator + Proofs fetcher
+    let proof_aggregator_handle = tokio::spawn(async move { proof_aggregator.start().await });
+    let proofs_fetcher_handle = tokio::spawn(async move { proofs_fetcher.start().await });
 
-    // start service
-    proof_aggregator.start().await;
+    let _ = tokio::join!(proof_aggregator_handle, proofs_fetcher_handle);
 }
