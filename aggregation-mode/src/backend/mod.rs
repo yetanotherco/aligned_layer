@@ -18,11 +18,11 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use config::Config;
+use fetcher::ProofsFetcher;
 use merkle_tree::compute_proofs_merkle_root;
 use queue::ProofsQueue;
 use sp1_sdk::HashableKey;
-use std::{str::FromStr, sync::Arc, time::Duration};
-use tokio::sync::Mutex;
+use std::{str::FromStr, time::Duration};
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
@@ -38,11 +38,12 @@ pub struct ProofAggregator {
     engine: ZKVMEngine,
     submit_proof_every_secs: u64,
     proof_aggregation_service: AlignedProofAggregationServiceContract,
-    queue: Arc<Mutex<ProofsQueue>>,
+    fetcher: ProofsFetcher,
+    queue: ProofsQueue,
 }
 
 impl ProofAggregator {
-    pub async fn new(config: &Config, queue: Arc<Mutex<ProofsQueue>>) -> Self {
+    pub fn new(config: &Config) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("correct url");
         let signer = LocalSigner::decrypt_keystore(
             config.ecdsa.private_key_store_path.clone(),
@@ -51,17 +52,19 @@ impl ProofAggregator {
         .expect("Correct keystore signer");
         let wallet = EthereumWallet::from(signer);
         let provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
-        let proof_aggregation_service = AlignedProofAggregationService::new(
+        let proof_aggregation_service: AlignedProofAggregationService::AlignedProofAggregationServiceInstance<(), alloy::providers::fillers::FillProvider<alloy::providers::fillers::JoinFill<alloy::providers::fillers::JoinFill<alloy::providers::Identity, alloy::providers::fillers::JoinFill<alloy::providers::fillers::GasFiller, alloy::providers::fillers::JoinFill<alloy::providers::fillers::BlobGasFiller, alloy::providers::fillers::JoinFill<alloy::providers::fillers::NonceFiller, alloy::providers::fillers::ChainIdFiller>>>>, alloy::providers::fillers::WalletFiller<EthereumWallet>>, alloy::providers::RootProvider>> = AlignedProofAggregationService::new(
             Address::from_str(&config.proof_aggregation_service_address)
                 .expect("Address to be correct"),
             provider,
         );
+        let fetcher = ProofsFetcher::new(config);
 
         Self {
             engine: ZKVMEngine::SP1,
             submit_proof_every_secs: config.submit_proofs_every_secs,
             proof_aggregation_service,
-            queue,
+            queue: ProofsQueue::new(config.max_proofs_in_queue),
+            fetcher,
         }
     }
 
@@ -96,7 +99,9 @@ impl ProofAggregator {
     async fn aggregate_and_submit_proofs_on_chain(
         &mut self,
     ) -> Result<(), AggregatedProofSubmissionError> {
-        let proofs = self.queue.lock().await.clear();
+        self.fetcher.fetch(&mut self.queue).await;
+        let proofs = self.queue.clear();
+
         if proofs.len() == 0 {
             warn!("No proofs in queue, skipping iteration...");
             return Ok(());
@@ -141,7 +146,7 @@ impl ProofAggregator {
                     .proof_aggregation_service
                     .verify(
                         blob_tx_hash.into(),
-                        proof.vk.bytes32_raw().into(),
+                        proof.vk().bytes32_raw().into(),
                         proof.proof.public_values.to_vec().into(),
                         proof.proof.bytes().into(),
                     )

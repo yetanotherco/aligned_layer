@@ -1,9 +1,6 @@
-use std::{env, sync::Arc};
+use std::env;
 
-use proof_aggregator::backend::{
-    config::Config, fetcher::ProofsFetcher, queue::ProofsQueue, ProofAggregator,
-};
-use tokio::sync::Mutex;
+use proof_aggregator::backend::{config::Config, ProofAggregator};
 use tracing_subscriber::FmtSubscriber;
 
 fn read_config_filepath_from_args() -> String {
@@ -29,13 +26,9 @@ async fn main() {
     let config = Config::from_file(&config_file_path).expect("Config is valid");
     tracing::info!("Config loaded");
 
-    let queue = Arc::new(Mutex::new(ProofsQueue::new(config.max_proofs_in_queue)));
-    let mut proof_aggregator = ProofAggregator::new(&config, queue.clone()).await;
-    let proofs_fetcher = ProofsFetcher::new(&config, queue).await;
+    let mut proof_aggregator = ProofAggregator::new(&config);
 
-    // start tasks -> Proof aggregator + Proofs fetcher
     let proof_aggregator_handle = tokio::spawn(async move { proof_aggregator.start().await });
-    let proofs_fetcher_handle = tokio::spawn(async move { proofs_fetcher.start().await });
 
-    let _ = tokio::join!(proof_aggregator_handle, proofs_fetcher_handle);
+    let _ = tokio::join!(proof_aggregator_handle);
 }
