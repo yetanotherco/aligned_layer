@@ -13,12 +13,50 @@ make deploy_aligned_contracts
 make anvil_start_with_block_time
 ```
 
-3. Start proof aggregator:
+3. Start batcher
+```shell
+make start_batcher_local
+```
+
+4. Start proof aggregator:
 ```shell 
-# This will not run a real prover but a mocked
+# This will not run a real prover but a mocked one see below to run a real prover
 make start_proof_aggregator_local
-# This will run an actual prover (requires powerful machine)
+```
+Note: it might take a while to compile as it uses more aggressive optimization levels.
+
+5. Send SP1 proofs:
+```shell
+make batcher_send_sp1_burst
+```
+
+You should see that after the timer set in `config-proof-aggregator.yaml`, it will fetch the batches and aggregate the compressed SP1 proofs from them.
+
+### Run it with proving
+
+By default, on dev environments, the proving is mocked and the ProofAggregationService contract skips verification as proves are mocked. To run the service with proving you need to run change the commands on step `1.` and `4.`:
+
+1. Start anvil with verification activated:
+```shell
+make anvil_start_with_block_time_and_proving
+```
+
+4. Start proof aggregator with proving:
+```shell
 make start_proof_aggregator_local_with_proving
 ```
 
-Note: it might take a while to compile as it uses more aggressive optimization levels.
+Note: Unless you constraint yourself to a few proofs, this requires a powerful machine with GPU.
+
+
+### Check the logs
+
+1. Get latest aggregated proof:
+```shell
+cast call 0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc "currentAggregatedProofNumber()" --rpc-url http://localhost:8545
+```
+
+2. Get aggregated proof info:
+```shell
+cast call 0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc "getAggregatedProof(uint64)(uint8,bytes32,bytes32)" <AGG_PROOF_NUMBER>  --rpc-url http://localhost:8545
+```

@@ -83,7 +83,10 @@ impl ProofsFetcher {
                 })
                 .collect();
 
-            info!("SP1 proofs filtered, total proofs to add {}", proofs.len());
+            info!(
+                "SP1 proofs filtered, total proofs to add {}",
+                proofs_to_add.len()
+            );
 
             // try to add them to the queue
             for proof in proofs_to_add {
