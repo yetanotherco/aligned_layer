@@ -27,8 +27,5 @@ async fn main() {
     tracing::info!("Config loaded");
 
     let mut proof_aggregator = ProofAggregator::new(&config);
-
-    let proof_aggregator_handle = tokio::spawn(async move { proof_aggregator.start().await });
-
-    let _ = tokio::join!(proof_aggregator_handle);
+    proof_aggregator.start().await;
 }

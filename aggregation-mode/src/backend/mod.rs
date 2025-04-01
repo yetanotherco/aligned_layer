@@ -20,7 +20,7 @@ use config::Config;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use sp1_sdk::HashableKey;
-use std::{str::FromStr, time::Duration};
+use std::str::FromStr;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
@@ -35,7 +35,6 @@ pub enum AggregatedProofSubmissionError {
 
 pub struct ProofAggregator {
     engine: ZKVMEngine,
-    submit_proof_every_secs: u64,
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
 }
@@ -59,37 +58,29 @@ impl ProofAggregator {
 
         Self {
             engine: ZKVMEngine::SP1,
-            submit_proof_every_secs: config.submit_proofs_every_secs,
             proof_aggregation_service,
             fetcher,
         }
     }
 
     pub async fn start(&mut self) {
-        info!(
-            "Starting proof aggregator service, configured to run every {}",
-            self.submit_proof_every_secs
-        );
+        info!("Starting proof aggregator service",);
 
-        loop {
-            tokio::time::sleep(Duration::from_secs(self.submit_proof_every_secs)).await;
-            info!("About to aggregate and submit proof to be verified on chain");
-            let res = self.aggregate_and_submit_proofs_on_chain().await;
+        info!("About to aggregate and submit proof to be verified on chain");
+        let res = self.aggregate_and_submit_proofs_on_chain().await;
 
-            match res {
-                Ok(()) => {
-                    info!(
-                        "Finished iteration, next aggregated proof is in {} seconds",
-                        self.submit_proof_every_secs
-                    );
-                }
-                Err(err) => {
-                    error!("Error while aggregating and submitting proofs: {:?}", err);
-                    if let Err(err) = self.set_aggregated_proof_as_missed().await {
-                        error!("Error while marking proof as failed: {:?}", err);
-                    };
-                }
-            };
+        match res {
+            Ok(()) => {
+                info!("Process finished successfully");
+            }
+            Err(err) => {
+                error!("Error while aggregating and submitting proofs: {:?}", err);
+                info!("About to set aggregated proof as missed");
+                if let Err(err) = self.set_aggregated_proof_as_missed().await {
+                    error!("Error while marking proof as failed: {:?}", err);
+                };
+                info!("Proofs set as missed");
+            }
         }
     }
 
@@ -103,7 +94,7 @@ impl ProofAggregator {
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
         if proofs.len() == 0 {
-            warn!("No proofs in queue, skipping iteration...");
+            warn!("No proofs collected, skipping aggregation...");
             return Ok(());
         }
 
