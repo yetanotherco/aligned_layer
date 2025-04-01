@@ -7,7 +7,7 @@ import {SP1VerifierGateway} from "../../lib/sp1-contracts/contracts/src/SP1Verif
 import {ISP1VerifierWithHash} from "../../lib/sp1-contracts/contracts/src/ISP1Verifier.sol";
 
 contract SP1VerifierScript is BaseScript {
-    string internal constant KEY = "V3_0_0_SP1_VERIFIER_GROTH16";
+    string internal constant KEY = "V4_0_0_RC3_SP1_VERIFIER_GROTH16";
 
     function run() external multichain(KEY) broadcaster {
         // Read config
