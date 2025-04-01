@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {BaseScript} from "./utils/Base.s.sol";
+import {BaseScript} from "../../lib/sp1-contracts/contracts/script/utils/Base.s.sol";
 import {SP1VerifierGateway} from "../../lib/sp1-contracts/contracts/src/SP1VerifierGateway.sol";
 
 contract SP1VerifierGatewayScript is BaseScript {
