@@ -155,7 +155,6 @@ start_proof_aggregator_local:
 	cargo run --manifest-path ./aggregation-mode/Cargo.toml --release -- config-files/config-proof-aggregator.yaml
 
 start_proof_aggregator_local_with_proving:
-	cd aggregation-mode && \
 	cargo run --manifest-path ./aggregation-mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
 
 _AGGREGATOR_:
