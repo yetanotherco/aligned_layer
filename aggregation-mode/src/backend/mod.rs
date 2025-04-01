@@ -10,10 +10,13 @@ use crate::zk::{
     Proof, ZKVMEngine,
 };
 use alloy::{
-    network::EthereumWallet,
-    primitives::Address,
-    providers::{PendingTransactionError, ProviderBuilder},
-    rpc::types::TransactionReceipt,
+    consensus::{Blob, BlobTransactionSidecar},
+    eips::eip4844::BYTES_PER_BLOB,
+    hex,
+    network::{EthereumWallet, TransactionBuilder4844},
+    primitives::{Address, FixedBytes},
+    providers::{PendingTransactionError, Provider, ProviderBuilder, WalletProvider},
+    rpc::types::{TransactionReceipt, TransactionRequest},
     signers::local::LocalSigner,
 };
 use config::Config;
@@ -22,7 +25,9 @@ use merkle_tree::compute_proofs_merkle_root;
 use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
-use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
+use types::{
+    AlignedProofAggregationService, AlignedProofAggregationServiceContract, RPCProviderWithSigner,
+};
 
 #[derive(Debug)]
 pub enum AggregatedProofSubmissionError {
@@ -35,6 +40,7 @@ pub enum AggregatedProofSubmissionError {
 
 pub struct ProofAggregator {
     engine: ZKVMEngine,
+    rpc_provider: RPCProviderWithSigner,
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
 }
@@ -48,11 +54,11 @@ impl ProofAggregator {
         )
         .expect("Correct keystore signer");
         let wallet = EthereumWallet::from(signer);
-        let provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
+        let rpc_provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
         let proof_aggregation_service: AlignedProofAggregationService::AlignedProofAggregationServiceInstance<(), alloy::providers::fillers::FillProvider<alloy::providers::fillers::JoinFill<alloy::providers::fillers::JoinFill<alloy::providers::Identity, alloy::providers::fillers::JoinFill<alloy::providers::fillers::GasFiller, alloy::providers::fillers::JoinFill<alloy::providers::fillers::BlobGasFiller, alloy::providers::fillers::JoinFill<alloy::providers::fillers::NonceFiller, alloy::providers::fillers::ChainIdFiller>>>>, alloy::providers::fillers::WalletFiller<EthereumWallet>>, alloy::providers::RootProvider>> = AlignedProofAggregationService::new(
             Address::from_str(&config.proof_aggregation_service_address)
                 .expect("Address to be correct"),
-            provider,
+            rpc_provider.clone(),
         );
         let fetcher = ProofsFetcher::new(config);
 
@@ -60,6 +66,7 @@ impl ProofAggregator {
             engine: ZKVMEngine::SP1,
             proof_aggregation_service,
             fetcher,
+            rpc_provider,
         }
     }
 
@@ -98,7 +105,11 @@ impl ProofAggregator {
             return Ok(());
         }
 
+        info!("Proofs fetched, constructing merkle root...");
         let (merkle_root, leaves) = compute_proofs_merkle_root(&proofs);
+        info!("Merkle root constructed: {}", hex::encode(merkle_root));
+
+        info!("Starting proof aggregation program...");
         let output = match self.engine {
             ZKVMEngine::SP1 => {
                 // only SP1 compressed proofs are supported
@@ -118,14 +129,18 @@ impl ProofAggregator {
                     .map_err(AggregatedProofSubmissionError::Aggregation)?
             }
         };
+        info!("Proof aggregation program finished");
 
         info!("Sending blob transaction...");
-        let blob_tx_hash = self.send_blob_transaction(leaves).await?;
-        info!("Blob transaction sent, hash: {:?}", blob_tx_hash);
+        let blob_receipt = self.send_blob_transaction(leaves).await?;
+        info!(
+            "Blob transaction sent, hash: {:?}",
+            blob_receipt.transaction_hash
+        );
 
         info!("Sending proof to ProofAggregationService contract...");
         let receipt = self
-            .send_proof_to_verify_on_chain(&blob_tx_hash, output.proof)
+            .send_proof_to_verify_on_chain(&blob_receipt.transaction_hash, output.proof)
             .await?;
         info!(
             "Proof sent and verified, tx hash {:?}",
@@ -163,12 +178,47 @@ impl ProofAggregator {
         }
     }
 
-    // TODO
     async fn send_blob_transaction(
         &self,
-        _leaves: Vec<[u8; 32]>,
-    ) -> Result<[u8; 32], AggregatedProofSubmissionError> {
-        Ok([0u8; 32])
+        leaves: Vec<[u8; 32]>,
+    ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
+        let data: Vec<u8> = leaves.iter().flat_map(|arr| arr.iter().copied()).collect();
+        let mut blob_data: [u8; BYTES_PER_BLOB] = [0u8; BYTES_PER_BLOB];
+
+        for (i, byte) in data.iter().enumerate() {
+            blob_data[i] = *byte;
+        }
+
+        // calculate kzg commitments for blob
+        let settings = c_kzg::ethereum_kzg_settings();
+        let blob = c_kzg::Blob::new(blob_data);
+        let commitment = c_kzg::KzgCommitment::blob_to_kzg_commitment(&blob, settings)
+            .map_err(|_| AggregatedProofSubmissionError::SendBlobTransaction)?;
+        let proof =
+            c_kzg::KzgProof::compute_blob_kzg_proof(&blob, &commitment.to_bytes(), settings)
+                .map_err(|_| AggregatedProofSubmissionError::SendBlobTransaction)?;
+
+        // convert to alloy types
+        let blob = Blob::from_slice(&blob_data);
+        let commitment: FixedBytes<48> = FixedBytes::from_slice(commitment.to_bytes().as_slice());
+        let proof: FixedBytes<48> = FixedBytes::from_slice(proof.to_bytes().as_slice());
+
+        let blob_sidecar = BlobTransactionSidecar::new(vec![blob], vec![commitment], vec![proof]);
+        // send transaction to itself
+        let to = self.rpc_provider.signer_addresses().collect::<Vec<_>>()[0];
+        let tx = TransactionRequest::default()
+            .to(to)
+            .with_blob_sidecar(blob_sidecar);
+
+        let res = self
+            .rpc_provider
+            .send_transaction(tx)
+            .await
+            .map_err(|_| AggregatedProofSubmissionError::SendBlobTransaction)?;
+
+        res.get_receipt()
+            .await
+            .map_err(AggregatedProofSubmissionError::ReceiptError)
     }
 
     async fn set_aggregated_proof_as_missed(
