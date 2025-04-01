@@ -128,9 +128,18 @@ impl ProofAggregator {
             }
         };
 
+        info!("Sending blob transaction...");
         let blob_tx_hash = self.send_blob_transaction(leaves).await?;
-        self.send_proof_to_verify_on_chain(&blob_tx_hash, output.proof)
+        info!("Blob transaction sen, hash: {:?}", blob_tx_hash);
+
+        info!("Sending proof to ProofAggregationService contract...");
+        let receipt = self
+            .send_proof_to_verify_on_chain(&blob_tx_hash, output.proof)
             .await?;
+        info!(
+            "Proof sent anv verified, tx hash {:?}",
+            receipt.transaction_hash
+        );
 
         Ok(())
     }
