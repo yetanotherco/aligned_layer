@@ -62,11 +62,15 @@ contract AlignedProofAggregationService is
             (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
             _newAggregatedProof(merkleRoot, blobTransactionHash);
         } catch {
+            AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
+            proof.status = AggregatedProofStatus.Failed;
             emit AggregatedProofFailed(currentAggregatedProofNumber);
         }
     }
 
     function markCurrentAggregatedProofAsMissed() public onlyAlignedAggregator {
+        AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
+        proof.status = AggregatedProofStatus.Missed;
         emit AggregatedProofMissed(currentAggregatedProofNumber);
         currentAggregatedProofNumber += 1;
     }
@@ -78,6 +82,11 @@ contract AlignedProofAggregationService is
         proof.status = AggregatedProofStatus.Verified;
         emit NewAggregatedProofVerified(currentAggregatedProofNumber, merkleRoot, blobHash);
         currentAggregatedProofNumber += 1;
+    }
+
+    function getAggregatedProof(uint64 proofNumber) public view returns (uint8, bytes32 blobHash, bytes32 merkleRoot) {
+        AggregatedProof storage proof = aggregatedProofs[proofNumber];
+        return (uint8(proof.status), proof.blobHash, proof.merkleRoot);
     }
 
     function _authorizeUpgrade(address newImplementation)

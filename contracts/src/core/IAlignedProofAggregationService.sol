@@ -35,6 +35,11 @@ interface IAlignedProofAggregationService {
         bytes calldata sp1ProofBytes
     ) external;
 
+    function getAggregatedProof(uint64 proofNumber)
+        external
+        view
+        returns (uint8 status, bytes32 blobHash, bytes32 merkleRoot);
+
     function markCurrentAggregatedProofAsMissed() external;
 
     /// @notice event that gets emitted after a successful aggregated proof verification
