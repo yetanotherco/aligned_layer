@@ -16,6 +16,7 @@ use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
+use batch_queue::calculate_batch_size;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -1059,10 +1060,13 @@ impl Batcher {
             BatchQueueEntryPriority::new(max_fee, nonce),
         );
 
-        info!(
-            "Current batch queue length: {}",
-            batch_state_lock.batch_queue.len()
-        );
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
+        info!("Current batch queue length: {}", queue_len);
 
         let mut proof_submitter_addr = proof_submitter_addr;
 
@@ -1243,6 +1247,13 @@ impl Batcher {
                 ))?;
         }
 
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
         Ok(())
     }
 
@@ -1390,6 +1401,8 @@ impl Batcher {
         batch_state_lock
             .user_states
             .insert(nonpaying_replacement_addr, nonpaying_user_state);
+
+        self.metrics.update_queue_metrics(0, 0);
     }
 
     /// Receives new block numbers, checks if conditions are met for submission and
@@ -1519,10 +1532,7 @@ impl Batcher {
                 Ok(())
             }
             Err(e) => {
-                error!(
-                    "Failed to send batch to contract, batch will be lost: {:?}",
-                    e
-                );
+                error!("Failed to send batch to contract: {:?}", e);
 
                 self.metrics.reverted_batches.inc();
                 Err(e)

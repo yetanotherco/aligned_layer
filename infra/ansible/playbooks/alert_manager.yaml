@@ -1,0 +1,60 @@
+- name: Install Alert Manager
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Install Alert Manager
+      get_url:
+        url: https://github.com/prometheus/alertmanager/releases/download/v{{ alert_manager_version }}/alertmanager-{{ alert_manager_version }}.linux-amd64.tar.gz
+        dest: /tmp/alert_manager-{{ alert_manager_version }}-linux-amd64.tar.gz
+        mode: '0644'
+
+    - name: Install Alert Manager package
+      become: true
+      unarchive:
+        src: "/tmp/alert_manager-{{ alert_manager_version }}-linux-amd64.tar.gz"
+        dest: "/usr/local/bin/"
+        remote_src: yes
+        extra_opts:
+        - --strip-components=1
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Clean up Alert Manager tarball package
+      file:
+        path: /tmp/alert_manager-{{ alert_manager_version }}-linux-amd64.tar.gz
+        state: absent
+
+    - name: Make sure /etc/alertmanager directory exists
+      become: true
+      file:
+        path: /etc/alertmanager
+        state: directory
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create Alert Manager config file
+      become: true
+      template:
+        src: alert_manager/alertmanager.yml.j2
+        dest: /etc/alertmanager/alertmanager.yml
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+        pagerduty_routing_key: "{{ lookup('ini', 'pagerduty_routing_key', file=ini_file) }}"
+
+    - name: Create Alert Manager systemd service
+      become: true
+      template:
+        src: services/alert_manager.service.j2
+        dest: /etc/systemd/system/alert_manager.service
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Start Alert Manager
+      become: true
+      systemd_service:
+        name: alert_manager
+        state: started
+        daemon_reload: true
+        enabled: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

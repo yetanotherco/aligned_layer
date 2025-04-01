@@ -12,8 +12,8 @@ The following is the list of the verifiers currently supported by Aligned:
 
 - :white_check_mark: gnark - Groth16 (with BN254)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
-- :white_check_mark: SP1 [(v3.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v3.0.0)
-- :white_check_mark: Risc0 [(v1.1.2)](https://github.com/risc0/risc0/releases/tag/v1.1.2)
+- :white_check_mark: SP1 [(v4.1.3)](https://github.com/succinctlabs/sp1/releases/tag/v4.1.3)
+- :white_check_mark: Risc0 [(v2.0.0)](https://github.com/risc0/risc0/releases/tag/v2.0.0)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
 
@@ -109,18 +109,21 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * `proof`: The path of the proof associated to the computation to be verified.
 * `vm_program`: When the proving system involves the execution of a program in a zkVM, this argument is associated with the compiled program or some other identifier of the program.
 * `pub_input`: The path to the file with the public input associated with the proof.
-* `batcher_url`: The batcher websocket URL. Can be:
-  * mainnet: `wss://mainnet.batcher.alignedlayer.com`
-  * holesky: `wss://batcher.alignedlayer.com`
-  * devnet: `ws://localhost:8080`
-* `network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
+* One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.
+    - Default: `devnet`
+    - Possible values: `devnet`, `holesky`, `mainnet`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
 * `rpc_url`: The RPC Ethereum node URL.
 * `proof_generator_addr`: An optional parameter that can be used in some applications to avoid front-running.
 * `batch_inclusion_data_directory_path`: An optional parameter indicating the directory where to store the batcher response data. If not provided, the folder with the responses will be created in the current directory.
 
 ### SP1 proof
 
-The current SP1 version used in Aligned is `v3.0.0`.
+The current SP1 version used in Aligned is `v4.1.3`.
 
 The SP1 proof needs the proof file and the vm program file.
 
@@ -130,7 +133,6 @@ aligned submit \
 --proving_system SP1 \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
---batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
@@ -144,9 +146,8 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
---proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
---vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
---batcher_url wss://batcher.alignedlayer.com \
+--proof ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+--vm_program ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -154,7 +155,7 @@ aligned submit \
 
 ### Risc0 proof
 
-The current Risc0 version used in Aligned is `v1.1.2`.
+The current Risc0 version used in Aligned is `v2.0.0`.
 
 The Risc0 proof needs the proof file and the vm program file (vm program file is the image id).
 
@@ -165,7 +166,6 @@ aligned submit \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
 --pub_input <pub_input_file> \
---batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
@@ -173,12 +173,12 @@ aligned submit \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
-**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v1.1.2`. For generating proofs using `cargo risc-zero` please ensure you are using `v1.1.2` or your proof will not be verified. 
+**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v2.0.0`. For generating proofs using `cargo risc-zero` please ensure you are using `v2.0.0` or your proof will not be verified. 
 
-If you can't install `cargo-risczero` `v1.1.2`, you can manually modify your `cargo.toml` on the host project to point to `v1.1.2`:
+If you can't install `cargo-risczero` `v2.0.0`, you can manually modify your `cargo.toml` on the host project to point to `v2.0.0`:
 
 ```toml
-risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.1.2", default-features = false, features = [
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v2.0.0", default-features = false, features = [
     "prove",
 ] }
 ```
@@ -190,10 +190,9 @@ risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v1.1.2", default-f
 rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system Risc0 \
---proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
---vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
---public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
---batcher_url wss://batcher.alignedlayer.com \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
@@ -211,7 +210,6 @@ aligned submit \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
---batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
@@ -228,7 +226,6 @@ aligned submit \
 --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
 --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
---batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -241,7 +238,6 @@ aligned submit \
 --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
 --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
 --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
---batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -254,7 +250,6 @@ aligned submit \
 --proof ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 --public_input ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 --vk ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
---batcher_url wss://batcher.alignedlayer.com \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com

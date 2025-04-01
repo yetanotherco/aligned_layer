@@ -1,0 +1,10 @@
+[Unit]
+Description=Alertmanager
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --web.listen-address=:9999
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

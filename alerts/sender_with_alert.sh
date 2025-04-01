@@ -4,7 +4,6 @@
 # - REPETITIONS
 # - EXPLORER_URL
 # - SENDER_ADDRESS
-# - BATCHER_URL
 # - RPC_URL
 # - EXPLORER_URL
 # - NETWORK
@@ -92,7 +91,7 @@ do
   mkdir -p ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 
   ## Generate Proof
-  nonce=$(aligned get-user-nonce --batcher_url $BATCHER_URL --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
+  nonce=$(aligned get-user-nonce --network $NETWORK --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
   echo $nonce
   if ! [[ "$nonce" =~ ^[0-9]+$ ]]; then
     echo "Failed getting user nonce, retrying in 10 seconds"
@@ -115,7 +114,6 @@ do
     --proof_generator_addr $SENDER_ADDRESS \
     --private_key $PRIVATE_KEY \
     --rpc_url $RPC_URL \
-    --batcher_url $BATCHER_URL \
     --network $NETWORK \
     --max_fee 0.004ether \
     2>&1)
@@ -140,7 +138,7 @@ do
     sleep 60
     continue
   fi
-  
+
   echo "Waiting $VERIFICATION_WAIT_TIME seconds for verification"
   sleep $VERIFICATION_WAIT_TIME
 

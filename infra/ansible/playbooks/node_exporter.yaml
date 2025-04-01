@@ -1,0 +1,27 @@
+- name: Node Exporter Setup
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Install node exporter
+      make:
+        chdir: /home/{{ ansible_user }}/repos/{{ host }}/aligned_layer
+        target: install_node_exporter
+        version: add-node-exporter # Temporary branch pin to test changes on the server. Remove this line before merging.
+
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
+        state: directory
+
+    - name: Add service to systemd
+      template:
+        src: services/node_exporter.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/node_exporter.service"
+        force: no
+
+    - name: Start node exporter service
+      ansible.builtin.systemd_service:
+        name: node_exporter
+        state: started
+        enabled: true
+        scope: user

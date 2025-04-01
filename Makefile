@@ -7,7 +7,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.14.0
+OPERATOR_VERSION=v0.15.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.1.13
 
@@ -20,8 +20,8 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
-	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero_old/lib:$(CURDIR)/operator/risc_zero/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib
+	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -195,7 +195,7 @@ operator_set_eigen_sdk_go_version_error:
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
 
-operator_register_and_start: operator_full_registration operator_start
+operator_register_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start
 
 build_operator: deps
 	$(GET_SDK_VERSION)
@@ -325,6 +325,24 @@ verifier_disable:
 	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
 	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
 
+strategies_get_weight:
+	@echo "Getting weight of strategy: $(STRATEGY_INDEX)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_strategy_weight.sh $(STRATEGY_INDEX)
+
+strategies_update_weight:
+	@echo "Updating strategy weights: "
+	@echo "STRATEGY_INDICES: $(STRATEGY_INDICES)"
+	@echo "NEW_MULTIPLIERS: $(NEW_MULTIPLIERS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/update_strategy_weight.sh $(STRATEGY_INDICES) $(NEW_MULTIPLIERS)
+
+strategies_remove:
+	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
+
+strategies_get_addresses:
+	@echo "Getting strategy addresses"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_restakeable_strategies.sh
+
 __BATCHER__:
 
 BURST_SIZE ?= 5
@@ -375,8 +393,8 @@ batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -385,8 +403,8 @@ batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
 		--repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
@@ -400,19 +418,19 @@ batcher_send_risc0_task:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
 batcher_send_risc0_task_no_pub_input:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
+	@echo "Sending Risc0 no pub input task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input.proof \
-        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id_2_0.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -421,9 +439,9 @@ batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
         --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
@@ -521,7 +539,6 @@ task_sender_send_infinite_proofs_devnet:
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url http://localhost:8545 \
-	--batcher-url ws://localhost:8080 \
 	--network devnet \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
@@ -529,8 +546,8 @@ task_sender_send_infinite_proofs_devnet:
 task_sender_test_connections_devnet:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- test-connections \
-	--batcher-url ws://localhost:8080 \
-	--num-senders $(NUM_SENDERS)
+	--num-senders $(NUM_SENDERS) \
+	--network devnet
 
 # ===== HOLESKY-STAGE =====
 task_sender_generate_and_fund_wallets_holesky_stage:
@@ -549,7 +566,6 @@ task_sender_send_infinite_proofs_holesky_stage:
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
-	--batcher-url wss://stage.batcher.alignedlayer.com  \
 	--network holesky-stage \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
 	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
@@ -557,13 +573,14 @@ task_sender_send_infinite_proofs_holesky_stage:
 task_sender_test_connections_holesky_stage:
 	@cd batcher/aligned-task-sender && \
 	cargo run --release -- test-connections \
-	--batcher-url wss://stage.batcher.alignedlayer.com \
-	--num-senders $(NUM_SENDERS)
+	--num-senders $(NUM_SENDERS) \
+	--network holesky-stage
 
 __UTILS__:
 aligned_get_user_balance_devnet:
 	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
-		--user_addr $(USER_ADDR)
+		--user_addr $(USER_ADDR) \
+		--network devnet
 
 aligned_get_user_balance_holesky:
 	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
@@ -710,36 +727,17 @@ test_sp1_go_bindings_linux: build_sp1_linux
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
-# @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.elf scripts/test_files/sp1/
+# @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci_4_1_3.elf scripts/test_files/sp1/
 generate_sp1_fibonacci_proof:
 	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
-	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci.elf
-	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
+	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf
+	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci_4_1_3.proof scripts/test_files/sp1/
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
 generate_risc_zero_empty_journal_proof:
 	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
 	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
 
-build_sp1_macos_old:
-	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.dylib operator/sp1_old/lib/libsp1_verifier_old_ffi.dylib
-
-build_sp1_linux_old:
-	@cd operator/sp1_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/sp1_old/lib/target/$(TARGET_REL_PATH)/libsp1_verifier_old_ffi.so operator/sp1_old/lib/libsp1_verifier_old_ffi.so
-
-test_sp1_rust_ffi_old:
-	@echo "Testing SP1 Rust FFI source code..."
-	@cd operator/sp1_old/lib && RUST_MIN_STACK=83886080 cargo t --release
-
-test_sp1_go_bindings_macos_old: build_sp1_macos_old
-	@echo "Testing SP1 Go bindings..."
-	go test ./operator/sp1_old/... -v
-
-test_sp1_go_bindings_linux_old: build_sp1_linux_old
-	@echo "Testing SP1 Go bindings..."
-	go test ./operator/sp1_old/... -v
 
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
@@ -767,26 +765,6 @@ generate_risc_zero_fibonacci_proof:
 		RUST_LOG=info cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
 
-build_risc_zero_macos_old:
-	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.dylib operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.dylib
-
-build_risc_zero_linux_old:
-	@cd operator/risc_zero_old/lib && cargo build $(RELEASE_FLAG)
-	@cp operator/risc_zero_old/lib/target/$(TARGET_REL_PATH)/librisc_zero_verifier_old_ffi.so operator/risc_zero_old/lib/librisc_zero_verifier_old_ffi.so
-
-test_risc_zero_rust_ffi_old:
-	@echo "Testing RISC Zero Rust FFI source code..."
-	@cd operator/risc_zero_old/lib && cargo test --release
-
-test_risc_zero_go_bindings_macos_old: build_risc_zero_macos_old
-	@echo "Testing RISC Zero Go bindings..."
-	go test ./operator/risc_zero_old/... -v
-
-test_risc_zero_go_bindings_linux_old: build_risc_zero_linux_old
-	@echo "Testing RISC Zero Go bindings..."
-	go test ./operator/risc_zero_old/... -v
-
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
@@ -811,11 +789,6 @@ test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
 
-test_merkle_tree_old_go_bindings_macos: build_merkle_tree_macos_old
-	@echo "Testing Old Merkle Tree Go bindings..."
-	go test ./operator/merkle_tree_old/... -v
-
-
 __BUILD_ALL_FFI__:
 
 build_all_ffi: ## Build all FFIs
@@ -826,8 +799,6 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@echo "Building all FFIs for macOS..."
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
-	@$(MAKE) build_sp1_macos_old
-	@$(MAKE) build_risc_zero_macos_old
 	@$(MAKE) build_merkle_tree_macos
 	@echo "All macOS FFIs built successfully."
 
@@ -835,8 +806,6 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@echo "Building all FFIs for Linux..."
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
-	@$(MAKE) build_sp1_linux_old
-	@$(MAKE) build_risc_zero_linux_old
 	@$(MAKE) build_merkle_tree_linux
 	@echo "All Linux FFIs built successfully."
 
@@ -965,8 +934,8 @@ docker_batcher_send_sp1_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system SP1 \
-              --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
-              --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
+              --proof ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+              --vm_program ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -977,9 +946,9 @@ docker_batcher_send_risc0_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system Risc0 \
-              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
-              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
-              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -1250,3 +1219,75 @@ ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
 		-i $(INVENTORY) \
 		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
 		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+
+ansible_explorer_deploy:
+	@ansible-playbook infra/ansible/playbooks/explorer.yaml \
+		-i $(INVENTORY)
+
+ansible_telemetry_create_env:
+	@cp -n infra/ansible/playbooks/ini/config-telemetry.ini.example infra/ansible/playbooks/ini/config-telemetry.ini
+	@echo "Config files for Telemetry created in infra/ansible/playbooks/ini"
+	@echo "Please complete the values and run make ansible_telemetry_deploy"
+
+ansible_telemetry_deploy:
+	@ansible-playbook infra/ansible/playbooks/telemetry.yaml \
+		-i $(INVENTORY)
+
+__ETHEREUM_PACKAGE__:  ## ____
+
+ethereum_package_start: ## Starts the ethereum_package environment
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
+
+ethereum_package_inspect: ## Prints detailed information about the net
+	kurtosis enclave inspect aligned
+
+ethereum_package_rm: ## Stops and removes the ethereum_package environment and used resources
+	kurtosis enclave rm aligned -f
+
+batcher_start_ethereum_package: user_fund_payment_service
+	@echo "Starting Batcher..."
+	@$(MAKE) run_storage &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+aggregator_start_ethereum_package:
+	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
+
+operator_start_ethereum_package:
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+operator_register_start_ethereum_package:
+	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
+	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+
+install_spamoor: ## Instal spamoor to spam transactions
+	@echo "Installing spamoor..."
+	@git clone https://github.com/ethpandaops/spamoor.git
+	@cd spamoor && make
+	@mv spamoor/bin/spamoor $(HOME)/.local/bin
+	@rm -rf spamoor
+	@echo "======================================================================="
+	@echo "Installation complete! Run 'spamoor --help' to verify the installation."
+	@echo "If 'spamoor' is not recognized, make sure it's in your PATH by adding the following line to your shell configuration:"
+	@echo "export PATH=\$$PATH:\$$HOME/.local/bin"
+	@echo "======================================================================="
+
+# Spamoor funding wallet
+SPAMOOR_PRIVATE_KEY?=dbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+NUM_WALLETS?=1000
+TX_PER_BLOCK?=250
+# Similar to a swap
+TX_CONSUMES_GAS?=150000
+
+spamoor_send_transactions: ## Sends normal transactions and also replacement transactions
+	spamoor gasburnertx -p $(SPAMOOR_PRIVATE_KEY) -c $(COUNT) \
+		--gas-units-to-burn $(TX_CONSUMES_GAS) \
+		--max-wallets $(NUM_WALLETS) --max-pending $(TX_PER_BLOCK) \
+		-t $(TX_PER_BLOCK) -h http://127.0.0.1:8545/ -h http://127.0.0.1:8550/ -h http://127.0.0.1:8555/ -h http://127.0.0.1:8565/ \
+		--refill-amount 5 --refill-balance 2 --tipfee $(TIP_FEE) --basefee 100  \
+		2>&1 | grep -v 'checked child wallets (no funding needed)'
+
+__NODE_EXPORTER_: ##__
+
+install_node_exporter:
+	@./scripts/install_node_exporter.sh

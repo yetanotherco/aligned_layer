@@ -1,0 +1,16 @@
+[Unit]
+Description=Explorer
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer
+EnvironmentFile=/home/{{ ansible_user }}/config/.env.explorer
+ExecStart=/home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer/_build/prod/rel/explorer/bin/explorer start
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+LimitNOFILE=100000
+
+[Install]
+WantedBy=multi-user.target
