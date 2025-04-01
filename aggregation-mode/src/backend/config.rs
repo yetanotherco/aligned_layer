@@ -17,7 +17,6 @@ pub struct Config {
     pub proof_aggregation_service_address: String,
     pub aligned_service_manager_address: String,
     pub ecdsa: ECDSAConfig,
-    pub bucket_name: String,
 }
 
 impl Config {

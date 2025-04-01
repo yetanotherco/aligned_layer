@@ -2,7 +2,6 @@ use std::str::FromStr;
 
 use super::{
     config::Config,
-    queue::ProofsQueue,
     types::{AlignedLayerServiceManager, AlignedLayerServiceManagerContract},
 };
 use crate::{
@@ -13,11 +12,11 @@ use aligned_sdk::core::types::ProvingSystemId;
 use alloy::{primitives::Address, providers::ProviderBuilder};
 use tracing::{error, info};
 
-/// This services is in charge of:
-/// 1. Listens to aligned new batch task
-/// 2. Downloads proofs from S3 bucket
-/// 3. Filter supported proofs to be aggregated
-/// 4. Push the proofs to the queue
+#[derive(Debug)]
+pub enum ProofsFetcherError {
+    QueryingLogs,
+}
+
 pub struct ProofsFetcher {
     aligned_service_manager: AlignedLayerServiceManagerContract,
 }
@@ -37,8 +36,7 @@ impl ProofsFetcher {
         }
     }
 
-    // TODO: remove panic and return proofs instead of taking queue
-    pub async fn fetch(&self, queue: &mut ProofsQueue) {
+    pub async fn fetch(&self) -> Result<Vec<Proof>, ProofsFetcherError> {
         info!("Fetching proofs from batch logs");
         // Subscribe to NewBatch event from AlignedServiceManager
         let logs = self
@@ -47,9 +45,11 @@ impl ProofsFetcher {
             .from_block(0)
             .query()
             .await
-            .expect("to get logs");
+            .map_err(|_| ProofsFetcherError::QueryingLogs)?;
 
         info!("Logs collected {}", logs.len());
+
+        let mut proofs = vec![];
 
         for (batch, _) in logs {
             info!(
@@ -69,7 +69,7 @@ impl ProofsFetcher {
             info!("Data downloaded from S3, number of proofs {}", data.len());
 
             // Filter SP1 compressed proofs to and push to queue to be aggregated
-            let proofs: Vec<Proof> = data
+            let proofs_to_add: Vec<Proof> = data
                 .into_iter()
                 .filter_map(|p| match p.proving_system {
                     ProvingSystemId::SP1 => {
@@ -86,15 +86,16 @@ impl ProofsFetcher {
             info!("SP1 proofs filtered, total proofs to add {}", proofs.len());
 
             // try to add them to the queue
-            for proof in proofs {
-                match queue.add_proof(proof) {
-                    Ok(_) => info!(
-                        "New proof added to queue, current length {}",
-                        queue.proofs().len()
-                    ),
-                    Err(e) => error!("Could not add proof, reason: {:?}", e),
+            for proof in proofs_to_add {
+                if let Err(err) = proof.verify() {
+                    error!("Could not add proof, verification failed: {:?}", err);
+                    continue;
                 };
+
+                proofs.push(proof);
             }
         }
+
+        Ok(proofs)
     }
 }

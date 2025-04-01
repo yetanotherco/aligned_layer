@@ -1,7 +1,6 @@
 pub mod config;
 pub mod fetcher;
 mod merkle_tree;
-pub mod queue;
 mod s3;
 mod types;
 
@@ -18,20 +17,20 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use config::Config;
-use fetcher::ProofsFetcher;
+use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
-use queue::ProofsQueue;
 use sp1_sdk::HashableKey;
 use std::{str::FromStr, time::Duration};
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
 #[derive(Debug)]
-enum AggregatedProofSubmissionError {
+pub enum AggregatedProofSubmissionError {
     Aggregation(ProofAggregationError),
     SendBlobTransaction,
     SendVerifyAggregatedProofTransaction(alloy::contract::Error),
     ReceiptError(PendingTransactionError),
+    FetchingProofs(ProofsFetcherError),
 }
 
 pub struct ProofAggregator {
@@ -39,7 +38,6 @@ pub struct ProofAggregator {
     submit_proof_every_secs: u64,
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
-    queue: ProofsQueue,
 }
 
 impl ProofAggregator {
@@ -63,7 +61,6 @@ impl ProofAggregator {
             engine: ZKVMEngine::SP1,
             submit_proof_every_secs: config.submit_proofs_every_secs,
             proof_aggregation_service,
-            queue: ProofsQueue::new(config.max_proofs_in_queue),
             fetcher,
         }
     }
@@ -99,8 +96,11 @@ impl ProofAggregator {
     async fn aggregate_and_submit_proofs_on_chain(
         &mut self,
     ) -> Result<(), AggregatedProofSubmissionError> {
-        self.fetcher.fetch(&mut self.queue).await;
-        let proofs = self.queue.clear();
+        let proofs = self
+            .fetcher
+            .fetch()
+            .await
+            .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
         if proofs.len() == 0 {
             warn!("No proofs in queue, skipping iteration...");
@@ -130,14 +130,14 @@ impl ProofAggregator {
 
         info!("Sending blob transaction...");
         let blob_tx_hash = self.send_blob_transaction(leaves).await?;
-        info!("Blob transaction sen, hash: {:?}", blob_tx_hash);
+        info!("Blob transaction sent, hash: {:?}", blob_tx_hash);
 
         info!("Sending proof to ProofAggregationService contract...");
         let receipt = self
             .send_proof_to_verify_on_chain(&blob_tx_hash, output.proof)
             .await?;
         info!(
-            "Proof sent anv verified, tx hash {:?}",
+            "Proof sent and verified, tx hash {:?}",
             receipt.transaction_hash
         );
 
@@ -175,7 +175,7 @@ impl ProofAggregator {
     // TODO
     async fn send_blob_transaction(
         &self,
-        leaves: Vec<[u8; 32]>,
+        _leaves: Vec<[u8; 32]>,
     ) -> Result<[u8; 32], AggregatedProofSubmissionError> {
         Ok([0u8; 32])
     }
