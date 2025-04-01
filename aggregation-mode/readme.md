@@ -18,19 +18,19 @@ make anvil_start_with_block_time
 make start_batcher_local
 ```
 
-4. Start proof aggregator:
+4. Send SP1 proofs:
+```shell
+make batcher_send_sp1_burst
+```
+
+5. Start proof aggregator:
 ```shell 
 # This will not run a real prover but a mocked one see below to run a real prover
 make start_proof_aggregator_local
 ```
 Note: it might take a while to compile as it uses more aggressive optimization levels.
 
-5. Send SP1 proofs:
-```shell
-make batcher_send_sp1_burst
-```
-
-You should see that after the timer set in `config-proof-aggregator.yaml`, it will fetch the batches and aggregate the compressed SP1 proofs from them.
+You should it will fetch the new batch logs from the BatcherService and aggregate the compressed SP1 proofs from them.
 
 ### Run it with proving
 
@@ -38,7 +38,7 @@ By default, on dev environments, the proving is mocked and the ProofAggregationS
 
 1. Start anvil with verification activated:
 ```shell
-make anvil_start_with_block_time_and_proving
+make anvil_start_with_verification
 ```
 
 4. Start proof aggregator with proving:
