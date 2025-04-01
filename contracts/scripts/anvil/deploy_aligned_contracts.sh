@@ -5,8 +5,8 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 # At this point we are in tests/integration
 cd "$parent_path"
 
-# Start an empty anvil chain in the background and dump its state to a json file upon exit
-anvil --load-state state/eigenlayer-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
+# Start anvil chain in the background and dump its state to a json file upon exit
+anvil --load-state state/sp1-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
 
 cd ../../
 
