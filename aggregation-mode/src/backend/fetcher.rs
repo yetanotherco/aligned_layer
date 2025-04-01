@@ -2,47 +2,61 @@ use std::str::FromStr;
 
 use super::{
     config::Config,
-    types::{AlignedLayerServiceManager, AlignedLayerServiceManagerContract},
+    types::{AlignedLayerServiceManager, AlignedLayerServiceManagerContract, RPCProvider},
 };
 use crate::{
     backend::s3::get_aligned_batch_from_s3,
     zk::{backends::sp1::SP1Proof, Proof},
 };
 use aligned_sdk::core::types::ProvingSystemId;
-use alloy::{primitives::Address, providers::ProviderBuilder};
+use alloy::{
+    primitives::Address,
+    providers::{Provider, ProviderBuilder},
+};
 use tracing::{error, info};
 
 #[derive(Debug)]
 pub enum ProofsFetcherError {
     QueryingLogs,
+    BlockNumber,
 }
 
 pub struct ProofsFetcher {
+    rpc_provider: RPCProvider,
     aligned_service_manager: AlignedLayerServiceManagerContract,
+    fetch_from_secs_ago: u64,
+    block_time_secs: u64,
 }
 
 impl ProofsFetcher {
     pub fn new(config: &Config) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("correct url");
-        let provider = ProviderBuilder::new().on_http(rpc_url);
+        let rpc_provider = ProviderBuilder::new().on_http(rpc_url);
         let aligned_service_manager = AlignedLayerServiceManager::new(
             Address::from_str(&config.aligned_service_manager_address)
                 .expect("Address to be correct"),
-            provider,
+            rpc_provider.clone(),
         );
 
         Self {
+            rpc_provider,
             aligned_service_manager,
+            fetch_from_secs_ago: config.fetch_logs_from_secs_ago,
+            block_time_secs: config.block_time_secs,
         }
     }
 
     pub async fn fetch(&self) -> Result<Vec<Proof>, ProofsFetcherError> {
-        info!("Fetching proofs from batch logs");
+        let from_block = self.get_block_number_to_fetch_from().await?;
+        info!(
+            "Fetching proofs from batch logs starting from block number {}",
+            from_block
+        );
         // Subscribe to NewBatch event from AlignedServiceManager
         let logs = self
             .aligned_service_manager
             .NewBatchV3_filter()
-            .from_block(0)
+            .from_block(from_block)
             .query()
             .await
             .map_err(|_| ProofsFetcherError::QueryingLogs)?;
@@ -100,5 +114,17 @@ impl ProofsFetcher {
         }
 
         Ok(proofs)
+    }
+
+    async fn get_block_number_to_fetch_from(&self) -> Result<u64, ProofsFetcherError> {
+        let block_number = self
+            .rpc_provider
+            .get_block_number()
+            .await
+            .map_err(|_| ProofsFetcherError::BlockNumber)?;
+
+        let number_of_blocks_in_the_past = self.fetch_from_secs_ago / self.block_time_secs;
+
+        Ok(block_number.saturating_sub(number_of_blocks_in_the_past))
     }
 }
