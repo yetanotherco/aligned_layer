@@ -37,7 +37,6 @@ fn compute_merkle_root(proofs: &[ProofInput]) -> [u8; 32] {
     leaves[0]
 }
 
-// TODO: Update input and use AlignedVerificationData
 pub fn main() {
     let input = sp1_zkvm::io::read::<Input>();
 

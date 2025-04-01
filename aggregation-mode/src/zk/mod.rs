@@ -25,9 +25,9 @@ pub enum VerificationError {
 }
 
 impl Proof {
-    pub fn verify(&self, elf: &[u8]) -> Result<(), VerificationError> {
+    pub fn verify(&self) -> Result<(), VerificationError> {
         match self {
-            Proof::SP1(proof) => sp1::verify(proof, elf).map_err(VerificationError::SP1),
+            Proof::SP1(proof) => sp1::verify(proof).map_err(VerificationError::SP1),
         }
     }
 }

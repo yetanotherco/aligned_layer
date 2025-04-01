@@ -11,18 +11,22 @@ const PROGRAM_ELF: &[u8] = include_bytes!("../../../zkvm/sp1/elf/sp1_aggregator_
 // TODO lock prover
 
 pub struct SP1Proof {
-    pub vk: SP1VerifyingKey,
+    pub elf: Vec<u8>,
     pub proof: SP1ProofWithPublicValues,
 }
 
 impl SP1Proof {
     pub fn hash(&self) -> [u8; 32] {
         let mut hasher = Keccak256::new();
-        for &word in &self.vk.hash_u32() {
+        for &word in &self.vk().hash_u32() {
             hasher.update(word.to_le_bytes());
         }
         hasher.update(self.proof.public_values.as_slice());
         hasher.finalize().into()
+    }
+
+    pub fn vk(&self) -> SP1VerifyingKey {
+        vk_from_elf(&self.elf)
     }
 }
 
@@ -47,18 +51,19 @@ pub(crate) fn aggregate_proofs(
             .proofs
             .push(ProofInput::SP1Compressed(SP1ProofInput {
                 public_inputs: proof.proof.public_values.to_vec(),
-                vk: proof.vk.hash_u32(),
+                vk: proof.vk().hash_u32(),
             }));
     }
     stdin.write(&program_input);
 
     // write proofs
-    for SP1Proof { proof, vk } in input.proofs {
+    for input_proof in input.proofs {
+        let vk = input_proof.vk().vk;
         // we only support sp1 Compressed proofs for now
-        let sp1_sdk::SP1Proof::Compressed(proof) = proof.proof else {
+        let sp1_sdk::SP1Proof::Compressed(proof) = input_proof.proof.proof else {
             return Err(ProofAggregationError::UnsupportedProof);
         };
-        stdin.write_proof(*proof, vk.vk);
+        stdin.write_proof(*proof, vk);
     }
 
     #[cfg(feature = "prove")]
@@ -79,7 +84,10 @@ pub(crate) fn aggregate_proofs(
         .verify(&proof, &vk)
         .map_err(ProofAggregationError::SP1Verification)?;
 
-    let proof = SP1Proof { proof, vk };
+    let proof = SP1Proof {
+        proof,
+        elf: PROGRAM_ELF.to_vec(),
+    };
 
     let output = ProgramOutput::new(AggregatedProof::SP1(proof));
 
@@ -92,10 +100,10 @@ pub enum SP1VerificationError {
     UnsupportedProof,
 }
 
-pub(crate) fn verify(sp1_proof: &SP1Proof, elf: &[u8]) -> Result<(), SP1VerificationError> {
+pub(crate) fn verify(sp1_proof: &SP1Proof) -> Result<(), SP1VerificationError> {
     let client = ProverClient::from_env();
 
-    let (_pk, vk) = client.setup(elf);
+    let (_pk, vk) = client.setup(&sp1_proof.elf);
 
     // only sp1 compressed proofs are supported for aggregation now
     match sp1_proof.proof.proof {

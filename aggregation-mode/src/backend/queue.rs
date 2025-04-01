@@ -1,5 +1,3 @@
-use tracing::info;
-
 use crate::zk::{Proof, VerificationError};
 
 #[derive(Debug)]
@@ -30,8 +28,8 @@ impl ProofsQueue {
         self.proofs.drain(0..self.proofs.len()).collect()
     }
 
-    pub fn add_proof(&mut self, proof: Proof, elf: &[u8]) -> Result<(), ProofQueueError> {
-        if let Err(err) = proof.verify(elf) {
+    pub fn add_proof(&mut self, proof: Proof) -> Result<(), ProofQueueError> {
+        if let Err(err) = proof.verify() {
             return Err(ProofQueueError::InvalidProof(err));
         };
 
