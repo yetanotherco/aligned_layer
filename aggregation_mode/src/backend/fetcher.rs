@@ -5,8 +5,7 @@ use super::{
     types::{AlignedLayerServiceManager, AlignedLayerServiceManagerContract, RPCProvider},
 };
 use crate::{
-    backend::s3::get_aligned_batch_from_s3,
-    zk::{backends::sp1::SP1Proof, Proof},
+    aggregators::{sp1_aggregator::SP1ProofWithPubValuesAndElf, AlignedProof}, backend::s3::get_aligned_batch_from_s3
 };
 use aligned_sdk::core::types::ProvingSystemId;
 use alloy::{
@@ -46,7 +45,7 @@ impl ProofsFetcher {
         }
     }
 
-    pub async fn fetch(&self) -> Result<Vec<Proof>, ProofsFetcherError> {
+    pub async fn fetch(&self) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
         let from_block = self.get_block_number_to_fetch_from().await?;
         info!(
             "Fetching proofs from batch logs starting from block number {}",
@@ -83,15 +82,15 @@ impl ProofsFetcher {
             info!("Data downloaded from S3, number of proofs {}", data.len());
 
             // Filter SP1 compressed proofs to and push to queue to be aggregated
-            let proofs_to_add: Vec<Proof> = data
+            let proofs_to_add: Vec<AlignedProof> = data
                 .into_iter()
                 .filter_map(|p| match p.proving_system {
                     ProvingSystemId::SP1 => {
                         let elf = p.vm_program_code?;
-                        let proof = bincode::deserialize(&p.proof).ok()?;
-                        let sp1_proof = SP1Proof { proof, elf };
+                        let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
+                        let sp1_proof = SP1ProofWithPubValuesAndElf { proof_with_pub_values, elf };
 
-                        Some(Proof::SP1(sp1_proof))
+                        Some(AlignedProof::SP1(sp1_proof))
                     }
                     _ => None,
                 })
