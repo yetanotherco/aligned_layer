@@ -4,11 +4,9 @@ mod merkle_tree;
 mod s3;
 mod types;
 
-use crate::zk::{
-    aggregator::{self, AggregatedProof, ProgramInput, ProofAggregationError},
-    backends::sp1::SP1AggregationInput,
-    Proof, ZKVMEngine,
-};
+use crate::aggregators::{lib::{AggregatedProof, ProofAggregationError}, sp1_aggregator::{aggregate_proofs, SP1AggregationInput}, AlignedProof, ZKVMEngine};
+
+
 use alloy::{
     consensus::{Blob, BlobTransactionSidecar},
     eips::eip4844::BYTES_PER_BLOB,
@@ -26,6 +24,7 @@ use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
+
 
 #[derive(Debug)]
 pub enum AggregatedProofSubmissionError {
@@ -114,7 +113,7 @@ impl ProofAggregator {
                 let proofs = proofs
                     .into_iter()
                     .filter_map(|proof| match proof {
-                        Proof::SP1(proof) => Some(proof),
+                        AlignedProof::SP1(proof) => Some(proof),
                     })
                     .collect();
 
@@ -123,7 +122,7 @@ impl ProofAggregator {
                     merkle_root,
                 };
 
-                aggregator::aggregate_proofs(ProgramInput::SP1(input))
+                aggregate_proofs(input)
                     .map_err(AggregatedProofSubmissionError::Aggregation)?
             }
         };
@@ -161,8 +160,8 @@ impl ProofAggregator {
                     .verify(
                         blob_versioned_hash.into(),
                         proof.vk().bytes32_raw().into(),
-                        proof.proof.public_values.to_vec().into(),
-                        proof.proof.bytes().into(),
+                        proof.proof_with_pub_values.public_values.to_vec().into(),
+                        proof.proof_with_pub_values.bytes().into(),
                     )
                     .sidecar(blob)
                     .send()

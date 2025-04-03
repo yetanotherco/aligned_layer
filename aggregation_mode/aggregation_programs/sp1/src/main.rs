@@ -3,7 +3,7 @@ sp1_zkvm::entrypoint!(main);
 
 use sha2::{Digest, Sha256};
 use sha3::Keccak256;
-use sp1_aggregator::{Input, ProofInput};
+use sp1_aggregation_program::{Input, ProofInput};
 
 fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
     let mut hasher = Keccak256::new();

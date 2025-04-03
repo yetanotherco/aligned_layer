@@ -1,4 +1,4 @@
-use crate::zk::Proof;
+use crate::aggregators::AlignedProof;
 use sha3::{Digest, Keccak256};
 
 pub fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
@@ -9,7 +9,7 @@ pub fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
 }
 
 /// Returns (merkle_root, leaves)
-pub fn compute_proofs_merkle_root(proofs: &[Proof]) -> ([u8; 32], Vec<[u8; 32]>) {
+pub fn compute_proofs_merkle_root(proofs: &[AlignedProof]) -> ([u8; 32], Vec<[u8; 32]>) {
     let leaves: Vec<[u8; 32]> = proofs
         .chunks(2)
         .map(|chunk| match chunk {
