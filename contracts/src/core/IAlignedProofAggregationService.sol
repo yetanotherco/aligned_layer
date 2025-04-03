@@ -43,11 +43,9 @@ interface IAlignedProofAggregationService {
     function markCurrentAggregatedProofAsMissed() external;
 
     /// @notice event that gets emitted after a successful aggregated proof verification
-    event NewAggregatedProofVerified(uint64 indexed proofNumber, bytes32 merkleRoot, bytes32 blobVersionedHash);
-    /// @notice event that gets emitted when an aggregated proof could not be sent to the contract.
-    event AggregatedProofMissed(uint64 indexed proofNumber);
-    /// @notice event that gets emitted after a failed aggregated proof verification
-    event AggregatedProofFailed(uint64 indexed proofNumber);
+    event NewAggregatedProof(
+        uint64 indexed proofNumber, AggregatedProofStatus status, bytes32 merkleRoot, bytes32 blobVersionedHash
+    );
 
     error OnlyAlignedAggregator(address sender);
 }

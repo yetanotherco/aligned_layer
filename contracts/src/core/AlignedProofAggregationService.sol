@@ -64,14 +64,15 @@ contract AlignedProofAggregationService is
         } catch {
             AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
             proof.status = AggregatedProofStatus.Failed;
-            emit AggregatedProofFailed(currentAggregatedProofNumber);
+            emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Failed, 0x0, 0x0);
+            currentAggregatedProofNumber += 1;
         }
     }
 
     function markCurrentAggregatedProofAsMissed() public onlyAlignedAggregator {
         AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
         proof.status = AggregatedProofStatus.Missed;
-        emit AggregatedProofMissed(currentAggregatedProofNumber);
+        emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Missed, 0x0, 0x0);
         currentAggregatedProofNumber += 1;
     }
 
@@ -80,7 +81,7 @@ contract AlignedProofAggregationService is
         proof.merkleRoot = merkleRoot;
         proof.blobHash = blobHash;
         proof.status = AggregatedProofStatus.Verified;
-        emit NewAggregatedProofVerified(currentAggregatedProofNumber, merkleRoot, blobHash);
+        emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Verified, merkleRoot, blobHash);
         currentAggregatedProofNumber += 1;
     }
 
