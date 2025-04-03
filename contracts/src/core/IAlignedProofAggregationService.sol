@@ -24,12 +24,12 @@ interface IAlignedProofAggregationService {
     /// @notice Method to verify an aggregated proof from aligned
     /// @dev This function is called by the aligned proof aggregator after collecting the proofs and aggregating them
     /// to be verified on-chain. We expect the blobTransactionHash to be called before
-    /// @param blobTransactionHash the hash of the blob transaction that contains the leaves that compose the merkle root.
+    /// @param blobVersionedHash the versioned hash of the blob transaction that contains the leaves that compose the merkle root.
     /// @param sp1ProgramVKey Public verifying key
     /// @param sp1PublicValues Values used to perform the execution
     /// @param sp1ProofBytes Groth16 proof
     function verify(
-        bytes32 blobTransactionHash,
+        bytes32 blobVersionedHash,
         bytes32 sp1ProgramVKey,
         bytes calldata sp1PublicValues,
         bytes calldata sp1ProofBytes
@@ -43,10 +43,10 @@ interface IAlignedProofAggregationService {
     function markCurrentAggregatedProofAsMissed() external;
 
     /// @notice event that gets emitted after a successful aggregated proof verification
-    event NewAggregatedProofVerified(uint64 indexed proofNumber, bytes32 merkleRoot, bytes32 blobTransactionHash);
-    /// @notice event that gets emitted after a successful aggregated proof verification
+    event NewAggregatedProofVerified(uint64 indexed proofNumber, bytes32 merkleRoot, bytes32 blobVersionedHash);
+    /// @notice event that gets emitted when an aggregated proof could not be sent to the contract.
     event AggregatedProofMissed(uint64 indexed proofNumber);
-    /// @notice event that gets emitted after a successful aggregated proof verification
+    /// @notice event that gets emitted after a failed aggregated proof verification
     event AggregatedProofFailed(uint64 indexed proofNumber);
 
     error OnlyAlignedAggregator(address sender);

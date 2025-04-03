@@ -46,7 +46,7 @@ contract AlignedProofAggregationService is
     }
 
     function verify(
-        bytes32 blobTransactionHash,
+        bytes32 blobVersionedHash,
         bytes32 sp1ProgramVKey,
         bytes calldata sp1PublicValues,
         bytes calldata sp1ProofBytes
@@ -54,13 +54,13 @@ contract AlignedProofAggregationService is
         // In dev mode, poofs are mocked, so we skip the verification part
         if (sp1VerifierAddress == VERIFIER_MOCK_ADDRESS) {
             (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
-            _newAggregatedProof(merkleRoot, blobTransactionHash);
+            _newAggregatedProof(merkleRoot, blobVersionedHash);
             return;
         }
 
         try ISP1Verifier(sp1VerifierAddress).verifyProof(sp1ProgramVKey, sp1PublicValues, sp1ProofBytes) {
             (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
-            _newAggregatedProof(merkleRoot, blobTransactionHash);
+            _newAggregatedProof(merkleRoot, blobVersionedHash);
         } catch {
             AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
             proof.status = AggregatedProofStatus.Failed;
