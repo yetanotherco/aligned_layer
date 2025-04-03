@@ -4824,6 +4824,7 @@ dependencies = [
  "aligned-sdk",
  "alloy",
  "bincode",
+ "c-kzg",
  "ciborium",
  "reqwest 0.12.15",
  "serde",

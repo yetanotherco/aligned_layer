@@ -65,3 +65,23 @@ pub type RPCProvider = alloy::providers::fillers::FillProvider<
     >,
     alloy::providers::RootProvider,
 >;
+
+pub type RPCProviderWithSigner = alloy::providers::fillers::FillProvider<
+    alloy::providers::fillers::JoinFill<
+        alloy::providers::fillers::JoinFill<
+            alloy::providers::Identity,
+            alloy::providers::fillers::JoinFill<
+                alloy::providers::fillers::GasFiller,
+                alloy::providers::fillers::JoinFill<
+                    alloy::providers::fillers::BlobGasFiller,
+                    alloy::providers::fillers::JoinFill<
+                        alloy::providers::fillers::NonceFiller,
+                        alloy::providers::fillers::ChainIdFiller,
+                    >,
+                >,
+            >,
+        >,
+        alloy::providers::fillers::WalletFiller<EthereumWallet>,
+    >,
+    alloy::providers::RootProvider,
+>;
