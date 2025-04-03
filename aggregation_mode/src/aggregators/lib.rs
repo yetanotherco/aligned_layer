@@ -1,13 +1,11 @@
-use crate::zk::backends::sp1::{self};
-
-use super::backends::sp1::{SP1AggregationInput, SP1Proof};
+use super::sp1_aggregator::{self, SP1AggregationInput, SP1ProofWithPubValuesAndElf};
 
 pub enum ProgramInput {
     SP1(SP1AggregationInput),
 }
 
 pub enum AggregatedProof {
-    SP1(SP1Proof),
+    SP1(SP1ProofWithPubValuesAndElf),
 }
 
 pub struct ProgramOutput {
@@ -29,6 +27,6 @@ pub enum ProofAggregationError {
 
 pub fn aggregate_proofs(input: ProgramInput) -> Result<ProgramOutput, ProofAggregationError> {
     match input {
-        ProgramInput::SP1(input) => sp1::aggregate_proofs(input),
+        ProgramInput::SP1(input) => sp1_aggregator::aggregate_proofs(input),
     }
 }
