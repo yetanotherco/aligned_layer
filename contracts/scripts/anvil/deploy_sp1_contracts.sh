@@ -15,7 +15,9 @@ sleep 1
 
 export CHAINS='DEVNET'
 export RPC_DEVNET='http://localhost:8545'
-export OWNER='0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
+
+# Anvil account #2
+export OWNER='0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC' 
 export VERIFIER_PRIVATE_KEY="0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
 
 # Deploy Groth16 SP1 verifier gateway
