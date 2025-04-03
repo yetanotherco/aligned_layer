@@ -698,6 +698,10 @@ upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters
 	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_batcher_payment_service.sh
 
+deploy_proof_aggregator:
+	@echo "Deploying ProofAggregator contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
+
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 
