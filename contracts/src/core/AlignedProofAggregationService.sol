@@ -46,7 +46,7 @@ contract AlignedProofAggregationService is
     }
 
     function verify(
-        bytes32 blobTransactionHash,
+        bytes32 blobVersionedHash,
         bytes32 sp1ProgramVKey,
         bytes calldata sp1PublicValues,
         bytes calldata sp1ProofBytes
@@ -54,24 +54,25 @@ contract AlignedProofAggregationService is
         // In dev mode, poofs are mocked, so we skip the verification part
         if (sp1VerifierAddress == VERIFIER_MOCK_ADDRESS) {
             (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
-            _newAggregatedProof(merkleRoot, blobTransactionHash);
+            _newAggregatedProof(merkleRoot, blobVersionedHash);
             return;
         }
 
         try ISP1Verifier(sp1VerifierAddress).verifyProof(sp1ProgramVKey, sp1PublicValues, sp1ProofBytes) {
             (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
-            _newAggregatedProof(merkleRoot, blobTransactionHash);
+            _newAggregatedProof(merkleRoot, blobVersionedHash);
         } catch {
             AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
             proof.status = AggregatedProofStatus.Failed;
-            emit AggregatedProofFailed(currentAggregatedProofNumber);
+            emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Failed, 0x0, 0x0);
+            currentAggregatedProofNumber += 1;
         }
     }
 
     function markCurrentAggregatedProofAsMissed() public onlyAlignedAggregator {
         AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
         proof.status = AggregatedProofStatus.Missed;
-        emit AggregatedProofMissed(currentAggregatedProofNumber);
+        emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Missed, 0x0, 0x0);
         currentAggregatedProofNumber += 1;
     }
 
@@ -80,7 +81,7 @@ contract AlignedProofAggregationService is
         proof.merkleRoot = merkleRoot;
         proof.blobHash = blobHash;
         proof.status = AggregatedProofStatus.Verified;
-        emit NewAggregatedProofVerified(currentAggregatedProofNumber, merkleRoot, blobHash);
+        emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Verified, merkleRoot, blobHash);
         currentAggregatedProofNumber += 1;
     }
 
