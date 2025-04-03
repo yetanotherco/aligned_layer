@@ -47,9 +47,9 @@ contract AlignedProofAggregationService is
 
     function verify(
         bytes32 blobVersionedHash,
-        bytes32 sp1ProgramVKey,
-        bytes calldata sp1PublicValues,
-        bytes calldata sp1ProofBytes
+        //bytes32 sp1ProgramVKey,
+        bytes calldata sp1PublicValues
+        //bytes calldata sp1ProofBytes
     ) public onlyAlignedAggregator {
         // In dev mode, poofs are mocked, so we skip the verification part
         if (sp1VerifierAddress == VERIFIER_MOCK_ADDRESS) {
