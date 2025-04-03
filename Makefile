@@ -75,6 +75,10 @@ anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
+anvil_deploy_sp1_contracts:
+	@echo "Deploying SP1 Contracts..."
+	. contracts/scripts/anvil/deploy_sp1_contracts.sh
+
 anvil_deploy_aligned_contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
