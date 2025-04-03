@@ -35,20 +35,36 @@ defmodule AlignedProofAggregationService do
 
   def get_aggregated_proof_event(%{from_block: number, to_block: number}) do
     events =
-      AlignedProofAggregationService.EventFilters.new_batch_v3(nil)
+      AlignedProofAggregationService.EventFilters.new_aggregated_proof(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
 
-    [
-      %{
-        number: 0,
-        status: 0,
-        merkle_root: "",
-        block_number: 0,
-        tx_hash: "",
-        tx_timestamp: "",
-        blob_versioned_hash: ""
-      }
-    ]
+    case events do
+      {:ok, []} ->
+        []
+
+      {:ok, list} ->
+        Enum.map(list, fn x ->
+          data = x |> Map.get(:data)
+          topics_raw = x |> Map.get(:topics_raw)
+          block_number = x |> Map.get(:block_number)
+          tx_hash = x |> Map.get(:transaction_hash)
+
+          %{
+            :ok,
+            %{
+              number: topics_raw |> Enum.at(1),
+              status: data |> Enum.at(0),
+              merkle_root: data |> Enum.at(1),
+              blob_versioned_hash: data |> Enum.at(2),
+              block_number: block_number,
+              tx_hash: tx_hash
+            }
+          }
+        end)
+
+      {:error, reason} ->
+        raise("Error fetching events: #{Map.get(reason, "message")}")
+    end
   end
 
   def get_blob_data_from_versioned_hash(versioned_hash) do

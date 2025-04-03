@@ -4,7 +4,7 @@ defmodule AggregatedProofs do
   import Ecto.Changeset
   import Ecto.Query
 
-  # Different from proofs.ex (we could use the same but the hashes are constructed differently)
+  # Different from proofs.ex (we could use the same but the hashes are constructed different)
   @primary_key {:id, :integer, autogenerate: true}
   schema "proofs_agg_mode" do
     field(:aggregated_proof_number, :integer)
@@ -26,7 +26,6 @@ defmodule AggregatedProofs do
     field(:blob_data, :binary)
     field(:number_of_proofs, :integer)
     field(:block_number, :integer)
-    field(:tx_timestamp, :utc_datetime)
 
     timestamps()
   end
@@ -38,14 +37,13 @@ defmodule AggregatedProofs do
     aggregated_proof
     |> cast(attrs, [
       :number,
-      :merkle_root,
       :status,
-      :tx_hash,
+      :merkle_root,
       :blob_versioned_hash,
-      :blob_data,
-      :number_of_proofs,
       :block_number,
-      :tx_timestamp
+      :tx_hash,
+      :blob_data,
+      :number_of_proofs
     ])
     |> validate_required([
       :number,
@@ -54,8 +52,7 @@ defmodule AggregatedProofs do
       :tx_hash,
       :blob_versioned_hash,
       :number_of_proofs,
-      :block_number,
-      :tx_timestamp
+      :block_number
     ])
     |> unique_constraint(:number)
   end

@@ -88,14 +88,17 @@ defmodule Explorer.Periodically do
     ## 5. Store each hash in proof hash pointing to the aggregated proof number
     ## 6. Store the info in db
 
-    process_aggregated_proofs(read_from_block)
+    process_aggregated_proofs(read_from_block, latest_block_number)
   end
 
-  def process_aggregated_proofs(from_block) do
+  def process_aggregated_proofs(from_block, to_block) do
     "Processing aggregated proofs" |> Logger.debug()
 
     aggregated_proofs =
-      AlignedProofAggregationService.get_aggregated_proof_event()
+      AlignedProofAggregationService.get_aggregated_proof_event(%{
+        from_block: from_block,
+        to_block: to_block
+      })
       |> Enum.map(fn x ->
         Map.merge(
           x,
