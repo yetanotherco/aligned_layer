@@ -1,0 +1,61 @@
+defmodule AlignedProofAggregationService do
+  require Logger
+
+  @aligned_config_file System.get_env("ALIGNED_PROOF_AGG_CONFIG_FILE")
+
+  config_file_path =
+    case @aligned_config_file do
+      nil -> raise("ALIGNED_PROOF_AGG_CONFIG_FILE not set in .env")
+      file -> file
+    end
+
+  {status, config_json_string} = File.read(config_file_path)
+
+  case status do
+    :ok ->
+      Logger.debug("Aligned deployment file read successfully")
+
+    :error ->
+      raise(
+        "Config file not read successfully, make sure your .env is correctly created, and make sure Eigenlayer config file is correctly stored"
+      )
+  end
+
+  @contract_address Jason.decode!(config_json_string)
+                    |> Map.get("addresses")
+                    |> Map.get("alignedProofAggregationService")
+
+  use Ethers.Contract,
+    abi_file: "lib/abi/AlignedProofAggregationService.json",
+    default_address: @contract_address
+
+  def get_address() do
+    @contract_address
+  end
+
+  def get_aggregated_proof_event(%{from_block: number, to_block: number}) do
+    events =
+      AlignedProofAggregationService.EventFilters.new_batch_v3(nil)
+      |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
+
+    [
+      %{
+        number: 0,
+        status: 0,
+        merkle_root: "",
+        block_number: 0,
+        tx_hash: "",
+        tx_timestamp: "",
+        blob_versioned_hash: ""
+      }
+    ]
+  end
+
+  def get_blob_data_from_versioned_hash(versioned_hash) do
+    # Fetch blob data from a beacon client
+    "Getting blob data from blob versioned hash: #{versioned_hash}" |> Logger.debug()
+    # List of bytes
+    blob_data = []
+    blob_data
+  end
+end
