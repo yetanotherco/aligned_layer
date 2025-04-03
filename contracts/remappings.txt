@@ -5,3 +5,4 @@ eigenlayer-scripts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/script/
 forge-std/=lib/forge-std/src/
 @openzeppelin/contracts/=lib/eigenlayer-middleware/lib/openzeppelin-contracts/contracts/
 @openzeppelin-upgrades/contracts/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/contracts/
+@sp1-contracts/=lib/sp1-contracts/contracts/src/

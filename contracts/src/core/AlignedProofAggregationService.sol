@@ -5,8 +5,8 @@ import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initia
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {IAlignedProofAggregationService} from "./IAlignedProofAggregationService.sol";
+import {ISP1Verifier} from "@sp1-contracts/ISP1Verifier.sol";
 
-/// Template for contract, SP1 verifiers needs to be added
 contract AlignedProofAggregationService is
     IAlignedProofAggregationService,
     Initializable,
@@ -47,9 +47,9 @@ contract AlignedProofAggregationService is
 
     function verify(
         bytes32 blobVersionedHash,
-        //bytes32 sp1ProgramVKey,
-        bytes calldata sp1PublicValues
-        //bytes calldata sp1ProofBytes
+        bytes32 sp1ProgramVKey,
+        bytes calldata sp1PublicValues,
+        bytes calldata sp1ProofBytes
     ) public onlyAlignedAggregator {
         // In dev mode, poofs are mocked, so we skip the verification part
         if (sp1VerifierAddress == VERIFIER_MOCK_ADDRESS) {
@@ -58,6 +58,15 @@ contract AlignedProofAggregationService is
             return;
         }
 
+        try ISP1Verifier(sp1VerifierAddress).verifyProof(sp1ProgramVKey, sp1PublicValues, sp1ProofBytes) {
+            (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
+            _newAggregatedProof(merkleRoot, blobVersionedHash);
+        } catch {
+            AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
+            proof.status = AggregatedProofStatus.Failed;
+            emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Failed, 0x0, 0x0);
+            currentAggregatedProofNumber += 1;
+        }
     }
 
     function markCurrentAggregatedProofAsMissed() public onlyAlignedAggregator {
