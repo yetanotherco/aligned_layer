@@ -16,9 +16,13 @@ defmodule Explorer.Periodically do
     one_second = 1000
     seconds_in_an_hour = 60 * 60
 
-    :timer.send_interval(one_second * 60, :next_batch_progress) # every minute
-    :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
-    :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
+    # every minute
+    :timer.send_interval(one_second * 60, :next_batch_progress)
+    # every 12 seconds, once per block
+    :timer.send_interval(one_second * 12, :batches)
+    # every 1 hour
+    :timer.send_interval(one_second * seconds_in_an_hour, :restakings)
+    :timer.send_interval(one_second * seconds_in_an_hour, :aggregated_proofs)
   end
 
   # Reads and process last blocks for operators and restaking changes
@@ -37,13 +41,14 @@ defmodule Explorer.Periodically do
 
   def handle_info(:next_batch_progress, state) do
     Logger.debug("handling block progress timer")
-    remaining_time =  ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time()
+    remaining_time = ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time()
+
     PubSub.broadcast(Explorer.PubSub, "update_views", %{
       next_scheduled_batch_remaining_time_percentage:
         ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
       next_scheduled_batch_remaining_time: remaining_time
-    }) 
-      
+    })
+
     {:noreply, state}
   end
 
@@ -66,6 +71,68 @@ defmodule Explorer.Periodically do
     PubSub.broadcast(Explorer.PubSub, "update_views", :block_age)
 
     {:noreply, %{state | batches_count: new_count}}
+  end
+
+  def handle_info(:aggregated_proofs, state) do
+    # This runs every 1hr, so reading 300 means going back exactly one hour
+    # We add a few blocks more to make sure we don't lose anything
+    read_block_qty = 310
+    latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
+    read_from_block = max(0, latest_block_number - read_block_qty)
+
+    ## What we need to do:
+    ## 1. Calculate the logs to fetch from block number
+    ## 2. Fetch the events: NewAggregatedProof
+    ## 3. For the successful verifications query the blob from a beacon client
+    ## 4. When getting the blob data, split in chunks of 32,
+    ## 5. Store each hash in proof hash pointing to the aggregated proof number
+    ## 6. Store the info in db
+
+    process_aggregated_proofs(read_from_block)
+  end
+
+  def process_aggregated_proofs(from_block) do
+    "Processing aggregated proofs" |> Logger.debug()
+
+    aggregated_proofs =
+      AlignedProofAggregationService.get_aggregated_proof_event()
+      |> Enum.map(fn x ->
+        Map.merge(
+          x,
+          %{
+            blob_data:
+              AlignedProofAggregationService.get_blob_data_from_versioned_hash(
+                x.blob_versioned_hash
+              )
+          }
+        )
+      end)
+
+    # Split the blob data in chunks of 32 to get the number of leaves (number of proofs) in the aggregated proof
+    proofs_leaves =
+      Enum.map(aggregated_proofs, fn x -> chunk_every(x.blob_data, 2) end)
+
+    # Store aggregated proofs to db
+    aggregated_proofs
+    |> Enum.zip(proofs_leaves)
+    |> Enum.map(fn %{agg_proof, leaves} ->
+      Map.merge(agg_proof, %{number_of_proofs: length(leaves)})
+      |> Enum.each(fn x -> AggregatedProof.insert_or_update(x) end)
+    end)
+
+    # Store each individual proof
+    aggregated_proofs
+    |> Enum.zip(proofs_leaves)
+    |> Enum.map(fn %{agg_proof, leaves} ->
+      Enum.map(leaves, fn leaf ->
+        %{
+          AggregatedProof.insert_proof(%{
+            aggregated_proof_number: agg_proof.number,
+            proof_hash: leaf
+          })
+        }
+      end)
+    end)
   end
 
   def process_batches(fromBlock, toBlock) do
@@ -108,6 +175,7 @@ defmodule Explorer.Periodically do
         else
           {:error, reason} ->
             Logger.error("Error processing batch #{batch.merkle_root}. Error: #{inspect(reason)}")
+
           # no changes in DB
           nil ->
             nil
