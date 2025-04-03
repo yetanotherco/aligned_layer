@@ -152,10 +152,10 @@ anvil_start_with_block_time_with_more_prefunded_accounts:
 
 __AGGREGATION_MODE__:
 start_proof_aggregator_local:
-	cargo run --manifest-path ./aggregation-mode/Cargo.toml --release -- config-files/config-proof-aggregator.yaml
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator.yaml
 
 start_proof_aggregator_local_with_proving:
-	cargo run --manifest-path ./aggregation-mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
 
 _AGGREGATOR_:
 
