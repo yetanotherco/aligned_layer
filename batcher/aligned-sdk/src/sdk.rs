@@ -115,7 +115,7 @@ pub async fn submit_multiple_and_wait_verification(
 /// To estimate the `max_fee` of a batch we compute it based on a batch size of 1 (Instant), 10 (Default), or a user supplied `number_proofs_in_batch` (Custom).
 /// The `max_fee` estimates therefore are:
 /// * `Default`: Specifies a `max_fee` equivalent to the cost of paying for one proof within a batch of 10 proofs i.e. 1 / 10 proofs.
-///        This estimates a default `max_fee` the user should specify for including there proof within the batch.
+///   This estimates a default `max_fee` the user should specify for including there proof within the batch.
 /// * `Instant`: Specifies a `max_fee` equivalent to the cost of paying for an entire batch ensuring the user's proof is included instantly assuming the proof is not competing with others for inclusion.
 /// * `Custom (number_proofs_in_batch)`: Specifies a `max_fee` equivalent to the cost of paying 1 proof / `number_proofs_in_batch` allowing the user a user to estimate the `max_fee` precisely based on the `number_proofs_in_batch`.
 ///
