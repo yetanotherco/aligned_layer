@@ -540,8 +540,8 @@ async fn main() -> Result<(), AlignedError> {
             // If random_address flag is enabled, change every address with a random value
             if submit_args.random_address {
                 info!("Randomizing proof generator address for each proof...");
-                for i in 0..repetitions {
-                    verification_data_arr[i].proof_generator_addr = Address::random();
+                for verification_data in verification_data_arr.iter_mut() {
+                    verification_data.proof_generator_addr = Address::random();
                 }
             }
 
