@@ -12,7 +12,7 @@ The following is the list of the verifiers currently supported by Aligned:
 
 - :white_check_mark: gnark - Groth16 (with BN254)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
-- :white_check_mark: SP1 [(v4.1.3)](https://github.com/succinctlabs/sp1/releases/tag/v4.1.3)
+- :white_check_mark: SP1 [(v4.1.7)](https://github.com/succinctlabs/sp1/releases/tag/v4.1.7)
 - :white_check_mark: Risc0 [(v2.0.0)](https://github.com/risc0/risc0/releases/tag/v2.0.0)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
@@ -123,7 +123,7 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 
 ### SP1 proof
 
-The current SP1 version used in Aligned is `v4.1.3`.
+The current SP1 version used in Aligned is `v4.1.7`.
 
 The SP1 proof needs the proof file and the vm program file.
 
