@@ -67,11 +67,13 @@ defmodule AlignedProofAggregationService do
     end
   end
 
-  def get_blob_data_from_versioned_hash(versioned_hash) do
-    # Fetch blob data from a beacon client
-    "Getting blob data from blob versioned hash: #{versioned_hash}" |> Logger.debug()
-    # List of bytes
-    blob_data = []
-    blob_data
+  def get_blob_data_from_versioned_hash(aggregated_proof) do
+    case BeaconClient.fetch_blob_by_versioned_hash(
+           aggregated_proof.block_number,
+           aggregated_proof.blob_versioned_hash
+         ) do
+      {:ok, data} -> data.blob
+      {:error, reason} -> {:error, reason}
+    end
   end
 end

@@ -64,6 +64,7 @@ defmodule Explorer.MixProject do
       {:mutex, "~> 2.0"},
       {:tails, "~> 0.1.5"},
       {:cors_plug, "~> 3.0"},
+      {:crypto, "~> 1.11"}
     ]
   end
 

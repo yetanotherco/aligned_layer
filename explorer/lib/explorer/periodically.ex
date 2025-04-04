@@ -80,14 +80,6 @@ defmodule Explorer.Periodically do
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)
 
-    ## What we need to do:
-    ## 1. Calculate the logs to fetch from block number
-    ## 2. Fetch the events: NewAggregatedProof
-    ## 3. For the successful verifications query the blob from a beacon client
-    ## 4. When getting the blob data, split in chunks of 32,
-    ## 5. Store each hash in proof hash pointing to the aggregated proof number
-    ## 6. Store the info in db
-
     process_aggregated_proofs(read_from_block, latest_block_number)
   end
 
@@ -103,17 +95,15 @@ defmodule Explorer.Periodically do
         Map.merge(
           x,
           %{
-            blob_data:
-              AlignedProofAggregationService.get_blob_data_from_versioned_hash(
-                x.blob_versioned_hash
-              )
+            blob_data: AlignedProofAggregationService.get_blob_data_from_versioned_hash(x)
           }
         )
       end)
 
     # Split the blob data in chunks of 32 to get the number of leaves (number of proofs) in the aggregated proof
+    ## TODO fix this parsing
     proofs_leaves =
-      Enum.map(aggregated_proofs, fn x -> chunk_every(x.blob_data, 2) end)
+      Enum.map(aggregated_proofs, fn x -> chunk_every(x.blob_data, 32) end)
 
     # Store aggregated proofs to db
     aggregated_proofs
@@ -127,13 +117,11 @@ defmodule Explorer.Periodically do
     aggregated_proofs
     |> Enum.zip(proofs_leaves)
     |> Enum.map(fn %{agg_proof, leaves} ->
-      Enum.map(leaves, fn leaf ->
-        %{
-          AggregatedProof.insert_proof(%{
-            aggregated_proof_number: agg_proof.number,
-            proof_hash: leaf
-          })
-        }
+      Enum.each(leaves, fn leaf ->
+        AggregatedProof.insert_proof(%{
+          aggregated_proof_number: agg_proof.number,
+          proof_hash: leaf
+        })
       end)
     end)
   end
