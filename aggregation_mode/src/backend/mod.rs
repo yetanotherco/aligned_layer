@@ -47,17 +47,17 @@ pub struct ProofAggregator {
 
 impl ProofAggregator {
     pub fn new(config: &Config) -> Self {
-        let rpc_url = config.eth_rpc_url.parse().expect("correct url");
+        let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::decrypt_keystore(
             config.ecdsa.private_key_store_path.clone(),
             config.ecdsa.private_key_store_password.clone(),
         )
-        .expect("Correct keystore signer");
+        .expect("Keystore signer should be `cast wallet` compliant");
         let wallet = EthereumWallet::from(signer);
         let rpc_provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
-        let proof_aggregation_service: AlignedProofAggregationService::AlignedProofAggregationServiceInstance<(), alloy::providers::fillers::FillProvider<alloy::providers::fillers::JoinFill<alloy::providers::fillers::JoinFill<alloy::providers::Identity, alloy::providers::fillers::JoinFill<alloy::providers::fillers::GasFiller, alloy::providers::fillers::JoinFill<alloy::providers::fillers::BlobGasFiller, alloy::providers::fillers::JoinFill<alloy::providers::fillers::NonceFiller, alloy::providers::fillers::ChainIdFiller>>>>, alloy::providers::fillers::WalletFiller<EthereumWallet>>, alloy::providers::RootProvider>> = AlignedProofAggregationService::new(
+        let proof_aggregation_service = AlignedProofAggregationService::new(
             Address::from_str(&config.proof_aggregation_service_address)
-                .expect("Address to be correct"),
+                .expect("AlignedProofAggregationService address should be valid"),
             rpc_provider,
         );
         let fetcher = ProofsFetcher::new(config);
