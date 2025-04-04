@@ -4,8 +4,11 @@ mod merkle_tree;
 mod s3;
 mod types;
 
-use crate::aggregators::{lib::{AggregatedProof, ProofAggregationError}, sp1_aggregator::{aggregate_proofs, SP1AggregationInput}, AlignedProof, ZKVMEngine};
-
+use crate::aggregators::{
+    lib::{AggregatedProof, ProofAggregationError},
+    sp1_aggregator::{aggregate_proofs, SP1AggregationInput},
+    AlignedProof, ZKVMEngine,
+};
 
 use alloy::{
     consensus::{Blob, BlobTransactionSidecar},
@@ -24,7 +27,6 @@ use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
-
 
 #[derive(Debug)]
 pub enum AggregatedProofSubmissionError {
@@ -122,8 +124,7 @@ impl ProofAggregator {
                     merkle_root,
                 };
 
-                aggregate_proofs(input)
-                    .map_err(AggregatedProofSubmissionError::Aggregation)?
+                aggregate_proofs(input).map_err(AggregatedProofSubmissionError::Aggregation)?
             }
         };
         info!("Proof aggregation program finished");
@@ -184,8 +185,17 @@ impl ProofAggregator {
         let data: Vec<u8> = leaves.iter().flat_map(|arr| arr.iter().copied()).collect();
         let mut blob_data: [u8; BYTES_PER_BLOB] = [0u8; BYTES_PER_BLOB];
 
-        for (i, byte) in data.iter().enumerate() {
-            blob_data[i] = *byte;
+        // We pad the data with 0x0 byte every 31 bytes so that the field elements
+        // constructed from the bytes are less than BLS_MODULUS.
+        //
+        // See https://github.com/ethereum/consensus-specs/blob/86fb82b221474cc89387fa6436806507b3849d88/specs/deneb/polynomial-commitments.md#bytes_to_bls_field
+        let mut offset = 0;
+        for chunk in data.chunks(31) {
+            blob_data[offset] = 0x00;
+            let start = offset + 1;
+            let end = start + chunk.len();
+            blob_data[start..end].copy_from_slice(chunk);
+            offset += 32;
         }
 
         // calculate kzg commitments for blob
