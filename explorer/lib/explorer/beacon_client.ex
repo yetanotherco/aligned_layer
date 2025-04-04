@@ -32,7 +32,7 @@ defmodule Explorer.BeaconClient do
     request = Finch.build(:get, @beacon_url <> method, headers)
     response = Finch.request(request, Explorer.Finch)
 
-    case status do
+    case response do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         case Jason.decode(body) do
           {:ok, decoded_body} -> {:ok, decoded_body}

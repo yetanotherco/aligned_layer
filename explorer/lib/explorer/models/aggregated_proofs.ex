@@ -4,19 +4,6 @@ defmodule AggregatedProofs do
   import Ecto.Changeset
   import Ecto.Query
 
-  # Different from proofs.ex (we could use the same but the hashes are constructed different)
-  @primary_key {:id, :integer, autogenerate: true}
-  schema "proofs_agg_mode" do
-    field(:aggregated_proof_number, :integer)
-    field(:proof_hash, :string)
-  end
-
-  def changeset_proof(proof, attrs) do
-    proofs
-    |> cast(attrs, [:aggregated_proof_number, :proof_hash])
-    |> validate_required([:aggregated_proof_number, :proof_hash])
-  end
-
   @primary_key {:number, :integer, autogenerate: false}
   schema "aggregated_proofs" do
     field(:merkle_root, :string)
@@ -70,10 +57,5 @@ defmodule AggregatedProofs do
         Ecto.Changeset.change(existing_agg_proof, changeset.changes)
         |> Explorer.Repo.update()
     end
-  end
-
-  def insert_proof(proof) do
-    changeset = changeset_proof(proof)
-    Explorer.Repo.insert(changeset)
   end
 end

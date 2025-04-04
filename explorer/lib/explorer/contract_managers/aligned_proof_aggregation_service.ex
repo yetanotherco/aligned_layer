@@ -33,7 +33,7 @@ defmodule AlignedProofAggregationService do
     @contract_address
   end
 
-  def get_aggregated_proof_event(%{from_block: number, to_block: number}) do
+  def get_aggregated_proof_event(%{from_block: fromBlock, to_block: toBlock}) do
     events =
       AlignedProofAggregationService.EventFilters.new_aggregated_proof(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
@@ -49,7 +49,7 @@ defmodule AlignedProofAggregationService do
           block_number = x |> Map.get(:block_number)
           tx_hash = x |> Map.get(:transaction_hash)
 
-          %{
+          {
             :ok,
             %{
               number: topics_raw |> Enum.at(1),

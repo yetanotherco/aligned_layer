@@ -103,12 +103,12 @@ defmodule Explorer.Periodically do
     # Split the blob data in chunks of 32 to get the number of leaves (number of proofs) in the aggregated proof
     ## TODO fix this parsing
     proofs_leaves =
-      Enum.map(aggregated_proofs, fn x -> chunk_every(x.blob_data, 32) end)
+      Enum.map(aggregated_proofs, fn x -> Enum.chunk_every(x.blob_data, 32) end)
 
     # Store aggregated proofs to db
     aggregated_proofs
     |> Enum.zip(proofs_leaves)
-    |> Enum.map(fn %{agg_proof, leaves} ->
+    |> Enum.map(fn {agg_proof, leaves} ->
       Map.merge(agg_proof, %{number_of_proofs: length(leaves)})
       |> Enum.each(fn x -> AggregatedProof.insert_or_update(x) end)
     end)
@@ -116,9 +116,9 @@ defmodule Explorer.Periodically do
     # Store each individual proof
     aggregated_proofs
     |> Enum.zip(proofs_leaves)
-    |> Enum.map(fn %{agg_proof, leaves} ->
+    |> Enum.map(fn {agg_proof, leaves} ->
       Enum.each(leaves, fn leaf ->
-        AggregatedProof.insert_proof(%{
+        AggregationModeProof.insert_proof(%{
           aggregated_proof_number: agg_proof.number,
           proof_hash: leaf
         })
