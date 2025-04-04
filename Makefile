@@ -150,11 +150,11 @@ anvil_start_with_block_time_with_more_prefunded_accounts:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
 
-__AGGREGATION_MODE__:
-start_proof_aggregator_local:
+__AGGREGATION_MODE__: ## ____
+start_proof_aggregator_local: ## Start the proof aggregator locally using Mock Verifier Contract
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator.yaml
 
-start_proof_aggregator_local_with_proving:
+start_proof_aggregator_local_with_proving: ## Start the proof aggregator locally using SP1 Verifier Contract
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
 
 _AGGREGATOR_:
