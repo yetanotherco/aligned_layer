@@ -61,8 +61,7 @@ To run it, you can:
 cargo run --release -- send-infinite-proofs \
         --burst-size <BURST_SIZE> --burst-time-secs <BURST_TIME_SECS> \
         --eth-rpc-url <RPC_URL> \
-        --batcher-url <BATCHER_URL> \
-        --network holesky-stage \
+        --network <network> \
         --proofs-dirpath $(PWD)/scripts/test_files/task_sender/proofs \
         --private-keys-filepath <PATH_TO_PRIVATE_KEYS_FILE>
 ```
@@ -82,7 +81,6 @@ This command enables and hangs N connections with the Batcher.
 To run it, you can:
 ```
 cargo run --release -- test-connections \
-        --batcher-url <BATCHER_URL> \
         --num-senders <NUM_SENDERS>
 ```
 

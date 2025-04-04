@@ -15,18 +15,20 @@ contract VerifyBatchInclusionCaller {
         bytes20 proofGeneratorAddr,
         bytes32 batchMerkleRoot,
         bytes memory merkleProof,
-        uint256 verificationDataBatchIndex
+        uint256 verificationDataBatchIndex,
+        address senderAddress
     ) external view returns (bool) {
         (bool callWasSuccessfull, bytes memory proofIsIncluded) = targetContract.staticcall(
             abi.encodeWithSignature(
-                "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256)",
+                "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address)",
                 proofCommitment,
                 pubInputCommitment,
                 provingSystemAuxDataCommitment,
                 proofGeneratorAddr,
                 batchMerkleRoot,
                 merkleProof,
-                verificationDataBatchIndex
+                verificationDataBatchIndex,
+                senderAddress
             )
         );
 

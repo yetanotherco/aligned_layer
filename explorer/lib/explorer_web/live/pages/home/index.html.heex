@@ -31,6 +31,16 @@
         </div>
       <% end %>
     </.card_background>
+    <.live_component
+    id="labeled-progress-bar"
+    module={LabeledProgressBarComponent}
+    percent_progress={@next_scheduled_batch_remaining_time_percentage}
+    label={
+      case @next_scheduled_batch_remaining_time do
+        0 -> "Next batch is around the corner!"
+        time -> "Next batch in #{time} minutes" 
+      end
+    }/>
     <div class="flex flex-wrap md:flex-row flex-col gap-5">
       <.card
         title="Cost per proof"

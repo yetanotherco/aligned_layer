@@ -1,23 +1,31 @@
 aggregator:
   hosts:
-    aligned-holesky-aggregator-1:
-      ansible_host: aligned-holesky-stage-1-aggregator
+    aligned-holesky-stage-2-aggregator:
+      ansible_host: aligned-holesky-stage-2-aggregator
       admin_user: admin
       ansible_user: app
       ansible_python_interpreter: /usr/bin/python3
 batcher:
   hosts:
-    aligned-holesky-stage-1:
-      ansible_host: aligned-holesky-stage-1
+    aligned-holesky-stage-2-batcher:
+      ansible_host: aligned-holesky-stage-2-batcher
       admin_user: admin
       ansible_user: app
       ansible_python_interpreter: /usr/bin/python3
-#  explorer:
-#    hosts:
-#      aligned-holesky-explorer:
-#        ansible_host: aligned-holesky-explorer
-#        ansible_user: admin
-#        ansible_python_interpreter: /usr/bin/python3
+explorer:
+  hosts:
+    aligned-holesky-stage-2-explorer:
+      ansible_host: aligned-holesky-stage-2-explorer
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+telemetry:
+  hosts:
+    aligned-holesky-stage-2-telemetry:
+      ansible_host: aligned-holesky-stage-2-telemetry
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
 operator:
   hosts:
     operator-1:

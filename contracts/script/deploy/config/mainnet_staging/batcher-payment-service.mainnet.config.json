@@ -1,0 +1,16 @@
+{
+  "address": {
+    "batcherWallet": "0xCA81D63e24C5C4E6C4fdB2859420e77c8aB565C2",
+    "alignedLayerServiceManager": "0x96b6a29D7B98519Ae66E6398BD27A76B30a5dC3f"
+  },
+  "amounts": {
+    "gasForAggregator": "300000",
+    "gasPerProof": "21000"
+  },
+  "permissions": {
+    "owner": "0x2106AC6FE9599f8A0710643C75661aaf8d8B1599"
+  },
+  "eip712": {
+    "noncedVerificationDataTypeHash": "0x41817b5c5b0c3dcda70ccb43ba175fdcd7e586f9e0484422a2c6bba678fdf4a3"
+  }
+}

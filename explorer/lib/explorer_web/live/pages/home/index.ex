@@ -155,7 +155,9 @@ defmodule ExplorerWeb.Home.Index do
       stats: [],
       latest_batches: [],
       cost_per_proof_chart: %{points: [], extra_data: %{}},
-      batch_size_chart_data: %{points: [], extra_data: %{}}
+      batch_size_chart_data: %{points: [], extra_data: %{}},
+      next_scheduled_batch_remaining_time_percentage: 0,
+      next_scheduled_batch_remaining_time: 0
     )
   end
 
@@ -163,6 +165,7 @@ defmodule ExplorerWeb.Home.Index do
   def handle_info(_, socket) do
     latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
     charts_query_limit = 20
+    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
 
     {:noreply,
      assign(
@@ -170,7 +173,10 @@ defmodule ExplorerWeb.Home.Index do
        stats: get_stats(),
        latest_batches: latest_batches,
        cost_per_proof_chart: get_cost_per_proof_chart_data(charts_query_limit),
-       batch_size_chart_data: get_batch_size_chart_data(charts_query_limit)
+       batch_size_chart_data: get_batch_size_chart_data(charts_query_limit),
+       next_scheduled_batch_remaining_time_percentage:
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+       next_scheduled_batch_remaining_time: remaining_time
      )}
   end
 
@@ -178,6 +184,7 @@ defmodule ExplorerWeb.Home.Index do
   def mount(_, _, socket) do
     latest_batches = Batches.get_latest_batches(%{amount: 10, order_by: :desc})
     charts_query_limit = 20
+    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
 
     if connected?(socket), do: Phoenix.PubSub.subscribe(Explorer.PubSub, "update_views")
 
@@ -187,6 +194,9 @@ defmodule ExplorerWeb.Home.Index do
        latest_batches: latest_batches,
        cost_per_proof_chart: get_cost_per_proof_chart_data(charts_query_limit),
        batch_size_chart_data: get_batch_size_chart_data(charts_query_limit),
+       next_scheduled_batch_remaining_time_percentage:
+         Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
+       next_scheduled_batch_remaining_time: remaining_time,
        page_title: "Welcome"
      )}
   rescue

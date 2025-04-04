@@ -1,8 +1,8 @@
 [workspace]
 [package]
 version = "0.1.0"
-name = "fibonacci_proof_generator-program"
+name = "fibonacci-program"
 edition = "2021"
 
 [dependencies]
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "v3.0.0"  }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "v4.1.3"  }

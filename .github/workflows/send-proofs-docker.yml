@@ -10,7 +10,7 @@ on:
       - '**.md'
 
 concurrency:
-  group: pull_request-${{ github.event.pull_request.number }}
+  group: ${{ github.event_name == 'merge_group' && format('merge_group-{0}', github.event.merge_group.head_sha) || format('pull_request-{0}', github.event.pull_request.number) }}
   cancel-in-progress: true
 
 jobs:

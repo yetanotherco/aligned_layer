@@ -1,8 +1,9 @@
-use sp1_sdk::{utils, ProverClient, SP1Stdin};
+use sp1_sdk::{include_elf, utils, ProverClient, SP1Stdin};
 use std::io::Write;
 
 /// The ELF we want to execute inside the zkVM.
-const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
+// const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
+const ELF: &[u8] = include_elf!("fibonacci-program");
 
 fn main() {
     // Setup logging.
@@ -15,9 +16,9 @@ fn main() {
     stdin.write(&n);
 
     // Generate the proof for the given program and input.
-    let client = ProverClient::new();
+    let client = ProverClient::from_env();
     let (pk, vk) = client.setup(ELF);
-    let mut proof = client.prove(&pk, stdin).compressed().run().unwrap();
+    let mut proof = client.prove(&pk, &stdin).compressed().run().unwrap();
 
     println!("Fibonacci program proof generated");
 
@@ -33,9 +34,9 @@ fn main() {
     client.verify(&proof, &vk).expect("verification failed");
 
     // Save the proof.
-    let proof_file_path = "../../sp1_fibonacci_new.proof";
+    let proof_file_path = "../../sp1_fibonacci_4_1_3.proof";
     proof.save(proof_file_path).expect("saving proof failed");
-    let elf_file_path = "../../sp1_fibonacci_new.elf";
+    let elf_file_path = "../../sp1_fibonacci_4_1_3.elf";
     let mut file = std::fs::File::create(elf_file_path).unwrap();
     file.write_all(ELF).unwrap();
 

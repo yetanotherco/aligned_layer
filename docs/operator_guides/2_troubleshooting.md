@@ -44,3 +44,12 @@ If your operator is not showing up after 1 hour, please check the following:
 This error is caused by the operator not being able to get the RPC urls.
 
 Make sure you have configured the RPC correctly in the [config file](0_running_an_operator.md#step-3---update-the-configuration-for-your-specific-operator).
+
+### How to update Rust
+
+In case you have an unsupported version of Rust, you can update it following the [official page](https://www.rust-lang.org/tools/install)
+
+
+### Compiler family detection failed due to error: ToolNotFound: failed to find tool "c++": No such file or directory (os error 2)
+
+Run `sudo apt update && sudo apt install g++` to install the GNU C++ compiler.

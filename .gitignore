@@ -16,3 +16,4 @@ config-files/*.last_processed_batch.json
 nonce_*.bin
 
 infra/ansible/playbooks/ini/**.ini
+infra/ansible/playbooks/files/**.pem

@@ -3,9 +3,9 @@
 use methods::{FIBONACCI_ELF, FIBONACCI_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
 
-const PROOF_FILE_PATH: &str = "risc_zero_fibonacci_new.proof";
-const PUB_INPUT_FILE_PATH: &str = "risc_zero_fibonacci_new.pub";
-const FIBONACCI_ID_FILE_PATH: &str = "fibonacci_id_new.bin";
+const PROOF_FILE_PATH: &str = "risc_zero_fibonacci_2_0.proof";
+const PUB_INPUT_FILE_PATH: &str = "risc_zero_fibonacci_2_0.pub";
+const FIBONACCI_ID_FILE_PATH: &str = "fibonacci_id_2_0.bin";
 
 fn main() {
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`

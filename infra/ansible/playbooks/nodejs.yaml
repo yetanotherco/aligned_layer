@@ -1,0 +1,35 @@
+- name: Nodejs Setup
+  hosts: "{{ host }}"
+
+  vars:
+    ansible_ssh_user: "{{ admin_user }}"
+    node_version: "22.11.0"
+    node_archive: "node-v{{ node_version }}-linux-x64.tar.xz"
+    node_url: "https://nodejs.org/dist/v{{ node_version }}/{{ node_archive }}"
+    node_install_dir: "/usr/local/"
+    node_bin_path: "/usr/local/bin/node"
+
+  tasks:
+    - name: Check if Node.js is already installed
+      ansible.builtin.shell:
+        cmd: "which {{ node_bin_path }}"
+      register: node_check
+      changed_when: false
+      failed_when: node_check.rc not in [0, 1]
+
+    - name: Download Node.js v{{ node_version }}
+      become: true
+      register: download_nodejs
+      ansible.builtin.get_url:
+        url: "{{ node_url }}"
+        dest: "/root/{{ node_archive }}"
+        mode: '0644'
+      when: node_check.rc != 0
+
+    - name: Install Node.js v{{ node_version }}
+      become: true
+      ansible.builtin.shell:
+        cmd: "tar --strip-components=1 --directory={{ node_install_dir }} -xf {{ download_nodejs.dest }}"
+      args:
+        creates: "{{ node_bin_path }}"
+      when: node_check.rc != 0

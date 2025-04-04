@@ -84,23 +84,26 @@ contract AlignedLayerServiceManager is
         _initializePauser(_pauserRegistry, _initialPausedStatus);
     }
 
-    // This function is to be run only on upgrade
-    // If a new contract is deployed, this function should be removed
-    // Because this new value is also added in the initializer
-    function initializeAggregator(
-        address _alignedAggregator
-    ) public reinitializer(2) {
-        setAggregator(_alignedAggregator);
-    }
+    // Reinitializers:
+    // Notice Testnet had more upgrades than Mainnet. 
+    // In Testnet, we executed the reinitializer(2) and reinitializer(3)
 
-    // Just to be used to upgrade contracts without the pausable functionality
-    // Once the contract is pausable this method is not needed anymore
-    function initializePauser(
-        IPauserRegistry _pauserRegistry,
-        uint256 _initialPausedStatus
-    ) public reinitializer(3) {
-        _initializePauser(_pauserRegistry, _initialPausedStatus);
-    }
+    // These are not needed in Mainnet. 
+    // In the future, in case of needing to add a reinitializer, 
+    // either add it as reinitializer(4) or redeploy Testnet from scratch
+    
+    // function initializeAggregator( // applied on Testnet
+    //     address _alignedAggregator
+    // ) public reinitializer(2) {
+    //     setAggregator(_alignedAggregator);
+    // }
+
+    // function initializePauser( // applied on Testnet
+    //     IPauserRegistry _pauserRegistry,
+    //     uint256 _initialPausedStatus
+    // ) public reinitializer(3) {
+    //     _initializePauser(_pauserRegistry, _initialPausedStatus);
+    // }
 
     function createNewTask(
         bytes32 batchMerkleRoot,
@@ -298,27 +301,6 @@ contract AlignedLayerServiceManager is
             );
     }
 
-    // Old function signature for backwards compatibility
-    function verifyBatchInclusion(
-        bytes32 proofCommitment,
-        bytes32 pubInputCommitment,
-        bytes32 provingSystemAuxDataCommitment,
-        bytes20 proofGeneratorAddr,
-        bytes32 batchMerkleRoot,
-        bytes memory merkleProof,
-        uint256 verificationDataBatchIndex
-    ) external view onlyWhenNotPaused(2) returns (bool) {
-        return this.verifyBatchInclusion(
-            proofCommitment,
-            pubInputCommitment,
-            provingSystemAuxDataCommitment,
-            proofGeneratorAddr,
-            batchMerkleRoot,
-            merkleProof,
-            verificationDataBatchIndex,
-            address(0)
-        );
-    }
 
     function setAggregator(address _alignedAggregator) public onlyOwner {
         alignedAggregator = _alignedAggregator;
@@ -362,7 +344,7 @@ contract AlignedLayerServiceManager is
     function checkPublicInput(
         bytes calldata publicInput,
         bytes32 hash
-    ) public pure returns (bool) {
+    ) external pure returns (bool) {
         return keccak256(publicInput) == hash;
     }
 
