@@ -207,12 +207,11 @@ impl ProofAggregator {
             c_kzg::KzgProof::compute_blob_kzg_proof(&blob, &commitment.to_bytes(), settings)
                 .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
 
-        // convert to alloy types
-        let blob = Blob::from_slice(&blob_data);
-        let commitment: FixedBytes<48> = FixedBytes::from_slice(commitment.to_bytes().as_slice());
-        let proof: FixedBytes<48> = FixedBytes::from_slice(proof.to_bytes().as_slice());
-
-        let blob = BlobTransactionSidecar::new(vec![blob], vec![commitment], vec![proof]);
+        let blob = BlobTransactionSidecar::from_kzg(
+            vec![blob],
+            vec![commitment.to_bytes()],
+            vec![proof.to_bytes()],
+        );
         let blob_versioned_hash = blob
             .versioned_hash_for_blob(0)
             .ok_or(AggregatedProofSubmissionError::BuildingBlobVersionedHash)?
