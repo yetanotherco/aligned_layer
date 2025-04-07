@@ -32,9 +32,8 @@ interface IAlignedProofAggregationService {
         bytes32 blobVersionedHash,
         //bytes32 sp1ProgramVKey,
         bytes calldata sp1PublicValues
-    )
         //bytes calldata sp1ProofBytes
-        external;
+    ) external;
 
     function getAggregatedProof(uint64 proofNumber)
         external

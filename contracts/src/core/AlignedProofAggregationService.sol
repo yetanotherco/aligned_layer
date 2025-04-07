@@ -49,17 +49,15 @@ contract AlignedProofAggregationService is
         bytes32 blobVersionedHash,
         //bytes32 sp1ProgramVKey,
         bytes calldata sp1PublicValues
-    )
         //bytes calldata sp1ProofBytes
-        public
-        onlyAlignedAggregator
-    {
+    ) public onlyAlignedAggregator {
         // In dev mode, poofs are mocked, so we skip the verification part
         if (sp1VerifierAddress == VERIFIER_MOCK_ADDRESS) {
             (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
             _newAggregatedProof(merkleRoot, blobVersionedHash);
             return;
         }
+
     }
 
     function markCurrentAggregatedProofAsMissed() public onlyAlignedAggregator {
