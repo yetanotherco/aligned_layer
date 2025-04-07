@@ -498,6 +498,39 @@ defmodule ExplorerWeb.CoreComponents do
   end
 
   @doc """
+    Renders a dynamic badge component for the batcher.
+  """
+  attr(:class, :string, default: nil)
+  attr(:status, :integer)
+  slot(:inner_block, default: nil)
+
+  def dynamic_badge_for_agg_proof(assigns) do
+    ~H"""
+    <.badge
+      variant={
+        case @status do
+          0 -> "accent"
+          1 -> "destructive"
+          2 -> "foreground"
+        end
+      }
+      class={
+        classes([
+          @class
+        ])
+      }
+    >
+      <%= case @status do
+        0 -> "Verified"
+        1 -> "Failed"
+        2 -> "Missed"
+      end %>
+      <%= render_slot(@inner_block) %>
+    </.badge>
+    """
+  end
+
+  @doc """
     Renders a selector dropdown on hover component with buttons that trigger actions on click.
 
     The selector allows you to display a list of options and enables the user to select a value by clicking on a button.

@@ -2,6 +2,7 @@ defmodule AggregationModeProof do
   require Logger
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
 
   # Different from proofs.ex (we could use the same but the hashes are constructed different)
   @primary_key {:id, :id, autogenerate: true}
@@ -47,7 +48,7 @@ defmodule AggregationModeProof do
   def get_all_proof_hashes(agg_proof_number) do
     query =
       from(proof in AggregationModeProof,
-        where: proof.aggregated_proof_number == agg_proof_number,
+        where: proof.aggregated_proof_number == ^agg_proof_number,
         select: proof.proof_hash
       )
 

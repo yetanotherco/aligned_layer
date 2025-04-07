@@ -62,6 +62,6 @@ defmodule AggregatedProofs do
   end
 
   def get_aggregated_proof_by_number(number) do
-    Explorer.Repo.get_by(AggregatedProofs, number: agg_proof.number)
+    Explorer.Repo.get_by(AggregatedProofs, number: number)
   end
 end
