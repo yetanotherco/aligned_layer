@@ -49,7 +49,7 @@ defmodule AggregatedProofs do
   def insert_or_update(agg_proof) do
     changeset = AggregatedProofs.changeset(%AggregatedProofs{}, agg_proof)
 
-    case Explorer.Repo.get_by(AggregatedProofs, number: agg_proof.number) do
+    case get_aggregated_proof_by_number(agg_proof.number) do
       nil ->
         Explorer.Repo.insert(changeset)
 
@@ -59,5 +59,9 @@ defmodule AggregatedProofs do
         Ecto.Changeset.change(existing_agg_proof, changeset.changes)
         |> Explorer.Repo.update()
     end
+  end
+
+  def get_aggregated_proof_by_number(number) do
+    Explorer.Repo.get_by(AggregatedProofs, number: agg_proof.number)
   end
 end

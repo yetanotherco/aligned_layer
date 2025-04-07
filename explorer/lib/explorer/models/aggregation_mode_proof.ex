@@ -43,4 +43,14 @@ defmodule AggregationModeProof do
         |> Explorer.Repo.update()
     end
   end
+
+  def get_all_proof_hashes(agg_proof_number) do
+    query =
+      from(proof in AggregationModeProof,
+        where: proof.aggregated_proof_number == agg_proof_number,
+        select: proof.proof_hash
+      )
+
+    Explorer.Repo.all(query)
+  end
 end
