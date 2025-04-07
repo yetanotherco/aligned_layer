@@ -5,7 +5,8 @@ use super::{
     types::{AlignedLayerServiceManager, AlignedLayerServiceManagerContract, RPCProvider},
 };
 use crate::{
-    aggregators::{sp1_aggregator::SP1ProofWithPubValuesAndElf, AlignedProof}, backend::s3::get_aligned_batch_from_s3
+    aggregators::{sp1_aggregator::SP1ProofWithPubValuesAndElf, AlignedProof},
+    backend::s3::get_aligned_batch_from_s3,
 };
 use aligned_sdk::core::types::ProvingSystemId;
 use alloy::{
@@ -88,7 +89,10 @@ impl ProofsFetcher {
                     ProvingSystemId::SP1 => {
                         let elf = p.vm_program_code?;
                         let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
-                        let sp1_proof = SP1ProofWithPubValuesAndElf { proof_with_pub_values, elf };
+                        let sp1_proof = SP1ProofWithPubValuesAndElf {
+                            proof_with_pub_values,
+                            elf,
+                        };
 
                         Some(AlignedProof::SP1(sp1_proof))
                     }

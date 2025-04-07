@@ -11,11 +11,11 @@ use crate::aggregators::{
 };
 
 use alloy::{
-    consensus::{BlobTransactionSidecar},
+    consensus::BlobTransactionSidecar,
     eips::eip4844::BYTES_PER_BLOB,
     hex,
     network::EthereumWallet,
-    primitives::{Address},
+    primitives::Address,
     providers::{PendingTransactionError, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::local::LocalSigner,

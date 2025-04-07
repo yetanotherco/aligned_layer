@@ -1,5 +1,5 @@
-pub mod sp1_aggregator;
 pub mod lib;
+pub mod sp1_aggregator;
 
 use sp1_aggregator::{AlignedSP1VerificationError, SP1ProofWithPubValuesAndElf};
 pub enum ZKVMEngine {
@@ -26,7 +26,11 @@ pub enum AlignedVerificationError {
 impl AlignedProof {
     pub fn verify(&self) -> Result<(), AlignedVerificationError> {
         match self {
-            AlignedProof::SP1(proof) => sp1_aggregator::verify(proof).map_err(|arg0: sp1_aggregator::AlignedSP1VerificationError| AlignedVerificationError::Sp1(arg0)),
+            AlignedProof::SP1(proof) => sp1_aggregator::verify(proof).map_err(
+                |arg0: sp1_aggregator::AlignedSP1VerificationError| {
+                    AlignedVerificationError::Sp1(arg0)
+                },
+            ),
         }
     }
 }
