@@ -82,6 +82,13 @@ jobs:
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
 
+      # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
+      - name: Install sp1 toolchain
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          source /home/runner/.bashrc
+           ~/.sp1/bin/sp1up
+
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:
