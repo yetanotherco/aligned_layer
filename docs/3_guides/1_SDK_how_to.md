@@ -12,7 +12,7 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.15.0" }
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.15.1" }
 ```
 
 To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the
@@ -51,8 +51,6 @@ Or you can make a more complex call to submit a proof:
 (code extract from [ZKQuiz example](../3_guides/2_build_your_first_aligned_application.md#app))
 
 ```rust
-const BATCHER_URL: &str = "wss://batcher.alignedlayer.com";
-
 fn main() {
     let rpc_url = args.rpc_url.clone();
     let verification_data = VerificationData {
@@ -74,7 +72,6 @@ fn main() {
 
     // Call to SDK:
     match submit_and_wait_verification(
-        BATCHER_URL,
         &rpc_url,
         Network::Holesky,
         &verification_data,

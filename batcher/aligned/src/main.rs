@@ -474,10 +474,7 @@ async fn main() -> Result<(), AlignedError> {
                 match LocalWallet::from_str(ANVIL_PRIVATE_KEY) {
                     Ok(wallet) => wallet,
                     Err(e) => {
-                        warn!(
-                            "Failed to create wallet from anvil private key: {}",
-                            e.to_string()
-                        );
+                        warn!("Failed to create wallet from anvil private key: {}", e);
                         return Ok(());
                     }
                 }

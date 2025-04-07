@@ -5,7 +5,8 @@ use super::{
     types::{AlignedLayerServiceManager, AlignedLayerServiceManagerContract, RPCProvider},
 };
 use crate::{
-    aggregators::{sp1_aggregator::SP1ProofWithPubValuesAndElf, AlignedProof}, backend::s3::get_aligned_batch_from_s3
+    aggregators::{sp1_aggregator::SP1ProofWithPubValuesAndElf, AlignedProof},
+    backend::s3::get_aligned_batch_from_s3,
 };
 use aligned_sdk::core::types::ProvingSystemId;
 use alloy::{
@@ -29,11 +30,11 @@ pub struct ProofsFetcher {
 
 impl ProofsFetcher {
     pub fn new(config: &Config) -> Self {
-        let rpc_url = config.eth_rpc_url.parse().expect("correct url");
+        let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let rpc_provider = ProviderBuilder::new().on_http(rpc_url);
         let aligned_service_manager = AlignedLayerServiceManager::new(
             Address::from_str(&config.aligned_service_manager_address)
-                .expect("Address to be correct"),
+                .expect("AlignedProofAggregationService address should be valid"),
             rpc_provider.clone(),
         );
 
@@ -88,7 +89,10 @@ impl ProofsFetcher {
                     ProvingSystemId::SP1 => {
                         let elf = p.vm_program_code?;
                         let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
-                        let sp1_proof = SP1ProofWithPubValuesAndElf { proof_with_pub_values, elf };
+                        let sp1_proof = SP1ProofWithPubValuesAndElf {
+                            proof_with_pub_values,
+                            elf,
+                        };
 
                         Some(AlignedProof::SP1(sp1_proof))
                     }

@@ -78,7 +78,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         let file = match File::open(&args.private_keys_filepath) {
             Ok(f) => f,
             Err(err) => {
-                error!("Could not open private keys file: {}", err.to_string());
+                error!("Could not open private keys file: {}", err);
                 return;
             }
         };
@@ -136,7 +136,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
     let mut file = match file {
         Ok(f) => f,
         Err(err) => {
-            error!("Could not open private keys file: {}", err.to_string());
+            error!("Could not open private keys file: {}", err);
             return;
         }
     };
@@ -171,12 +171,12 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         let pending_transaction = match signer.send_transaction(tx, None).await {
             Ok(tx) => tx,
             Err(err) => {
-                error!("Could not fund wallet {}", err.to_string());
+                error!("Could not fund wallet {}", err);
                 return;
             }
         };
         if let Err(err) = pending_transaction.await {
-            error!("Could not fund wallet {}", err.to_string());
+            error!("Could not fund wallet {}", err);
         }
         info!("Wallet {} funded", i);
 
@@ -206,7 +206,7 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         let secret_key_hex = ethers::utils::hex::encode(signer_bytes);
 
         if let Err(err) = writeln!(file, "{}", secret_key_hex) {
-            error!("Could not store private key: {}", err.to_string());
+            error!("Could not store private key: {}", err);
         } else {
             info!("Private key {} stored", i);
         }
@@ -271,7 +271,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     let file = match File::open(&args.private_keys_filepath) {
         Ok(file) => file,
         Err(err) => {
-            error!("Could not open private keys file: {}", err.to_string());
+            error!("Could not open private keys file: {}", err);
             return;
         }
     };
@@ -283,10 +283,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
         let private_key_str = match line {
             Ok(line) => line,
             Err(err) => {
-                error!(
-                    "Could not read line from private keys file: {}",
-                    err.to_string()
-                );
+                error!("Could not read line from private keys file: {}", err);
                 return;
             }
         };

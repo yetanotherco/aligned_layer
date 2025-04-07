@@ -4,15 +4,18 @@ mod merkle_tree;
 mod s3;
 mod types;
 
-use crate::aggregators::{lib::{AggregatedProof, ProofAggregationError}, sp1_aggregator::{aggregate_proofs, SP1AggregationInput}, AlignedProof, ZKVMEngine};
-
+use crate::aggregators::{
+    lib::{AggregatedProof, ProofAggregationError},
+    sp1_aggregator::{aggregate_proofs, SP1AggregationInput},
+    AlignedProof, ZKVMEngine,
+};
 
 use alloy::{
-    consensus::{Blob, BlobTransactionSidecar},
+    consensus::BlobTransactionSidecar,
     eips::eip4844::BYTES_PER_BLOB,
     hex,
     network::EthereumWallet,
-    primitives::{Address, FixedBytes},
+    primitives::Address,
     providers::{PendingTransactionError, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::local::LocalSigner,
@@ -24,7 +27,6 @@ use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
-
 
 #[derive(Debug)]
 pub enum AggregatedProofSubmissionError {
@@ -45,17 +47,17 @@ pub struct ProofAggregator {
 
 impl ProofAggregator {
     pub fn new(config: &Config) -> Self {
-        let rpc_url = config.eth_rpc_url.parse().expect("correct url");
+        let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::decrypt_keystore(
             config.ecdsa.private_key_store_path.clone(),
             config.ecdsa.private_key_store_password.clone(),
         )
-        .expect("Correct keystore signer");
+        .expect("Keystore signer should be `cast wallet` compliant");
         let wallet = EthereumWallet::from(signer);
         let rpc_provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
-        let proof_aggregation_service: AlignedProofAggregationService::AlignedProofAggregationServiceInstance<(), alloy::providers::fillers::FillProvider<alloy::providers::fillers::JoinFill<alloy::providers::fillers::JoinFill<alloy::providers::Identity, alloy::providers::fillers::JoinFill<alloy::providers::fillers::GasFiller, alloy::providers::fillers::JoinFill<alloy::providers::fillers::BlobGasFiller, alloy::providers::fillers::JoinFill<alloy::providers::fillers::NonceFiller, alloy::providers::fillers::ChainIdFiller>>>>, alloy::providers::fillers::WalletFiller<EthereumWallet>>, alloy::providers::RootProvider>> = AlignedProofAggregationService::new(
+        let proof_aggregation_service = AlignedProofAggregationService::new(
             Address::from_str(&config.proof_aggregation_service_address)
-                .expect("Address to be correct"),
+                .expect("AlignedProofAggregationService address should be valid"),
             rpc_provider,
         );
         let fetcher = ProofsFetcher::new(config);
@@ -122,8 +124,7 @@ impl ProofAggregator {
                     merkle_root,
                 };
 
-                aggregate_proofs(input)
-                    .map_err(AggregatedProofSubmissionError::Aggregation)?
+                aggregate_proofs(input).map_err(AggregatedProofSubmissionError::Aggregation)?
             }
         };
         info!("Proof aggregation program finished");
@@ -184,8 +185,17 @@ impl ProofAggregator {
         let data: Vec<u8> = leaves.iter().flat_map(|arr| arr.iter().copied()).collect();
         let mut blob_data: [u8; BYTES_PER_BLOB] = [0u8; BYTES_PER_BLOB];
 
-        for (i, byte) in data.iter().enumerate() {
-            blob_data[i] = *byte;
+        // We pad the data with 0x0 byte every 31 bytes so that the field elements
+        // constructed from the bytes are less than BLS_MODULUS.
+        //
+        // See https://github.com/ethereum/consensus-specs/blob/86fb82b221474cc89387fa6436806507b3849d88/specs/deneb/polynomial-commitments.md#bytes_to_bls_field
+        let mut offset = 0;
+        for chunk in data.chunks(31) {
+            blob_data[offset] = 0x00;
+            let start = offset + 1;
+            let end = start + chunk.len();
+            blob_data[start..end].copy_from_slice(chunk);
+            offset += 32;
         }
 
         // calculate kzg commitments for blob
@@ -197,12 +207,11 @@ impl ProofAggregator {
             c_kzg::KzgProof::compute_blob_kzg_proof(&blob, &commitment.to_bytes(), settings)
                 .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
 
-        // convert to alloy types
-        let blob = Blob::from_slice(&blob_data);
-        let commitment: FixedBytes<48> = FixedBytes::from_slice(commitment.to_bytes().as_slice());
-        let proof: FixedBytes<48> = FixedBytes::from_slice(proof.to_bytes().as_slice());
-
-        let blob = BlobTransactionSidecar::new(vec![blob], vec![commitment], vec![proof]);
+        let blob = BlobTransactionSidecar::from_kzg(
+            vec![blob],
+            vec![commitment.to_bytes()],
+            vec![proof.to_bytes()],
+        );
         let blob_versioned_hash = blob
             .versioned_hash_for_blob(0)
             .ok_or(AggregatedProofSubmissionError::BuildingBlobVersionedHash)?

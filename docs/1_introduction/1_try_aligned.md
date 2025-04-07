@@ -34,7 +34,6 @@ aligned submit \
 --proof ~/.aligned/test_files/sp1_fibonacci_4_1_3.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci_4_1_3.elf \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
---batcher_url wss://batcher.alignedlayer.com \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```

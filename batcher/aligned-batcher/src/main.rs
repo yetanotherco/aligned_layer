@@ -10,10 +10,10 @@ use aligned_batcher::{types::errors::BatcherError, Batcher};
 /// Batcher main flow:
 /// There are two main tasks spawned: `listen_connections` and `listen_new_blocks`
 /// * `listen_connections` waits for websocket connections and adds verification data sent by clients
-///    to the batch.
+///   to the batch.
 /// * `listen_new_blocks` waits for new blocks and when one is received, checks if the conditions are met
-///    the current batch to be submitted. In other words, this task is the one that controls when a batch
-///    is to be posted.
+///   the current batch to be submitted. In other words, this task is the one that controls when a batch
+///   is to be posted.
 #[derive(Parser)]
 #[command(name = "Aligned Batcher")]
 #[command(about = "An application with server and client subcommands", long_about = None)]
