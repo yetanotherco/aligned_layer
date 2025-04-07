@@ -8,4 +8,8 @@ defmodule Explorer.Utils do
   def sha256_hash_raw(data) do
     :crypto.hash(:sha256, data)
   end
+
+  def decimal_to_hex(number) do
+    "0x#{Integer.to_string(number, 16)}"
+  end
 end

@@ -40,27 +40,29 @@ defmodule AlignedProofAggregationService do
 
     case events do
       {:ok, []} ->
-        []
+        {:ok, []}
 
       {:ok, list} ->
-        Enum.map(list, fn x ->
-          data = x |> Map.get(:data)
-          topics_raw = x |> Map.get(:topics_raw)
-          block_number = x |> Map.get(:block_number)
-          tx_hash = x |> Map.get(:transaction_hash)
+        {:ok,
+         Enum.map(list, fn x ->
+           data = x |> Map.get(:data)
+           topics_raw = x |> Map.get(:topics_raw)
+           block_number = x |> Map.get(:block_number)
+           tx_hash = x |> Map.get(:transaction_hash)
 
-          {
-            :ok,
-            %{
-              number: topics_raw |> Enum.at(1),
-              status: data |> Enum.at(0),
-              merkle_root: data |> Enum.at(1),
-              blob_versioned_hash: data |> Enum.at(2),
-              block_number: block_number,
-              tx_hash: tx_hash
-            }
-          }
-        end)
+           %{
+             number:
+               topics_raw
+               |> Enum.at(1)
+               |> String.replace_prefix("0x", "")
+               |> String.to_integer(16),
+             status: data |> Enum.at(0),
+             merkle_root: "0x" <> Base.encode16(data |> Enum.at(1), case: :lower),
+             blob_versioned_hash: "0x" <> Base.encode16(data |> Enum.at(2), case: :lower),
+             block_number: block_number,
+             tx_hash: tx_hash
+           }
+         end)}
 
       {:error, reason} ->
         raise("Error fetching events: #{Map.get(reason, "message")}")
@@ -68,12 +70,54 @@ defmodule AlignedProofAggregationService do
   end
 
   def get_blob_data_from_versioned_hash(aggregated_proof) do
-    case BeaconClient.fetch_blob_by_versioned_hash(
-           aggregated_proof.block_number,
+    {:ok, block} =
+      Explorer.EthClient.get_block_by_number(
+        Explorer.Utils.decimal_to_hex(aggregated_proof.block_number)
+      )
+
+    case Explorer.BeaconClient.fetch_blob_by_versioned_hash(
+           Map.get(block, "parentBeaconBlockRoot"),
            aggregated_proof.blob_versioned_hash
          ) do
-      {:ok, data} -> data.blob
+      {:ok, data} -> {:ok, Map.get(data, "blob")}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def decode_blob(blob_data), do: decode_blob(blob_data, [[]], 0, 0, 0)
+
+  defp decode_blob([], acc, _current_count, _total_count, _i), do: acc
+
+  defp decode_blob([head | tail], acc, current_count, total_count, i) do
+    # Every 32 bytes there is a 00 for padding
+    should_skip = rem(total_count, 64) == 0
+
+    case should_skip do
+      true ->
+        [head | tail] = tail
+        decode_blob(tail, acc, current_count, total_count + 2, i)
+
+      false ->
+        acc = List.update_at(acc, i, fn chunk -> chunk ++ [head] end)
+
+        case current_count + 1 < 64 do
+          true ->
+            decode_blob(tail, acc, current_count + 1, total_count + 1, i)
+
+          # New hash encountered, this would be the index 0, so next iteration go to 1
+          false ->
+            # The iteration finishes when the acc is 0x00
+            current_blob = Enum.at(acc, i)
+            is_all_zeroes = Enum.all?(current_blob, fn x -> x == 48 end)
+
+            ## If the hash is all zeroed, then there are no more hashes in the blob
+            if is_all_zeroes do
+              # Drop last element as it is made all out of zeroes and it is the one we use to stop decoding
+              Enum.drop(acc, -1)
+            else
+              decode_blob(tail, acc ++ [[]], 0, total_count + 1, i + 1)
+            end
+        end
     end
   end
 end
