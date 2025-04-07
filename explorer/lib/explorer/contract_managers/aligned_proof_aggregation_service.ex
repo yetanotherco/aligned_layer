@@ -65,36 +65,42 @@ defmodule AlignedProofAggregationService do
          end)}
 
       {:error, reason} ->
-        raise("Error fetching events: #{Map.get(reason, "message")}")
+        {:error, reason}
     end
   end
 
-  def get_blob_data_from_versioned_hash(aggregated_proof) do
+  def get_blob_data!(aggregated_proof) do
     {:ok, block} =
       Explorer.EthClient.get_block_by_number(
         Explorer.Utils.decimal_to_hex(aggregated_proof.block_number)
       )
 
-    case Explorer.BeaconClient.fetch_blob_by_versioned_hash(
-           Map.get(block, "parentBeaconBlockRoot"),
-           aggregated_proof.blob_versioned_hash
-         ) do
-      {:ok, data} -> {:ok, Map.get(data, "blob")}
-      {:error, reason} -> {:error, reason}
-    end
+    parent_beacon_block_hash = Map.get(block, "parentBeaconBlockRoot")
+    slot = Explorer.BeaconClient.get_block_slot!(parent_beacon_block_hash) + 1
+
+    data =
+      Explorer.BeaconClient.fetch_blob_by_versioned_hash!(
+        slot,
+        aggregated_proof.blob_versioned_hash
+      )
+
+    Map.get(data, "blob")
   end
 
+  @doc """
+  Decodes blob data represented as an ASCII charlist.
+  """
   def decode_blob(blob_data), do: decode_blob(blob_data, [[]], 0, 0, 0)
 
   defp decode_blob([], acc, _current_count, _total_count, _i), do: acc
 
   defp decode_blob([head | tail], acc, current_count, total_count, i) do
-    # Every 32 bytes there is a 00 for padding
+    # Every 64 characters (or 32 bytes) there is a 00 for padding
     should_skip = rem(total_count, 64) == 0
 
     case should_skip do
       true ->
-        [head | tail] = tail
+        [_head | tail] = tail
         decode_blob(tail, acc, current_count, total_count + 2, i)
 
       false ->
@@ -104,15 +110,14 @@ defmodule AlignedProofAggregationService do
           true ->
             decode_blob(tail, acc, current_count + 1, total_count + 1, i)
 
-          # New hash encountered, this would be the index 0, so next iteration go to 1
           false ->
-            # The iteration finishes when the acc is 0x00
             current_blob = Enum.at(acc, i)
+            # 48 is 0 in ascii
             is_all_zeroes = Enum.all?(current_blob, fn x -> x == 48 end)
 
             ## If the hash is all zeroed, then there are no more hashes in the blob
             if is_all_zeroes do
-              # Drop last element as it is made all out of zeroes and it is the one we use to stop decoding
+              # Drop last limiter zeroed element
               Enum.drop(acc, -1)
             else
               decode_blob(tail, acc ++ [[]], 0, total_count + 1, i + 1)

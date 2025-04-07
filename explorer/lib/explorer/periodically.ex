@@ -74,13 +74,11 @@ defmodule Explorer.Periodically do
   end
 
   def handle_info(:aggregated_proofs, state) do
-    # This runs every 1hr, so reading 300 means going back exactly one hour
-    # We add a few blocks more to make sure we don't lose anything
     read_block_qty = 310
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)
 
-    process_aggregated_proofs(read_from_block, latest_block_number)
+    Task.start(fn -> process_aggregated_proofs(read_from_block, latest_block_number) end)
 
     {:noreply, state}
   end
@@ -88,28 +86,17 @@ defmodule Explorer.Periodically do
   def process_aggregated_proofs(from_block, to_block) do
     "Processing aggregated proofs" |> Logger.debug()
 
-    events =
+    {:ok, proofs} =
       AlignedProofAggregationService.get_aggregated_proof_event(%{
         from_block: from_block,
         to_block: to_block
       })
 
-    proofs =
-      case events do
-        {:ok, events} -> events
-        {:error, reason} -> raise(reason)
-      end
-
     blob_data =
       proofs
-      |> Enum.map(fn x ->
-        case AlignedProofAggregationService.get_blob_data_from_versioned_hash(x) do
-          {:ok, data} -> data
-          {:error, reason} -> raise("Error #{reason}")
-        end
-      end)
+      |> Enum.map(&AlignedProofAggregationService.get_blob_data!/1)
 
-    proofs_leaves =
+    proof_hashes =
       blob_data
       |> Enum.map(fn x ->
         AlignedProofAggregationService.decode_blob(
@@ -119,23 +106,23 @@ defmodule Explorer.Periodically do
 
     # Store aggregated proofs to db
     proofs
-    |> Enum.zip(proofs_leaves)
-    |> Enum.each(fn {agg_proof, leaves} ->
+    |> Enum.zip(proof_hashes)
+    |> Enum.each(fn {agg_proof, hashes} ->
       agg_proof
-      |> Map.merge(%{number_of_proofs: length(leaves)})
+      |> Map.merge(%{number_of_proofs: length(hashes)})
       |> AggregatedProofs.insert_or_update()
     end)
 
     # Store each individual proof
     proofs
-    |> Enum.zip(proofs_leaves)
-    |> Enum.each(fn {agg_proof, leaves} ->
-      leaves
+    |> Enum.zip(proof_hashes)
+    |> Enum.each(fn {agg_proof, hashes} ->
+      hashes
       |> Enum.with_index()
-      |> Enum.each(fn {leaf, index} ->
+      |> Enum.each(fn {hash, index} ->
         AggregationModeProof.insert_or_update(%{
           aggregated_proof_number: agg_proof.number,
-          proof_hash: "0x" <> List.to_string(leaf),
+          proof_hash: "0x" <> List.to_string(hash),
           index: index
         })
       end)

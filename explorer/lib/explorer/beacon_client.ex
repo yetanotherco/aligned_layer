@@ -1,32 +1,28 @@
 defmodule Explorer.BeaconClient do
   require Logger
   @beacon_url System.get_env("BEACON_CLIENT")
-  @rpc_url System.get_env("RPC_URL")
   # See https://eips.ethereum.org/EIPS/eip-4844#parameters
   @versioned_hash_version_kzg 0x01
 
-  def fetch_blob_by_versioned_hash(beacon_blob_hash, blob_versioned_hash) do
-    {:ok, beacon_block} = get_beacon_block_header_by_hash(beacon_blob_hash)
+  def get_block_slot!(block_hash) do
+    {:ok, beacon_block} = get_beacon_block_header_by_hash(block_hash)
 
-    slot =
-      String.to_integer(
-        Map.get(Map.get(Map.get(Map.get(beacon_block, "data"), "header"), "message"), "slot")
-      )
+    String.to_integer(
+      beacon_block
+      |> Map.get("data")
+      |> Map.get("header")
+      |> Map.get("message")
+      |> Map.get("slot")
+    )
+  end
 
-    case get_block_blobs(slot + 1) do
-      {:ok, blobs} ->
-        data = Map.get(blobs, "data")
+  def fetch_blob_by_versioned_hash!(slot, blob_versioned_hash) do
+    {:ok, blobs} = get_block_blobs(slot)
+    data = Map.get(blobs, "data")
 
-        blob =
-          Enum.find(data, fn blob ->
-            get_blob_versioned_hash(blob) == blob_versioned_hash
-          end)
-
-        {:ok, blob}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    Enum.find(data, fn blob ->
+      get_blob_versioned_hash(blob) == blob_versioned_hash
+    end)
   end
 
   def get_blob_versioned_hash(blob) do
