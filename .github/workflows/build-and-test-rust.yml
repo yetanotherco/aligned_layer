@@ -28,8 +28,8 @@ jobs:
       - name: Install sp1 toolchain
         run: |
           curl -L https://sp1.succinct.xyz | bash
-          echo "/root/.sp1/bin" >> $GITHUB_PATH
-          /root/.sp1/bin/sp1up
+          source /home/runner/.bashrc
+          sp1up
 
       - name: Cache Rust dependencies
         uses: actions/cache@v3
