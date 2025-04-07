@@ -2,7 +2,6 @@ defmodule AggregationModeProof do
   require Logger
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
 
   # Different from proofs.ex (we could use the same but the hashes are constructed different)
   @primary_key {:id, :id, autogenerate: true}

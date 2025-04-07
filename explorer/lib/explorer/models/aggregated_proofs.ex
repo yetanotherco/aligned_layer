@@ -2,7 +2,6 @@ defmodule AggregatedProofs do
   require Logger
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
 
   @primary_key {:number, :integer, autogenerate: false}
   schema "aggregated_proofs" do
@@ -13,7 +12,10 @@ defmodule AggregatedProofs do
     field(:number_of_proofs, :integer)
     field(:block_number, :integer)
 
-    has_many(:proofs_agg_mode, AggregationModeProof)
+    has_many(:proofs_agg_mode, AggregationModeProof,
+      foreign_key: :aggregated_proof_number,
+      references: :number
+    )
 
     timestamps()
   end
