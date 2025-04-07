@@ -24,6 +24,13 @@ jobs:
           components: rustfmt, clippy
           override: true
 
+      # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
+      - name: Install sp1 toolchain
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          echo "/root/.sp1/bin" >> $GITHUB_PATH
+          /root/.sp1/bin/sp1up
+
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:
