@@ -84,7 +84,7 @@ defmodule Explorer.Periodically do
   end
 
   def process_aggregated_proofs(from_block, to_block) do
-    "Processing aggregated proofs" |> Logger.debug()
+    "Processing aggregated proofs from #{from_block} to #{to_block}" |> Logger.debug()
 
     {:ok, proofs} =
       AlignedProofAggregationService.get_aggregated_proof_event(%{
@@ -127,6 +127,8 @@ defmodule Explorer.Periodically do
         })
       end)
     end)
+
+    "Done processing aggregated proofs from #{from_block} to #{to_block}" |> Logger.debug()
   end
 
   def process_batches(fromBlock, toBlock) do
