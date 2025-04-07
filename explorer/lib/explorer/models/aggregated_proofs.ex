@@ -10,9 +10,10 @@ defmodule AggregatedProofs do
     field(:status, :integer)
     field(:tx_hash, :string)
     field(:blob_versioned_hash, :string)
-    field(:blob_data, :binary)
     field(:number_of_proofs, :integer)
     field(:block_number, :integer)
+
+    has_many(:proofs_agg_mode, AggregationModeProof)
 
     timestamps()
   end
@@ -29,23 +30,22 @@ defmodule AggregatedProofs do
       :blob_versioned_hash,
       :block_number,
       :tx_hash,
-      :blob_data,
       :number_of_proofs
     ])
     |> validate_required([
       :number,
-      :merkle_root,
       :status,
-      :tx_hash,
+      :merkle_root,
       :blob_versioned_hash,
-      :number_of_proofs,
-      :block_number
+      :block_number,
+      :tx_hash,
+      :number_of_proofs
     ])
     |> unique_constraint(:number)
   end
 
   def insert_or_update(agg_proof) do
-    changeset = AggregatedProofs.changeset(%AggregatedProofs{}, Map.from_struct(agg_proof))
+    changeset = AggregatedProofs.changeset(%AggregatedProofs{}, agg_proof)
 
     case Explorer.Repo.get_by(AggregatedProofs, number: agg_proof.number) do
       nil ->
