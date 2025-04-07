@@ -277,7 +277,6 @@ let nonce = get_nonce_from_ethereum(&rpc_url, wallet.address(), NETWORK)
 
 // Submit to Aligned.
 let aligned_verification_data = submit_and_wait_verification(
-    BATCHER_URL,
     &rpc_url,
     NETWORK,
     &verification_data,
