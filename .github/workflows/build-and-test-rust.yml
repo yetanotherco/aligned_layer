@@ -55,15 +55,15 @@ jobs:
           cd aggregation_mode
           cargo fmt --all -- --check
 
+      - name: Build AggregationMode # We build before clippy to generate the ELF
+        run: |
+          cd aggregation_mode
+          cargo build --all
+
       - name: Run Clippy on AggregationMode
         run: |
           cd aggregation_mode
           cargo clippy --all -- -D warnings
-
-      - name: Build AggregationMode
-        run: |
-          cd aggregation_mode
-          cargo build --all
 
   test:
     runs-on: aligned-runner
