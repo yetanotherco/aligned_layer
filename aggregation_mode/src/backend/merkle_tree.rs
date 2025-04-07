@@ -18,8 +18,8 @@ pub fn compute_proofs_merkle_root(proofs: &[AlignedProof]) -> ([u8; 32], Vec<[u8
         root = root
             .chunks(2)
             .map(|chunk| match chunk {
-                [a, b] => combine_hashes(&a, &b),
-                [a] => combine_hashes(&a, &a),
+                [a, b] => combine_hashes(a, b),
+                [a] => combine_hashes(a, a),
                 _ => panic!("Unexpected chunk size in leaves"),
             })
             .collect()

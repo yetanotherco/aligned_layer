@@ -99,7 +99,7 @@ impl ProofAggregator {
             .await
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
-        if proofs.len() == 0 {
+        if proofs.is_empty() {
             warn!("No proofs collected, skipping aggregation...");
             return Ok(());
         }
@@ -114,8 +114,8 @@ impl ProofAggregator {
                 // only SP1 compressed proofs are supported
                 let proofs = proofs
                     .into_iter()
-                    .filter_map(|proof| match proof {
-                        AlignedProof::SP1(proof) => Some(proof),
+                    .map(|proof| match proof {
+                        AlignedProof::SP1(proof) => proof,
                     })
                     .collect();
 
