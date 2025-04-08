@@ -13,9 +13,9 @@ contract AlignedProofAggregationService is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-    /// @notice Maps the aggregated verification merkle root with the blob transaction hash that contains the leaves
-    uint64 public currentAggregatedProofNumber;
-    mapping(uint64 => AggregatedProof) public aggregatedProofs;
+
+    /// @notice Map the merkle root to a boolean to indicate it was verified
+    mapping(bytes32 => bool) public aggregatedProofs;
 
     /// @notice The address of the SP1 verifier contract.
     /// @dev This can either be a specific SP1Verifier for a specific version, or the
@@ -24,6 +24,7 @@ contract AlignedProofAggregationService is
     ///      https://docs.succinct.xyz/onchain-verification/contract-addresses
     address public sp1VerifierAddress;
 
+    /// @notice The address of the Wallet that is allowed to call the verify function.
     address public alignedAggregatorAddress;
 
     /// @notice whether we are in dev mode or not
@@ -51,43 +52,19 @@ contract AlignedProofAggregationService is
         bytes calldata sp1PublicValues,
         bytes calldata sp1ProofBytes
     ) public onlyAlignedAggregator {
+        (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
+
         // In dev mode, poofs are mocked, so we skip the verification part
-        if (sp1VerifierAddress == VERIFIER_MOCK_ADDRESS) {
-            (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
-            _newAggregatedProof(merkleRoot, blobVersionedHash);
-            return;
+        if (_isVerificationEnabled()) {
+            ISP1Verifier(sp1VerifierAddress).verifyProof(sp1ProgramVKey, sp1PublicValues, sp1ProofBytes);
         }
 
-        try ISP1Verifier(sp1VerifierAddress).verifyProof(sp1ProgramVKey, sp1PublicValues, sp1ProofBytes) {
-            (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
-            _newAggregatedProof(merkleRoot, blobVersionedHash);
-        } catch {
-            AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
-            proof.status = AggregatedProofStatus.Failed;
-            emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Failed, 0x0, 0x0);
-            currentAggregatedProofNumber += 1;
-        }
+        aggregatedProofs[merkleRoot] = true;
+        emit AggregatedProofVerified(merkleRoot, blobVersionedHash);
     }
 
-    function markCurrentAggregatedProofAsMissed() public onlyAlignedAggregator {
-        AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
-        proof.status = AggregatedProofStatus.Missed;
-        emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Missed, 0x0, 0x0);
-        currentAggregatedProofNumber += 1;
-    }
-
-    function _newAggregatedProof(bytes32 merkleRoot, bytes32 blobHash) internal {
-        AggregatedProof storage proof = aggregatedProofs[currentAggregatedProofNumber];
-        proof.merkleRoot = merkleRoot;
-        proof.blobHash = blobHash;
-        proof.status = AggregatedProofStatus.Verified;
-        emit NewAggregatedProof(currentAggregatedProofNumber, AggregatedProofStatus.Verified, merkleRoot, blobHash);
-        currentAggregatedProofNumber += 1;
-    }
-
-    function getAggregatedProof(uint64 proofNumber) public view returns (uint8, bytes32 blobHash, bytes32 merkleRoot) {
-        AggregatedProof storage proof = aggregatedProofs[proofNumber];
-        return (uint8(proof.status), proof.blobHash, proof.merkleRoot);
+    function _isVerificationEnabled() internal view returns (bool) {
+        return sp1VerifierAddress != VERIFIER_MOCK_ADDRESS;
     }
 
     function _authorizeUpgrade(address newImplementation)
