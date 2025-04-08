@@ -8,7 +8,7 @@ defmodule ExplorerWeb.AggProofsTable do
     ~H"""
     <.table id="agg_proofs" rows={@proofs}>
       <:col :let={proof} label="Merkle root" class="text-left">
-        <.link navigate={~p"/aggregated_proofs/#{proof.number}"}>
+        <.link navigate={~p"/aggregated_proofs/#{proof.merkle_root}"}>
           <span class="inline-flex gap-x-3 items-center group-hover:text-foreground/80">
             <%= Helpers.shorten_hash(proof.merkle_root, 6) %>
             <.right_arrow />
@@ -17,9 +17,6 @@ defmodule ExplorerWeb.AggProofsTable do
             </.tooltip>
           </span>
         </.link>
-      </:col>
-      <:col :let={proof} label="Status">
-        <.dynamic_badge_for_agg_proof status={proof.status} />
       </:col>
       <:col :let={proof} label="Age">
         <span class="md:px-0" title={proof.age}>

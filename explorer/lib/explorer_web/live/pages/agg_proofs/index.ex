@@ -14,7 +14,9 @@ defmodule ExplorerWeb.AggProofs.Index do
         page: current_page,
         page_size: @page_size
       })
-      |> Enum.map(fn proof -> proof |> Map.merge(%{age: "2 days ago"}) end)
+      |> Enum.map(fn proof ->
+        proof |> Map.merge(%{age: proof.block_timestamp |> Helpers.parse_timeago()})
+      end)
 
     {
       :ok,

@@ -3,9 +3,9 @@ defmodule ExplorerWeb.AggProof.Index do
   use ExplorerWeb, :live_view
 
   @impl true
-  def mount(%{"proof_number" => proof_number}, _, socket) do
+  def mount(%{"merkle_root" => merkle_root}, _, socket) do
     agg_proof =
-      AggregatedProofs.get_aggregated_proof_by_number(proof_number)
+      AggregatedProofs.get_aggregated_proof_by_merkle_root(merkle_root)
 
     {
       :ok,
@@ -19,7 +19,7 @@ defmodule ExplorerWeb.AggProof.Index do
 
   @impl true
   def handle_event("show_proofs", _value, socket) do
-    proofs = AggregationModeProof.get_all_proof_hashes(socket.assigns.agg_proof.number)
+    proofs = AggregationModeProof.get_all_proof_hashes(socket.assigns.agg_proof.merkle_root)
     {:noreply, assign(socket, proof_hashes: proofs)}
   end
 
