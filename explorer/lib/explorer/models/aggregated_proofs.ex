@@ -1,6 +1,7 @@
 defmodule AggregatedProofs do
   require Logger
   use Ecto.Schema
+  import Ecto.Query
   import Ecto.Changeset
 
   @primary_key {:number, :integer, autogenerate: false}
@@ -63,5 +64,23 @@ defmodule AggregatedProofs do
 
   def get_aggregated_proof_by_number(number) do
     Explorer.Repo.get_by(AggregatedProofs, number: number)
+  end
+
+  def get_paginated_proofs(%{page: page, page_size: size}) do
+    query =
+      from(proof in AggregatedProofs,
+        order_by: [desc: proof.block_number],
+        limit: ^size,
+        offset: ^((page - 1) * size),
+        select: proof
+      )
+
+    Explorer.Repo.all(query)
+  end
+
+  def get_last_page(page_size) do
+    total_proofs = Explorer.Repo.aggregate(AggregatedProofs, :count, :number)
+    last_page = div(total_proofs, page_size)
+    if rem(total_proofs, page_size) > 0, do: last_page + 1, else: last_page
   end
 end

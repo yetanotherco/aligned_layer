@@ -1,4 +1,4 @@
-defmodule ExplorerWeb.AggProofs.Index do
+defmodule ExplorerWeb.AggProof.Index do
   require Logger
   use ExplorerWeb, :live_view
 

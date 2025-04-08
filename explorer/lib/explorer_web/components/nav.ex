@@ -59,6 +59,17 @@ defmodule NavComponent do
           <.link
             class={
               active_view_class(assigns.socket.view, [
+                ExplorerWeb.AggProofs.Index,
+                ExplorerWeb.AggProof.Index
+              ])
+            }
+            navigate={~p"/aggregated_proofs"}
+          >
+            Aggregation
+          </.link>
+          <.link
+            class={
+              active_view_class(assigns.socket.view, [
                 ExplorerWeb.Operators.Index,
                 ExplorerWeb.Operator.Index
               ])
