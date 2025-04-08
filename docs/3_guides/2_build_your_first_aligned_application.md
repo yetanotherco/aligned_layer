@@ -31,7 +31,7 @@ Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
 2. [Foundry](https://getfoundry.sh)
 
 {% hint style="info" %}
-ELF commitment was generated with Rust v1.80.1 and SP1 v4.1.3.
+ELF commitment was generated with Rust v1.80.1 and SP1 v4.1.7.
 {% endhint %}
 
 ### Usage
