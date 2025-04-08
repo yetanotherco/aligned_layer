@@ -121,7 +121,7 @@ defmodule Explorer.Periodically do
       |> Enum.with_index()
       |> Enum.each(fn {hash, index} ->
         AggregationModeProof.insert_or_update(%{
-          aggregated_proof_number: agg_proof.number,
+          merkle_root: agg_proof.merkle_root,
           proof_hash: "0x" <> List.to_string(hash),
           index: index
         })
