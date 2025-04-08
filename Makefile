@@ -140,13 +140,9 @@ lint_contracts:
 
 anvil_start:
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
-
-anvil_start_with_block_time:
-	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
-anvil_start_with_block_time_with_more_prefunded_accounts:
+anvil_start_with_more_prefunded_accounts:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
 
@@ -1154,7 +1150,7 @@ setup_local_aligned_all:
 	tmux new-session -d -s aligned_layer
 
 	tmux new-window -t aligned_layer -n anvil
-	tmux send-keys -t aligned_layer 'make anvil_start_with_block_time' C-m
+	tmux send-keys -t aligned_layer 'make anvil_start' C-m
 
 	tmux new-window -t aligned_layer -n aggregator
 	tmux send-keys -t aligned_layer:aggregator 'make aggregator_start' C-m
