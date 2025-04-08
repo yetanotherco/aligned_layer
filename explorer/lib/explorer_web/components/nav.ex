@@ -47,7 +47,7 @@ defmodule NavComponent do
           >
             🟩 <span class="sr-only">Aligned Explorer Home</span>
           </.link>
-          <div class={["items-center gap-5 hidden md:inline-flex"]}>
+          <div class={["items-center gap-5 hidden lg:inline-flex"]}>
             <.link
               class={
                 active_view_class(assigns.socket.view, [
@@ -80,7 +80,6 @@ defmodule NavComponent do
                   ExplorerWeb.Restake.Index
                 ])
               }
-              ,
               links={[
                 {"Operators", ~p"/operators",
                  active_view_class(assigns.socket.view, [
@@ -124,7 +123,7 @@ defmodule NavComponent do
             icon="hero-cube-transparent-micro"
           />
           <button
-            class="md:hidden z-50"
+            class="lg:hidden z-50"
             id="menu-toggle"
             phx-click={toggle_menu()}
             aria-label="Toggle hamburger menu"
@@ -154,6 +153,20 @@ defmodule NavComponent do
                 navigate={~p"/batches"}
               >
                 Batches
+              </.link>
+              <.link
+                class={
+                  classes([
+                    active_view_class(assigns.socket.view, [
+                      ExplorerWeb.AggregatedProofs.Index,
+                      ExplorerWeb.AggregatedProof.Index
+                    ]),
+                    "text-foreground/80 hover:text-foreground font-semibold"
+                  ])
+                }
+                navigate={~p"/aggregated_proofs"}
+              >
+                Aggregation
               </.link>
               <.link
                 class="hover:text-foreground"
