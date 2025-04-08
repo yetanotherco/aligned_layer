@@ -1238,11 +1238,6 @@ __ETHEREUM_PACKAGE__:  ## ____
 ethereum_package_start: ## Starts the ethereum_package environment
 	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
 
-ethereum_package_update_network_params:
-	@yq e -i -P ".network_params.additional_preloaded_contracts = $$( \
-		jq '.accounts' contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json \
-	)" network_params.yaml
-
 ethereum_package_inspect: ## Prints detailed information about the net
 	kurtosis enclave inspect aligned
 
