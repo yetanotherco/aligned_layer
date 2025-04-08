@@ -16,19 +16,13 @@ defmodule ExplorerWeb.AggProofs.Index do
       })
       |> Enum.map(fn proof -> proof |> Map.merge(%{age: "2 days ago"}) end)
 
-    # TODO fetch from aggregation not batch
-    remaining_time = Helpers.get_next_scheduled_batch_remaining_time()
-
     {
       :ok,
       assign(
         socket,
         proofs: proofs,
         current_page: current_page,
-        last_page: AggregatedProofs.get_last_page(@page_size),
-        next_scheduled_batch_remaining_time_percentage:
-          Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
-        next_scheduled_batch_remaining_time: remaining_time
+        last_page: AggregatedProofs.get_last_page(@page_size)
       )
     }
   end
