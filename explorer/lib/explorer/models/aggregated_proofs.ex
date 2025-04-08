@@ -83,4 +83,8 @@ defmodule AggregatedProofs do
     last_page = div(total_proofs, page_size)
     if rem(total_proofs, page_size) > 0, do: last_page + 1, else: last_page
   end
+
+  def get_number_of_agg_proofs() do
+    Explorer.Repo.aggregate(AggregatedProofs, :count, :number)
+  end
 end
