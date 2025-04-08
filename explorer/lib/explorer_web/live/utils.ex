@@ -155,6 +155,22 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
+  @doc """
+  Get the Etherscan URL based on the environment.
+  - `holesky` -> https://holesky.etherscan.io
+  - `mainnet` -> https://etherscan.io
+  - `default` -> http://localhost:4000
+  """
+  def get_blobscan_url() do
+    prefix = System.get_env("ENVIRONMENT")
+
+    case prefix do
+      "mainnet" -> "https://blobscan.com/"
+      "holesky" -> "https://holesky.blobscan.com/"
+      _ -> "http://localhost:4000"
+    end
+  end
+
   def get_aligned_contracts_addresses() do
     Map.merge(get_batcher_service_addresses(), get_proof_aggregation_addresses())
   end
