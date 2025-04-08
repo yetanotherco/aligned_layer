@@ -4,18 +4,6 @@ defmodule Explorer.BeaconClient do
   # See https://eips.ethereum.org/EIPS/eip-4844#parameters
   @versioned_hash_version_kzg 0x01
 
-  def get_block_slot!(block_hash) do
-    {:ok, beacon_block} = get_beacon_block_header_by_hash(block_hash)
-
-    String.to_integer(
-      beacon_block
-      |> Map.get("data")
-      |> Map.get("header")
-      |> Map.get("message")
-      |> Map.get("slot")
-    )
-  end
-
   def fetch_blob_by_versioned_hash!(slot, blob_versioned_hash) do
     {:ok, blobs} = get_block_blobs(slot)
     data = Map.get(blobs, "data")
@@ -35,12 +23,34 @@ defmodule Explorer.BeaconClient do
     "0x" <> Base.encode16(raw, case: :lower)
   end
 
-  def get_block_blobs(slot) do
-    beacon_get("/eth/v1/beacon/blob_sidecars/#{slot}")
+  def get_block_slot(beacon_block) do
+    String.to_integer(
+      beacon_block
+      |> Map.get("data")
+      |> Map.get("header")
+      |> Map.get("message")
+      |> Map.get("slot")
+    )
   end
 
-  def get_beacon_block_header_by_hash(block_hash) do
+  def get_block_header_by_hash(block_hash) do
     beacon_get("/eth/v1/beacon/headers/#{block_hash}")
+  end
+
+  def get_block_header_by_parent_hash(parent_block_hash) do
+    case beacon_get("/eth/v1/beacon/headers?parent_root=#{parent_block_hash}") do
+      {:ok, header} ->
+        data = header["data"] |> Enum.at(0)
+
+        {:ok, %{header | "data" => data}}
+
+      other ->
+        other
+    end
+  end
+
+  def get_block_blobs(slot) do
+    beacon_get("/eth/v1/beacon/blob_sidecars/#{slot}")
   end
 
   def beacon_get(method) do
