@@ -111,11 +111,11 @@ do
     --proof "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.proof" \
     --public_input "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.pub" \
     --vk "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.vk" \
-    --proof_generator_addr $SENDER_ADDRESS \
     --private_key $PRIVATE_KEY \
     --rpc_url $RPC_URL \
     --network $NETWORK \
     --max_fee 0.004ether \
+    --random_address \
     2>&1)
 
   echo "$submit"
