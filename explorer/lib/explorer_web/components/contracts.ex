@@ -32,6 +32,10 @@ defmodule ContractsComponent do
            address: addresses["operatorStateRetriever"]
          },
          %{
+           contract_name: "AlignedProofAggregationService",
+           address: addresses["alignedProofAggregationService"]
+         },
+         %{
            contract_name: "RegistryCoordinator",
            address: addresses["registryCoordinator"]
          },
