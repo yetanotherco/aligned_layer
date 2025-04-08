@@ -11,11 +11,11 @@ use crate::aggregators::{
 };
 
 use alloy::{
-    consensus::{BlobTransactionSidecar},
+    consensus::BlobTransactionSidecar,
     eips::eip4844::BYTES_PER_BLOB,
     hex,
     network::EthereumWallet,
-    primitives::{Address},
+    primitives::Address,
     providers::{PendingTransactionError, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::local::LocalSigner,
@@ -81,11 +81,6 @@ impl ProofAggregator {
             }
             Err(err) => {
                 error!("Error while aggregating and submitting proofs: {:?}", err);
-                info!("About to set aggregated proof as missed");
-                if let Err(err) = self.set_aggregated_proof_as_missed().await {
-                    error!("Error while marking proof as failed: {:?}", err);
-                };
-                info!("Proofs set as missed");
             }
         }
     }
@@ -99,7 +94,7 @@ impl ProofAggregator {
             .await
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
-        if proofs.len() == 0 {
+        if proofs.is_empty() {
             warn!("No proofs collected, skipping aggregation...");
             return Ok(());
         }
@@ -114,8 +109,8 @@ impl ProofAggregator {
                 // only SP1 compressed proofs are supported
                 let proofs = proofs
                     .into_iter()
-                    .filter_map(|proof| match proof {
-                        AlignedProof::SP1(proof) => Some(proof),
+                    .map(|proof| match proof {
+                        AlignedProof::SP1(proof) => proof,
                     })
                     .collect();
 
@@ -218,20 +213,5 @@ impl ProofAggregator {
             .0;
 
         Ok((blob, blob_versioned_hash))
-    }
-
-    async fn set_aggregated_proof_as_missed(
-        &self,
-    ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
-        let res = self
-            .proof_aggregation_service
-            .markCurrentAggregatedProofAsMissed()
-            .send()
-            .await
-            .map_err(AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction)?;
-
-        res.get_receipt()
-            .await
-            .map_err(AggregatedProofSubmissionError::ReceiptError)
     }
 }

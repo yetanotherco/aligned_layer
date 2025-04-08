@@ -4,18 +4,17 @@ defmodule AggregatedProofs do
   import Ecto.Query
   import Ecto.Changeset
 
-  @primary_key {:number, :integer, autogenerate: false}
+  @primary_key {:merkle_root, :string, autogenerate: false}
   schema "aggregated_proofs" do
-    field(:merkle_root, :string)
-    field(:status, :integer)
-    field(:tx_hash, :string)
     field(:blob_versioned_hash, :string)
-    field(:number_of_proofs, :integer)
     field(:block_number, :integer)
+    field(:block_timestamp, :utc_datetime)
+    field(:tx_hash, :string)
+    field(:number_of_proofs, :integer)
 
     has_many(:proofs_agg_mode, AggregationModeProof,
-      foreign_key: :aggregated_proof_number,
-      references: :number
+      foreign_key: :merkle_root,
+      references: :merkle_root
     )
 
     timestamps()
@@ -27,30 +26,28 @@ defmodule AggregatedProofs do
   def changeset(aggregated_proof, attrs) do
     aggregated_proof
     |> cast(attrs, [
-      :number,
-      :status,
       :merkle_root,
       :blob_versioned_hash,
       :block_number,
+      :block_timestamp,
       :tx_hash,
       :number_of_proofs
     ])
     |> validate_required([
-      :number,
-      :status,
       :merkle_root,
       :blob_versioned_hash,
       :block_number,
+      :block_timestamp,
       :tx_hash,
       :number_of_proofs
     ])
-    |> unique_constraint(:number)
+    |> unique_constraint(:merkle_root)
   end
 
   def insert_or_update(agg_proof) do
     changeset = AggregatedProofs.changeset(%AggregatedProofs{}, agg_proof)
 
-    case get_aggregated_proof_by_number(agg_proof.number) do
+    case Explorer.Repo.get_by(AggregatedProofs, merkle_root: agg_proof.merkle_root) do
       nil ->
         Explorer.Repo.insert(changeset)
 
@@ -62,8 +59,8 @@ defmodule AggregatedProofs do
     end
   end
 
-  def get_aggregated_proof_by_number(number) do
-    Explorer.Repo.get_by(AggregatedProofs, number: number)
+  def get_aggregated_proof_by_merkle_root(merkle_root) do
+    Explorer.Repo.get_by(AggregatedProofs, merkle_root: merkle_root)
   end
 
   def get_paginated_proofs(%{page: page, page_size: size}) do

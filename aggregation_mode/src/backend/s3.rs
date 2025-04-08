@@ -6,7 +6,7 @@ pub enum GetBatchProofsError {
     Deserialization,
     EmptyBody,
     StatusFailed,
-    ReqwestClientFailed
+    ReqwestClientFailed,
 }
 
 // needed to make S3 bucket work
@@ -16,11 +16,13 @@ pub async fn get_aligned_batch_from_s3(
     url: String,
 ) -> Result<Vec<VerificationData>, GetBatchProofsError> {
     let client = reqwest::Client::builder()
-    .user_agent(DEFAULT_USER_AGENT)
-    .build()
-    .map_err(|_| GetBatchProofsError::ReqwestClientFailed)?;
+        .user_agent(DEFAULT_USER_AGENT)
+        .build()
+        .map_err(|_| GetBatchProofsError::ReqwestClientFailed)?;
 
-    let response = client.get(url).send()
+    let response = client
+        .get(url)
+        .send()
         .await
         .map_err(|_| GetBatchProofsError::Fetching)?;
     if !response.status().is_success() {

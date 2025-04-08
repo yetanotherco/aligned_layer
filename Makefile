@@ -75,6 +75,10 @@ anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
+anvil_deploy_sp1_contracts:
+	@echo "Deploying SP1 Contracts..."
+	. contracts/scripts/anvil/deploy_sp1_contracts.sh
+
 anvil_deploy_aligned_contracts:
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
@@ -152,7 +156,7 @@ anvil_start_with_block_time_with_more_prefunded_accounts:
 
 __AGGREGATION_MODE__: ## ____
 start_proof_aggregator_local: ## Start the proof aggregator locally using Mock Verifier Contract
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator.yaml
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
 
 start_proof_aggregator_local_with_proving: ## Start the proof aggregator locally using SP1 Verifier Contract
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
@@ -693,6 +697,10 @@ deploy_batcher_payment_service: ## Deploy BatcherPayments contract. Parameters: 
 upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters: NETWORK=<mainnet|holesky|sepolia
 	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_batcher_payment_service.sh
+
+deploy_proof_aggregator:
+	@echo "Deploying ProofAggregator contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build

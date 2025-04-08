@@ -35,7 +35,7 @@ defmodule AlignedProofAggregationService do
 
   def get_aggregated_proof_event(%{from_block: fromBlock, to_block: toBlock}) do
     events =
-      AlignedProofAggregationService.EventFilters.new_aggregated_proof(nil)
+      AlignedProofAggregationService.EventFilters.aggregated_proof_verified(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
 
     case events do
@@ -51,21 +51,25 @@ defmodule AlignedProofAggregationService do
            tx_hash = x |> Map.get(:transaction_hash)
 
            %{
-             number:
+             merkle_root:
                topics_raw
-               |> Enum.at(1)
-               |> String.replace_prefix("0x", "")
-               |> String.to_integer(16),
-             status: data |> Enum.at(0),
-             merkle_root: "0x" <> Base.encode16(data |> Enum.at(1), case: :lower),
-             blob_versioned_hash: "0x" <> Base.encode16(data |> Enum.at(2), case: :lower),
+               |> Enum.at(1),
+             blob_versioned_hash: "0x" <> Base.encode16(data |> Enum.at(0), case: :lower),
              block_number: block_number,
+             block_timestamp: get_block_timestamp(block_number),
              tx_hash: tx_hash
            }
          end)}
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  def get_block_timestamp(block_number) do
+    case Ethers.Utils.get_block_timestamp(block_number) do
+      {:ok, timestamp} -> DateTime.from_unix!(timestamp)
+      {:error, error} -> raise("Error fetching block timestamp: #{error}")
     end
   end
 

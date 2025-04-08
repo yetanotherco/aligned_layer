@@ -6,11 +6,12 @@ use sp1_sdk::{
 
 use super::lib::{AggregatedProof, ProgramOutput, ProofAggregationError};
 
-const PROGRAM_ELF: &[u8] = include_bytes!("../../aggregation_programs/sp1/elf/sp1_aggregator_program");
+const PROGRAM_ELF: &[u8] =
+    include_bytes!("../../aggregation_programs/sp1/elf/sp1_aggregator_program");
 
 pub struct SP1ProofWithPubValuesAndElf {
     pub proof_with_pub_values: SP1ProofWithPublicValues,
-    pub elf: Vec<u8>
+    pub elf: Vec<u8>,
 }
 
 impl SP1ProofWithPubValuesAndElf {
@@ -98,15 +99,23 @@ pub enum AlignedSP1VerificationError {
     UnsupportedProof,
 }
 
-pub(crate) fn verify(sp1_proof_with_pub_values_and_elf: &SP1ProofWithPubValuesAndElf) -> Result<(), AlignedSP1VerificationError> {
+pub(crate) fn verify(
+    sp1_proof_with_pub_values_and_elf: &SP1ProofWithPubValuesAndElf,
+) -> Result<(), AlignedSP1VerificationError> {
     let client = ProverClient::from_env();
 
     let (_pk, vk) = client.setup(&sp1_proof_with_pub_values_and_elf.elf);
 
     // only sp1 compressed proofs are supported for aggregation now
-    match sp1_proof_with_pub_values_and_elf.proof_with_pub_values.proof {
+    match sp1_proof_with_pub_values_and_elf
+        .proof_with_pub_values
+        .proof
+    {
         sp1_sdk::SP1Proof::Compressed(_) => client
-            .verify(&sp1_proof_with_pub_values_and_elf.proof_with_pub_values, &vk)
+            .verify(
+                &sp1_proof_with_pub_values_and_elf.proof_with_pub_values,
+                &vk,
+            )
             .map_err(AlignedSP1VerificationError::Verification),
         _ => Err(AlignedSP1VerificationError::UnsupportedProof),
     }
