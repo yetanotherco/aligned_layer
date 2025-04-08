@@ -27,6 +27,20 @@ defmodule ExplorerWeb.AggProofsTable do
         <%= proof.block_number |> Helpers.format_number() %>
       </:col>
 
+      <:col :let={proof} label="Blob versioned hash" class="text-left">
+        <.a href={
+          "#{Helpers.get_etherescan_url()}/blob/#{proof.blob_versioned_hash}"}
+          class="inline-flex gap-x-3 items-center group-hover:text-foreground/80 no-underline font-normal"
+          >
+          <span class="inline-flex gap-x-3 items-center group-hover:text-foreground/80">
+            <%= Helpers.shorten_hash(proof.blob_versioned_hash, 6) %>
+            <.tooltip>
+              <%= proof.blob_versioned_hash %>
+            </.tooltip>
+          </span>
+        </.a>
+      </:col>
+
       <:col :let={proof} label="Number of proofs">
         <%= proof.number_of_proofs |> Helpers.format_number() %>
       </:col>
