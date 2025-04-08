@@ -81,11 +81,6 @@ impl ProofAggregator {
             }
             Err(err) => {
                 error!("Error while aggregating and submitting proofs: {:?}", err);
-                info!("About to set aggregated proof as missed");
-                if let Err(err) = self.set_aggregated_proof_as_missed().await {
-                    error!("Error while marking proof as failed: {:?}", err);
-                };
-                info!("Proofs set as missed");
             }
         }
     }
@@ -218,20 +213,5 @@ impl ProofAggregator {
             .0;
 
         Ok((blob, blob_versioned_hash))
-    }
-
-    async fn set_aggregated_proof_as_missed(
-        &self,
-    ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
-        let res = self
-            .proof_aggregation_service
-            .markCurrentAggregatedProofAsMissed()
-            .send()
-            .await
-            .map_err(AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction)?;
-
-        res.get_receipt()
-            .await
-            .map_err(AggregatedProofSubmissionError::ReceiptError)
     }
 }
