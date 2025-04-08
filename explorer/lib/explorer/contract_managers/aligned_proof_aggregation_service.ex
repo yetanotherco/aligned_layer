@@ -76,7 +76,11 @@ defmodule AlignedProofAggregationService do
       )
 
     parent_beacon_block_hash = Map.get(block, "parentBeaconBlockRoot")
-    slot = Explorer.BeaconClient.get_block_slot!(parent_beacon_block_hash) + 1
+
+    {:ok, beacon_block} =
+      Explorer.BeaconClient.get_block_header_by_parent_hash(parent_beacon_block_hash)
+
+    slot = Explorer.BeaconClient.get_block_slot(beacon_block)
 
     data =
       Explorer.BeaconClient.fetch_blob_by_versioned_hash!(
