@@ -23,7 +23,7 @@ defmodule ExplorerWeb.AggProofsTable do
       </:col>
       <:col :let={proof} label="Age">
         <span class="md:px-0" title={proof.age}>
-          <%= proof.age  %>
+          <%= proof.age %>
         </span>
       </:col>
       <:col :let={proof} label="Block Number">
