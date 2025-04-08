@@ -8,6 +8,7 @@ defmodule Explorer.Repo.Migrations.CreateAggregatedProofs do
       add(:blob_versioned_hash, :string)
       add(:number_of_proofs, :integer)
       add(:block_number, :integer)
+      add(:block_timestamp, :utc_datetime)
 
       timestamps()
     end

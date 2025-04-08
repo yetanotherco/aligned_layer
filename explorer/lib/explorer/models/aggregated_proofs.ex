@@ -7,6 +7,7 @@ defmodule AggregatedProofs do
   schema "aggregated_proofs" do
     field(:blob_versioned_hash, :string)
     field(:block_number, :integer)
+    field(:block_timestamp, :utc_datetime)
     field(:tx_hash, :string)
     field(:number_of_proofs, :integer)
 
@@ -27,6 +28,7 @@ defmodule AggregatedProofs do
       :merkle_root,
       :blob_versioned_hash,
       :block_number,
+      :block_timestamp,
       :tx_hash,
       :number_of_proofs
     ])
@@ -34,6 +36,7 @@ defmodule AggregatedProofs do
       :merkle_root,
       :blob_versioned_hash,
       :block_number,
+      :block_timestamp,
       :tx_hash,
       :number_of_proofs
     ])

@@ -56,12 +56,20 @@ defmodule AlignedProofAggregationService do
                |> Enum.at(1),
              blob_versioned_hash: "0x" <> Base.encode16(data |> Enum.at(0), case: :lower),
              block_number: block_number,
+             block_timestamp: get_block_timestamp(block_number),
              tx_hash: tx_hash
            }
          end)}
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  def get_block_timestamp(block_number) do
+    case Ethers.Utils.get_block_timestamp(block_number) do
+      {:ok, timestamp} -> DateTime.from_unix!(timestamp)
+      {:error, error} -> raise("Error fetching block timestamp: #{error}")
     end
   end
 
