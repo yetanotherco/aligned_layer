@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check that OPERATOR_ADDRESS is not empty
-if [[ "$USER_ADDRESS" -eq "" ]]; then
+if [[ -z "$USER_ADDRESS" ]]; then
   echo "USER_ADDRESS is empty, using default value 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
   USER_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
   USER_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
