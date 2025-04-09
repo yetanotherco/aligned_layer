@@ -53,7 +53,7 @@ defmodule Explorer.BeaconClient do
     beacon_get("/eth/v1/beacon/blob_sidecars/#{slot}")
   end
 
-  def beacon_get(method) do
+  defp beacon_get(method) do
     headers = [{"Content-Type", "application/json"}]
     request = Finch.build(:get, "#{@beacon_url}#{method}", headers)
     response = Finch.request(request, Explorer.Finch)
