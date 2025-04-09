@@ -570,15 +570,24 @@ impl Batcher {
             return Ok(());
         }
 
-        if !self.msg_batcher_payment_addr_is_valid(&client_msg, &ws_conn_sink).await {
+        if !self
+            .msg_batcher_payment_addr_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        {
             return Ok(());
         }
 
-        if !self.msg_proof_size_is_valid(&client_msg, &ws_conn_sink).await {
+        if !self
+            .msg_proof_size_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        {
             return Ok(());
         }
 
-        let Some(addr) = self.msg_signature_is_valid(&client_msg, &ws_conn_sink).await else {
+        let Some(addr) = self
+            .msg_signature_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        else {
             return Ok(());
         };
 
@@ -639,7 +648,6 @@ impl Batcher {
         if !self.msg_user_balance_is_locked(&addr, &ws_conn_sink).await {
             return Ok(());
         }
-
 
         // We acquire the lock first only to query if the user is already present and the lock is dropped.
         // If it was not present, then the user nonce is queried to the Aligned contract.
@@ -1855,9 +1863,9 @@ impl Batcher {
             + BATCHER_SUBMISSION_BASE_GAS_COST
     }
 
-        /// Checks if the message signature is valid
-    /// and returns the address if its. 
-    /// If not, returns false, logs the error, 
+    /// Checks if the message signature is valid
+    /// and returns the address if its.
+    /// If not, returns false, logs the error,
     /// and sends it to the metrics server
     async fn msg_signature_is_valid(
         &self,
@@ -1874,19 +1882,18 @@ impl Batcher {
             self.metrics.user_error(&["invalid_signature", ""]);
             return None;
         };
-        
+
         Some(addr)
     }
 
     /// Checks if the proof size + pub inputs is valid (not exceeding max_proof_size)
-    /// Returns false, logs the error, 
+    /// Returns false, logs the error,
     /// and sends it to the metrics server if the size is too large
     async fn msg_proof_size_is_valid(
         &self,
         client_msg: &SubmitProofMessage,
         ws_conn_sink: &WsMessageSink,
     ) -> bool {
-
         let verification_data = match cbor_serialize(&client_msg.verification_data) {
             Ok(data) => data,
             // This should never happened, the user sent all his data serialized
@@ -1912,13 +1919,12 @@ impl Batcher {
             self.metrics.user_error(&["proof_too_large", ""]);
             return false;
         }
-        
+
         true
     }
 
-
     /// Checks if the chain id matches the one in the config
-    /// Returns false, logs the error, 
+    /// Returns false, logs the error,
     /// and sends it to the metrics server if it doesn't matches
     async fn msg_chain_id_is_valid(
         &self,
@@ -1936,12 +1942,12 @@ impl Batcher {
             self.metrics.user_error(&["invalid_chain_id", ""]);
             return false;
         }
-        
+
         true
     }
 
     /// Checks if the message has a valid payment service address
-    /// Returns false, logs the error, 
+    /// Returns false, logs the error,
     /// and sends it to the metrics server if it doesn't match
     async fn msg_batcher_payment_addr_is_valid(
         &self,
@@ -1963,7 +1969,7 @@ impl Batcher {
                 .user_error(&["invalid_payment_service_address", ""]);
             return false;
         }
-        
+
         true
     }
 
@@ -1984,7 +1990,7 @@ impl Batcher {
             self.metrics.user_error(&["insufficient_balance", ""]);
             return false;
         }
-        
+
         true
     }
 }
