@@ -32,7 +32,11 @@ defmodule AggregationModeProof do
       AggregationModeProof.changeset(%AggregationModeProof{}, proof)
 
     case(
-      Explorer.Repo.get_by(AggregationModeProof, proof_hash: proof.proof_hash, index: proof.index)
+      Explorer.Repo.get_by(AggregationModeProof,
+        agg_proof_id: proof.agg_proof_id,
+        proof_hash: proof.proof_hash,
+        index: proof.index
+      )
     ) do
       nil ->
         Explorer.Repo.insert(changeset)
