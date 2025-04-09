@@ -1,0 +1,170 @@
+use std::str::FromStr;
+
+use ethers::core::k256::sha2::{Digest, Sha256};
+use reqwest::{Client, Url};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+pub const KZG_VERSIONED_HASH: u8 = 0x1;
+
+pub struct BeaconClient {
+    beacon_client_url: String,
+    api_client: Client,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum BeaconResponse {
+    Success { data: Value },
+    Error { code: u64, message: String },
+}
+
+#[derive(Debug)]
+pub enum BeaconClientError {
+    Url(url::ParseError),
+    ReqwestError(reqwest::Error),
+    APIError { code: u64, message: String },
+    Deserialization(serde_json::Error),
+}
+
+#[derive(Deserialize, Debug)]
+pub struct GetBlobResponse {
+    pub blobs: Vec<BlobData>,
+}
+
+impl GetBlobResponse {
+    fn from_response_data(data: Value) -> Result<Self, serde_json::Error> {
+        let blobs = Vec::<BlobData>::deserialize(data)?;
+
+        Ok(Self { blobs })
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BlobData {
+    pub index: u64,
+    pub blob: String,
+    pub kzg_commitment: String,
+    pub kzg_proof: String,
+    pub kzg_commitment_inclusion_proof: Vec<String>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct GetBlockHeadersResponse {
+    pub blocks: Vec<BeaconBlock>,
+}
+
+impl GetBlockHeadersResponse {
+    fn from_response_data(data: Value) -> Result<Self, serde_json::Error> {
+        let blocks = Vec::<BeaconBlock>::deserialize(data)?;
+
+        Ok(Self { blocks })
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BeaconBlock {
+    pub root: String,
+    pub canonical: bool,
+    pub header: BeaconBlockHeader,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BeaconBlockHeader {
+    pub message: BeaconBlockMessage,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct BeaconBlockMessage {
+    pub slot: u64,
+    pub proposer_index: String,
+    pub parent_root: String,
+    pub state_root: String,
+    pub body_root: String,
+}
+
+impl BeaconClient {
+    pub fn new(beacon_client_url: String) -> Self {
+        Self {
+            api_client: Client::new(),
+            beacon_client_url,
+        }
+    }
+
+    pub async fn get_block_header_from_parent_hash(
+        &self,
+        parent_block_hash: [u8; 32],
+    ) -> Result<Option<BeaconBlock>, BeaconClientError> {
+        let parent_block_hash_hex = format!("0x{}", hex::encode(parent_block_hash));
+        let data = self
+            .beacon_get(&format!(
+                "/eth/v1/beacon/headers?parent_root={}",
+                parent_block_hash_hex
+            ))
+            .await?;
+
+        let res = GetBlockHeadersResponse::from_response_data(data)
+            .map_err(BeaconClientError::Deserialization)?;
+
+        let block = res
+            .blocks
+            .into_iter()
+            .find(|block| block.header.message.parent_root == parent_block_hash_hex);
+
+        Ok(block)
+    }
+
+    pub async fn get_blobs_from_slot(
+        &self,
+        slot: u64,
+    ) -> Result<GetBlobResponse, BeaconClientError> {
+        let data = self
+            .beacon_get(&format!("/eth/v1/beacon/blob_sidecars/{}", slot))
+            .await?;
+
+        GetBlobResponse::from_response_data(data).map_err(BeaconClientError::Deserialization)
+    }
+
+    pub async fn get_blob_by_versioned_hash(
+        &self,
+        slot: u64,
+        blob_versioned_hash_hex: String,
+    ) -> Result<Option<BlobData>, BeaconClientError> {
+        let res = self.get_blobs_from_slot(slot).await?;
+
+        let blob = res.blobs.into_iter().find(|blob| {
+            let mut hasher = Sha256::new();
+            hasher.update(blob.kzg_commitment.clone());
+            let mut hash: [u8; 32] = hasher.finalize().into();
+            hash[0] = KZG_VERSIONED_HASH;
+            let versioned_hash = format!("0x{}", hex::encode(hash));
+
+            versioned_hash == blob_versioned_hash_hex
+        });
+
+        Ok(blob)
+    }
+
+    async fn beacon_get(&self, path: &str) -> Result<Value, BeaconClientError> {
+        let url = Url::from_str(&format!("{}{}", self.beacon_client_url, path))
+            .map_err(BeaconClientError::Url)?;
+        let req = self
+            .api_client
+            .get(url)
+            .header("content-type", "application/json")
+            .header("accept", "application/json");
+
+        let res = req.send().await.map_err(BeaconClientError::ReqwestError)?;
+        let beacon_response = res
+            .json::<BeaconResponse>()
+            .await
+            .map_err(BeaconClientError::ReqwestError)?;
+
+        match beacon_response {
+            BeaconResponse::Success { data } => Ok(data),
+            BeaconResponse::Error { code, message } => {
+                Err(BeaconClientError::APIError { code, message })
+            }
+        }
+    }
+}
