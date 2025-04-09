@@ -45,10 +45,10 @@ defmodule AggregationModeProof do
     end
   end
 
-  def get_all_proof_hashes(merkle_root) do
+  def get_all_proof_hashes(id) do
     query =
       from(proof in AggregationModeProof,
-        where: proof.merkle_root == ^merkle_root,
+        where: proof.agg_proof_id == ^id,
         select: proof.proof_hash
       )
 

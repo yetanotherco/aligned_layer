@@ -61,8 +61,8 @@ defmodule AggregatedProofs do
     end
   end
 
-  def get_aggregated_proof_by_merkle_root(merkle_root) do
-    Explorer.Repo.get_by(AggregatedProofs, merkle_root: merkle_root)
+  def get_aggregated_proof_by_id(id) do
+    Explorer.Repo.get_by(AggregatedProofs, id: id)
   end
 
   def get_paginated_proofs(%{page: page, page_size: size}) do
@@ -78,12 +78,12 @@ defmodule AggregatedProofs do
   end
 
   def get_last_page(page_size) do
-    total_proofs = Explorer.Repo.aggregate(AggregatedProofs, :count, :merkle_root)
+    total_proofs = Explorer.Repo.aggregate(AggregatedProofs, :count, :id)
     last_page = div(total_proofs, page_size)
     if rem(total_proofs, page_size) > 0, do: last_page + 1, else: last_page
   end
 
   def get_number_of_agg_proofs() do
-    Explorer.Repo.aggregate(AggregatedProofs, :count, :merkle_root)
+    Explorer.Repo.aggregate(AggregatedProofs, :count, :id)
   end
 end
