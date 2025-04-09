@@ -6,7 +6,7 @@ defmodule Explorer.EthClient do
     eth_send("eth_getBlockByNumber", [block_number, false])
   end
 
-  def eth_send(method, params, id \\ 1) do
+  defp eth_send(method, params, id \\ 1) do
     headers = [{"Content-Type", "application/json"}]
     body = Jason.encode!(%{jsonrpc: "2.0", method: method, params: params, id: id})
     request = Finch.build(:post, @rpc_url, headers, body)
