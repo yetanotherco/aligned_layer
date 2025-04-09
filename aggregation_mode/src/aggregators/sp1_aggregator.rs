@@ -1,13 +1,18 @@
+use std::sync::LazyLock;
+
 use alloy::primitives::Keccak256;
 use sp1_aggregation_program::{ProofInput, SP1ProofInput};
 use sp1_sdk::{
-    HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin, SP1VerifyingKey,
+    EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
+    SP1VerifyingKey,
 };
 
 use super::lib::{AggregatedProof, ProgramOutput, ProofAggregationError};
 
 const PROGRAM_ELF: &[u8] =
     include_bytes!("../../aggregation_programs/sp1/elf/sp1_aggregator_program");
+
+static SP1_PROVER_CLIENT: LazyLock<EnvProver> = LazyLock::new(ProverClient::from_env);
 
 pub struct SP1ProofWithPubValuesAndElf {
     pub proof_with_pub_values: SP1ProofWithPublicValues,
@@ -66,7 +71,7 @@ pub(crate) fn aggregate_proofs(
     }
 
     #[cfg(feature = "prove")]
-    let client = ProverClient::from_env();
+    let client = &*SP1_PROVER_CLIENT;
     // If not in prove mode, create a mock proof via mock client
     #[cfg(not(feature = "prove"))]
     let client = ProverClient::builder().mock().build();
@@ -102,7 +107,7 @@ pub enum AlignedSP1VerificationError {
 pub(crate) fn verify(
     sp1_proof_with_pub_values_and_elf: &SP1ProofWithPubValuesAndElf,
 ) -> Result<(), AlignedSP1VerificationError> {
-    let client = ProverClient::from_env();
+    let client = &*SP1_PROVER_CLIENT;
 
     let (_pk, vk) = client.setup(&sp1_proof_with_pub_values_and_elf.elf);
 
@@ -122,7 +127,7 @@ pub(crate) fn verify(
 }
 
 pub fn vk_from_elf(elf: &[u8]) -> SP1VerifyingKey {
-    let prover = ProverClient::builder().cpu().build();
+    let prover = &*SP1_PROVER_CLIENT;
     let (_, vk) = prover.setup(elf);
     vk
 }
