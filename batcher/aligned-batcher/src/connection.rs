@@ -57,17 +57,16 @@ pub(crate) async fn send_batch_inclusion_data_responses(
 }
 
 pub(crate) async fn send_message<T: Serialize>(ws_conn_sink: WsMessageSink, message: T) {
-    match cbor_serialize(&message) {
-        Ok(serialized_response) => {
-            if let Err(err) = ws_conn_sink
-                .write()
-                .await
-                .send(Message::binary(serialized_response))
-                .await
-            {
-                error!("Error while sending message: {}", err)
-            }
+    if let Ok(serialized_response) =
+        cbor_serialize(&message).inspect_err(|e| error!("Error while serializing message: {}", e))
+    {
+        if let Err(err) = ws_conn_sink
+            .write()
+            .await
+            .send(Message::binary(serialized_response))
+            .await
+        {
+            error!("Error while sending message: {}", err)
         }
-        Err(e) => error!("Error while serializing message: {}", e),
     }
 }
