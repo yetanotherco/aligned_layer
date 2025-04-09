@@ -22,7 +22,7 @@ defmodule Explorer.Periodically do
     :timer.send_interval(one_second * 12, :batches)
     # every 1 hour
     :timer.send_interval(one_second * seconds_in_an_hour, :restakings)
-    :timer.send_interval(one_second * seconds_in_an_hour, :aggregated_proofs)
+    :timer.send_interval(one_second * 12, :aggregated_proofs)
   end
 
   # Reads and process last blocks for operators and restaking changes
@@ -74,7 +74,7 @@ defmodule Explorer.Periodically do
   end
 
   def handle_info(:aggregated_proofs, state) do
-    read_block_qty = 310
+    read_block_qty = 50000
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)
 
@@ -105,13 +105,18 @@ defmodule Explorer.Periodically do
       end)
 
     # Store aggregated proofs to db
-    proofs
-    |> Enum.zip(proof_hashes)
-    |> Enum.each(fn {agg_proof, hashes} ->
-      agg_proof
-      |> Map.merge(%{number_of_proofs: length(hashes)})
-      |> AggregatedProofs.insert_or_update()
-    end)
+    proofs =
+      proofs
+      |> Enum.zip(proof_hashes)
+      |> Enum.map(fn {agg_proof, hashes} ->
+        agg_proof =
+          agg_proof
+          |> Map.merge(%{number_of_proofs: length(hashes)})
+
+        {:ok, %{id: id}} = AggregatedProofs.insert_or_update(agg_proof)
+
+        Map.merge(agg_proof, %{id: id})
+      end)
 
     # Store each individual proof
     proofs
@@ -121,7 +126,7 @@ defmodule Explorer.Periodically do
       |> Enum.with_index()
       |> Enum.each(fn {hash, index} ->
         AggregationModeProof.insert_or_update(%{
-          merkle_root: agg_proof.merkle_root,
+          agg_proof_id: agg_proof.id,
           proof_hash: "0x" <> List.to_string(hash),
           index: index
         })

@@ -3,8 +3,9 @@ defmodule AggregatedProofs do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @primary_key {:merkle_root, :string, autogenerate: false}
+  @primary_key {:id, :binary_id, autogenerate: true}
   schema "aggregated_proofs" do
+    field(:merkle_root, :string)
     field(:blob_versioned_hash, :string)
     field(:block_number, :integer)
     field(:block_timestamp, :utc_datetime)
@@ -12,8 +13,8 @@ defmodule AggregatedProofs do
     field(:number_of_proofs, :integer)
 
     has_many(:proofs_agg_mode, AggregationModeProof,
-      foreign_key: :merkle_root,
-      references: :merkle_root
+      foreign_key: :agg_proof_id,
+      references: :id
     )
 
     timestamps()
@@ -25,6 +26,7 @@ defmodule AggregatedProofs do
   def changeset(aggregated_proof, attrs) do
     aggregated_proof
     |> cast(attrs, [
+      :id,
       :merkle_root,
       :blob_versioned_hash,
       :block_number,
@@ -40,13 +42,13 @@ defmodule AggregatedProofs do
       :tx_hash,
       :number_of_proofs
     ])
-    |> unique_constraint(:merkle_root)
+    |> unique_constraint(:id)
   end
 
   def insert_or_update(agg_proof) do
     changeset = AggregatedProofs.changeset(%AggregatedProofs{}, agg_proof)
 
-    case Explorer.Repo.get_by(AggregatedProofs, merkle_root: agg_proof.merkle_root) do
+    case Explorer.Repo.get_by(AggregatedProofs, block_number: agg_proof.block_number) do
       nil ->
         Explorer.Repo.insert(changeset)
 

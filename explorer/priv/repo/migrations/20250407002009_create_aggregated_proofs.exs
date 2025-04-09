@@ -3,7 +3,8 @@ defmodule Explorer.Repo.Migrations.CreateAggregatedProofs do
 
   def change do
     create table(:aggregated_proofs, primary_key: false) do
-      add(:merkle_root, :string, primary_key: true)
+      add(:id, :binary_id, primary_key: true)
+      add(:merkle_root, :string)
       add(:tx_hash, :string)
       add(:blob_versioned_hash, :string)
       add(:number_of_proofs, :integer)
@@ -15,10 +16,10 @@ defmodule Explorer.Repo.Migrations.CreateAggregatedProofs do
 
     create table(:proofs_agg_mode) do
       add(
-        :merkle_root,
+        :agg_proof_id,
         references(:aggregated_proofs,
-          column: :merkle_root,
-          type: :string,
+          column: :id,
+          type: :binary_id,
           on_delete: :delete_all
         )
       )
