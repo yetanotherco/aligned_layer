@@ -7,15 +7,15 @@ defmodule AggregationModeProof do
   # Different from proofs.ex (we could use the same but the hashes are constructed different)
   @primary_key {:id, :id, autogenerate: true}
   schema "proofs_agg_mode" do
-    field(:merkle_root, :string)
+    field(:agg_proof_id, :binary_id)
     field(:proof_hash, :string)
     field(:index, :integer)
 
     belongs_to(:aggregated_proof, AggregatedProof,
       define_field: false,
-      foreign_key: :merkle_root,
-      references: :merkle_root,
-      type: :string
+      foreign_key: :agg_proof_id,
+      references: :id,
+      type: :binary_id
     )
 
     timestamps()
@@ -23,8 +23,8 @@ defmodule AggregationModeProof do
 
   def changeset(proof, attrs) do
     proof
-    |> cast(attrs, [:merkle_root, :proof_hash, :index])
-    |> validate_required([:merkle_root, :proof_hash, :index])
+    |> cast(attrs, [:agg_proof_id, :proof_hash, :index])
+    |> validate_required([:agg_proof_id, :proof_hash, :index])
   end
 
   def insert_or_update(proof) do
