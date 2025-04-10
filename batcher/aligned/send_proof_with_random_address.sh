@@ -18,7 +18,15 @@ echo "Sending $PROOF_TYPE proof to the batcher"
 
 
 if [ $PROOF_TYPE == "sp1" ]; then
-    echo "TOD SP1"
+	cd batcher/aligned/
+    cargo run --release -- submit \
+		--proving_system SP1 \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+        --random_address \
+		--rpc_url $RPC_URL \
+		--network $NETWORK
 
 elif [ $PROOF_TYPE == "groth16" ]; then
     cd batcher/aligned/ 
@@ -38,4 +46,7 @@ elif [ $PROOF_TYPE == "plonk" ]; then
 elif [ $PROOF_TYPE == "risc0" ]; then
     echo "TODO risc0 "
 
+else
+    echo "Incorrect proof type provided"
+    exit 1
 fi
