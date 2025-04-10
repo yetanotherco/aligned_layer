@@ -5,6 +5,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use aligned_sdk::agg_mode;
 use aligned_sdk::communication::serialization::cbor_deserialize;
 use aligned_sdk::core::types::FeeEstimationType;
 use aligned_sdk::core::{
@@ -78,6 +79,8 @@ pub enum AlignedCommands {
         name = "get-user-amount-of-queued-proofs"
     )]
     GetUserAmountOfQueuedProofs(GetUserAmountOfQueuedProofsArgs),
+    #[clap(about = "", name = "verify-agg-proof")]
+    VerifyProofInAggMode(VerifyProofInAggModeArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -278,6 +281,29 @@ pub struct GetUserAmountOfQueuedProofsArgs {
     address: String,
     #[clap(flatten)]
     network: NetworkArg,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct VerifyProofInAggModeArgs {
+    #[arg(
+        name = "Ethereum RPC provider url",
+        long = "rpc_url",
+        default_value = "https://ethereum-holesky-rpc.publicnode.com"
+    )]
+    eth_rpc_url: String,
+    #[arg(
+        name = "Ethereum Beacon client url",
+        long = "beacon_url",
+        default_value = "http://100.90.212.34:5052"
+    )]
+    beacon_client_url: String,
+    #[arg(name = "Proof Hash", long = "proof-hash")]
+    proof_hash: String,
+    #[clap(flatten)]
+    network: NetworkArg,
+    #[arg(name = "From which block to start", long = "from-block")]
+    from_block: Option<u64>,
 }
 
 #[derive(Args, Debug)]
@@ -730,6 +756,28 @@ async fn main() -> Result<(), AlignedError> {
                 address,
                 batcher_nonce - ethereum_nonce
             );
+            return Ok(());
+        }
+        AlignedCommands::VerifyProofInAggMode(args) => {
+            match agg_mode::is_proof_verified_in_aggregation_mode(
+                args.proof_hash,
+                args.network.into(),
+                args.eth_rpc_url,
+                args.beacon_client_url,
+                args.from_block.unwrap_or(0),
+            )
+            .await
+            {
+                Ok(res) => {
+                    if res {
+                        info!("Proof verified on proof {}", "");
+                    } else {
+                        error!("Proof verification failed!")
+                    }
+                }
+                Err(e) => error!("Error while trying to verify proof {:?}", e),
+            }
+
             return Ok(());
         }
     }
