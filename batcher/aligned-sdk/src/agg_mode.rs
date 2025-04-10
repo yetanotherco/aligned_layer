@@ -6,6 +6,7 @@ use ethers::{
     providers::{Http, Middleware, Provider},
     types::Filter,
 };
+use sha3::{Digest, Keccak256};
 
 #[derive(Debug)]
 pub enum ProofVerificationAggModeError {
@@ -95,7 +96,7 @@ pub async fn is_proof_verified_in_aggregation_mode(
             .unwrap();
 
         if proof_hashes.contains(&proof_hash_bytes) {
-            return Ok(verify_merkle_root(proof_hashes, merkle_root));
+            return Ok(verify_blob_merkle_root(proof_hashes, merkle_root));
         } else {
             continue;
         }
@@ -111,18 +112,15 @@ fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
     let mut current_hash_count = 0;
     let mut total_bytes_count = 0;
 
-    let mut i = 0;
-
-    while i < blob_data.len() {
-        // Every 32 bytes (or 64 characters) there is a 0x00 acting as padding, so we need to skip the byte (two iterations)
+    while total_bytes_count < blob_data.len() {
+        // Every 32 bytes there is a 0x0 acting as padding, so we need to skip the byte
         let is_pad = total_bytes_count % 32 == 0;
         if is_pad {
-            i += 1;
             total_bytes_count += 1;
             continue;
         }
 
-        current_hash[current_hash_count] = blob_data[i];
+        current_hash[current_hash_count] = blob_data[total_bytes_count];
 
         if current_hash_count + 1 == 32 {
             if current_hash == [0u8; 32] {
@@ -131,18 +129,34 @@ fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
             proof_hashes.push(current_hash);
             current_hash = [0u8; 32];
             current_hash_count = 0;
-            continue;
         } else {
             current_hash_count += 1;
         }
 
-        i += 1;
         total_bytes_count += 1;
     }
 
     proof_hashes
 }
 
-fn verify_merkle_root(proof_hashes: Vec<[u8; 32]>, merkle_root: [u8; 32]) -> bool {
-    true
+pub fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
+    let mut hasher = Keccak256::new();
+    hasher.update(hash_a);
+    hasher.update(hash_b);
+    hasher.finalize().into()
+}
+
+fn verify_blob_merkle_root(mut proof_hashes: Vec<[u8; 32]>, merkle_root: [u8; 32]) -> bool {
+    while proof_hashes.len() > 1 {
+        proof_hashes = proof_hashes
+            .chunks(2)
+            .map(|chunk| match chunk {
+                [a, b] => combine_hashes(a, b),
+                [a] => combine_hashes(a, a),
+                _ => panic!("Unexpected chunk size in leaves"),
+            })
+            .collect()
+    }
+
+    proof_hashes[0] == merkle_root
 }
