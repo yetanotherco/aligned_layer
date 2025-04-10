@@ -22,7 +22,9 @@ defmodule Explorer.Periodically do
     :timer.send_interval(one_second * 12, :batches)
     # every 1 hour
     :timer.send_interval(one_second * seconds_in_an_hour, :restakings)
-    :timer.send_interval(one_second * seconds_in_an_hour, :aggregated_proofs)
+
+    # Fetch new aggregated proofs every 1 minute
+    :timer.send_interval(one_second * 60, :aggregated_proofs)
   end
 
   # Reads and process last blocks for operators and restaking changes
