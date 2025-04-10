@@ -81,6 +81,7 @@ dependencies = [
  "hex",
  "lambdaworks-crypto",
  "log",
+ "reqwest 0.12.15",
  "serde",
  "serde_json",
  "serde_repr",
@@ -6017,9 +6018,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-build"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44021cb464833bc15882933d79da1ea45013b12d97f1c0d874ee46cc00de5aaf"
+checksum = "50132a9354807d3f562337ede10194427a2f3be0c412b0dc10310442afb3b39b"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -6030,9 +6031,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-core-executor"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e10afc7d810ddf67b1a7f73630b2d3b475d5ee82b6db3d6e1d522b2b5c3776d4"
+checksum = "ed3585aebe731e76b8f3549cccbaff34de3a58cbf22af074445a168941ef5d18"
 dependencies = [
  "bincode",
  "bytemuck",
@@ -6069,9 +6070,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-core-machine"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36b54ed5c0f799c7a97d52adf5a01f7cc71e0019fc3cd5ce559c5dc095233ab4"
+checksum = "430d6534e76cbd20e01b066c290bfce7663be5230a9c83cef49a5390c2af89e6"
 dependencies = [
  "bincode",
  "cbindgen",
@@ -6125,9 +6126,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-cuda"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70e308eaa531e29325429647de47a115e973752ac39baa0b1561620f9cc92140"
+checksum = "a87155cf3b2ce1021150b02114b02f0f9c5f2e9304061b667e7de2beb22ab016"
 dependencies = [
  "bincode",
  "ctrlc",
@@ -6142,9 +6143,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-curves"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12c63db52b39beb4852428bdd259fda6ceef4f532df1e6ec35a9a5b50651db65"
+checksum = "5dd52f719b0d494fb9983f32dbedebf7b3793e60337c1b4e25a2d727c72b2f0d"
 dependencies = [
  "cfg-if",
  "dashu",
@@ -6164,9 +6165,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-derive"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "541c1dc207775c1e0c4e5e90257abf9a17ddc9553da9a25b254dd4307e7a0117"
+checksum = "b0ba97497d039db1d23db979173ae5572911773c1386487d6401f32e742db598"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -6185,9 +6186,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-primitives"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c856b3fdcf7f380c16dc2c23e5b21df5107d4c1568475722d4256b9a416bca39"
+checksum = "7939f86891aa5995fa863abf296645a5ad4611d9598a8101389f85c624d41043"
 dependencies = [
  "bincode",
  "hex",
@@ -6203,9 +6204,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-prover"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2002b44e97590f554cac88fccb267bce73b9b8ee64ec5774316cf317c62fae0a"
+checksum = "3414cf7ef669ae417adfb0e78f871f9bb9c04bc208243645bcc8ca4437cd7c63"
 dependencies = [
  "anyhow",
  "bincode",
@@ -6248,9 +6249,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-circuit"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9634b7c12dd9bd6f55f0c2fc875459e65ba7f8a60ba602a59da66ec6146c4fbf"
+checksum = "f74f07674c1e5b15e5f08379726a9c35e4fb4731f730fd430ee188fa4ad4d682"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
@@ -6283,9 +6284,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-compiler"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8d1b7d86b1684a468b1770cf94da0a26b21a78fae4772f841b7d86321e1cab5"
+checksum = "8d1d3a6e477689b0f6b36cf9efa704b78e3e93bce54a6109ab775315df36ae62"
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
@@ -6305,9 +6306,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-core"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb3bd561f0bc64e7e102ff59dec3dcc23c695f7a6073f3a2c235faa013f2b74"
+checksum = "202832f731330401b07b0b0767617090b66d28832be257f74833bbb14cba216e"
 dependencies = [
  "backtrace",
  "cbindgen",
@@ -6348,9 +6349,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-derive"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3ff29389b2bba2f21fb632344f4c79a2c65f71ff45595164c80c577c54b856e"
+checksum = "53a5330974412afac6742a6957c3b484c4a982f15f75fc8eac54bf38118c94e9"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -6358,9 +6359,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-gnark-ffi"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce6d98a0ca00b95138da2ae97c513c6a5cc0ed7605fa83782b22fd51fdde775"
+checksum = "dc32b4b8833f849a7083f204261403711e27c9cfb958c95ad06af6666361bdd3"
 dependencies = [
  "anyhow",
  "bincode",
@@ -6384,9 +6385,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-sdk"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "162a2e123a6445fe87d07779c83c05c2393fa93f5b784959fb97e72c787df360"
+checksum = "2c7dc2c3c142eda28ff26ea38a1fbf21a1da403518051e73cca8c0a7460dfc7c"
 dependencies = [
  "alloy-primitives",
  "alloy-signer",
@@ -6430,9 +6431,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-stark"
-version = "4.1.6"
+version = "4.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a88b6ee5c666f74945a058b450288281e0f618c0b68c8b38084377e292cd29b"
+checksum = "3574dd346e32b8ed7978ae4859c518922b85d1aef2d36604971ac9aba2c320a8"
 dependencies = [
  "arrayref",
  "hashbrown 0.14.5",

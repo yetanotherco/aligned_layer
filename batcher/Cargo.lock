@@ -136,6 +136,7 @@ dependencies = [
  "hex",
  "lambdaworks-crypto",
  "log",
+ "reqwest 0.12.15",
  "serde",
  "serde_json",
  "serde_repr",
