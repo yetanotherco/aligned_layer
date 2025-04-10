@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROOF_TYPE="sp1" #sp1|groth16|plonk|risc0
+PROOF_GENERATOR_ADDR=0x66f9664f97F2b50F62D13eA064982f936dE76657
 
 RPC_URL=${RPC_URL:-http://localhost:8545}
 if [ -z "$NETWORK" ]; then
@@ -8,10 +8,10 @@ if [ -z "$NETWORK" ]; then
     NETWORK="devnet"
 fi
 
-if [ -z $1 ]; then
+if [ -z $ ]; then
     echo "Proof type not provided, using SP1 default"
 else
-    PROOF_TYPE=$1
+    PROOF_TYPE="sp1" #sp1|groth16|plonk|risc0
 fi
 
 echo "Sending $PROOF_TYPE proof to the batcher"
@@ -23,7 +23,7 @@ if [ $PROOF_TYPE == "sp1" ]; then
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--proof_generator_addr $PROOF_GENERATOR_ADDR \
         --random_address \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
@@ -35,18 +35,35 @@ elif [ $PROOF_TYPE == "groth16" ]; then
 		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--proof_generator_addr $PROOF_GENERATOR_ADD$ \
         --random_address \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
 elif [ $PROOF_TYPE == "plonk" ]; then
-    echo "TOD plonk"
+    cd batcher/aligned/ 
+    cargo run --release -- submit \
+		--proving_system GnarkPlonkBn254 \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+		--proof_generator_addr $PROOF_GENERATOR_ADD$ \
+		--random_address \
+		--rpc_url $RPC_URL \
+		--network $NETWORK
 
 elif [ $PROOF_TYPE == "risc0" ]; then
-    echo "TODO risc0 "
+    cd batcher/aligned/ 
+    cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id_2_0.bin \
+		--proof_generator_addr $PROOF_GENERATOR_ADD$ \
+		--random_address \
+		--rpc_url $RPC_URL \
+		--network $NETWORK
 
 else
-    echo "Incorrect proof type provided"
+    echo "Incorrect proof type provided $1"
     exit 1
 fi
