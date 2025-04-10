@@ -17,6 +17,6 @@ pub mod eth {
     pub mod batcher_payment_service;
 }
 
-mod agg_mode;
+pub mod agg_mode;
 mod beacon;
 pub mod sdk;

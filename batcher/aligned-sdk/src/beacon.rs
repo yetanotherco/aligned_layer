@@ -14,7 +14,7 @@ pub struct BeaconClient {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
-enum BeaconResponse {
+enum BeaconAPIResponse {
     Success { data: Value },
     Error { code: u64, message: String },
 }
@@ -42,7 +42,7 @@ impl GetBlobResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct BlobData {
-    pub index: u64,
+    pub index: String,
     pub blob: String,
     pub kzg_commitment: String,
     pub kzg_proof: String,
@@ -76,7 +76,7 @@ pub struct BeaconBlockHeader {
 
 #[derive(Deserialize, Debug)]
 pub struct BeaconBlockMessage {
-    pub slot: u64,
+    pub slot: String,
     pub proposer_index: String,
     pub parent_root: String,
     pub state_root: String,
@@ -128,18 +128,20 @@ impl BeaconClient {
     pub async fn get_blob_by_versioned_hash(
         &self,
         slot: u64,
-        blob_versioned_hash_hex: String,
+        blob_versioned_hash: [u8; 32],
     ) -> Result<Option<BlobData>, BeaconClientError> {
         let res = self.get_blobs_from_slot(slot).await?;
 
         let blob = res.blobs.into_iter().find(|blob| {
-            let mut hasher = Sha256::new();
-            hasher.update(blob.kzg_commitment.clone());
-            let mut hash: [u8; 32] = hasher.finalize().into();
-            hash[0] = KZG_VERSIONED_HASH;
-            let versioned_hash = format!("0x{}", hex::encode(hash));
+            let kzg_commitment_bytes =
+                hex::decode(blob.kzg_commitment.replace("0x", "")).expect("A valid commitment");
 
-            versioned_hash == blob_versioned_hash_hex
+            let mut hasher = Sha256::new();
+            hasher.update(&kzg_commitment_bytes);
+            let mut versioned_hash: [u8; 32] = hasher.finalize().into();
+            versioned_hash[0] = KZG_VERSIONED_HASH;
+
+            versioned_hash == blob_versioned_hash
         });
 
         Ok(blob)
@@ -155,14 +157,11 @@ impl BeaconClient {
             .header("accept", "application/json");
 
         let res = req.send().await.map_err(BeaconClientError::ReqwestError)?;
-        let beacon_response = res
-            .json::<BeaconResponse>()
-            .await
-            .map_err(BeaconClientError::ReqwestError)?;
+        let beacon_response = res.json().await.map_err(BeaconClientError::ReqwestError)?;
 
         match beacon_response {
-            BeaconResponse::Success { data } => Ok(data),
-            BeaconResponse::Error { code, message } => {
+            BeaconAPIResponse::Success { data } => Ok(data),
+            BeaconAPIResponse::Error { code, message } => {
                 Err(BeaconClientError::APIError { code, message })
             }
         }
