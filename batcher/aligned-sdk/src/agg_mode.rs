@@ -84,10 +84,17 @@ pub async fn is_proof_verified_in_aggregation_mode(
             .map_err(ProofVerificationAggModeError::BeaconClient)?
             .unwrap();
 
-        let proof_hashes = decoded_blob(blob.blob.into());
+        let blob_data = hex::decode(blob.blob.replace("0x", "")).expect("A valid hex encoded data");
+
+        let proof_hashes = decoded_blob(blob_data);
 
         // decoded blob and get all leaves and see if it the has is inside
-        if proof_hashes.contains(&[0u8; 32]) {
+        let proof_hash_bytes: [u8; 32] = hex::decode(proof_hash.replace("0x", ""))
+            .unwrap()
+            .try_into()
+            .unwrap();
+
+        if proof_hashes.contains(&proof_hash_bytes) {
             return Ok(verify_merkle_root(proof_hashes, merkle_root));
         } else {
             continue;
@@ -98,7 +105,40 @@ pub async fn is_proof_verified_in_aggregation_mode(
 }
 
 fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
-    let proof_hashes = vec![];
+    let mut proof_hashes = vec![];
+
+    let mut current_hash = [0u8; 32];
+    let mut current_hash_count = 0;
+    let mut total_bytes_count = 0;
+
+    let mut i = 0;
+
+    while i < blob_data.len() {
+        // Every 32 bytes (or 64 characters) there is a 0x00 acting as padding, so we need to skip the byte (two iterations)
+        let is_pad = total_bytes_count % 32 == 0;
+        if is_pad {
+            i += 1;
+            total_bytes_count += 1;
+            continue;
+        }
+
+        current_hash[current_hash_count] = blob_data[i];
+
+        if current_hash_count + 1 == 32 {
+            if current_hash == [0u8; 32] {
+                break;
+            }
+            proof_hashes.push(current_hash);
+            current_hash = [0u8; 32];
+            current_hash_count = 0;
+            continue;
+        } else {
+            current_hash_count += 1;
+        }
+
+        i += 1;
+        total_bytes_count += 1;
+    }
 
     proof_hashes
 }
