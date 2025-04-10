@@ -41,6 +41,7 @@ impl GetBlobResponse {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 pub struct BlobData {
     pub index: String,
     pub blob: String,
@@ -63,6 +64,7 @@ impl GetBlockHeadersResponse {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 pub struct BeaconBlock {
     pub root: String,
     pub canonical: bool,
@@ -75,6 +77,7 @@ pub struct BeaconBlockHeader {
 }
 
 #[derive(Deserialize, Debug)]
+#[allow(dead_code)]
 pub struct BeaconBlockMessage {
     pub slot: String,
     pub proposer_index: String,

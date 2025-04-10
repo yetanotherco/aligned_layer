@@ -759,8 +759,13 @@ async fn main() -> Result<(), AlignedError> {
             return Ok(());
         }
         AlignedCommands::VerifyProofInAggMode(args) => {
+            let proof_hash_bytes: [u8; 32] = hex::decode(args.proof_hash.replace("0x", ""))
+                .expect("Proof to be a valid hex encoded hash")
+                .try_into()
+                .expect("Proof be raw bytes to be of len 32");
+
             match agg_mode::is_proof_verified_in_aggregation_mode(
-                args.proof_hash,
+                proof_hash_bytes,
                 args.network.into(),
                 args.eth_rpc_url,
                 args.beacon_client_url,
@@ -769,11 +774,10 @@ async fn main() -> Result<(), AlignedError> {
             .await
             {
                 Ok(res) => {
-                    if res {
-                        info!("Proof verified on proof {}", "");
-                    } else {
-                        error!("Proof verification failed!")
-                    }
+                    info!(
+                        "Your proof has been verified in the aggregated proof with merkle root 0x{}",
+                        hex::encode(res)
+                    );
                 }
                 Err(e) => error!("Error while trying to verify proof {:?}", e),
             }

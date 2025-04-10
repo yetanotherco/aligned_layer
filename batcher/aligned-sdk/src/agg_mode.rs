@@ -13,96 +13,105 @@ pub enum ProofVerificationAggModeError {
     ProvingSystemNotSupportedInAggMode,
     EthereumProviderError(String),
     BeaconClient(BeaconClientError),
+    UnmatchedBlobAndEventMerkleRoot,
+    ProofNotFoundInLogs,
+    EventDecoding,
 }
 
-/// Given aligned verification data, it verifies if the proof was verified in the last aggregated proof
-/// Currently, this in Beta mode so there isn't a way to know exactly to which proof it belongs
-/// So currently we check if included in the last one and verify the merkle root commitment
-/// The step by step verification consists of:
-/// 1. Query the blob versioned hash of latest event from aligned proof aggregation service contract
-/// 2. Get the beacon block via the block parent beacon root
-/// 3. Fetch the blobs for that slot
-/// 4. Filter the blob with the blob versioned hash
-/// 5. Decode the blobs proofs
-/// 6. Find if the proofs hash is inside the blob proofs
-/// 7. Construct merkle root and verify it matches the one in the contract
+/// Given aligned verification data, this function checks whether a proof was included
+/// in the most recent aggregated proof and verifies the corresponding Merkle root commitment.
+///
+/// Note: This functionality is currently in Beta. As a result, we cannot determine with certainty
+/// which specific aggregation a proof belongs to. Instead, we optimistically check the latest one.
+///
+/// ⚠️ The `from` block used in the verification process must not be older than 18 days,
+/// as blobs expire after that period and will no longer be retrievable.
+///
+/// The step-by-step verification process includes:
+/// 1. Querying the blob versioned hash from the latest event emitted by the aligned proof aggregation service contract
+/// 2. Retrieving the corresponding beacon block using the block’s parent beacon root
+/// 3. Fetching the blobs associated with that slot
+/// 4. Filtering the blob that matches the queried blob versioned hash
+/// 5. Decoding the blob to extract the proofs
+/// 6. Checking if the given proof hash exists within the blob’s proofs
+/// 7. Reconstructing the Merkle root and verifying it against the commitment stored in the contract
 pub async fn is_proof_verified_in_aggregation_mode(
-    proof_hash: String,
+    proof_hash: [u8; 32],
     network: Network,
     eth_rpc_url: String,
     beacon_client_url: String,
     from_block: u64,
-) -> Result<bool, ProofVerificationAggModeError> {
-    // TODO: check if the from_block is past 18 days as the blob_data won't be available anymore
-
+) -> Result<[u8; 32], ProofVerificationAggModeError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+    let beacon_client = BeaconClient::new(beacon_client_url);
 
     let filter = Filter::new()
         .address(network.get_aligned_proof_agg_service_address())
         .event("AggregatedProofVerified(bytes32,bytes32)")
         .from_block(from_block);
 
-    let mut to_check: Vec<([u8; 32], [u8; 32], u64)> = vec![];
-
     let logs = eth_rpc_provider.get_logs(&filter).await.unwrap();
     for log in logs {
         let blob_versioned_hash: [u8; 32] = log.data[0..32]
             .try_into()
-            .expect("Data has incorrect length");
-        let merkle_root = log.topics.get(1).expect("to decode merkle root in index").0;
+            .map_err(|_| ProofVerificationAggModeError::EventDecoding)?;
+        let merkle_root = log.topics[1].0;
+        let Some(block_number) = log.block_number else {
+            continue;
+        };
 
-        to_check.push((
-            blob_versioned_hash,
-            merkle_root,
-            log.block_number.unwrap().0[0],
-        ));
-    }
-
-    let beacon_client = BeaconClient::new(beacon_client_url);
-
-    // Start checking each log and blob versioned hash
-    for (blob_versioned_hash, merkle_root, block_number) in to_check {
-        let block = eth_rpc_provider
-            .get_block(block_number)
+        let Some(block) = eth_rpc_provider
+            .get_block(block_number.as_u64())
             .await
-            .unwrap()
-            .unwrap();
-        let beacon_parent_root = block.parent_beacon_block_root.unwrap();
+            .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?
+        else {
+            continue;
+        };
 
-        let beacon_block = beacon_client
+        let Some(beacon_parent_root) = block.parent_beacon_block_root else {
+            continue;
+        };
+
+        let Some(beacon_block) = beacon_client
             .get_block_header_from_parent_hash(beacon_parent_root.0)
             .await
             .map_err(ProofVerificationAggModeError::BeaconClient)?
-            .unwrap();
+        else {
+            continue;
+        };
 
-        let blob = beacon_client
+        let Some(blob) = beacon_client
             .get_blob_by_versioned_hash(
-                beacon_block.header.message.slot.parse().expect("a number"),
+                beacon_block
+                    .header
+                    .message
+                    .slot
+                    .parse()
+                    .expect("Slot to be parsable number"),
                 blob_versioned_hash,
             )
             .await
             .map_err(ProofVerificationAggModeError::BeaconClient)?
-            .unwrap();
+        else {
+            continue;
+        };
 
         let blob_data = hex::decode(blob.blob.replace("0x", "")).expect("A valid hex encoded data");
-
         let proof_hashes = decoded_blob(blob_data);
 
-        // decoded blob and get all leaves and see if it the has is inside
-        let proof_hash_bytes: [u8; 32] = hex::decode(proof_hash.replace("0x", ""))
-            .unwrap()
-            .try_into()
-            .unwrap();
-
-        if proof_hashes.contains(&proof_hash_bytes) {
-            return Ok(verify_blob_merkle_root(proof_hashes, merkle_root));
+        if proof_hashes.contains(&proof_hash) {
+            if verify_blob_merkle_root(proof_hashes, merkle_root) {
+                return Ok(merkle_root);
+            } else {
+                return Err(ProofVerificationAggModeError::UnmatchedBlobAndEventMerkleRoot);
+            }
         } else {
             continue;
         }
     }
 
-    Ok(false)
+    return Err(ProofVerificationAggModeError::ProofNotFoundInLogs);
 }
 
 fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
