@@ -289,20 +289,19 @@ pub struct VerifyProofInAggModeArgs {
     #[arg(
         name = "Ethereum RPC provider url",
         long = "rpc_url",
-        default_value = "https://ethereum-holesky-rpc.publicnode.com"
+        default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
-    #[arg(
-        name = "Ethereum Beacon client url",
-        long = "beacon_url",
-        default_value = "http://100.90.212.34:5052"
-    )]
+    #[arg(name = "Ethereum Beacon client url", long = "beacon_url")]
     beacon_client_url: String,
-    #[arg(name = "Proof Hash", long = "proof-hash")]
-    proof_hash: String,
+    #[arg(name = "Proof commitment", long = "proof-commitment")]
+    proof_commitment: String,
     #[clap(flatten)]
     network: NetworkArg,
-    #[arg(name = "From which block to start", long = "from-block")]
+    #[arg(
+        name = "From which block to start, if not provided it defaults to fetch logs from the past 25hs",
+        long = "from-block"
+    )]
     from_block: Option<u64>,
 }
 
@@ -759,7 +758,7 @@ async fn main() -> Result<(), AlignedError> {
             return Ok(());
         }
         AlignedCommands::VerifyProofInAggMode(args) => {
-            let proof_hash_bytes: [u8; 32] = hex::decode(args.proof_hash.replace("0x", ""))
+            let proof_hash_bytes: [u8; 32] = hex::decode(args.proof_commitment.replace("0x", ""))
                 .expect("Proof to be a valid hex encoded hash")
                 .try_into()
                 .expect("Proof be raw bytes to be of len 32");
@@ -769,7 +768,7 @@ async fn main() -> Result<(), AlignedError> {
                 args.network.into(),
                 args.eth_rpc_url,
                 args.beacon_client_url,
-                args.from_block.unwrap_or(0),
+                args.from_block,
             )
             .await
             {

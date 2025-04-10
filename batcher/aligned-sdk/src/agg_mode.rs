@@ -8,6 +8,10 @@ use ethers::{
 };
 use sha3::{Digest, Keccak256};
 
+/// How much to go back from current block if from_block is not provided
+/// 7500 blocks = 25hr
+const FROM_BLOCKS_AGO_DEFAULT: u64 = 7500;
+
 #[derive(Debug)]
 pub enum ProofVerificationAggModeError {
     ProvingSystemNotSupportedInAggMode,
@@ -26,6 +30,7 @@ pub enum ProofVerificationAggModeError {
 ///
 /// ⚠️ The `from` block used in the verification process must not be older than 18 days,
 /// as blobs expire after that period and will no longer be retrievable.
+/// If not provided, it  defaults to fetch logs from the past 25hs
 ///
 /// The step-by-step verification process includes:
 /// 1. Querying the blob versioned hash from the latest event emitted by the aligned proof aggregation service contract
@@ -40,11 +45,22 @@ pub async fn is_proof_verified_in_aggregation_mode(
     network: Network,
     eth_rpc_url: String,
     beacon_client_url: String,
-    from_block: u64,
+    from_block: Option<u64>,
 ) -> Result<[u8; 32], ProofVerificationAggModeError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
     let beacon_client = BeaconClient::new(beacon_client_url);
+
+    let from_block = match from_block {
+        Some(from_block) => from_block,
+        None => {
+            let block_number = eth_rpc_provider
+                .get_block_number()
+                .await
+                .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+            block_number.as_u64() - FROM_BLOCKS_AGO_DEFAULT
+        }
+    };
 
     let filter = Filter::new()
         .address(network.get_aligned_proof_agg_service_address())
@@ -111,7 +127,7 @@ pub async fn is_proof_verified_in_aggregation_mode(
         }
     }
 
-    return Err(ProofVerificationAggModeError::ProofNotFoundInLogs);
+    Err(ProofVerificationAggModeError::ProofNotFoundInLogs)
 }
 
 fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
