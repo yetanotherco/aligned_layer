@@ -220,10 +220,6 @@ defmodule NavComponent do
               navigate={route}
             >
               <%= name %>
-              <.icon
-                name="hero-chevron-right"
-                class="text-foreground/80 transition duration-300 group-hover/link:translate-x-1 group-hover/link:text-foreground h-5 w-5"
-              />
             </.link>
           <% end %>
         </div>
