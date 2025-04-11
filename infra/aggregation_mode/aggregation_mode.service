@@ -7,7 +7,7 @@ Type=oneshot
 WorkingDirectory=/home/user
 ExecStartPre=sleep 60
 ExecStart=/home/user/.cargo/bin/proof_aggregator /home/user/config/config-proof-aggregator.yaml
-ExecStartPost=/home/user/repos/aggregation_mode/aligned_layer/infra/aggregation_mode/aggregation_mode_shutdown.sh
+ExecStartPost=/home/user/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/aggregation_mode_shutdown.sh
 RemainAfterExit=yes
 Environment="SP1_PROVER=cuda"
 EnvironmentFile=/home/app/config/.env.aggregation_mode_shutdown
