@@ -31,9 +31,9 @@ elif [[ $PROOF_TYPE == "groth16" ]]; then
     cd batcher/aligned/ 
     cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
-		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
-		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
-		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
         --random_address \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
