@@ -2,22 +2,24 @@
 
 PROOF_GENERATOR_ADDR=0x66f9664f97F2b50F62D13eA064982f936dE76657
 
-RPC_URL=${RPC_URL:-http://localhost:8545}
 if [ -z "$NETWORK" ]; then
     echo "NETWORK is not set. Setting it to devnet"
     NETWORK="devnet"
 fi
 
-if [ -z $ ]; then
+if [ -z "$RPC_URL" ]; then
+    echo "RPC_URL is not set. Setting it to localhost:8545"
+    RPC_URL="http://localhost:8545"
+fi
+
+if [ -z $PROOF_TYPE ]; then
     echo "Proof type not provided, using SP1 default"
-else
     PROOF_TYPE="sp1" #sp1|groth16|plonk|risc0
 fi
 
 echo "Sending $PROOF_TYPE proof to the batcher"
 
-
-if [ $PROOF_TYPE == "sp1" ]; then
+if [[ $PROOF_TYPE == "sp1" ]]; then
 	cd batcher/aligned/
     cargo run --release -- submit \
 		--proving_system SP1 \
@@ -28,7 +30,7 @@ if [ $PROOF_TYPE == "sp1" ]; then
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
-elif [ $PROOF_TYPE == "groth16" ]; then
+elif [[ $PROOF_TYPE == "groth16" ]]; then
     cd batcher/aligned/ 
     cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
@@ -40,7 +42,7 @@ elif [ $PROOF_TYPE == "groth16" ]; then
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
-elif [ $PROOF_TYPE == "plonk" ]; then
+elif [[ $PROOF_TYPE == "plonk" ]]; then
     cd batcher/aligned/ 
     cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
@@ -52,7 +54,7 @@ elif [ $PROOF_TYPE == "plonk" ]; then
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
-elif [ $PROOF_TYPE == "risc0" ]; then
+elif [[ $PROOF_TYPE == "risc0" ]]; then
     cd batcher/aligned/ 
     cargo run --release -- submit \
 		--proving_system Risc0 \
