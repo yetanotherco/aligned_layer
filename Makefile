@@ -982,7 +982,7 @@ docker_batcher_send_groth16_burst:
             --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
 			--proving_system Groth16Bn254 \
 			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
-			--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
+			--public_input ./scripts/test_files/gnark_groth16_bn254_script/groth16.pub \
 			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
 			--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
 			--repetitions $(DOCKER_BURST_SIZE) \
