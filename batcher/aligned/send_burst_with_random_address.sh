@@ -10,7 +10,7 @@
 # BURST_DELAY in secs (default 30)
 
 if [ -z $BURST_DELAY ]; then
-    echo "Using default burst delay 10"
+    echo "Using default burst delay 30"
     BURST_DELAY=30
 fi
 
