@@ -30,7 +30,6 @@ echo "Sending $REPETITIONS $PROOF_TYPE proof/s to the batcher"
 echo "Batcher in $NETWORK and endpoint at $RPC_URL"
 
 if [[ $PROOF_TYPE == "sp1" ]]; then
-	cd batcher/aligned/
     cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
@@ -41,7 +40,6 @@ if [[ $PROOF_TYPE == "sp1" ]]; then
 		--network $NETWORK
 
 elif [[ $PROOF_TYPE == "groth16" ]]; then
-    cd batcher/aligned/ 
     cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
 		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
@@ -53,7 +51,6 @@ elif [[ $PROOF_TYPE == "groth16" ]]; then
 		--network $NETWORK
 
 elif [[ $PROOF_TYPE == "plonk" ]]; then
-    cd batcher/aligned/ 
     cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
@@ -65,7 +62,6 @@ elif [[ $PROOF_TYPE == "plonk" ]]; then
 		--network $NETWORK
 
 elif [[ $PROOF_TYPE == "risc0" ]]; then
-    cd batcher/aligned/ 
     cargo run --release -- submit \
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
