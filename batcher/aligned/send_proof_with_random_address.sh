@@ -15,7 +15,13 @@ if [ -z $PROOF_TYPE ]; then
     PROOF_TYPE="sp1" #sp1|groth16|plonk|risc0
 fi
 
-echo "Sending $PROOF_TYPE proof to the batcher"
+if [ -z $REPETITIONS ]; then
+    echo "REPETITIONS not provided, using 1 as default"
+    REPETITIONS=1
+fi
+
+echo "Sending $REPETITIONS $PROOF_TYPE proof/s to the batcher"
+echo "Batcher in $NETWORK and endpoint at $RPC_URL"
 
 if [[ $PROOF_TYPE == "sp1" ]]; then
 	cd batcher/aligned/
@@ -24,6 +30,7 @@ if [[ $PROOF_TYPE == "sp1" ]]; then
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
         --random_address \
+        --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
@@ -35,6 +42,7 @@ elif [[ $PROOF_TYPE == "groth16" ]]; then
 		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16.pub \
 		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
         --random_address \
+        --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
@@ -46,6 +54,7 @@ elif [[ $PROOF_TYPE == "plonk" ]]; then
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
 		--random_address \
+        --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
@@ -56,6 +65,7 @@ elif [[ $PROOF_TYPE == "risc0" ]]; then
 		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_0.proof \
         --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id_2_0.bin \
 		--random_address \
+        --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
