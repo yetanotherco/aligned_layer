@@ -2,7 +2,7 @@
   "addresses": {
     "alignedLayerProxyAdmin": "0x7262d34478f8fB496a8feDfa0fdaBD1a0401d6cD",
     "alignedLayerServiceManager": "0x9C5231FC88059C086Ea95712d105A2026048c39B",
-    "alignedLayerServiceManagerImplementation": "0x87B8a7dbA67E5015BD24e3f2e1cDf1747819365b",
+    "alignedLayerServiceManagerImplementation": "0xd8653f06625bD975561D47e26BE0651AAbB60A7C",
     "blsApkRegistry": "0xEe1b6Dc663F17eC69987b6D56255a7282b358a09",
     "blsApkRegistryImplementation": "0x875f22C55D5363f7d1d1d63420298E89DcdB7bdF",
     "indexRegistry": "0xF12b82A933381391fE0e9a0270111f90FB10a810",
@@ -14,7 +14,7 @@
     "stakeRegistry": "0x1b0C9b87b094d821911500F91914B1A1D2856F14",
     "stakeRegistryImplementation": "0x52A9e264b98fe2d53805937Bc094a981E7eB6BeE",
     "batcherPaymentService": "0x7577Ec4ccC1E6C529162ec8019A49C13F6DAd98b",
-    "batcherPaymentServiceImplementation": "0x230FF8F073C188732856990b070485FD1A9b1039",
+    "batcherPaymentServiceImplementation": "0x9c95b11d04e0f1a72eEde033Cb2F687Fe0d79fB9",
     "pauserRegistry": "0xBCd09a605906a13F917230F82BdAC15B778A5B03"
   },
   "chainInfo": {
