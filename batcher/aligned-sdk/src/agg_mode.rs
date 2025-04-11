@@ -6,11 +6,33 @@ use ethers::{
     providers::{Http, Middleware, Provider},
     types::Filter,
 };
+use log::warn;
 use sha3::{Digest, Keccak256};
 
 /// How much to go back from current block if from_block is not provided
 /// 7500 blocks = 25hr
 const FROM_BLOCKS_AGO_DEFAULT: u64 = 7500;
+
+#[derive(Debug)]
+pub enum ProofData {
+    SP1 {
+        vk: [u8; 32],
+        public_inputs: Vec<u8>,
+    },
+}
+
+impl ProofData {
+    fn commitment(&self) -> [u8; 32] {
+        match self {
+            ProofData::SP1 { vk, public_inputs } => {
+                let mut hasher = Keccak256::new();
+                hasher.update(vk);
+                hasher.update(public_inputs);
+                hasher.finalize().into()
+            }
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum ProofVerificationAggModeError {
@@ -41,7 +63,7 @@ pub enum ProofVerificationAggModeError {
 /// 6. Checking if the given proof hash exists within the blob’s proofs
 /// 7. Reconstructing the Merkle root and verifying it against the commitment stored in the contract
 pub async fn is_proof_verified_in_aggregation_mode(
-    proof_hash: [u8; 32],
+    proof_data: ProofData,
     network: Network,
     eth_rpc_url: String,
     beacon_client_url: String,
@@ -114,10 +136,10 @@ pub async fn is_proof_verified_in_aggregation_mode(
         };
 
         let blob_data = hex::decode(blob.blob.replace("0x", "")).expect("A valid hex encoded data");
-        let proof_hashes = decoded_blob(blob_data);
+        let proof_commitments = decoded_blob(blob_data);
 
-        if proof_hashes.contains(&proof_hash) {
-            if verify_blob_merkle_root(proof_hashes, merkle_root) {
+        if proof_commitments.contains(&proof_data.commitment()) {
+            if verify_blob_merkle_root(proof_commitments, merkle_root) {
                 return Ok(merkle_root);
             } else {
                 return Err(ProofVerificationAggModeError::UnmatchedBlobAndEventMerkleRoot);
@@ -171,9 +193,9 @@ pub fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
     hasher.finalize().into()
 }
 
-fn verify_blob_merkle_root(mut proof_hashes: Vec<[u8; 32]>, merkle_root: [u8; 32]) -> bool {
-    while proof_hashes.len() > 1 {
-        proof_hashes = proof_hashes
+fn verify_blob_merkle_root(mut commitments: Vec<[u8; 32]>, merkle_root: [u8; 32]) -> bool {
+    while commitments.len() > 1 {
+        commitments = commitments
             .chunks(2)
             .map(|chunk| match chunk {
                 [a, b] => combine_hashes(a, b),
@@ -183,5 +205,5 @@ fn verify_blob_merkle_root(mut proof_hashes: Vec<[u8; 32]>, merkle_root: [u8; 32
             .collect()
     }
 
-    proof_hashes[0] == merkle_root
+    commitments[0] == merkle_root
 }

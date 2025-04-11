@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use aligned_sdk::agg_mode;
+use aligned_sdk::agg_mode::ProofData;
 use aligned_sdk::communication::serialization::cbor_deserialize;
 use aligned_sdk::core::types::FeeEstimationType;
 use aligned_sdk::core::{
@@ -294,8 +295,6 @@ pub struct VerifyProofInAggModeArgs {
     eth_rpc_url: String,
     #[arg(name = "Ethereum Beacon client url", long = "beacon_url")]
     beacon_client_url: String,
-    #[arg(name = "Proof commitment", long = "proof-commitment")]
-    proof_commitment: String,
     #[clap(flatten)]
     network: NetworkArg,
     #[arg(
@@ -303,6 +302,12 @@ pub struct VerifyProofInAggModeArgs {
         long = "from-block"
     )]
     from_block: Option<u64>,
+    #[arg(name = "Proving system", long = "proving_system")]
+    proving_system: ProvingSystemArg,
+    #[arg(name = "Public input file name", long = "public_input")]
+    pub_input_file_name: Option<PathBuf>,
+    #[arg(name = "Verification key hash", long = "vk")]
+    verification_key_hash: Option<PathBuf>,
 }
 
 #[derive(Args, Debug)]
@@ -758,13 +763,32 @@ async fn main() -> Result<(), AlignedError> {
             return Ok(());
         }
         AlignedCommands::VerifyProofInAggMode(args) => {
-            let proof_hash_bytes: [u8; 32] = hex::decode(args.proof_commitment.replace("0x", ""))
-                .expect("Proof to be a valid hex encoded hash")
-                .try_into()
-                .expect("Proof be raw bytes to be of len 32");
+            let proof_data = match args.proving_system {
+                ProvingSystemArg::SP1 => {
+                    let Some(vk_hash) = args.verification_key_hash else {
+                        error!("VK hash is necessary for sp1");
+                        return Ok(());
+                    };
+                    let vk = read_file(vk_hash)?
+                        .try_into()
+                        .expect("Invalid hexadecimal encoded vk hash");
+
+                    let Some(pub_inputs_file_name) = args.pub_input_file_name else {
+                        error!("Public input file not provided");
+                        return Ok(());
+                    };
+                    let public_inputs = read_file(pub_inputs_file_name)?;
+
+                    ProofData::SP1 { vk, public_inputs }
+                }
+                _ => {
+                    error!("Proving system not supported in aggregation mode");
+                    return Ok(());
+                }
+            };
 
             match agg_mode::is_proof_verified_in_aggregation_mode(
-                proof_hash_bytes,
+                proof_data,
                 args.network.into(),
                 args.eth_rpc_url,
                 args.beacon_client_url,
