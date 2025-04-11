@@ -1,7 +1,5 @@
 #!/bin/bash
 
-PROOF_GENERATOR_ADDR=0x66f9664f97F2b50F62D13eA064982f936dE76657
-
 if [ -z "$NETWORK" ]; then
     echo "NETWORK is not set. Setting it to devnet"
     NETWORK="devnet"
@@ -25,7 +23,6 @@ if [[ $PROOF_TYPE == "sp1" ]]; then
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
-		--proof_generator_addr $PROOF_GENERATOR_ADDR \
         --random_address \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
@@ -37,7 +34,6 @@ elif [[ $PROOF_TYPE == "groth16" ]]; then
 		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
 		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
-		--proof_generator_addr $PROOF_GENERATOR_ADD$ \
         --random_address \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
@@ -49,7 +45,6 @@ elif [[ $PROOF_TYPE == "plonk" ]]; then
 		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
-		--proof_generator_addr $PROOF_GENERATOR_ADD$ \
 		--random_address \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
@@ -60,7 +55,6 @@ elif [[ $PROOF_TYPE == "risc0" ]]; then
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_0.proof \
         --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id_2_0.bin \
-		--proof_generator_addr $PROOF_GENERATOR_ADD$ \
 		--random_address \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
