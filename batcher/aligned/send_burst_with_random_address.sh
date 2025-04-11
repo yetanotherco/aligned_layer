@@ -7,11 +7,11 @@
 # RPC_URL (default localhost:8545)
 # NETWORK   devnet|holesky-stage|holesky
 # REPETITIONS (default 1)
-# BURST_DELAY in secs (default 10)
+# BURST_DELAY in secs (default 30)
 
 if [ -z $BURST_DELAY ]; then
     echo "Using default burst delay 10"
-    BURST_DELAY=10
+    BURST_DELAY=30
 fi
 
 while true 
