@@ -4,7 +4,7 @@ Wants=aggregation_mode_start.timer
 
 [Service]
 Type=oneshot
-ExecStart=/home/app/scripts/aggregation_mode_start.sh
+ExecStart=/home/app/repos/aggregation_mode/aligned_layer/infra/aggregation_mode/aggregation_mode_start.sh
 EnvironmentFile=/home/app/config/.env.aggregation_mode_start
 
 [Install]
