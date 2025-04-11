@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Params:
+# PROOF_TYPE = sp1|groth16|plonk|risc0  (default sp1)
+# RPC_URL (default localhost:8545)
+# NETWORK   devnet|holesky-stage|holesky
+# REPETITIONS (default 1)
+
 if [ -z "$NETWORK" ]; then
     echo "NETWORK is not set. Setting it to devnet"
     NETWORK="devnet"

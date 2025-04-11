@@ -511,7 +511,11 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
 batcher_send_proof_with_random_address:
-	@./batcher/aligned/send_proof_with_random_address.sh
+	@cd batcher/aligned && ./send_proof_with_random_address.sh
+ 
+
+batcher_send_burst_with_random_address:
+	@cd batcher/aligned && ./send_burst_with_random_address.sh
 
 __TASK_SENDER__:
 BURST_TIME_SECS ?= 3
