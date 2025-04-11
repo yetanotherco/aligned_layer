@@ -79,8 +79,6 @@ github.com/consensys/bavard v0.1.13 h1:oLhMLOFGTLdlda/kma4VOJazblc7IM5y5QPd2A/Yj
 github.com/consensys/bavard v0.1.13/go.mod h1:9ItSMtA/dXMAiL7BG6bqW2m3NdSEObYWoH223nGHukI=
 github.com/consensys/bavard v0.1.30 h1:wwAj9lSnMLFXjEclKwyhf7Oslg8EoaFz9u1QGgt0bsk=
 github.com/consensys/bavard v0.1.30/go.mod h1:k/zVjHHC4B+PQy1Pg7fgvG3ALicQw540Crag8qx+dZs=
-github.com/consensys/gnark v0.10.0 h1:yhi6ThoeFP7WrH8zQDaO56WVXe9iJEBSkfrZ9PZxabw=
-github.com/consensys/gnark v0.10.0/go.mod h1:VJU5JrrhZorbfDH+EUjcuFWr2c5z19tHPh8D6KVQksU=
 github.com/consensys/gnark v0.12.0 h1:XgQ1kh2R6fHuf5fBYl+i7TxR+QTbGQuZaaqqkk5nLO0=
 github.com/consensys/gnark v0.12.0/go.mod h1:WDvuIQ8qrRvWT9NhTrib84WeLVBSGhSTrbQBXs1yR5w=
 github.com/consensys/gnark-crypto v0.12.2-0.20240215234832-d72fcb379d3e h1:MKdOuCiy2DAX1tMp2YsmtNDaqdigpY6B5cZQDJ9BvEo=
