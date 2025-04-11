@@ -25,4 +25,7 @@ cp $HOME/repos/aggregation_mode/aligned_layer/infra/aggregation_mode/.env.aggreg
 systemctl --user enable aggregation_mode_start.timer
 systemctl --user start aggregation_mode_start.timer
 
+# Check status
+systemctl --user status aggregation_mode_start.timer
+
 
