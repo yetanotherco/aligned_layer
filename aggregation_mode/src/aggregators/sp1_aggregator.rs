@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
 use alloy::primitives::Keccak256;
-use sp1_aggregation_program::{ProofDataInput, SP1VkAndPubInputs};
+use sp1_aggregation_program::{ProofVkAndPubInputs, SP1VkAndPubInputs};
 use sp1_sdk::{
     EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
     SP1VerifyingKey,
@@ -44,15 +44,15 @@ pub(crate) fn aggregate_proofs(
     let mut stdin = SP1Stdin::new();
 
     let mut program_input = sp1_aggregation_program::Input {
-        proofs_data: vec![],
+        proofs_vk_and_pub_inputs: vec![],
         merkle_root: input.merkle_root,
     };
 
     // write vk + public inputs
     for proof in input.proofs.iter() {
         program_input
-            .proofs_data
-            .push(ProofDataInput::SP1Compressed(SP1VkAndPubInputs {
+            .proofs_vk_and_pub_inputs
+            .push(ProofVkAndPubInputs::SP1Compressed(SP1VkAndPubInputs {
                 public_inputs: proof.proof_with_pub_values.public_values.to_vec(),
                 vk: proof.vk().hash_u32(),
             }));

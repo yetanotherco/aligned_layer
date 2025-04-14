@@ -19,20 +19,20 @@ impl SP1VkAndPubInputs {
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum ProofDataInput {
+pub enum ProofVkAndPubInputs {
     SP1Compressed(SP1VkAndPubInputs),
 }
 
-impl ProofDataInput {
+impl ProofVkAndPubInputs {
     pub fn hash(&self) -> [u8; 32] {
         match self {
-            ProofDataInput::SP1Compressed(proof_data) => proof_data.hash(),
+            ProofVkAndPubInputs::SP1Compressed(proof_data) => proof_data.hash(),
         }
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Input {
-    pub proofs_data: Vec<ProofDataInput>,
+    pub proofs_vk_and_pub_inputs: Vec<ProofVkAndPubInputs>,
     pub merkle_root: [u8; 32],
 }
