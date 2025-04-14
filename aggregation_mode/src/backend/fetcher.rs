@@ -17,8 +17,8 @@ use tracing::{error, info};
 
 #[derive(Debug)]
 pub enum ProofsFetcherError {
-    QueryingLogs,
-    BlockNumber,
+    GetLogs(String),
+    GetBlockNumber(String),
 }
 
 pub struct ProofsFetcher {
@@ -59,7 +59,7 @@ impl ProofsFetcher {
             .from_block(from_block)
             .query()
             .await
-            .map_err(|_| ProofsFetcherError::QueryingLogs)?;
+            .map_err(|e| ProofsFetcherError::GetLogs(e.to_string()))?;
 
         info!("Logs collected {}", logs.len());
 
@@ -124,7 +124,7 @@ impl ProofsFetcher {
             .rpc_provider
             .get_block_number()
             .await
-            .map_err(|_| ProofsFetcherError::BlockNumber)?;
+            .map_err(|e| ProofsFetcherError::GetBlockNumber(e.to_string()))?;
 
         let number_of_blocks_in_the_past = self.fetch_from_secs_ago / self.block_time_secs;
 
