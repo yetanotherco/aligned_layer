@@ -98,7 +98,7 @@ pub async fn is_proof_verified_in_aggregation_mode(
             .map_err(|_| ProofVerificationAggModeError::EventDecoding)?;
         let merkle_root = log.topics[1].0;
 
-        // Block Number shouldn't be empty, in case it is, 
+        // Block Number shouldn't be empty, in case it is,
         // there is a problem with this log, and we skip it
         // This same logic is replicated for other checks.
         let Some(block_number) = log.block_number else {

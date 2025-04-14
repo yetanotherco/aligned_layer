@@ -80,7 +80,8 @@ impl BeaconClient {
             ))
             .await?;
 
-        let res = Vec::<BeaconBlock>::deserialize(data).map_err(BeaconClientError::Deserialization)?;
+        let res =
+            Vec::<BeaconBlock>::deserialize(data).map_err(BeaconClientError::Deserialization)?;
 
         let block = res
             .into_iter()
@@ -89,15 +90,12 @@ impl BeaconClient {
         Ok(block)
     }
 
-    pub async fn get_blobs_from_slot(
-        &self,
-        slot: u64,
-    ) -> Result<Vec::<BlobData>, BeaconClientError> {
+    pub async fn get_blobs_from_slot(&self, slot: u64) -> Result<Vec<BlobData>, BeaconClientError> {
         let data = self
             .beacon_get(&format!("/eth/v1/beacon/blob_sidecars/{}", slot))
             .await?;
 
-            Vec::<BlobData>::deserialize(data).map_err(BeaconClientError::Deserialization)
+        Vec::<BlobData>::deserialize(data).map_err(BeaconClientError::Deserialization)
     }
 
     pub async fn get_blob_by_versioned_hash(
