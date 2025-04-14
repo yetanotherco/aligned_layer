@@ -55,7 +55,9 @@ impl ProofsFetcher {
             .map_err(|e| ProofsFetcherError::GetBlockNumber(e.to_string()))?;
 
         if current_block < self.last_processed_block {
-            return Err(ProofsFetcherError::GetBlockNumber("Invalid last processed block".to_string()));
+            return Err(ProofsFetcherError::GetBlockNumber(
+                "Invalid last processed block".to_string(),
+            ));
         }
 
         info!(
