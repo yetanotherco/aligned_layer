@@ -12,7 +12,7 @@ use aligned_sdk::core::{
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
 use aligned_sdk::sdk::aggregation::is_proof_verified_in_aggregation_mode;
-use aligned_sdk::sdk::aggregation::ProofData;
+use aligned_sdk::sdk::aggregation::AggregationModeVerificationData;
 use aligned_sdk::sdk::estimate_fee;
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
@@ -779,7 +779,7 @@ async fn main() -> Result<(), AlignedError> {
                     };
                     let public_inputs = read_file(pub_inputs_file_name)?;
 
-                    ProofData::SP1 { vk, public_inputs }
+                    AggregationModeVerificationData::SP1 { vk, public_inputs }
                 }
                 _ => {
                     error!("Proving system not supported in aggregation mode");

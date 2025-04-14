@@ -13,17 +13,17 @@ use sha3::{Digest, Keccak256};
 const FROM_BLOCKS_AGO_DEFAULT: u64 = 7500;
 
 #[derive(Debug)]
-pub enum ProofData {
+pub enum AggregationModeVerificationData {
     SP1 {
         vk: [u8; 32],
         public_inputs: Vec<u8>,
     },
 }
 
-impl ProofData {
+impl AggregationModeVerificationData {
     fn commitment(&self) -> [u8; 32] {
         match self {
-            ProofData::SP1 { vk, public_inputs } => {
+            AggregationModeVerificationData::SP1 { vk, public_inputs } => {
                 let mut hasher = Keccak256::new();
                 hasher.update(vk);
                 hasher.update(public_inputs);
@@ -43,11 +43,11 @@ pub enum ProofVerificationAggModeError {
     EventDecoding,
 }
 
-/// Given the [`ProofData`], this function checks whether a proof was included
-/// in the most recent aggregated proof and verifies the corresponding Merkle root commitment.
+/// Given the [`AggregationModeVerificationData`], this function checks whether the proof was included in a
+/// in a recent aggregated proof and verifies the corresponding Merkle root commitment.
 ///
 /// Note: This functionality is currently in Beta. As a result, we cannot determine with certainty
-/// which specific aggregation a proof belongs to. Instead, we optimistically check the from the specified `from_block`.
+/// which specific aggregation a proof belongs to. Instead, we check the events from the specified `from_block`.
 ///
 /// Note: The `from_block`  must not be older than 18 days,
 /// as blobs expire after that period and will no longer be retrievable.
@@ -62,7 +62,7 @@ pub enum ProofVerificationAggModeError {
 /// 6. Checking if the given proof commitment exists within the blob’s proofs
 /// 7. Reconstructing the Merkle root and verifying it against the root stored in the contract
 pub async fn is_proof_verified_in_aggregation_mode(
-    proof_data: ProofData,
+    verification_data: AggregationModeVerificationData,
     network: Network,
     eth_rpc_url: String,
     beacon_client_url: String,
@@ -140,7 +140,7 @@ pub async fn is_proof_verified_in_aggregation_mode(
             hex::decode(blob_data.blob.replace("0x", "")).expect("A valid hex encoded data");
         let proof_commitments = decoded_blob(blob_bytes);
 
-        if proof_commitments.contains(&proof_data.commitment()) {
+        if proof_commitments.contains(&verification_data.commitment()) {
             if verify_blob_merkle_root(proof_commitments, merkle_root) {
                 return Ok(merkle_root);
             } else {
