@@ -27,8 +27,11 @@ impl Config {
         Ok(config)
     }
 
-    pub fn save_to_file(&self, file_path: &str) -> Result<(), Box<dyn std::error::Error>>  {
-        let mut file = OpenOptions::new().write(true).truncate(true).open(file_path)?;
+    pub fn save_to_file(&self, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(file_path)?;
         let content = serde_yaml::to_string(&self)?;
         file.write_all(content.as_bytes())?;
         Ok(())

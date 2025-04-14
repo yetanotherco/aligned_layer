@@ -24,7 +24,7 @@ pub enum ProofsFetcherError {
 pub struct ProofsFetcher {
     rpc_provider: RPCProvider,
     aligned_service_manager: AlignedLayerServiceManagerContract,
-    last_processed_block: u64
+    last_processed_block: u64,
 }
 
 impl ProofsFetcher {
@@ -58,16 +58,15 @@ impl ProofsFetcher {
 
         info!(
             "Fetching proofs from batch logs starting from block number {} upto {}",
-            self.last_processed_block,
-            current_block
+            self.last_processed_block, current_block
         );
-            
+
         // Subscribe to NewBatch event from AlignedServiceManager
         let logs = self
             .aligned_service_manager
             .NewBatchV3_filter()
             .from_block(self.last_processed_block)
-            .to_block(current_block)        
+            .to_block(current_block)
             .query()
             .await
             .map_err(|_| ProofsFetcherError::QueryingLogs)?;
