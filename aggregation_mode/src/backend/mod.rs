@@ -78,7 +78,7 @@ impl ProofAggregator {
         match res {
             Ok(()) => {
                 config
-                    .update_last_processed_block(self.fetcher.get_last_processed_block())
+                    .update_last_aggregated_block(self.fetcher.get_last_aggregated_block())
                     .unwrap();
                 info!("Process finished successfully");
             }

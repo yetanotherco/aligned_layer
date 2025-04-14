@@ -24,7 +24,7 @@ pub enum ProofsFetcherError {
 pub struct ProofsFetcher {
     rpc_provider: RPCProvider,
     aligned_service_manager: AlignedLayerServiceManagerContract,
-    last_processed_block: u64,
+    last_aggregated_block: u64,
 }
 
 impl ProofsFetcher {
@@ -37,12 +37,12 @@ impl ProofsFetcher {
             rpc_provider.clone(),
         );
 
-        let last_processed_block = config.get_last_processed_block().unwrap();
+        let last_aggregated_block = config.get_last_aggregated_block().unwrap();
 
         Self {
             rpc_provider,
             aligned_service_manager,
-            last_processed_block,
+            last_aggregated_block,
         }
     }
 
@@ -54,7 +54,7 @@ impl ProofsFetcher {
             .await
             .map_err(|e| ProofsFetcherError::GetBlockNumber(e.to_string()))?;
 
-        if current_block < self.last_processed_block {
+        if current_block < self.last_aggregated_block {
             return Err(ProofsFetcherError::GetBlockNumber(
                 "Invalid last processed block".to_string(),
             ));
@@ -62,14 +62,14 @@ impl ProofsFetcher {
 
         info!(
             "Fetching proofs from batch logs starting from block number {} upto {}",
-            self.last_processed_block, current_block
+            self.last_aggregated_block, current_block
         );
 
         // Subscribe to NewBatch event from AlignedServiceManager
         let logs = self
             .aligned_service_manager
             .NewBatchV3_filter()
-            .from_block(self.last_processed_block)
+            .from_block(self.last_aggregated_block)
             .to_block(current_block)
             .query()
             .await
@@ -78,7 +78,7 @@ impl ProofsFetcher {
         info!("Logs collected {}", logs.len());
 
         // Update last processed block after collecting logs
-        self.last_processed_block = current_block;
+        self.last_aggregated_block = current_block;
 
         let mut proofs = vec![];
 
@@ -136,7 +136,7 @@ impl ProofsFetcher {
         Ok(proofs)
     }
 
-    pub fn get_last_processed_block(&self) -> u64 {
-        self.last_processed_block
+    pub fn get_last_aggregated_block(&self) -> u64 {
+        self.last_aggregated_block
     }
 }
