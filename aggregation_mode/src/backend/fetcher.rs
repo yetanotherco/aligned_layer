@@ -24,8 +24,7 @@ pub enum ProofsFetcherError {
 pub struct ProofsFetcher {
     rpc_provider: RPCProvider,
     aligned_service_manager: AlignedLayerServiceManagerContract,
-    fetch_from_secs_ago: u64,
-    block_time_secs: u64,
+    last_processed_block: u64
 }
 
 impl ProofsFetcher {
@@ -41,27 +40,37 @@ impl ProofsFetcher {
         Self {
             rpc_provider,
             aligned_service_manager,
-            fetch_from_secs_ago: config.fetch_logs_from_secs_ago,
-            block_time_secs: config.block_time_secs,
+            last_processed_block: config.last_processed_block,
         }
     }
 
     pub async fn fetch(&self) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
-        let from_block = self.get_block_number_to_fetch_from().await?;
         info!(
             "Fetching proofs from batch logs starting from block number {}",
-            from_block
+            self.last_processed_block
         );
         // Subscribe to NewBatch event from AlignedServiceManager
         let logs = self
             .aligned_service_manager
             .NewBatchV3_filter()
-            .from_block(from_block)
+            .from_block(self.last_processed_block)
             .query()
             .await
             .map_err(|_| ProofsFetcherError::QueryingLogs)?;
 
         info!("Logs collected {}", logs.len());
+
+        // Get current block
+        self.last_processed_block = self
+            .rpc_provider
+            .get_block_number()
+            .await
+            .map_err(|_| ProofsFetcherError::BlockNumber)?;
+
+        info!(
+            "Fetched proofs from batch logs upto  block number {}",
+            self.last_processed_block
+        );
 
         let mut proofs = vec![];
 
@@ -126,8 +135,6 @@ impl ProofsFetcher {
             .await
             .map_err(|_| ProofsFetcherError::BlockNumber)?;
 
-        let number_of_blocks_in_the_past = self.fetch_from_secs_ago / self.block_time_secs;
-
-        Ok(block_number.saturating_sub(number_of_blocks_in_the_past))
+        Ok(block_number.saturating_sub(self.last_processed_block))
     }
 }

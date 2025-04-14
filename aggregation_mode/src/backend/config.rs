@@ -15,8 +15,7 @@ pub struct Config {
     pub proof_aggregation_service_address: String,
     pub aligned_service_manager_address: String,
     pub ecdsa: ECDSAConfig,
-    pub fetch_logs_from_secs_ago: u64,
-    pub block_time_secs: u64,
+    pub last_processed_block: u64
 }
 
 impl Config {
