@@ -11,7 +11,7 @@ impl SP1VkAndPubInputs {
     pub fn hash(&self) -> [u8; 32] {
         let mut hasher = Keccak256::new();
         for &word in &self.vk {
-            hasher.update(word.to_le_bytes());
+            hasher.update(word.to_be_bytes());
         }
         hasher.update(&self.public_inputs);
         hasher.finalize().into()
