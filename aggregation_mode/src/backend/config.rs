@@ -34,7 +34,7 @@ impl Config {
 
     pub fn get_last_processed_block(&self) -> Result<u64, Box<dyn std::error::Error>> {
         match File::open(&self.last_processed_block_filepath) {
-            Err(_) =>{
+            Err(_) => {
                 // if file doesn't exist, default 0
                 Ok(0)
             }
@@ -44,7 +44,7 @@ impl Config {
                 let lpb: LastProcessedBlock = serde_json::from_str(&contents)?;
                 Ok(lpb.last_processed_block)
             }
-        } 
+        }
     }
 
     pub fn update_last_processed_block(
