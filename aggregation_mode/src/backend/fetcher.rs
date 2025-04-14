@@ -128,4 +128,8 @@ impl ProofsFetcher {
 
         Ok(proofs)
     }
+
+    pub fn get_last_processed_block(&self) -> u64 {
+        self.last_processed_block
+    }
 }

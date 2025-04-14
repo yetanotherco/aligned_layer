@@ -23,11 +23,11 @@ async fn main() {
     // load config
     let config_file_path = read_config_filepath_from_args();
     tracing::info!("Loading config from {}...", config_file_path);
-    let config = Config::from_file(&config_file_path).expect("Config is valid");
+    let mut config = Config::from_file(&config_file_path).expect("Config is valid");
     tracing::info!("Config loaded");
 
     let mut proof_aggregator = ProofAggregator::new(&config);
-    proof_aggregator.start().await;
+    proof_aggregator.start(&mut config).await;
 
-    config.save_to_file(&config_file_path).unwrap();   
+    config.save_to_file(&config_file_path).unwrap();
 }
