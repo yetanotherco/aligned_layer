@@ -44,33 +44,34 @@ impl ProofsFetcher {
         }
     }
 
-    pub async fn fetch(&self) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
-        info!(
-            "Fetching proofs from batch logs starting from block number {}",
-            self.last_processed_block
-        );
-        // Subscribe to NewBatch event from AlignedServiceManager
-        let logs = self
-            .aligned_service_manager
-            .NewBatchV3_filter()
-            .from_block(self.last_processed_block)
-            .query()
-            .await
-            .map_err(|_| ProofsFetcherError::QueryingLogs)?;
-
-        info!("Logs collected {}", logs.len());
-
+    pub async fn fetch(&mut self) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
         // Get current block
-        self.last_processed_block = self
+        let current_block = self
             .rpc_provider
             .get_block_number()
             .await
             .map_err(|_| ProofsFetcherError::BlockNumber)?;
 
         info!(
-            "Fetched proofs from batch logs upto  block number {}",
-            self.last_processed_block
+            "Fetching proofs from batch logs starting from block number {} upto {}",
+            self.last_processed_block,
+            current_block
         );
+            
+        // Subscribe to NewBatch event from AlignedServiceManager
+        let logs = self
+            .aligned_service_manager
+            .NewBatchV3_filter()
+            .from_block(self.last_processed_block)
+            .to_block(current_block)        
+            .query()
+            .await
+            .map_err(|_| ProofsFetcherError::QueryingLogs)?;
+
+        info!("Logs collected {}", logs.len());
+
+        // Update last processed block after collecting logs
+        self.last_processed_block = current_block;
 
         let mut proofs = vec![];
 
@@ -126,15 +127,5 @@ impl ProofsFetcher {
         }
 
         Ok(proofs)
-    }
-
-    async fn get_block_number_to_fetch_from(&self) -> Result<u64, ProofsFetcherError> {
-        let block_number = self
-            .rpc_provider
-            .get_block_number()
-            .await
-            .map_err(|_| ProofsFetcherError::BlockNumber)?;
-
-        Ok(block_number.saturating_sub(self.last_processed_block))
     }
 }
