@@ -6,7 +6,6 @@ use ethers::{
     providers::{Http, Middleware, Provider},
     types::Filter,
 };
-use log::warn;
 use sha3::{Digest, Keccak256};
 
 /// How much to go back from current block if from_block is not provided
@@ -44,24 +43,24 @@ pub enum ProofVerificationAggModeError {
     EventDecoding,
 }
 
-/// Given aligned verification data, this function checks whether a proof was included
+/// Given the [`ProofData`], this function checks whether a proof was included
 /// in the most recent aggregated proof and verifies the corresponding Merkle root commitment.
 ///
 /// Note: This functionality is currently in Beta. As a result, we cannot determine with certainty
-/// which specific aggregation a proof belongs to. Instead, we optimistically check the latest one.
+/// which specific aggregation a proof belongs to. Instead, we optimistically check the from the specified `from_block`.
 ///
-/// ⚠️ The `from` block used in the verification process must not be older than 18 days,
+/// Note: The `from_block`  must not be older than 18 days,
 /// as blobs expire after that period and will no longer be retrievable.
-/// If not provided, it  defaults to fetch logs from the past 25hs
+/// If not provided, it  defaults to fetch logs from [`FROM_BLOCKS_AGO_DEFAULT`]
 ///
 /// The step-by-step verification process includes:
-/// 1. Querying the blob versioned hash from the latest event emitted by the aligned proof aggregation service contract
+/// 1. Querying the blob versioned hash from the events emitted by the aligned proof aggregation service contract since `from_block`
 /// 2. Retrieving the corresponding beacon block using the block’s parent beacon root
 /// 3. Fetching the blobs associated with that slot
 /// 4. Filtering the blob that matches the queried blob versioned hash
-/// 5. Decoding the blob to extract the proofs
-/// 6. Checking if the given proof hash exists within the blob’s proofs
-/// 7. Reconstructing the Merkle root and verifying it against the commitment stored in the contract
+/// 5. Decoding the blob to extract the proofs commitments
+/// 6. Checking if the given proof commitment exists within the blob’s proofs
+/// 7. Reconstructing the Merkle root and verifying it against the root stored in the contract
 pub async fn is_proof_verified_in_aggregation_mode(
     proof_data: ProofData,
     network: Network,
@@ -80,7 +79,10 @@ pub async fn is_proof_verified_in_aggregation_mode(
                 .get_block_number()
                 .await
                 .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
-            block_number.as_u64() - FROM_BLOCKS_AGO_DEFAULT
+
+            block_number
+                .as_u64()
+                .saturating_sub(FROM_BLOCKS_AGO_DEFAULT)
         }
     };
 
@@ -119,24 +121,24 @@ pub async fn is_proof_verified_in_aggregation_mode(
             continue;
         };
 
-        let Some(blob) = beacon_client
-            .get_blob_by_versioned_hash(
-                beacon_block
-                    .header
-                    .message
-                    .slot
-                    .parse()
-                    .expect("Slot to be parsable number"),
-                blob_versioned_hash,
-            )
+        let slot: u64 = beacon_block
+            .header
+            .message
+            .slot
+            .parse()
+            .expect("Slot to be parsable number");
+
+        let Some(blob_data) = beacon_client
+            .get_blob_by_versioned_hash(slot, blob_versioned_hash)
             .await
             .map_err(ProofVerificationAggModeError::BeaconClient)?
         else {
             continue;
         };
 
-        let blob_data = hex::decode(blob.blob.replace("0x", "")).expect("A valid hex encoded data");
-        let proof_commitments = decoded_blob(blob_data);
+        let blob_bytes =
+            hex::decode(blob_data.blob.replace("0x", "")).expect("A valid hex encoded data");
+        let proof_commitments = decoded_blob(blob_bytes);
 
         if proof_commitments.contains(&proof_data.commitment()) {
             if verify_blob_merkle_root(proof_commitments, merkle_root) {
@@ -170,6 +172,7 @@ fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
         current_hash[current_hash_count] = blob_data[total_bytes_count];
 
         if current_hash_count + 1 == 32 {
+            // if the current_hash is the zero hash, then there are no more proofs in the blob
             if current_hash == [0u8; 32] {
                 break;
             }
