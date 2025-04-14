@@ -8,13 +8,18 @@ pub struct ECDSAConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct LastProcessedBlock {
+    pub last_processed_block: u64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub eth_rpc_url: String,
     pub eth_ws_url: String,
     pub max_proofs_in_queue: u16,
     pub proof_aggregation_service_address: String,
     pub aligned_service_manager_address: String,
-    pub last_processed_block: u64,
+    pub last_processed_block_filepath: String,
     pub ecdsa: ECDSAConfig,
 }
 
@@ -27,13 +32,30 @@ impl Config {
         Ok(config)
     }
 
-    pub fn save_to_file(&self, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn get_last_processed_block(&self) -> Result<u64, Box<dyn std::error::Error>> {
+        let mut file = File::open(&self.last_processed_block_filepath)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        let lpb: LastProcessedBlock = serde_json::from_str(&contents)?;
+        Ok(lpb.last_processed_block)
+    }
+
+    pub fn update_last_processed_block(
+        &self,
+        last_processed_block: u64,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let last_processed_block_struct = LastProcessedBlock {
+            last_processed_block: last_processed_block,
+        };
+
         let mut file = OpenOptions::new()
             .write(true)
             .truncate(true)
-            .open(file_path)?;
-        let content = serde_yaml::to_string(&self)?;
+            .open(&self.last_processed_block_filepath)?;
+
+        let content = serde_json::to_string(&last_processed_block_struct)?;
         file.write_all(content.as_bytes())?;
+
         Ok(())
     }
 }

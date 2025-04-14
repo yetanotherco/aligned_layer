@@ -37,10 +37,12 @@ impl ProofsFetcher {
             rpc_provider.clone(),
         );
 
+        let last_processed_block = config.get_last_processed_block().unwrap();
+
         Self {
             rpc_provider,
             aligned_service_manager,
-            last_processed_block: config.last_processed_block,
+            last_processed_block: last_processed_block,
         }
     }
 

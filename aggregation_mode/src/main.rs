@@ -28,6 +28,4 @@ async fn main() {
 
     let mut proof_aggregator = ProofAggregator::new(&config);
     proof_aggregator.start(&mut config).await;
-
-    config.save_to_file(&config_file_path).unwrap();
 }

@@ -69,7 +69,7 @@ impl ProofAggregator {
         }
     }
 
-    pub async fn start(&mut self, config: &mut Config) {
+    pub async fn start(&mut self, config: &Config) {
         info!("Starting proof aggregator service",);
 
         info!("About to aggregate and submit proof to be verified on chain");
@@ -77,7 +77,9 @@ impl ProofAggregator {
 
         match res {
             Ok(()) => {
-                config.last_processed_block = self.fetcher.get_last_processed_block();
+                config
+                    .update_last_processed_block(self.fetcher.get_last_processed_block())
+                    .unwrap();
                 info!("Process finished successfully");
             }
             Err(err) => {
