@@ -28,19 +28,6 @@ pub enum BeaconClientError {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct GetBlobResponse {
-    pub blobs: Vec<BlobData>,
-}
-
-impl GetBlobResponse {
-    fn from_response_data(data: Value) -> Result<Self, serde_json::Error> {
-        let blobs = Vec::<BlobData>::deserialize(data)?;
-
-        Ok(Self { blobs })
-    }
-}
-
-#[derive(Deserialize, Debug)]
 #[allow(dead_code)]
 pub struct BlobData {
     pub index: String,
@@ -50,6 +37,7 @@ pub struct BlobData {
     pub kzg_commitment_inclusion_proof: Vec<String>,
 }
 
+/*
 #[derive(Deserialize, Debug)]
 pub struct GetBlockHeadersResponse {
     pub blocks: Vec<BeaconBlock>,
@@ -62,7 +50,7 @@ impl GetBlockHeadersResponse {
         Ok(Self { blocks })
     }
 }
-
+*/
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
 pub struct BeaconBlock {
@@ -106,11 +94,9 @@ impl BeaconClient {
             ))
             .await?;
 
-        let res = GetBlockHeadersResponse::from_response_data(data)
-            .map_err(BeaconClientError::Deserialization)?;
+        let res = Vec::<BeaconBlock>::deserialize(data).map_err(BeaconClientError::Deserialization)?;
 
         let block = res
-            .blocks
             .into_iter()
             .find(|block| block.header.message.parent_root == parent_block_hash_hex);
 
@@ -120,12 +106,12 @@ impl BeaconClient {
     pub async fn get_blobs_from_slot(
         &self,
         slot: u64,
-    ) -> Result<GetBlobResponse, BeaconClientError> {
+    ) -> Result<Vec::<BlobData>, BeaconClientError> {
         let data = self
             .beacon_get(&format!("/eth/v1/beacon/blob_sidecars/{}", slot))
             .await?;
 
-        GetBlobResponse::from_response_data(data).map_err(BeaconClientError::Deserialization)
+            Vec::<BlobData>::deserialize(data).map_err(BeaconClientError::Deserialization)
     }
 
     pub async fn get_blob_by_versioned_hash(
@@ -135,7 +121,7 @@ impl BeaconClient {
     ) -> Result<Option<BlobData>, BeaconClientError> {
         let res = self.get_blobs_from_slot(slot).await?;
 
-        let blob = res.blobs.into_iter().find(|blob| {
+        let blob = res.into_iter().find(|blob| {
             let kzg_commitment_bytes =
                 hex::decode(blob.kzg_commitment.replace("0x", "")).expect("A valid commitment");
 
