@@ -52,7 +52,7 @@ impl Config {
         last_processed_block: u64,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let last_processed_block_struct = LastProcessedBlock {
-            last_processed_block: last_processed_block,
+            last_processed_block,
         };
 
         let mut file = OpenOptions::new()

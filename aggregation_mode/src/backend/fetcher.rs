@@ -42,7 +42,7 @@ impl ProofsFetcher {
         Self {
             rpc_provider,
             aligned_service_manager,
-            last_processed_block: last_processed_block,
+            last_processed_block,
         }
     }
 
