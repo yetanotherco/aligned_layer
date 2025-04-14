@@ -1,12 +1,13 @@
 use aligned_sdk::core::types::VerificationData;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum GetBatchProofsError {
     FetchingS3Batch(String),
     Deserialization(String),
     EmptyBody(String),
-    StatusFailed(String),
-    ReqwestClientFailed((u16, String)),
+    StatusFailed((u16, String)),
+    ReqwestClientFailed(String),
 }
 
 // needed to make S3 bucket work
@@ -28,7 +29,11 @@ pub async fn get_aligned_batch_from_s3(
     if !response.status().is_success() {
         return Err(GetBatchProofsError::StatusFailed((
             response.status().as_u16(),
-            response.status().canonical_reason(),
+            response
+                .status()
+                .canonical_reason()
+                .unwrap_or("")
+                .to_string(),
         )));
     }
 
