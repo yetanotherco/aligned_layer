@@ -55,11 +55,11 @@ pub enum ProofVerificationAggModeError {
 ///
 /// The step-by-step verification process includes:
 /// 1. Querying the blob versioned hash from the events emitted by the aligned proof aggregation service contract since `from_block`
-/// 2. Retrieving the corresponding beacon block using the block’s parent beacon root
+/// 2. Retrieving the corresponding beacon block using the block's parent beacon root
 /// 3. Fetching the blobs associated with that slot
 /// 4. Filtering the blob that matches the queried blob versioned hash
 /// 5. Decoding the blob to extract the proofs commitments
-/// 6. Checking if the given proof commitment exists within the blob’s proofs
+/// 6. Checking if the given proof commitment exists within the blob's proofs
 /// 7. Reconstructing the Merkle root and verifying it against the root stored in the contract
 pub async fn is_proof_verified_in_aggregation_mode(
     verification_data: AggregationModeVerificationData,
@@ -97,6 +97,10 @@ pub async fn is_proof_verified_in_aggregation_mode(
             .try_into()
             .map_err(|_| ProofVerificationAggModeError::EventDecoding)?;
         let merkle_root = log.topics[1].0;
+
+        // Block Number shouldn't be empty, in case it is, 
+        // there is a problem with this log, and we skip it
+        // This same logic is replicated for other checks.
         let Some(block_number) = log.block_number else {
             continue;
         };
@@ -141,13 +145,11 @@ pub async fn is_proof_verified_in_aggregation_mode(
         let proof_commitments = decoded_blob(blob_bytes);
 
         if proof_commitments.contains(&verification_data.commitment()) {
-            if verify_blob_merkle_root(proof_commitments, merkle_root) {
-                return Ok(merkle_root);
+            return if verify_blob_merkle_root(proof_commitments, merkle_root) {
+                Ok(merkle_root)
             } else {
-                return Err(ProofVerificationAggModeError::UnmatchedBlobAndEventMerkleRoot);
-            }
-        } else {
-            continue;
+                Err(ProofVerificationAggModeError::UnmatchedBlobAndEventMerkleRoot)
+            };
         }
     }
 
