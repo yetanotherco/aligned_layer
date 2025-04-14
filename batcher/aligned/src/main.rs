@@ -325,8 +325,8 @@ pub struct VerifyProofInAggModeArgs {
     proving_system: ProvingSystemArg,
     #[arg(name = "Public input file name", long = "public_input")]
     pub_input_file_name: Option<PathBuf>,
-    #[arg(name = "Verification key hash", long = "vk")]
-    verification_key_hash: Option<PathBuf>,
+    #[arg(name = "Verification key hash", long = "vk", required = true)]
+    verification_key_hash: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -792,11 +792,7 @@ async fn main() -> Result<(), AlignedError> {
         AlignedCommands::VerifyProofInAggMode(args) => {
             let proof_data = match args.proving_system {
                 ProvingSystemArg::SP1 => {
-                    let Some(vk_hash) = args.verification_key_hash else {
-                        error!("VK hash is necessary for sp1");
-                        return Ok(());
-                    };
-                    let vk = read_file(vk_hash)?
+                    let vk = read_file(args.verification_key_hash)?
                         .try_into()
                         .expect("Invalid hexadecimal encoded vk hash");
 
