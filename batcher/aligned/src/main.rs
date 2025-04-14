@@ -5,14 +5,14 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::agg_mode;
-use aligned_sdk::agg_mode::ProofData;
 use aligned_sdk::communication::serialization::cbor_deserialize;
 use aligned_sdk::core::types::FeeEstimationType;
 use aligned_sdk::core::{
     errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::aggregation::is_proof_verified_in_aggregation_mode;
+use aligned_sdk::sdk::aggregation::ProofData;
 use aligned_sdk::sdk::estimate_fee;
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
@@ -787,7 +787,7 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            match agg_mode::is_proof_verified_in_aggregation_mode(
+            match is_proof_verified_in_aggregation_mode(
                 proof_data,
                 args.network.into(),
                 args.eth_rpc_url,

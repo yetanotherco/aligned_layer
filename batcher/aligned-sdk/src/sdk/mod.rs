@@ -1,3 +1,5 @@
+pub mod aggregation;
+
 use crate::{
     communication::{
         batch::await_batch_verification,

@@ -40,8 +40,6 @@ fn main() {
     std::fs::write("../../sp1_fibonacci_4_1_3.pub", proof.public_values)
         .expect("failed to save public inputs");
 
-    println!("BYTES {:?}", vk.hash_bytes());
-
     std::fs::write("../../sp1_fibonacci_4_1_3.vk", vk.hash_bytes())
         .expect("failed to save vk hash");
 
