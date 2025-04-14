@@ -37,20 +37,6 @@ pub struct BlobData {
     pub kzg_commitment_inclusion_proof: Vec<String>,
 }
 
-/*
-#[derive(Deserialize, Debug)]
-pub struct GetBlockHeadersResponse {
-    pub blocks: Vec<BeaconBlock>,
-}
-
-impl GetBlockHeadersResponse {
-    fn from_response_data(data: Value) -> Result<Self, serde_json::Error> {
-        let blocks = Vec::<BeaconBlock>::deserialize(data)?;
-
-        Ok(Self { blocks })
-    }
-}
-*/
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
 pub struct BeaconBlock {
