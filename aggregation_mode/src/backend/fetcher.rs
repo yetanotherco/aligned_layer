@@ -52,6 +52,10 @@ impl ProofsFetcher {
             .await
             .map_err(|_| ProofsFetcherError::BlockNumber)?;
 
+        if current_block < self.last_processed_block {
+            return Err(ProofsFetcherError::BlockNumber);
+        }
+
         info!(
             "Fetching proofs from batch logs starting from block number {} upto {}",
             self.last_processed_block,
