@@ -17,8 +17,8 @@ use tracing::{error, info};
 
 #[derive(Debug)]
 pub enum ProofsFetcherError {
-    QueryingLogs,
-    BlockNumber,
+    GetLogs(String),
+    GetBlockNumber(String),
 }
 
 pub struct ProofsFetcher {
@@ -71,7 +71,7 @@ impl ProofsFetcher {
             .to_block(current_block)
             .query()
             .await
-            .map_err(|_| ProofsFetcherError::QueryingLogs)?;
+            .map_err(|e| ProofsFetcherError::GetLogs(e.to_string()))?;
 
         info!("Logs collected {}", logs.len());
 
