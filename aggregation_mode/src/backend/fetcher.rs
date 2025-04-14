@@ -52,10 +52,10 @@ impl ProofsFetcher {
             .rpc_provider
             .get_block_number()
             .await
-            .map_err(|_| ProofsFetcherError::BlockNumber)?;
+            .map_err(|e| ProofsFetcherError::GetBlockNumber(e.to_string()))?;
 
         if current_block < self.last_processed_block {
-            return Err(ProofsFetcherError::BlockNumber);
+            return Err(ProofsFetcherError::GetBlockNumber("Invalid last processed block".to_string()));
         }
 
         info!(
