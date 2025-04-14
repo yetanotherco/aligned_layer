@@ -33,7 +33,7 @@ This will:
 To start anvil, a local Ethereum devnet with all necessary contracts already deployed and ready to be interacted with, run:
 
 ```shell
-make anvil_start_with_block_time
+make anvil_start
 ```
 
 <details>
