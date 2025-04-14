@@ -39,9 +39,9 @@ prompt_and_replace "<private_key_store_password>" "ECDSA Private Key Store Passw
 mkdir -p /home/user/config
 
 # Copy the completed file to destination
-cp "$TEMP_FILE" $HOME/config/config_file
+cp "$TEMP_FILE" $HOME/config/config-proof-aggregator.yaml
 
 # Clean up temporary file
 rm "$TEMP_FILE"
 
-echo "Configuration file has been created and copied to $HOME/config/config_file"
+echo "Configuration file has been created and copied to $HOME/config/config-proof-aggregator.yaml"

@@ -17,8 +17,27 @@ while :; do
 	fi
 done
 
+# Enable linger
+sudo loginctl enable-linger user
+
 # Install other dependencies
 sudo apt install -y gcc pkg-config libssl-dev build-essential apt-transport-https ca-certificates curl software-properties-common nvtop
+
+# Install docker
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo groupadd docker
+sudo usermod -aG docker $USER
+newgrp docker
 
 # Install tailscale
 curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
@@ -31,6 +50,15 @@ sudo tailscale up --ssh --advertise-tags=tag:server && sudo tailscale set --auto
 sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt update
 sudo apt install nvidia-driver-570
+
+# If see errors
+sudo apt-mark unhold cuda-drivers cuda-toolkit-12-6 nvidia-dkms-565-server nvidia-fabricmanager-565 nvidia-headless-565-server nvidia-utils-565-server
+sudo apt update
+sudo apt install nvidia-driver-570
+sudo apt autoremove
+sudo apt autoclean
+sudo reboot
+nvidia-smi # To check if the driver is installed correctly
 
 # Setup Docker and CUDA
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
@@ -59,7 +87,7 @@ foundryup
 # Create directories
 mkdir -p repos/proof_aggregation
 mkdir -p config
-#mkdir -p .config/systemd/user
+mkdir -p .config/systemd/user
 mkdir -p .keystores
 
 # Clone Repo
@@ -67,22 +95,30 @@ cd repos/proof_aggregation
 git clone https://github.com/yetanotherco/aligned_layer.git
 cd aligned_layer
 git checkout staging
-cd ../..
+cd
 
 # Create keystore
 cast wallet import proof_aggregation.keystore -k $HOME/.keystores -i
 
 # Copy config file
 #cp repos/proof_aggregation/aligned_layer/config-files/config-proof-aggregator.yaml config/config-proof-aggregator.yaml
-.$HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config_file.sh $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config-proof-aggregator.template.yaml
+$HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config_file.sh $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config-proof-aggregator.template.yaml
 
 # Build the proof_aggregator
 cd repos/proof_aggregation/aligned_layer
 cargo install --path aggregation_mode --features prove
 
 # Setup systemd service
-sudo cp $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/aggregation_mode.service /etc/systemd/system/aggregation_mode.service
-sudo systemctl enable aggregation_mode.service
+cp $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/aggregation_mode.service $HOME/.config/systemd/user/aggregation_mode.service
+cp $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/aggregation_mode.timer $HOME/.config/systemd/user/aggregation_mode.timer
 
-# Run the proof_aggregator
-sudo systemctl start aggregation_mode.service
+#sudo systemctl enable aggregation_mode.service
+systemctl --user enable aggregation_mode.timer
+systemctl --user start aggregation_mode.timer
+
+# Run the proof_aggregator manually if you want
+systemctl --user start aggregation_mode.service
+systemctl --user start aggregation_mode_stage.service
+
+# Check timer status
+systemctl --user status aggregation_mode.timer
