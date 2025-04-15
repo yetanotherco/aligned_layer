@@ -2,7 +2,7 @@ pub mod lib;
 pub mod risc0_aggregator;
 pub mod sp1_aggregator;
 
-use risc0_aggregator::{AlignedRisc0VerificationError, Risc0ProofWithPubValuesAndImageId};
+use risc0_aggregator::{AlignedRisc0VerificationError, Risc0ProofReceiptAndImageId};
 use sp1_aggregator::{AlignedSP1VerificationError, SP1ProofWithPubValuesAndElf};
 pub enum ZKVMEngine {
     SP1,
@@ -11,7 +11,7 @@ pub enum ZKVMEngine {
 
 pub enum AlignedProof {
     SP1(SP1ProofWithPubValuesAndElf),
-    Risc0(Risc0ProofWithPubValuesAndImageId),
+    Risc0(Risc0ProofReceiptAndImageId),
 }
 
 impl AlignedProof {
@@ -38,7 +38,7 @@ impl AlignedProof {
                 },
             ),
             AlignedProof::Risc0(proof) => {
-                risc0_aggregator::verify(&proof.receipt).map_err(AlignedVerificationError::Risc0)
+                risc0_aggregator::verify(proof).map_err(AlignedVerificationError::Risc0)
             }
         }
     }

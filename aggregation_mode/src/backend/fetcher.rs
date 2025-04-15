@@ -5,7 +5,10 @@ use super::{
     types::{AlignedLayerServiceManager, AlignedLayerServiceManagerContract, RPCProvider},
 };
 use crate::{
-    aggregators::{sp1_aggregator::SP1ProofWithPubValuesAndElf, AlignedProof},
+    aggregators::{
+        risc0_aggregator::Risc0ProofReceiptAndImageId, sp1_aggregator::SP1ProofWithPubValuesAndElf,
+        AlignedProof,
+    },
     backend::s3::get_aligned_batch_from_s3,
 };
 use aligned_sdk::core::types::ProvingSystemId;
@@ -13,6 +16,7 @@ use alloy::{
     primitives::Address,
     providers::{Provider, ProviderBuilder},
 };
+use risc0_zkvm::Receipt;
 use tracing::{error, info};
 
 #[derive(Debug)]
@@ -82,7 +86,7 @@ impl ProofsFetcher {
 
             info!("Data downloaded from S3, number of proofs {}", data.len());
 
-            // Filter SP1 compressed proofs to and push to queue to be aggregated
+            // Filter compatible proofs to be aggregated and push to queue
             let proofs_to_add: Vec<AlignedProof> = data
                 .into_iter()
                 .filter_map(|p| match p.proving_system {
@@ -96,12 +100,24 @@ impl ProofsFetcher {
 
                         Some(AlignedProof::SP1(sp1_proof))
                     }
+                    ProvingSystemId::Risc0 => {
+                        let mut image_id = [0u8; 32];
+                        image_id.copy_from_slice(p.vm_program_code?.as_slice());
+                        let public_inputs = p.pub_input?;
+                        let inner_receipt: risc0_zkvm::InnerReceipt =
+                            bincode::deserialize(&p.proof).ok()?;
+
+                        let receipt = Receipt::new(inner_receipt, public_inputs);
+                        let risc0_proof = Risc0ProofReceiptAndImageId { image_id, receipt };
+
+                        Some(AlignedProof::Risc0(risc0_proof))
+                    }
                     _ => None,
                 })
                 .collect();
 
             info!(
-                "SP1 proofs filtered, total proofs to add {}",
+                "Proofs filtered, total proofs to add {}",
                 proofs_to_add.len()
             );
 

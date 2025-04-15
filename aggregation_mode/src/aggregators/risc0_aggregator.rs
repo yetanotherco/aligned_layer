@@ -1,23 +1,46 @@
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt};
+use sha3::{Digest, Keccak256};
 
 use super::lib::{AggregatedProof, ProgramOutput, ProofAggregationError};
 
-pub struct Risc0ProofWithPubValuesAndImageId {
-    pub image_id: [u32; 8],
+const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
+    let mut res = [0u8; 32];
+    let mut i = 0;
+    while i < 8 {
+        let bytes = RISC0_AGGREGATOR_PROGRAM_ID[i].to_be_bytes();
+        res[i * 4] = bytes[0];
+        res[i * 4 + 1] = bytes[1];
+        res[i * 4 + 2] = bytes[2];
+        res[i * 4 + 3] = bytes[3];
+        i += 1;
+    }
+    res
+};
+
+pub struct Risc0ProofReceiptAndImageId {
+    pub image_id: [u8; 32],
     pub receipt: Receipt,
-    pub public_values: Vec<u8>,
 }
 
-impl Risc0ProofWithPubValuesAndImageId {
+impl Risc0ProofReceiptAndImageId {
+    pub fn public_inputs(&self) -> &Vec<u8> {
+        &self.receipt.journal.bytes
+    }
+}
+
+impl Risc0ProofReceiptAndImageId {
     pub fn hash_image_id_and_public_inputs(&self) -> [u8; 32] {
-        [0u8; 32]
+        let mut hasher = Keccak256::new();
+        hasher.update(&self.image_id);
+        hasher.update(self.public_inputs());
+        hasher.finalize().into()
     }
 }
 
 pub struct Risc0AggregationInput {
-    pub receipts: Vec<Risc0ProofWithPubValuesAndImageId>,
+    pub receipts: Vec<Risc0ProofReceiptAndImageId>,
     pub merkle_root: [u8; 32],
 }
 
@@ -28,12 +51,12 @@ pub(crate) fn aggregate_proofs(
 
     // write assumptions and proof image id + pub inputs
     let mut proofs_image_id_and_pub_inputs = vec![];
-    for r in input.receipts {
+    for proof in input.receipts {
         proofs_image_id_and_pub_inputs.push(risc0_aggregation_program::Risc0ImageIdAndPubInputs {
-            image_id: r.image_id,
-            public_inputs: r.public_values,
+            image_id: proof.image_id,
+            public_inputs: proof.receipt.journal.bytes.clone(),
         });
-        env_builder.add_assumption(r.receipt);
+        env_builder.add_assumption(proof.receipt);
     }
 
     // write input data
@@ -41,26 +64,44 @@ pub(crate) fn aggregate_proofs(
         merkle_root: input.merkle_root,
         proofs_image_id_and_pub_inputs,
     };
-    env_builder.write(&input).unwrap();
+    env_builder
+        .write(&input)
+        .map_err(|_| ProofAggregationError::Risc0Proving)?;
 
-    let env = env_builder.build().unwrap();
+    let env = env_builder
+        .build()
+        .map_err(|_| ProofAggregationError::Risc0Proving)?;
 
     let prover = default_prover();
     let receipt = prover
         .prove_with_opts(env, RISC0_AGGREGATOR_PROGRAM_ELF, &ProverOpts::groth16())
-        .unwrap()
+        .map_err(|_| ProofAggregationError::Risc0Proving)?
         .receipt;
 
-    Ok(ProgramOutput::new(AggregatedProof::Risc0(receipt)))
+    let output = Risc0ProofReceiptAndImageId {
+        image_id: RISC0_AGGREGATOR_PROGRAM_ID_BYTES,
+        receipt,
+    };
+
+    Ok(ProgramOutput::new(AggregatedProof::Risc0(output)))
 }
 
 #[derive(Debug)]
 pub enum AlignedRisc0VerificationError {
-    Verification,
+    Verification(String),
     UnsupportedProof,
 }
 
-pub(crate) fn verify(receipt: &Receipt) -> Result<(), AlignedRisc0VerificationError> {
-    // TODO validate and verify receipt is of type Compressed, as only they can be aggregated recursively
-    Ok(())
+pub(crate) fn verify(
+    proof: &Risc0ProofReceiptAndImageId,
+) -> Result<(), AlignedRisc0VerificationError> {
+    // only composite proofs are supported for recursion
+    if proof.receipt.inner.composite().is_err() {
+        Err(AlignedRisc0VerificationError::UnsupportedProof)
+    } else {
+        proof
+            .receipt
+            .verify(proof.image_id)
+            .map_err(|e| AlignedRisc0VerificationError::Verification(e.to_string()))
+    }
 }

@@ -1,7 +1,5 @@
-use risc0_zkvm::Receipt;
-
 use super::{
-    risc0_aggregator::{self, Risc0AggregationInput},
+    risc0_aggregator::{self, Risc0AggregationInput, Risc0ProofReceiptAndImageId},
     sp1_aggregator::{self, SP1AggregationInput, SP1ProofWithPubValuesAndElf},
 };
 
@@ -12,7 +10,7 @@ pub enum ProgramInput {
 
 pub enum AggregatedProof {
     SP1(SP1ProofWithPubValuesAndElf),
-    Risc0(Receipt),
+    Risc0(Risc0ProofReceiptAndImageId),
 }
 
 pub struct ProgramOutput {
@@ -29,6 +27,7 @@ impl ProgramOutput {
 pub enum ProofAggregationError {
     SP1Verification(sp1_sdk::SP1VerificationError),
     SP1Proving,
+    Risc0Proving,
     UnsupportedProof,
 }
 

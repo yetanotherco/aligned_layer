@@ -3,7 +3,7 @@ use tiny_keccak::{Hasher, Keccak};
 
 #[derive(Serialize, Deserialize)]
 pub struct Risc0ImageIdAndPubInputs {
-    pub image_id: [u32; 8],
+    pub image_id: [u8; 32],
     pub public_inputs: Vec<u8>,
 }
 
