@@ -93,9 +93,12 @@ pub async fn is_proof_verified_in_aggregation_mode(
 
     let logs = eth_rpc_provider.get_logs(&filter).await.unwrap();
     for log in logs {
+        // First 32 bytes of the data are the bytes of the blob versioned hash
         let blob_versioned_hash: [u8; 32] = log.data[0..32]
             .try_into()
             .map_err(|_| ProofVerificationAggModeError::EventDecoding)?;
+
+        // Event is indexed by merkle root
         let merkle_root = log.topics[1].0;
 
         // Block Number shouldn't be empty, in case it is,

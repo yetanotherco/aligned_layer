@@ -5,6 +5,7 @@ use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+// See https://eips.ethereum.org/EIPS/eip-4844#parameters
 pub const KZG_VERSIONED_HASH: u8 = 0x1;
 
 pub struct BeaconClient {
@@ -29,6 +30,7 @@ pub enum BeaconClientError {
 
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
+// https://ethereum.github.io/beacon-APIs/#/Beacon/getBlobSidecars
 pub struct BlobData {
     pub index: String,
     pub blob: String,
@@ -39,6 +41,8 @@ pub struct BlobData {
 
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
+
+// https://ethereum.github.io/beacon-APIs/#/Beacon/getBlockHeaders
 pub struct BeaconBlock {
     pub root: String,
     pub canonical: bool,
@@ -46,6 +50,7 @@ pub struct BeaconBlock {
 }
 
 #[derive(Deserialize, Debug)]
+
 pub struct BeaconBlockHeader {
     pub message: BeaconBlockMessage,
 }
