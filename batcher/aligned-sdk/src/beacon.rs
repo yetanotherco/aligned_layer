@@ -41,7 +41,6 @@ pub struct BlobData {
 
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
-
 // https://ethereum.github.io/beacon-APIs/#/Beacon/getBlockHeaders
 pub struct BeaconBlock {
     pub root: String,
