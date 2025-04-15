@@ -88,42 +88,61 @@ pub struct SubmitArgs {
         default_value = "http://localhost:8545"
     )]
     eth_rpc_url: String,
+
     #[arg(name = "Proving system", long = "proving_system")]
     proving_system_flag: ProvingSystemArg,
+
     #[arg(name = "Proof file path", long = "proof")]
     proof_file_name: PathBuf,
+
     #[arg(name = "Public input file name", long = "public_input")]
     pub_input_file_name: Option<PathBuf>,
+
     #[arg(name = "Verification key file name", long = "vk")]
     verification_key_file_name: Option<PathBuf>,
+
     #[arg(name = "VM prgram code file name", long = "vm_program")]
     vm_program_code_file_name: Option<PathBuf>,
+
     #[arg(
         name = "Number of repetitions",
         long = "repetitions",
         default_value = "1"
     )]
     repetitions: usize,
+
     #[arg(
         name = "Proof generator address",
         long = "proof_generator_addr",
         default_value = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     )] // defaults to anvil address 1
     proof_generator_addr: String,
+
     #[arg(
         name = "Aligned verification data directory Path",
         long = "aligned_verification_data_path",
         default_value = "./aligned_verification_data/"
     )]
     batch_inclusion_data_directory_path: String,
+
     #[command(flatten)]
     private_key_type: PrivateKeyType,
+
     #[arg(name = "Nonce", long = "nonce")]
     nonce: Option<String>, // String because U256 expects hex
+
     #[clap(flatten)]
     network: NetworkArg,
+
     #[command(flatten)]
     fee_type: FeeType,
+
+    #[arg(
+        name = "Random Address",
+        long = "random_address",
+        default_value = "false"
+    )]
+    random_address: bool,
 }
 
 impl SubmitArgs {
@@ -516,7 +535,15 @@ async fn main() -> Result<(), AlignedError> {
 
             let verification_data = verification_data_from_args(&submit_args)?;
 
-            let verification_data_arr = vec![verification_data; repetitions];
+            let mut verification_data_arr = vec![verification_data; repetitions];
+
+            // If random_address flag is enabled, change every address with a random value
+            if submit_args.random_address {
+                info!("Randomizing proof generator address for each proof...");
+                for verification_data in verification_data_arr.iter_mut() {
+                    verification_data.proof_generator_addr = Address::random();
+                }
+            }
 
             info!("Submitting proofs to the Aligned batcher...");
 

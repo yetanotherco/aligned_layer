@@ -86,7 +86,8 @@ Submit a proof to the Aligned Layer batcher.
   - `--default_fee_estimate`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size 10.
   - `--instant_fee_estimate`: Specifies a `max_fee` that ensures the proof is included instantly, equivalent to the cost of a proof in a batch of size 1.
   - `--custom_fee_estimate <amount_of_proofs_in_batch>`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size `num_proofs_in_batch`.
-
+- `random_address`: If set, random addresses will be used as `proof_generator_addr` for each proof.  
+  - Default: `false`
 
 #### Example:
 

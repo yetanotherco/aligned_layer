@@ -18,6 +18,8 @@ env_vars=(
   "BATCH_TTL_MINUTES"
   "SCHEDULED_BATCH_INTERVAL_MINUTES"
   "LATEST_RELEASE"
+  "ALIGNED_PROOF_AGG_CONFIG_FILE"
+  "BEACON_CLIENT"
 )
 
 for var in "${env_vars[@]}"; do

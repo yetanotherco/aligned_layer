@@ -42,7 +42,7 @@ NUM_WALLETS=<N> make task_sender_generate_and_fund_wallets_holesky_stage
 ### In Devnet:
 Run anvil with more prefunded accounts, using the following make target:
 ```bash
-make anvil_start_with_block_time_with_more_prefunded
+make anvil_start_with_more_prefunded_accounts
 ```
 
 Then run the following make target, with `NUM_WALLETS` being the amount of wallets you want to deposit funds to aligned payment service, up to 1000.

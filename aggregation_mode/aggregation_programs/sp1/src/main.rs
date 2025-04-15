@@ -3,7 +3,7 @@ sp1_zkvm::entrypoint!(main);
 
 use sha2::{Digest, Sha256};
 use sha3::Keccak256;
-use sp1_aggregation_program::{Input, ProofInput};
+use sp1_aggregation_program::{Input, ProofVkAndPubInputs};
 
 fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
     let mut hasher = Keccak256::new();
@@ -13,7 +13,7 @@ fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
 }
 
 /// Computes the merkle root for the given proofs using the vk
-fn compute_merkle_root(proofs: &[ProofInput]) -> [u8; 32] {
+fn compute_merkle_root(proofs: &[ProofVkAndPubInputs]) -> [u8; 32] {
     let mut leaves: Vec<[u8; 32]> = proofs
         .chunks(2)
         .map(|chunk| match chunk {
@@ -41,9 +41,9 @@ pub fn main() {
     let input = sp1_zkvm::io::read::<Input>();
 
     // Verify the proofs.
-    for proof in input.proofs.iter() {
+    for proof in input.proofs_vk_and_pub_inputs.iter() {
         match proof {
-            ProofInput::SP1Compressed(proof) => {
+            ProofVkAndPubInputs::SP1Compressed(proof) => {
                 let vkey = proof.vk;
                 let public_values = &proof.public_inputs;
                 let public_values_digest = Sha256::digest(public_values);
@@ -52,7 +52,7 @@ pub fn main() {
         }
     }
 
-    let merkle_root = compute_merkle_root(&input.proofs);
+    let merkle_root = compute_merkle_root(&input.proofs_vk_and_pub_inputs);
 
     assert_eq!(merkle_root, input.merkle_root);
 

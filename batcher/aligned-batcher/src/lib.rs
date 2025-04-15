@@ -563,60 +563,33 @@ impl Batcher {
         // *        Perform validations over the message        *
         // * ---------------------------------------------------*
 
-        // This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
-        let msg_chain_id = client_msg.verification_data.chain_id;
-        if msg_chain_id != self.chain_id {
-            warn!("Received message with incorrect chain id: {msg_chain_id}");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidChainId,
-            )
-            .await;
-            self.metrics.user_error(&["invalid_chain_id", ""]);
+        // All check functions sends the error to the metrics server and logs it
+        // if they return false
+
+        if !self.msg_chain_id_is_valid(&client_msg, &ws_conn_sink).await {
             return Ok(());
         }
 
-        // This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
-        let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
-        if msg_payment_service_addr != self.payment_service.address() {
-            warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidPaymentServiceAddress(
-                    msg_payment_service_addr,
-                    self.payment_service.address(),
-                ),
-            )
-            .await;
-            self.metrics
-                .user_error(&["invalid_payment_service_address", ""]);
+        if !self
+            .msg_batcher_payment_addr_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        {
             return Ok(());
         }
 
-        info!("Verifying message signature...");
-        let Ok(addr) = client_msg.verify_signature() else {
-            error!("Signature verification error");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidSignature,
-            )
-            .await;
-            self.metrics.user_error(&["invalid_signature", ""]);
+        if !self
+            .msg_proof_size_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        {
+            return Ok(());
+        }
+
+        let Some(addr) = self
+            .msg_signature_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        else {
             return Ok(());
         };
-        info!("Message signature verified");
-
-        let proof_size = client_msg.verification_data.verification_data.proof.len();
-        if proof_size > self.max_proof_size {
-            error!("Proof size exceeds the maximum allowed size.");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::ProofTooLarge,
-            )
-            .await;
-            self.metrics.user_error(&["proof_too_large", ""]);
-            return Ok(());
-        }
 
         let nonced_verification_data = client_msg.verification_data.clone();
 
@@ -661,6 +634,7 @@ impl Batcher {
         }
 
         if self.is_nonpaying(&addr) {
+            // TODO: Non paying msg and paying should share some logic
             return self
                 .handle_nonpaying_msg(ws_conn_sink.clone(), &client_msg)
                 .await;
@@ -671,17 +645,11 @@ impl Batcher {
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
         // It is safe to do just do this here.
-        if self.user_balance_is_unlocked(&addr).await {
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(addr),
-            )
-            .await;
-            self.metrics.user_error(&["insufficient_balance", ""]);
+        if !self.msg_user_balance_is_locked(&addr, &ws_conn_sink).await {
             return Ok(());
         }
 
-        // We aquire the lock first only to query if the user is already present and the lock is dropped.
+        // We acquire the lock first only to query if the user is already present and the lock is dropped.
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
 
@@ -1893,5 +1861,136 @@ impl Batcher {
     fn constant_gas_cost(&self) -> u128 {
         (self.aggregator_fee_percentage_multiplier * self.aggregator_gas_cost) / PERCENTAGE_DIVIDER
             + BATCHER_SUBMISSION_BASE_GAS_COST
+    }
+
+    /// Checks if the message signature is valid
+    /// and returns the address if its.
+    /// If not, returns false, logs the error,
+    /// and sends it to the metrics server
+    async fn msg_signature_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> Option<Address> {
+        let Ok(addr) = client_msg.verify_signature() else {
+            error!("Signature verification error");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidSignature,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_signature", ""]);
+            return None;
+        };
+
+        Some(addr)
+    }
+
+    /// Checks if the proof size + pub inputs is valid (not exceeding max_proof_size)
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if the size is too large
+    async fn msg_proof_size_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let verification_data = match cbor_serialize(&client_msg.verification_data) {
+            Ok(data) => data,
+            // This should never happened, the user sent all his data serialized
+            Err(_) => {
+                error!("Proof serialization error");
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::Error("Proof serialization error".to_string()),
+                )
+                .await;
+                self.metrics.user_error(&["proof_serialization_error", ""]);
+                return false;
+            }
+        };
+
+        if verification_data.len() > self.max_proof_size {
+            error!("Proof size exceeds the maximum allowed size.");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::ProofTooLarge,
+            )
+            .await;
+            self.metrics.user_error(&["proof_too_large", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    /// Checks if the chain id matches the one in the config
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if it doesn't matches
+    async fn msg_chain_id_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let msg_chain_id = client_msg.verification_data.chain_id;
+        if msg_chain_id != self.chain_id {
+            warn!("Received message with incorrect chain id: {msg_chain_id}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidChainId,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_chain_id", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    /// Checks if the message has a valid payment service address
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if it doesn't match
+    async fn msg_batcher_payment_addr_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
+        if msg_payment_service_addr != self.payment_service.address() {
+            warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidPaymentServiceAddress(
+                    msg_payment_service_addr,
+                    self.payment_service.address(),
+                ),
+            )
+            .await;
+            self.metrics
+                .user_error(&["invalid_payment_service_address", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    /// Checks if the user's balance is unlocked
+    /// Returns false if balance is unlocked, logs the error,
+    /// and sends it to the metrics server
+    async fn msg_user_balance_is_locked(
+        &self,
+        addr: &Address,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        if self.user_balance_is_unlocked(addr).await {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InsufficientBalance(*addr),
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
+            return false;
+        }
+
+        true
     }
 }
