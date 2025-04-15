@@ -161,6 +161,9 @@ start_proof_aggregator_local: ## Start the proof aggregator locally using Mock V
 start_proof_aggregator_local_with_proving: ## Start the proof aggregator locally using SP1 Verifier Contract
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
 
+install_aggregation_mode: ## Install the aggregation mode with proving enabled
+	cargo install --path aggregation_mode --features prove
+
 _AGGREGATOR_:
 
 build_aggregator:

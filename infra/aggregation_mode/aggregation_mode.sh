@@ -106,7 +106,7 @@ $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config_file.s
 
 # Build the proof_aggregator
 cd repos/proof_aggregation/aligned_layer
-cargo install --path aggregation_mode --features prove
+make install_aggregation_mode
 
 # Setup systemd service
 cp $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/aggregation_mode.service $HOME/.config/systemd/user/aggregation_mode.service
@@ -122,3 +122,7 @@ systemctl --user start aggregation_mode_stage.service
 
 # Check timer status
 systemctl --user status aggregation_mode.timer
+
+# Check logs
+journalctl -xfeu aggregation_mode.service --user -n10
+journalctl -xfeu aggregation_mode_stage.service --user -n10
