@@ -32,6 +32,7 @@ prompt_and_replace "<aligned_service_manager_address>" "Aligned Service Manager 
 prompt_and_replace "<proof_aggregation_service_address>" "Proof Aggregation Service Address"
 prompt_and_replace "<eth_rpc_url>" "Ethereum RPC URL"
 prompt_and_replace "<eth_ws_url>" "Ethereum WebSocket URL"
+prompt_and_replace "last_aggregated_block_filepath" "Last Aggregated Block Filepath"
 prompt_and_replace "<private_key_store_path>" "ECDSA Private Key Store Path"
 prompt_and_replace "<private_key_store_password>" "ECDSA Private Key Store Password"
 

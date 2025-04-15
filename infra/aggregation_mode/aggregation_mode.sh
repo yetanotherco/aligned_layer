@@ -100,9 +100,9 @@ cd
 # Create keystore
 cast wallet import proof_aggregation.keystore -k $HOME/.keystores -i
 
-# Copy config file
-#cp repos/proof_aggregation/aligned_layer/config-files/config-proof-aggregator.yaml config/config-proof-aggregator.yaml
+# Create config file interactively
 $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config_file.sh $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config-proof-aggregator.template.yaml
+read -p "Enter a number (last_aggregated_block): " num && echo "{\"last_aggregated_block\":$num}" > $HOME/config/proof-aggregator.last_aggregated_block.json.test
 
 # Build the proof_aggregator
 cd repos/proof_aggregation/aligned_layer
