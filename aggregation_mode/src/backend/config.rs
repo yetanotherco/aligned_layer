@@ -33,18 +33,11 @@ impl Config {
     }
 
     pub fn get_last_aggregated_block(&self) -> Result<u64, Box<dyn std::error::Error>> {
-        match File::open(&self.last_aggregated_block_filepath) {
-            Err(_) => {
-                // if file doesn't exist, default 0
-                Ok(0)
-            }
-            Ok(mut file) => {
-                let mut contents = String::new();
-                file.read_to_string(&mut contents)?;
-                let lpb: LastAggregatedBlock = serde_json::from_str(&contents)?;
-                Ok(lpb.last_aggregated_block)
-            }
-        }
+        let mut file = File::open(&self.last_aggregated_block_filepath)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        let lpb: LastAggregatedBlock = serde_json::from_str(&contents)?;
+        Ok(lpb.last_aggregated_block)
     }
 
     pub fn update_last_aggregated_block(
