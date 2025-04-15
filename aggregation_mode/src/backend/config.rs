@@ -36,15 +36,15 @@ impl Config {
         let mut file = File::open(&self.last_aggregated_block_filepath)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
-        let lpb: LastAggregatedBlock = serde_json::from_str(&contents)?;
-        Ok(lpb.last_aggregated_block)
+        let lab: LastAggregatedBlock = serde_json::from_str(&contents)?;
+        Ok(lab.last_aggregated_block)
     }
 
     pub fn update_last_aggregated_block(
         &self,
         last_aggregated_block: u64,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let last_processed_block_struct = LastAggregatedBlock {
+        let last_aggregated_block_struct = LastAggregatedBlock {
             last_aggregated_block,
         };
 
@@ -54,7 +54,7 @@ impl Config {
             .create(true)
             .open(&self.last_aggregated_block_filepath)?;
 
-        let content = serde_json::to_string(&last_processed_block_struct)?;
+        let content = serde_json::to_string(&last_aggregated_block_struct)?;
         file.write_all(content.as_bytes())?;
 
         Ok(())
