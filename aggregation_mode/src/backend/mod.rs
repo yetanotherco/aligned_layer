@@ -24,6 +24,7 @@ use alloy::{
 use config::Config;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
+use risc0_ethereum_contracts::encode_seal;
 use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
@@ -35,6 +36,7 @@ pub enum AggregatedProofSubmissionError {
     BuildingBlobCommitment,
     BuildingBlobProof,
     BuildingBlobVersionedHash,
+    Risc0EncodingSeal(String),
     SendVerifyAggregatedProofTransaction(alloy::contract::Error),
     ReceiptError(PendingTransactionError),
     FetchingProofs(ProofsFetcherError),
@@ -142,6 +144,7 @@ impl ProofAggregator {
                     .map_err(AggregatedProofSubmissionError::Aggregation)?
             }
         };
+
         info!("Proof aggregation program finished");
 
         info!("Constructing blob...");
@@ -169,11 +172,10 @@ impl ProofAggregator {
         blob_versioned_hash: [u8; 32],
         aggregated_proof: AggregatedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
-        match aggregated_proof {
+        let res = match aggregated_proof {
             AggregatedProof::SP1(proof) => {
-                let res = self
-                    .proof_aggregation_service
-                    .verify(
+                self.proof_aggregation_service
+                    .verifySP1(
                         blob_versioned_hash.into(),
                         proof.vk().bytes32_raw().into(),
                         proof.proof_with_pub_values.public_values.to_vec().into(),
@@ -182,18 +184,28 @@ impl ProofAggregator {
                     .sidecar(blob)
                     .send()
                     .await
-                    .map_err(
-                        AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction,
-                    )?;
-
-                res.get_receipt()
-                    .await
-                    .map_err(AggregatedProofSubmissionError::ReceiptError)
             }
             AggregatedProof::Risc0(proof) => {
-                todo!()
+                let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
+                    AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
+                })?;
+                self.proof_aggregation_service
+                    .verifyRisc0(
+                        blob_versioned_hash.into(),
+                        encoded_seal.into(),
+                        proof.image_id.into(),
+                        proof.receipt.journal.bytes.into(),
+                    )
+                    .sidecar(blob)
+                    .send()
+                    .await
             }
         }
+        .map_err(AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction)?;
+
+        res.get_receipt()
+            .await
+            .map_err(AggregatedProofSubmissionError::ReceiptError)
     }
 
     async fn construct_blob(
