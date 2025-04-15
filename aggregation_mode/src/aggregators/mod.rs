@@ -1,19 +1,24 @@
 pub mod lib;
+pub mod risc0_aggregator;
 pub mod sp1_aggregator;
 
+use risc0_aggregator::{AlignedRisc0VerificationError, Risc0ProofWithPubValuesAndImageId};
 use sp1_aggregator::{AlignedSP1VerificationError, SP1ProofWithPubValuesAndElf};
 pub enum ZKVMEngine {
     SP1,
+    RISC0,
 }
 
 pub enum AlignedProof {
     SP1(SP1ProofWithPubValuesAndElf),
+    Risc0(Risc0ProofWithPubValuesAndImageId),
 }
 
 impl AlignedProof {
     pub fn hash(&self) -> [u8; 32] {
         match self {
             AlignedProof::SP1(proof) => proof.hash_vk_and_pub_inputs(),
+            AlignedProof::Risc0(proof) => proof.hash_image_id_and_public_inputs(),
         }
     }
 }
@@ -21,6 +26,7 @@ impl AlignedProof {
 #[derive(Debug)]
 pub enum AlignedVerificationError {
     Sp1(AlignedSP1VerificationError),
+    Risc0(AlignedRisc0VerificationError),
 }
 
 impl AlignedProof {
@@ -31,6 +37,9 @@ impl AlignedProof {
                     AlignedVerificationError::Sp1(arg0)
                 },
             ),
+            AlignedProof::Risc0(proof) => {
+                risc0_aggregator::verify(&proof.receipt).map_err(AlignedVerificationError::Risc0)
+            }
         }
     }
 }

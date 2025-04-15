@@ -6,7 +6,8 @@ mod types;
 
 use crate::aggregators::{
     lib::{AggregatedProof, ProofAggregationError},
-    sp1_aggregator::{aggregate_proofs, SP1AggregationInput},
+    risc0_aggregator::{self, Risc0AggregationInput},
+    sp1_aggregator::{self, SP1AggregationInput},
     AlignedProof, ZKVMEngine,
 };
 
@@ -101,7 +102,7 @@ impl ProofAggregator {
 
         info!("Proofs fetched, constructing merkle root...");
         let (merkle_root, leaves) = compute_proofs_merkle_root(&proofs);
-        info!("Merkle root constructed: {}", hex::encode(merkle_root));
+        info!("Merkle root constructed: 0x{}", hex::encode(merkle_root));
 
         info!("Starting proof aggregation program...");
         let output = match self.engine {
@@ -109,8 +110,9 @@ impl ProofAggregator {
                 // only SP1 compressed proofs are supported
                 let proofs = proofs
                     .into_iter()
-                    .map(|proof| match proof {
-                        AlignedProof::SP1(proof) => proof,
+                    .filter_map(|proof| match proof {
+                        AlignedProof::SP1(proof) => Some(proof),
+                        _ => None,
                     })
                     .collect();
 
@@ -119,7 +121,25 @@ impl ProofAggregator {
                     merkle_root,
                 };
 
-                aggregate_proofs(input).map_err(AggregatedProofSubmissionError::Aggregation)?
+                sp1_aggregator::aggregate_proofs(input)
+                    .map_err(AggregatedProofSubmissionError::Aggregation)?
+            }
+            ZKVMEngine::RISC0 => {
+                let receipts = proofs
+                    .into_iter()
+                    .filter_map(|proof| match proof {
+                        AlignedProof::Risc0(proof) => Some(proof),
+                        _ => None,
+                    })
+                    .collect();
+
+                let input = Risc0AggregationInput {
+                    receipts,
+                    merkle_root,
+                };
+
+                risc0_aggregator::aggregate_proofs(input)
+                    .map_err(AggregatedProofSubmissionError::Aggregation)?
             }
         };
         info!("Proof aggregation program finished");
@@ -169,6 +189,9 @@ impl ProofAggregator {
                 res.get_receipt()
                     .await
                     .map_err(AggregatedProofSubmissionError::ReceiptError)
+            }
+            AggregatedProof::Risc0(proof) => {
+                todo!()
             }
         }
     }
