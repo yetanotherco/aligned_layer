@@ -34,3 +34,6 @@
 [submodule "contracts/lib/sp1-contracts"]
 	path = contracts/lib/sp1-contracts
 	url = https://github.com/succinctlabs/sp1-contracts
+[submodule "contracts/lib/risc0-ethereum"]
+	path = contracts/lib/risc0-ethereum
+	url = https://github.com/risc0/risc0-ethereum
