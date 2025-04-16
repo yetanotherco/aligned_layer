@@ -212,7 +212,9 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
     U256::from(gas_per_proof) * gas_price
 }
 
-pub(crate) fn get_lowest_priority_entry(batch_queue: &BatchQueue) -> Option<(BatchQueueEntry, BatchQueueEntryPriority)> {
+pub(crate) fn get_lowest_priority_entry(
+    batch_queue: &BatchQueue,
+) -> Option<(BatchQueueEntry, BatchQueueEntryPriority)> {
     let mut lowest_fee_entry: Option<(BatchQueueEntry, BatchQueueEntryPriority)> = None;
 
     for (entry, priority) in batch_queue {
@@ -224,10 +226,10 @@ pub(crate) fn get_lowest_priority_entry(batch_queue: &BatchQueue) -> Option<(Bat
             }
             None => {
                 lowest_fee_entry = Some((entry.clone(), priority.clone()));
-            } 
+            }
         }
     }
-    
+
     lowest_fee_entry
 }
 

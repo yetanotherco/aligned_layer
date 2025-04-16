@@ -1052,32 +1052,40 @@ impl Batcher {
 
         let batch_queue_len = batch_state_lock.batch_queue.len();
 
-        let new_entry =  BatchQueueEntry::new(
+        let new_entry = BatchQueueEntry::new(
             verification_data,
             verification_data_comm,
             ws_conn_sink,
             proof_submitter_sig,
             proof_submitter_addr,
-            );
-        let new_entry_priority = BatchQueueEntryPriority::new(max_fee, nonce) ;
+        );
+        let new_entry_priority = BatchQueueEntryPriority::new(max_fee, nonce);
 
-        if  batch_queue_len + 1 > self.max_batch_proof_qty {
-            let (lowest_priority_entry, lowest_priority_entry_priority) = 
+        if batch_queue_len + 1 > self.max_batch_proof_qty {
+            let (lowest_priority_entry, lowest_priority_entry_priority) =
                 get_lowest_priority_entry(&batch_state_lock.batch_queue).unwrap();
-                
-            if lowest_priority_entry_priority <  new_entry_priority {
-                if batch_state_lock.batch_queue.remove(&lowest_priority_entry).is_none(){
+
+            if lowest_priority_entry_priority < new_entry_priority {
+                if batch_state_lock
+                    .batch_queue
+                    .remove(&lowest_priority_entry)
+                    .is_none()
+                {
                     //err
                 }
-                
+
                 // todo send msg to the removed entry ws
 
-                batch_state_lock.batch_queue.push(new_entry, new_entry_priority);    
+                batch_state_lock
+                    .batch_queue
+                    .push(new_entry, new_entry_priority);
             } else {
                 // can't accept the new proof
             }
         } else {
-            batch_state_lock.batch_queue.push(new_entry, new_entry_priority );
+            batch_state_lock
+                .batch_queue
+                .push(new_entry, new_entry_priority);
         }
 
         // Update metrics
