@@ -1062,6 +1062,7 @@ impl Batcher {
         let new_entry_priority = BatchQueueEntryPriority::new(max_fee, nonce);
 
         if batch_queue_len + 1 > self.max_batch_proof_qty {
+            info!("Batch queue is full. Trying to remove an entry...");
             let (lowest_priority_entry, lowest_priority_entry_priority) =
                 get_lowest_priority_entry(&batch_state_lock.batch_queue).unwrap();
 
@@ -1071,16 +1072,28 @@ impl Batcher {
                     .remove(&lowest_priority_entry)
                     .is_none()
                 {
-                    //err
+                    // If this happens, we have a bug in our code
+                    error!("Some proofs were not found in the queue. This should not happen.");
+                    std::mem::drop(batch_state_lock);
+                    return Err(BatcherError::QueueRemoveError(
+                        "Some proofs were not found in the queue".into(),
+                    ));
                 }
+                info!("Removed entry from batch queue.");
 
-                // todo send msg to the removed entry ws
+                send_message(
+                    lowest_priority_entry.messaging_sink.unwrap(),
+                    SubmitProofResponseMessage::AddToBatchError,
+                )
+                .await;
 
                 batch_state_lock
                     .batch_queue
                     .push(new_entry, new_entry_priority);
             } else {
-                // can't accept the new proof
+                error!("Queue is full and fee isn't enough");
+                std::mem::drop(batch_state_lock);
+                return Err(BatcherError::BatchQueueIsFull);
             }
         } else {
             batch_state_lock

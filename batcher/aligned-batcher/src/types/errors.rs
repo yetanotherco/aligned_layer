@@ -58,6 +58,7 @@ pub enum BatcherError {
     WsSinkEmpty,
     AddressNotFoundInUserStates(Address),
     QueueRemoveError(String),
+    BatchQueueIsFull,
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -138,6 +139,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::QueueRemoveError(e) => {
                 write!(f, "Error while removing entry from queue: {}", e)
+            }
+            BatcherError::BatchQueueIsFull => {
+                write!(f, "Error adding proof, queue is full")
             }
         }
     }
