@@ -151,11 +151,18 @@ anvil_start_with_more_prefunded_accounts:
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
 
 __AGGREGATION_MODE__: ## ____
-start_proof_aggregator_local: ## Start the proof aggregator locally using Mock Verifier Contract
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
 
-start_proof_aggregator_local_with_proving: ## Start the proof aggregator locally using SP1 Verifier Contract
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
+is_aggregator_set:
+	@if [ -z "$(AGGREGATOR)" ]; then \
+		echo "Error: AGGREGATOR is not set. Please provide arg AGGREGATOR='sp1' or 'risc0'."; \
+		exit 1; \
+	fi
+
+start_proof_aggregator_local: is_aggregator_set ## Start the proof aggregator locally using Mock Verifier Contract
+	RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features $(AGGREGATOR) -- config-files/config-proof-aggregator-mock.yaml
+
+start_proof_aggregator_local_with_proving: is_aggregator_set ## Start the proof aggregator locally using SP1 Verifier Contract
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
 
 _AGGREGATOR_:
 
