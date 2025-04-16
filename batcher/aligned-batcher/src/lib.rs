@@ -1,4 +1,5 @@
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
+use aws_sdk_s3::operation::list_bucket_intelligent_tiering_configurations::builders::ListBucketIntelligentTieringConfigurationsFluentBuilder;
 use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
@@ -16,7 +17,7 @@ use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
-use batch_queue::calculate_batch_size;
+use batch_queue::{calculate_batch_size, try_push_to_queue};
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -1047,23 +1048,10 @@ impl Batcher {
         let verification_data_comm = verification_data.clone().into();
         info!("Adding verification data to batch...");
 
-        let mut queue_len = batch_state_lock.batch_queue.len();
-        let mut queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
-
-        if let Ok(verification_data_bytes) =
-            cbor_serialize(&verification_data.verification_data)
-        {
-            if queue_len + 1 > self.max_batch_proof_qty ||
-            queue_size_bytes + verification_data_bytes.len() + CBOR_ARRAY_MAX_OVERHEAD > self.max_batch_byte_size
-            {
-                // do something
-            }
-        }
-        
-
         let max_fee = verification_data.max_fee;
         let nonce = verification_data.nonce;
-        batch_state_lock.batch_queue.push(
+        try_push_to_queue(
+            &mut batch_state_lock.batch_queue,
             BatchQueueEntry::new(
                 verification_data,
                 verification_data_comm,
@@ -1072,11 +1060,14 @@ impl Batcher {
                 proof_submitter_addr,
             ),
             BatchQueueEntryPriority::new(max_fee, nonce),
+            self.max_batch_byte_size,
+            self.max_batch_proof_qty,
         );
 
         // Update metrics
-        queue_len = batch_state_lock.batch_queue.len();
-        queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+
         self.metrics
             .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
 
