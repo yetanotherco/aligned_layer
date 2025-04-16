@@ -2,11 +2,40 @@ pub mod lib;
 pub mod risc0_aggregator;
 pub mod sp1_aggregator;
 
+use std::fmt::Display;
+
 use risc0_aggregator::{AlignedRisc0VerificationError, Risc0ProofReceiptAndImageId};
 use sp1_aggregator::{AlignedSP1VerificationError, SP1ProofWithPubValuesAndElf};
+
+#[derive(Clone, Debug)]
 pub enum ZKVMEngine {
     SP1,
     RISC0,
+}
+
+impl Display for ZKVMEngine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SP1 => write!(f, "SP1"),
+            Self::RISC0 => write!(f, "Risc0"),
+        }
+    }
+}
+
+impl ZKVMEngine {
+    pub fn from_rust_features() -> Option<Self> {
+        #[cfg(feature = "sp1")]
+        {
+            return Some(ZKVMEngine::SP1);
+        }
+
+        #[cfg(feature = "risc0")]
+        {
+            return Some(ZKVMEngine::RISC0);
+        }
+
+        None
+    }
 }
 
 pub enum AlignedProof {

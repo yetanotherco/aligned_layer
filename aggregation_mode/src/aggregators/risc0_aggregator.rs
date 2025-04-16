@@ -40,7 +40,7 @@ impl Risc0ProofReceiptAndImageId {
 }
 
 pub struct Risc0AggregationInput {
-    pub receipts: Vec<Risc0ProofReceiptAndImageId>,
+    pub proofs: Vec<Risc0ProofReceiptAndImageId>,
     pub merkle_root: [u8; 32],
 }
 
@@ -51,7 +51,7 @@ pub(crate) fn aggregate_proofs(
 
     // write assumptions and proof image id + pub inputs
     let mut proofs_image_id_and_pub_inputs = vec![];
-    for proof in input.receipts {
+    for proof in input.proofs {
         proofs_image_id_and_pub_inputs.push(risc0_aggregation_program::Risc0ImageIdAndPubInputs {
             image_id: proof.image_id,
             public_inputs: proof.receipt.journal.bytes.clone(),

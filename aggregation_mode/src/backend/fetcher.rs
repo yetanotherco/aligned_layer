@@ -7,7 +7,7 @@ use super::{
 use crate::{
     aggregators::{
         risc0_aggregator::Risc0ProofReceiptAndImageId, sp1_aggregator::SP1ProofWithPubValuesAndElf,
-        AlignedProof,
+        AlignedProof, ZKVMEngine,
     },
     backend::s3::get_aligned_batch_from_s3,
 };
@@ -50,7 +50,7 @@ impl ProofsFetcher {
         }
     }
 
-    pub async fn fetch(&self) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
+    pub async fn fetch(&self, engine: ZKVMEngine) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
         let from_block = self.get_block_number_to_fetch_from().await?;
         info!(
             "Fetching proofs from batch logs starting from block number {}",
@@ -87,37 +87,47 @@ impl ProofsFetcher {
             info!("Data downloaded from S3, number of proofs {}", data.len());
 
             // Filter compatible proofs to be aggregated and push to queue
-            let proofs_to_add: Vec<AlignedProof> = data
-                .into_iter()
-                .filter_map(|p| match p.proving_system {
-                    ProvingSystemId::SP1 => {
-                        let elf = p.vm_program_code?;
-                        let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
-                        let sp1_proof = SP1ProofWithPubValuesAndElf {
-                            proof_with_pub_values,
-                            elf,
-                        };
+            let proofs_to_add: Vec<AlignedProof> = match engine {
+                ZKVMEngine::SP1 => data
+                    .into_iter()
+                    .filter_map(|p| match p.proving_system {
+                        ProvingSystemId::SP1 => {
+                            let elf = p.vm_program_code?;
+                            let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
+                            let sp1_proof = SP1ProofWithPubValuesAndElf {
+                                proof_with_pub_values,
+                                elf,
+                            };
 
-                        Some(AlignedProof::SP1(sp1_proof))
-                    }
-                    ProvingSystemId::Risc0 => {
-                        let mut image_id = [0u8; 32];
-                        image_id.copy_from_slice(p.vm_program_code?.as_slice());
-                        let public_inputs = p.pub_input?;
-                        let inner_receipt: risc0_zkvm::InnerReceipt =
-                            bincode::deserialize(&p.proof).ok()?;
+                            Some(AlignedProof::SP1(sp1_proof))
+                        }
 
-                        let receipt = Receipt::new(inner_receipt, public_inputs);
-                        let risc0_proof = Risc0ProofReceiptAndImageId { image_id, receipt };
+                        _ => None,
+                    })
+                    .collect(),
+                ZKVMEngine::RISC0 => data
+                    .into_iter()
+                    .filter_map(|p| match p.proving_system {
+                        ProvingSystemId::Risc0 => {
+                            let mut image_id = [0u8; 32];
+                            image_id.copy_from_slice(p.vm_program_code?.as_slice());
+                            let public_inputs = p.pub_input?;
+                            let inner_receipt: risc0_zkvm::InnerReceipt =
+                                bincode::deserialize(&p.proof).ok()?;
 
-                        Some(AlignedProof::Risc0(risc0_proof))
-                    }
-                    _ => None,
-                })
-                .collect();
+                            let receipt = Receipt::new(inner_receipt, public_inputs);
+                            let risc0_proof = Risc0ProofReceiptAndImageId { image_id, receipt };
+
+                            Some(AlignedProof::Risc0(risc0_proof))
+                        }
+                        _ => None,
+                    })
+                    .collect(),
+            };
 
             info!(
-                "Proofs filtered, total proofs to add {}",
+                "{} Proofs filtered, compatible proofs found {}",
+                engine,
                 proofs_to_add.len()
             );
 

@@ -63,10 +63,12 @@ impl ProofAggregator {
                 .expect("AlignedProofAggregationService address should be valid"),
             rpc_provider,
         );
+
+        let engine = ZKVMEngine::from_rust_features().expect("A feature defining zkvm engine");
         let fetcher = ProofsFetcher::new(config);
 
         Self {
-            engine: ZKVMEngine::SP1,
+            engine,
             proof_aggregation_service,
             fetcher,
         }
@@ -93,7 +95,7 @@ impl ProofAggregator {
     ) -> Result<(), AggregatedProofSubmissionError> {
         let proofs = self
             .fetcher
-            .fetch()
+            .fetch(self.engine.clone())
             .await
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
@@ -127,7 +129,7 @@ impl ProofAggregator {
                     .map_err(AggregatedProofSubmissionError::Aggregation)?
             }
             ZKVMEngine::RISC0 => {
-                let receipts = proofs
+                let proofs = proofs
                     .into_iter()
                     .filter_map(|proof| match proof {
                         AlignedProof::Risc0(proof) => Some(proof),
@@ -136,7 +138,7 @@ impl ProofAggregator {
                     .collect();
 
                 let input = Risc0AggregationInput {
-                    receipts,
+                    proofs,
                     merkle_root,
                 };
 
