@@ -79,6 +79,10 @@ pub(crate) fn aggregate_proofs(
         .map_err(|e| ProofAggregationError::Risc0Proving(e.to_string()))?
         .receipt;
 
+    receipt
+        .verify(RISC0_AGGREGATOR_PROGRAM_ID)
+        .map_err(|e| ProofAggregationError::Risc0Proving(e.to_string()))?;
+
     let output = Risc0ProofReceiptAndImageId {
         image_id: RISC0_AGGREGATOR_PROGRAM_ID_BYTES,
         receipt,

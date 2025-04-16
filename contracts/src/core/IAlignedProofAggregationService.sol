@@ -19,7 +19,8 @@ interface IAlignedProofAggregationService {
         bytes32 blobVersionedHash,
         bytes calldata risc0ReceiptSeal,
         bytes32 risc0ImageId,
-        bytes calldata risc0JournalBytes
+        bytes calldata risc0JournalBytes,
+        bytes32 risc0JournalDigest
     ) external;
 
     /// @notice event that gets emitted after a successful aggregated proof verification

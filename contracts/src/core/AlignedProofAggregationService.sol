@@ -75,13 +75,14 @@ contract AlignedProofAggregationService is
         bytes32 blobVersionedHash,
         bytes calldata risc0ReceiptSeal,
         bytes32 risc0ImageId,
-        bytes calldata risc0JournalBytes
+        bytes calldata risc0JournalBytes,
+        bytes32 risc0JournalDigest
     ) public onlyAlignedAggregator {
         (bytes32 merkleRoot) = abi.decode(risc0JournalBytes, (bytes32));
 
         // In dev mode, poofs are mocked, so we skip the verification part
         if (_isRisc0VerificationEnabled()) {
-            bytes32 risc0JournalDigest = sha256(risc0JournalBytes);
+            //bytes32 risc0JournalDigest = sha256(risc0JournalBytes);
             IRiscZeroVerifier(risc0VerifierAddress).verify(risc0ReceiptSeal, risc0ImageId, risc0JournalDigest);
         }
 

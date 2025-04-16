@@ -25,6 +25,7 @@ use config::Config;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
+use risc0_zkvm::sha::Digestible;
 use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
@@ -191,12 +192,14 @@ impl ProofAggregator {
                 let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
                 })?;
+                let journal_digest: [u8; 32] = proof.receipt.journal.digest().into();
                 self.proof_aggregation_service
                     .verifyRisc0(
                         blob_versioned_hash.into(),
                         encoded_seal.into(),
                         proof.image_id.into(),
                         proof.receipt.journal.bytes.into(),
+                        journal_digest.into(),
                     )
                     .sidecar(blob)
                     .send()
