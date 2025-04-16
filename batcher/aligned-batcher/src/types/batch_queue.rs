@@ -216,23 +216,27 @@ pub(crate) fn try_push_to_queue(
     batch_queue: &mut BatchQueue,
     item: BatchQueueEntry,
     priority: BatchQueueEntryPriority,
-    _max_batch_byte_size: usize,
-    _max_batch_proof_qty: usize,
+    max_batch_byte_size: usize,
+    max_batch_proof_qty: usize,
 ) -> Result<(), BatcherError> {
-    // if let Ok(verification_data_bytes) =
-    //     cbor_serialize(&verification_data.verification_data)
-    // {
-    //     if queue_len + 1 > self.max_batch_proof_qty ||
-    //     queue_size_bytes + verification_data_bytes.len() + CBOR_ARRAY_MAX_OVERHEAD > self.max_batch_byte_size
-    //     {
-    //         let mut lowest_fee;
+    let queue_len = batch_queue.len();
+    let queue_size_bytes = calculate_batch_size(&batch_queue)?;
+    
+    let verification_data_bytes = 
+        cbor_serialize(&item.nonced_verification_data.verification_data)
+        .map_err(|e|{BatcherError::SerializationError(e.to_string())})?;
+    
+    if queue_len + 1 > max_batch_proof_qty ||
+    queue_size_bytes + verification_data_bytes.len() + CBOR_ARRAY_MAX_OVERHEAD > max_batch_byte_size
+    {
+        // do something
+    } else {
+        batch_queue.push(item, priority);
+    }
 
-    //     }
-    // }
-
-    batch_queue.push(item, priority);
     Ok(())
 }
+
 #[cfg(test)]
 mod test {
     use aligned_sdk::core::constants::DEFAULT_CONSTANT_GAS_COST;
