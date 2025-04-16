@@ -1047,6 +1047,20 @@ impl Batcher {
         let verification_data_comm = verification_data.clone().into();
         info!("Adding verification data to batch...");
 
+        let mut queue_len = batch_state_lock.batch_queue.len();
+        let mut queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+
+        if let Ok(verification_data_bytes) =
+            cbor_serialize(&verification_data.verification_data)
+        {
+            if queue_len + 1 > self.max_batch_proof_qty ||
+            queue_size_bytes + verification_data_bytes.len() + CBOR_ARRAY_MAX_OVERHEAD > self.max_batch_byte_size
+            {
+                // do something
+            }
+        }
+        
+
         let max_fee = verification_data.max_fee;
         let nonce = verification_data.nonce;
         batch_state_lock.batch_queue.push(
@@ -1061,8 +1075,8 @@ impl Batcher {
         );
 
         // Update metrics
-        let queue_len = batch_state_lock.batch_queue.len();
-        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+        queue_len = batch_state_lock.batch_queue.len();
+        queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
         self.metrics
             .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
 
