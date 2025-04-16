@@ -216,9 +216,9 @@ pub(crate) fn try_push_to_queue(
     batch_queue: &mut BatchQueue,
     item: BatchQueueEntry,
     priority: BatchQueueEntryPriority,
-    max_batch_byte_size: usize,
-    max_batch_proof_qty: usize,
-) -> Result<(), ()> {
+    _max_batch_byte_size: usize,
+    _max_batch_proof_qty: usize,
+) -> Result<(), BatcherError> {
     // if let Ok(verification_data_bytes) =
     //     cbor_serialize(&verification_data.verification_data)
     // {

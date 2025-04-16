@@ -1,5 +1,4 @@
 use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
-use aws_sdk_s3::operation::list_bucket_intelligent_tiering_configurations::builders::ListBucketIntelligentTieringConfigurationsFluentBuilder;
 use config::NonPayingConfig;
 use connection::{send_message, WsMessageSink};
 use dotenvy::dotenv;
@@ -1062,7 +1061,7 @@ impl Batcher {
             BatchQueueEntryPriority::new(max_fee, nonce),
             self.max_batch_byte_size,
             self.max_batch_proof_qty,
-        );
+        )?;
 
         // Update metrics
         let queue_len = batch_state_lock.batch_queue.len();
