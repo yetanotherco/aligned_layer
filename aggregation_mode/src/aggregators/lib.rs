@@ -27,7 +27,7 @@ impl ProgramOutput {
 pub enum ProofAggregationError {
     SP1Verification(sp1_sdk::SP1VerificationError),
     SP1Proving,
-    Risc0Proving,
+    Risc0Proving(String),
     UnsupportedProof,
 }
 

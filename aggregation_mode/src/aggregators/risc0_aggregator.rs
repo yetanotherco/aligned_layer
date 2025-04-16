@@ -66,16 +66,17 @@ pub(crate) fn aggregate_proofs(
     };
     env_builder
         .write(&input)
-        .map_err(|_| ProofAggregationError::Risc0Proving)?;
+        .map_err(|e| ProofAggregationError::Risc0Proving(e.to_string()))?;
 
     let env = env_builder
         .build()
-        .map_err(|_| ProofAggregationError::Risc0Proving)?;
+        .map_err(|e| ProofAggregationError::Risc0Proving(e.to_string()))?;
 
     let prover = default_prover();
+
     let receipt = prover
         .prove_with_opts(env, RISC0_AGGREGATOR_PROGRAM_ELF, &ProverOpts::groth16())
-        .map_err(|_| ProofAggregationError::Risc0Proving)?
+        .map_err(|e| ProofAggregationError::Risc0Proving(e.to_string()))?
         .receipt;
 
     let output = Risc0ProofReceiptAndImageId {
@@ -95,13 +96,13 @@ pub enum AlignedRisc0VerificationError {
 pub(crate) fn verify(
     proof: &Risc0ProofReceiptAndImageId,
 ) -> Result<(), AlignedRisc0VerificationError> {
-    // only composite proofs are supported for recursion
-    if proof.receipt.inner.composite().is_err() {
-        Err(AlignedRisc0VerificationError::UnsupportedProof)
-    } else {
+    // only stark proofs are supported for recursion
+    if proof.receipt.inner.composite().is_ok() || proof.receipt.inner.succinct().is_ok() {
         proof
             .receipt
             .verify(proof.image_id)
             .map_err(|e| AlignedRisc0VerificationError::Verification(e.to_string()))
+    } else {
+        Err(AlignedRisc0VerificationError::UnsupportedProof)
     }
 }
