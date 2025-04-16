@@ -16,7 +16,7 @@ use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
-use batch_queue::{calculate_batch_size, try_push_to_queue};
+use batch_queue::{calculate_batch_size, get_lowest_priority_entry};
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -1049,19 +1049,36 @@ impl Batcher {
 
         let max_fee = verification_data.max_fee;
         let nonce = verification_data.nonce;
-        try_push_to_queue(
-            &mut batch_state_lock.batch_queue,
-            BatchQueueEntry::new(
-                verification_data,
-                verification_data_comm,
-                ws_conn_sink,
-                proof_submitter_sig,
-                proof_submitter_addr,
-            ),
-            BatchQueueEntryPriority::new(max_fee, nonce),
-            self.max_batch_byte_size,
-            self.max_batch_proof_qty,
-        )?;
+
+        let batch_queue_len = batch_state_lock.batch_queue.len();
+
+        let new_entry =  BatchQueueEntry::new(
+            verification_data,
+            verification_data_comm,
+            ws_conn_sink,
+            proof_submitter_sig,
+            proof_submitter_addr,
+            );
+        let new_entry_priority = BatchQueueEntryPriority::new(max_fee, nonce) ;
+
+        if  batch_queue_len + 1 > self.max_batch_proof_qty {
+            let (lowest_priority_entry, lowest_priority_entry_priority) = 
+                get_lowest_priority_entry(&batch_state_lock.batch_queue).unwrap();
+                
+            if lowest_priority_entry_priority <  new_entry_priority {
+                if batch_state_lock.batch_queue.remove(&lowest_priority_entry).is_none(){
+                    //err
+                }
+                
+                // todo send msg to the removed entry ws
+
+                batch_state_lock.batch_queue.push(new_entry, new_entry_priority);    
+            } else {
+                // can't accept the new proof
+            }
+        } else {
+            batch_state_lock.batch_queue.push(new_entry, new_entry_priority );
+        }
 
         // Update metrics
         let queue_len = batch_state_lock.batch_queue.len();

@@ -212,29 +212,23 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
     U256::from(gas_per_proof) * gas_price
 }
 
-pub(crate) fn try_push_to_queue(
-    batch_queue: &mut BatchQueue,
-    item: BatchQueueEntry,
-    priority: BatchQueueEntryPriority,
-    max_batch_byte_size: usize,
-    max_batch_proof_qty: usize,
-) -> Result<(), BatcherError> {
-    let queue_len = batch_queue.len();
-    let queue_size_bytes = calculate_batch_size(&batch_queue)?;
-    
-    let verification_data_bytes = 
-        cbor_serialize(&item.nonced_verification_data.verification_data)
-        .map_err(|e|{BatcherError::SerializationError(e.to_string())})?;
-    
-    if queue_len + 1 > max_batch_proof_qty ||
-    queue_size_bytes + verification_data_bytes.len() + CBOR_ARRAY_MAX_OVERHEAD > max_batch_byte_size
-    {
-        // do something
-    } else {
-        batch_queue.push(item, priority);
-    }
+pub(crate) fn get_lowest_priority_entry(batch_queue: &BatchQueue) -> Option<(BatchQueueEntry, BatchQueueEntryPriority)> {
+    let mut lowest_fee_entry: Option<(BatchQueueEntry, BatchQueueEntryPriority)> = None;
 
-    Ok(())
+    for (entry, priority) in batch_queue {
+        match &lowest_fee_entry {
+            Some((e, p)) => {
+                if *priority < *p {
+                    lowest_fee_entry = Some((e.clone(), p.clone()));
+                }
+            }
+            None => {
+                lowest_fee_entry = Some((entry.clone(), priority.clone()));
+            } 
+        }
+    }
+    
+    lowest_fee_entry
 }
 
 #[cfg(test)]
