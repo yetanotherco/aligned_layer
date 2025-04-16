@@ -355,11 +355,11 @@ aligned get-user-amount-of-queued-proofs  \
 
 #### Description:
 
-Verifies if your proof has been verified by the `ProofAggregationService`.
+Verifies if your proof has been verified by the `Aggregation Mode`.
 
 #### Command:
 
-`cargo run verify-agg-proof [OPTIONS] --proving_system <proving_system>`
+`aligned verify-agg-proof [OPTIONS] --proving_system <proving_system>`
 
 #### Options:
 
