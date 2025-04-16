@@ -75,6 +75,10 @@ anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
+anvil_deploy_risc0_contracts:
+	@echo "Deploying RISC0 Contracts..."
+	. contracts/scripts/anvil/deploy_risc0_contracts.sh
+
 anvil_deploy_sp1_contracts:
 	@echo "Deploying SP1 Contracts..."
 	. contracts/scripts/anvil/deploy_sp1_contracts.sh
