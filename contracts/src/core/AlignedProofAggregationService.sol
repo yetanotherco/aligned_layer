@@ -24,6 +24,9 @@ contract AlignedProofAggregationService is
     ///      https://docs.succinct.xyz/onchain-verification/contract-addresses
     address public sp1VerifierAddress;
 
+    /// @notice The address of the Risc0 verifier contract
+    /// @dev See supported verifier here:
+    /// https://dev.risczero.com/api/blockchain-integration/contracts/verifier#contract-addresses
     address public risc0VerifierAddress;
 
     /// @notice The address of the Wallet that is allowed to call the verify function.
@@ -37,15 +40,18 @@ contract AlignedProofAggregationService is
         _disableInitializers();
     }
 
-    function initialize(address newOwner, address _alignedAggregatorAddress, address _sp1VerifierAddress)
-        public
-        initializer
-    {
+    function initialize(
+        address newOwner,
+        address _alignedAggregatorAddress,
+        address _sp1VerifierAddress,
+        address _risc0VerifierAddress
+    ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         _transferOwnership(newOwner);
         alignedAggregatorAddress = _alignedAggregatorAddress;
         sp1VerifierAddress = _sp1VerifierAddress;
+        risc0VerifierAddress = _risc0VerifierAddress;
     }
 
     function verifySP1(
