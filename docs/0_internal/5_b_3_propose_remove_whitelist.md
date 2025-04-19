@@ -28,7 +28,7 @@ To propose a remove operator from whitelist transaction you can follow the steps
 
    ![Use Implementation ABI](./images/5_b_3_remove_operator_4.png)
 
-If `Use Implementation ABI`, did not show up you will need to submit the call via raw calldata. Consult this this alternative [guide](./5_b_3b_propose_remove_operator_with_call_data.md)
+If `Use Implementation ABI`, did not show up you will need to submit the call via raw calldata. Consult this alternative [guide](./5_b_3b_propose_remove_operator_with_call_data.md)
    
 6. In `contract method selector` choose `remove_multiple()` in the `_addresses(address[])` field, enter the operator addresses in the following format `[<OPERATOR_ADDRESS>, ..., <OPERATOR_ADDRESS>]` for example, `[0000000000000000000000000000000000000009, 0000000000000000000000000000000000000003]`
 
