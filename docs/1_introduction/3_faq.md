@@ -63,7 +63,7 @@ No. Aligned is a decentralized network of verifiers that also uses proof aggrega
     
 ### What does it cost to verify proofs using Aligned?
     
-The cost ($C$) of proof verification using Aligned's **fast mode** is the cost of task creation ($C_{task}$) plus the cost of verifying an aggregated BLS signature ($C_{verification}$), divided by the number of proofs ($N$) in the batch, plus the the cost of reading the results on-chain ($C_{read}$).
+The cost ($C$) of proof verification using Aligned's **fast mode** is the cost of task creation ($C_{task}$) plus the cost of verifying an aggregated BLS signature ($C_{verification}$), divided by the number of proofs ($N$) in the batch, plus the cost of reading the results on-chain ($C_{read}$).
     
 $$
   C =\frac{C_{task} + C_{verification}}{N} + C_{read}
