@@ -1060,10 +1060,8 @@ impl Batcher {
             BatchQueueEntryPriority::new(max_fee, nonce),
         );
 
-        let batch_queue_len = batch_state_lock.batch_queue.len();
-
         // if max batch qty exceded, remove least priority element
-        if batch_queue_len > self.max_batch_proof_qty {
+        if batch_state_lock.batch_queue.len() > self.max_batch_proof_qty {
             info!("Queue limit exceded, removing least priority element");
 
             if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop_min() {
