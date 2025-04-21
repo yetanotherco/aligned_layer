@@ -168,6 +168,9 @@ start_proof_aggregator_local: is_aggregator_set ## Start the proof aggregator lo
 start_proof_aggregator_local_with_proving: is_aggregator_set ## Start the proof aggregator locally using SP1 Verifier Contract
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
 
+start_proof_aggregator_local_with_proving_gpu: is_aggregator_set ## Start the proof aggregator locally using SP1 Verifier Contract
+	SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
+
 _AGGREGATOR_:
 
 build_aggregator:
