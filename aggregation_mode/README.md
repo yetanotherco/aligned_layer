@@ -1,4 +1,3 @@
-
 # Aligned aggregation mode
 
 ## How to run it locally
@@ -40,7 +39,11 @@ or
 make start_proof_aggregator_local_with_proving
 ```
 
-Note: Proving can be quite slow without GPUs
+Note: Proving can be quite slow without GPUs, to activate gpu run:
+
+```shell
+make start_proof_aggregator_local_with_proving_gpu
+```
 
 ### Check the logs
 
