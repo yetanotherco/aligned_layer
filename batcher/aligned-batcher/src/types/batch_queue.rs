@@ -26,8 +26,8 @@ pub(crate) struct BatchQueueEntry {
 
 #[derive(Clone)]
 pub(crate) struct BatchQueueEntryPriority {
-    pub max_fee: U256,
-    pub nonce: U256,
+    max_fee: U256,
+    nonce: U256,
 }
 
 impl BatchQueueEntry {

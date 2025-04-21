@@ -393,8 +393,6 @@ batcher_send_sp1_task:
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
-		--max_fee $(MAX_FEE) \
-		--private_key 0x224b7eb7449992aac96d631d9677f7bf5888245eef6d6eeda31e62d2f29a83e4 \
 		--network $(NETWORK)
 
 batcher_send_sp1_burst:
@@ -420,7 +418,6 @@ batcher_send_risc0_task:
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--private_key 0xc7f9f3b5c5a35632e8a8720e84b39d3987bfb01dbfd305bf359d9bb891ec5596 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 

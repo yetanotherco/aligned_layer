@@ -1049,26 +1049,23 @@ impl Batcher {
 
         let max_fee = verification_data.max_fee;
         let nonce = verification_data.nonce;
-
-        info!("ME llega max_fee {}", max_fee);
-
-        let new_entry = BatchQueueEntry::new(
-            verification_data,
-            verification_data_comm,
-            ws_conn_sink,
-            proof_submitter_sig,
-            proof_submitter_addr,
+        batch_state_lock.batch_queue.push(
+            BatchQueueEntry::new(
+                verification_data,
+                verification_data_comm,
+                ws_conn_sink,
+                proof_submitter_sig,
+                proof_submitter_addr,
+            ),
+            BatchQueueEntryPriority::new(max_fee, nonce),
         );
-        let new_entry_priority = BatchQueueEntryPriority::new(max_fee, nonce);
-
-        batch_state_lock
-            .batch_queue
-            .push(new_entry, new_entry_priority);
 
         let batch_queue_len = batch_state_lock.batch_queue.len();
 
-        // if max batch qty exceded, remove least priority proof
+        // if max batch qty exceded, remove least priority element
         if batch_queue_len > self.max_batch_proof_qty {
+            info!("Queue limit exceded, removing least priority element");
+
             if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop_min() {
                 send_message(
                     lowest_priority_entry.0.messaging_sink.unwrap(),
@@ -1081,7 +1078,6 @@ impl Batcher {
         // Update metrics
         let queue_len = batch_state_lock.batch_queue.len();
         let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
-
         self.metrics
             .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
 
