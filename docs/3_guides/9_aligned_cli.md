@@ -347,3 +347,46 @@ aligned get-user-amount-of-queued-proofs  \
 --network holesky \
 --batcher_url wss://batcher.alignedlayer.com
 ```
+
+
+---
+
+### **verify-agg-proof**
+
+#### Description:
+
+Verifies if your proof has been verified by the `Aggregation Mode`.
+
+#### Command:
+
+`aligned verify-agg-proof [OPTIONS] --proving_system <proving_system>`
+
+#### Options:
+
+- `--vk`: Verification key hash file path.
+- `--public_input`: Your program committed values file path.
+- `--from-block`: From which block to start fetching events. This must no be older than 18 days as blobs will be expired. Defaults to the block corresponding to last 24 hours.
+- `--network <working_network_name>`: Network name to interact with.  
+  - Default: `devnet`  
+  - Possible values: `devnet`, `holesky`, `mainnet`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--beacon_client_url <BEACON_CLIENT_URL>`: User's Ethereum Consensus provider connection address. Public nodes don't support this method.
+
+
+
+#### Example:
+
+```bash
+aligned verify-agg-proof \
+  --network holesky \
+  --from-block 3638552 \
+  --proving_system SP1 \
+  --public_input ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.pub \
+  --vk ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.vk \
+  --beacon_url <YOUR_BEACON_CLIENT> \
+  --rpc_url https://ethereum-holesky-rpc.publicnode.com
+```

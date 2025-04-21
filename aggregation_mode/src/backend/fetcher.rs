@@ -28,8 +28,7 @@ pub enum ProofsFetcherError {
 pub struct ProofsFetcher {
     rpc_provider: RPCProvider,
     aligned_service_manager: AlignedLayerServiceManagerContract,
-    fetch_from_secs_ago: u64,
-    block_time_secs: u64,
+    last_aggregated_block: u64,
 }
 
 impl ProofsFetcher {
@@ -42,30 +41,51 @@ impl ProofsFetcher {
             rpc_provider.clone(),
         );
 
+        let last_aggregated_block = config.get_last_aggregated_block().unwrap();
+
         Self {
             rpc_provider,
             aligned_service_manager,
-            fetch_from_secs_ago: config.fetch_logs_from_secs_ago,
-            block_time_secs: config.block_time_secs,
+            last_aggregated_block,
         }
     }
 
-    pub async fn fetch(&self, engine: ZKVMEngine) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
-        let from_block = self.get_block_number_to_fetch_from().await?;
+    pub async fn fetch(
+        &mut self,
+        engine: ZKVMEngine,
+    ) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
+        // Get current block
+        let current_block = self
+            .rpc_provider
+            .get_block_number()
+            .await
+            .map_err(|e| ProofsFetcherError::GetBlockNumber(e.to_string()))?;
+
+        if current_block < self.last_aggregated_block {
+            return Err(ProofsFetcherError::GetBlockNumber(
+                "Invalid last processed block".to_string(),
+            ));
+        }
+
         info!(
-            "Fetching proofs from batch logs starting from block number {}",
-            from_block
+            "Fetching proofs from batch logs starting from block number {} upto {}",
+            self.last_aggregated_block, current_block
         );
+
         // Subscribe to NewBatch event from AlignedServiceManager
         let logs = self
             .aligned_service_manager
             .NewBatchV3_filter()
-            .from_block(from_block)
+            .from_block(self.last_aggregated_block)
+            .to_block(current_block)
             .query()
             .await
             .map_err(|e| ProofsFetcherError::GetLogs(e.to_string()))?;
 
         info!("Logs collected {}", logs.len());
+
+        // Update last processed block after collecting logs
+        self.last_aggregated_block = current_block;
 
         let mut proofs = vec![];
 
@@ -145,15 +165,7 @@ impl ProofsFetcher {
         Ok(proofs)
     }
 
-    async fn get_block_number_to_fetch_from(&self) -> Result<u64, ProofsFetcherError> {
-        let block_number = self
-            .rpc_provider
-            .get_block_number()
-            .await
-            .map_err(|e| ProofsFetcherError::GetBlockNumber(e.to_string()))?;
-
-        let number_of_blocks_in_the_past = self.fetch_from_secs_ago / self.block_time_secs;
-
-        Ok(block_number.saturating_sub(number_of_blocks_in_the_past))
+    pub fn get_last_aggregated_block(&self) -> u64 {
+        self.last_aggregated_block
     }
 }

@@ -27,5 +27,5 @@ async fn main() {
     tracing::info!("Config loaded");
 
     let mut proof_aggregator = ProofAggregator::new(&config);
-    proof_aggregator.start().await;
+    proof_aggregator.start(&config).await;
 }
