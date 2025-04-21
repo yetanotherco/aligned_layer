@@ -3,10 +3,7 @@ proof_aggregation_service_address: "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc"
 eth_rpc_url: "http://localhost:8545"
 eth_ws_url: "ws://localhost:8545"
 max_proofs_in_queue: 1000
-# How far in the past should the service go to fetch batch logs
-fetch_logs_from_secs_ago: 86400 # 24hs
-# Anvil start with block time is 7 seconds
-block_time_secs: 7
+last_aggregated_block_filepath: config-files/proof-aggregator.last_aggregated_block.json
 
 ecdsa:
     private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"

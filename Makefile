@@ -9,7 +9,7 @@ AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.15.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
-EIGEN_SDK_GO_VERSION_MAINNET=v0.1.13
+EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
