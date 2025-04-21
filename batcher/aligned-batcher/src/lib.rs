@@ -1064,7 +1064,7 @@ impl Batcher {
         if batch_state_lock.batch_queue.len() > self.max_batch_proof_qty {
             info!("Queue limit exceded, removing least priority element");
 
-            if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop_min() {
+            if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop() {
                 send_message(
                     lowest_priority_entry.0.messaging_sink.unwrap(),
                     SubmitProofResponseMessage::AddToBatchError,
