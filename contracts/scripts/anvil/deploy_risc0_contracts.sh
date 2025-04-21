@@ -13,7 +13,6 @@ cd ../../
 
 sleep 1
 
-export CHAINS='DEVNET'
 export RPC_DEVNET='http://localhost:8545'
 
 # Anvil account #2

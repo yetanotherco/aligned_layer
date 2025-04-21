@@ -7,7 +7,6 @@ import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPS
 import {IAlignedProofAggregationService} from "./IAlignedProofAggregationService.sol";
 import {ISP1Verifier} from "@sp1-contracts/ISP1Verifier.sol";
 import {IRiscZeroVerifier} from "@risc0-contracts/IRiscZeroVerifier.sol";
-import {ImageID} from "../ImageID.sol";
 
 contract AlignedProofAggregationService is
     IAlignedProofAggregationService,
@@ -76,17 +75,14 @@ contract AlignedProofAggregationService is
         bytes32 blobVersionedHash,
         bytes calldata risc0ReceiptSeal,
         bytes32 risc0ImageId,
-        bytes calldata risc0JournalBytes,
-        bytes32 risc0JournalDigest
+        bytes calldata risc0JournalBytes
     ) public onlyAlignedAggregator {
         (bytes32 merkleRoot) = abi.decode(risc0JournalBytes, (bytes32));
 
         // In dev mode, poofs are mocked, so we skip the verification part
         if (_isRisc0VerificationEnabled()) {
-            // bytes32 myDigest = sha256(risc0JournalBytes);
-            IRiscZeroVerifier(risc0VerifierAddress).verify(
-                risc0ReceiptSeal, ImageID.RISC0_AGGREGATOR_PROGRAM_ID, risc0JournalDigest
-            );
+            bytes32 risc0JournalDigest = sha256(risc0JournalBytes);
+            IRiscZeroVerifier(risc0VerifierAddress).verify(risc0ReceiptSeal, risc0ImageId, risc0JournalDigest);
         }
 
         aggregatedProofs[merkleRoot] = true;

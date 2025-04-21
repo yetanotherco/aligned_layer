@@ -9,7 +9,7 @@ const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
     let mut res = [0u8; 32];
     let mut i = 0;
     while i < 8 {
-        let bytes = RISC0_AGGREGATOR_PROGRAM_ID[i].to_be_bytes();
+        let bytes = RISC0_AGGREGATOR_PROGRAM_ID[i].to_le_bytes();
         res[i * 4] = bytes[0];
         res[i * 4 + 1] = bytes[1];
         res[i * 4 + 2] = bytes[2];
