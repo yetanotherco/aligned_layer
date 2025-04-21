@@ -1052,7 +1052,6 @@ impl Batcher {
 
         info!("ME llega max_fee {}", max_fee);
 
-        
         let new_entry = BatchQueueEntry::new(
             verification_data,
             verification_data_comm,
@@ -1066,9 +1065,7 @@ impl Batcher {
             .batch_queue
             .push(new_entry, new_entry_priority);
 
-
         let batch_queue_len = batch_state_lock.batch_queue.len();
-
 
         // if max batch qty exceded, remove least priority proof
         if batch_queue_len > self.max_batch_proof_qty {
