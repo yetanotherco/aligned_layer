@@ -16,7 +16,7 @@ use tokio::time::{timeout, Instant};
 use types::batch_state::BatchState;
 use types::user_state::UserState;
 
-use batch_queue::{calculate_batch_size, get_lowest_priority_entry};
+use batch_queue::calculate_batch_size;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -1050,6 +1050,8 @@ impl Batcher {
         let max_fee = verification_data.max_fee;
         let nonce = verification_data.nonce;
 
+        info!("ME llega max_fee {}", max_fee);
+
         let batch_queue_len = batch_state_lock.batch_queue.len();
 
         let new_entry = BatchQueueEntry::new(
@@ -1061,44 +1063,19 @@ impl Batcher {
         );
         let new_entry_priority = BatchQueueEntryPriority::new(max_fee, nonce);
 
-        if batch_queue_len + 1 > self.max_batch_proof_qty {
-            info!("Batch queue is full. Trying to remove an entry...");
-            let (lowest_priority_entry, lowest_priority_entry_priority) =
-                get_lowest_priority_entry(&batch_state_lock.batch_queue).unwrap();
+        batch_state_lock
+            .batch_queue
+            .push(new_entry, new_entry_priority);
 
-            if lowest_priority_entry_priority < new_entry_priority {
-                if batch_state_lock
-                    .batch_queue
-                    .remove(&lowest_priority_entry)
-                    .is_none()
-                {
-                    // If this happens, we have a bug in our code
-                    error!("Some proofs were not found in the queue. This should not happen.");
-                    std::mem::drop(batch_state_lock);
-                    return Err(BatcherError::QueueRemoveError(
-                        "Some proofs were not found in the queue".into(),
-                    ));
-                }
-                info!("Removed entry from batch queue.");
-
+        // if max batch qty exceded, remove least priority proof
+        if batch_queue_len > self.max_batch_proof_qty {
+            if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop_min() {
                 send_message(
-                    lowest_priority_entry.messaging_sink.unwrap(),
+                    lowest_priority_entry.0.messaging_sink.unwrap(),
                     SubmitProofResponseMessage::AddToBatchError,
                 )
                 .await;
-
-                batch_state_lock
-                    .batch_queue
-                    .push(new_entry, new_entry_priority);
-            } else {
-                error!("Queue is full and fee isn't enough");
-                std::mem::drop(batch_state_lock);
-                return Err(BatcherError::BatchQueueIsFull);
             }
-        } else {
-            batch_state_lock
-                .batch_queue
-                .push(new_entry, new_entry_priority);
         }
 
         // Update metrics

@@ -6,7 +6,7 @@ use aligned_sdk::{
     },
 };
 use ethers::types::{Address, Signature, U256};
-use priority_queue::PriorityQueue;
+use priority_queue::DoublePriorityQueue;
 use std::{
     hash::{Hash, Hasher},
     ops::ControlFlow,
@@ -26,8 +26,8 @@ pub(crate) struct BatchQueueEntry {
 
 #[derive(Clone)]
 pub(crate) struct BatchQueueEntryPriority {
-    max_fee: U256,
-    nonce: U256,
+    pub max_fee: U256,
+    pub nonce: U256,
 }
 
 impl BatchQueueEntry {
@@ -119,7 +119,7 @@ impl Ord for BatchQueueEntryPriority {
     }
 }
 
-pub(crate) type BatchQueue = PriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>;
+pub(crate) type BatchQueue = DoublePriorityQueue<BatchQueueEntry, BatchQueueEntryPriority>;
 
 /// Calculates the size of the batch represented by the given batch queue.
 pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, BatcherError> {
@@ -165,7 +165,7 @@ pub(crate) fn try_build_batch(
     let mut finalized_batch = batch_queue;
     let mut batch_size = calculate_batch_size(&finalized_batch)?;
 
-    while let Some((entry, _)) = finalized_batch.peek() {
+    while let Some((entry, _)) = finalized_batch.peek_max() {
         let batch_len = finalized_batch.len();
         let fee_per_proof = calculate_fee_per_proof(batch_len, gas_price, constant_gas_cost);
 
@@ -186,7 +186,7 @@ pub(crate) fn try_build_batch(
                     .len();
             batch_size -= verification_data_size;
 
-            finalized_batch.pop();
+            finalized_batch.pop_max();
 
             continue;
         }
@@ -201,7 +201,7 @@ pub(crate) fn try_build_batch(
         return Err(BatcherError::BatchCostTooHigh);
     }
 
-    Ok(finalized_batch.clone().into_sorted_vec())
+    Ok(finalized_batch.clone().into_descending_sorted_vec())
 }
 
 fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost: u128) -> U256 {
@@ -210,27 +210,6 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
         / batch_len as u128;
 
     U256::from(gas_per_proof) * gas_price
-}
-
-pub(crate) fn get_lowest_priority_entry(
-    batch_queue: &BatchQueue,
-) -> Option<(BatchQueueEntry, BatchQueueEntryPriority)> {
-    let mut lowest_fee_entry: Option<(BatchQueueEntry, BatchQueueEntryPriority)> = None;
-
-    for (entry, priority) in batch_queue {
-        match &lowest_fee_entry {
-            Some((e, p)) => {
-                if *priority < *p {
-                    lowest_fee_entry = Some((e.clone(), p.clone()));
-                }
-            }
-            None => {
-                lowest_fee_entry = Some((entry.clone(), priority.clone()));
-            }
-        }
-    }
-
-    lowest_fee_entry
 }
 
 #[cfg(test)]
