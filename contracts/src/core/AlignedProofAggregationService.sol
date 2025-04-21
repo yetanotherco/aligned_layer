@@ -82,7 +82,10 @@ contract AlignedProofAggregationService is
 
         // In dev mode, poofs are mocked, so we skip the verification part
         if (_isRisc0VerificationEnabled()) {
-            //bytes32 risc0JournalDigest = sha256(risc0JournalBytes);
+            bytes32 myDigest = sha256(risc0JournalBytes);
+            if (myDigest != risc0JournalDigest) {
+                revert("Digest did not matc");
+            }
             IRiscZeroVerifier(risc0VerifierAddress).verify(risc0ReceiptSeal, risc0ImageId, risc0JournalDigest);
         }
 
