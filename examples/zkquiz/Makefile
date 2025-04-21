@@ -14,6 +14,7 @@ answer_quiz:
 	@cd quiz/script && cargo run -r -- \
 		--keystore-path $(KEYSTORE_PATH) \
  		--rpc-url $(RPC_URL) \
+		--network holesky \
   		--verifier-contract-address $(CONTRACT_ADDRESS)
 
 answer_quiz_stage:

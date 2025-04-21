@@ -1,0 +1,64 @@
+<div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
+  <.card_preheding>Aggregation</.card_preheding>
+  <%= if @proofs != :empty and @proofs != [] do %>
+    <.card_background class="w-full overflow-x-auto sm:col-span-2">
+      <.agg_proofs_table proofs={@proofs} />
+    </.card_background>
+  <% else %>
+    <.empty_card_background text="No aggregated proofs To Display." class="sm:col-span-2" />
+  <% end %>
+  <div class="flex gap-x-2 items-center justify-center w-full">
+    <%= if @current_page >= 2 do %>
+      <.link navigate={~p"/batches?page=#{1}"}>
+        <.button class="text-muted-foreground group">
+          First
+        </.button>
+      </.link>
+    <% end %>
+    <%= if @current_page > 1 do %>
+      <.link navigate={~p"/aggregated_proofs?page=#{@current_page - 1}"}>
+        <.button
+          icon="arrow-right-solid"
+          icon_class="group-hover:translate-x-1 transition-all duration-150"
+          class="text-muted-foreground size-10 group rotate-180"
+        >
+          <span class="sr-only">Previous Page</span>
+        </.button>
+      </.link>
+    <% end %>
+    <form phx-submit="change_page" class="flex items-center">
+      <label for="page" class="text-foreground sr-only">Page: </label>
+      <input
+        name="page"
+        id="page"
+        type="number"
+        class={
+          classes([
+            "text-center border border-foreground/20 text-muted-foreground w-20 focus:ring-primary",
+            "phx-submit-loading:opacity-75 rounded-lg bg-card hover:bg-muted py-2 px-3",
+            "text-sm font-semibold leading-6 text-foregound active:text-foregound/80",
+            "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          ])
+        }
+        value={@current_page}
+        min="1"
+      />
+    </form>
+    <%= if @current_page != @last_page do %>
+      <.link navigate={~p"/aggregated_proofs?page=#{@current_page + 1}"}>
+        <.button
+          icon="arrow-right-solid"
+          icon_class="group-hover:translate-x-1 transition-all duration-150"
+          class="text-muted-foreground size-10 group"
+        >
+          <span class="sr-only">Next Page</span>
+        </.button>
+      </.link>
+      <.link navigate={~p"/batches?page=#{@last_page}"}>
+        <.button class="text-muted-foreground group">
+          Last
+        </.button>
+      </.link>
+    <% end %>
+  </div>
+</div>

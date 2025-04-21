@@ -12,6 +12,7 @@ batcher/aligned/batch_inclusion_responses/*
 **/broadcast
 volume
 config-files/*.last_processed_batch.json
+config-files/*.last_aggregated_block.json
 
 nonce_*.bin
 
