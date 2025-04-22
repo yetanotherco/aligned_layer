@@ -6,7 +6,6 @@ use super::{
 };
 use ethers::types::{Address, U256};
 use log::debug;
-use log::{error, info, warn};
 
 pub(crate) struct BatchState {
     pub(crate) batch_queue: BatchQueue,
