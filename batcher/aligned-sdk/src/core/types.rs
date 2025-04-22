@@ -397,6 +397,7 @@ pub enum SubmitProofResponseMessage {
     AddToBatchError,
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
+    BatchQueueLimitExceededError,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

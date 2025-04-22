@@ -1035,7 +1035,7 @@ impl Batcher {
             if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop() {
                 send_message(
                     lowest_priority_entry.0.messaging_sink.unwrap(),
-                    SubmitProofResponseMessage::AddToBatchError,
+                    SubmitProofResponseMessage::BatchQueueLimitExceededError,
                 )
                 .await;
             }
