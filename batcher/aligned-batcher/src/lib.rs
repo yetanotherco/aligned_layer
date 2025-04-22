@@ -88,6 +88,7 @@ pub struct Batcher {
     max_proof_size: usize,
     max_batch_byte_size: usize,
     max_batch_proof_qty: usize,
+    max_queue_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
@@ -263,6 +264,7 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_byte_size: config.batcher.max_batch_byte_size,
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
+            max_queue_size: config.batcher.max_queue_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -795,6 +797,23 @@ impl Batcher {
         }
 
         // * ---------------------------------------------------------------------*
+        // *        Perform validation over batcher queue                         *
+        // * ---------------------------------------------------------------------*
+
+        // if max batch qty exceded, remove least priority element
+        if batch_state_lock.batch_queue.len() == self.max_queue_size {
+            info!("Queue limit exceded, removing least priority element");
+
+            // if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop() {
+            //     send_message(
+            //         lowest_priority_entry.0.messaging_sink.unwrap(),
+            //         SubmitProofResponseMessage::BatchQueueLimitExceededError,
+            //     )
+            //     .await;
+            // }
+        }
+
+        // * ---------------------------------------------------------------------*
         // *        Add message data into the queue and update user state         *
         // * ---------------------------------------------------------------------*
 
@@ -1027,19 +1046,6 @@ impl Batcher {
             ),
             BatchQueueEntryPriority::new(max_fee, nonce),
         );
-
-        // if max batch qty exceded, remove least priority element
-        if batch_state_lock.batch_queue.len() > self.max_batch_proof_qty {
-            info!("Queue limit exceded, removing least priority element");
-
-            if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop() {
-                send_message(
-                    lowest_priority_entry.0.messaging_sink.unwrap(),
-                    SubmitProofResponseMessage::BatchQueueLimitExceededError,
-                )
-                .await;
-            }
-        }
 
         // Update metrics
         let queue_len = batch_state_lock.batch_queue.len();
