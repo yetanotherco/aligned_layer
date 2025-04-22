@@ -6,6 +6,7 @@ use super::{
 };
 use ethers::types::{Address, U256};
 use log::debug;
+use log::{error, info, warn};
 
 pub(crate) struct BatchState {
     pub(crate) batch_queue: BatchQueue,
@@ -213,5 +214,41 @@ impl BatchState {
                 && entry.nonced_verification_data.nonce < nonce
                 && entry.nonced_verification_data.max_fee < replacement_max_fee
         })
+    }
+
+    // removes a proof from a user state
+    pub(crate) fn remove_entry_from_user_state(&mut self, entry: &BatchQueueEntry) {
+        let addr = entry.sender;
+
+        if entry.nonced_verification_data.nonce == U256::zero() {
+            self.user_states.remove(&addr);
+            return;
+        }
+        let nonce = entry.nonced_verification_data.nonce - U256::one();
+
+        match self
+            .batch_queue
+            .iter()
+            .map(|(e, _)| e)
+            .find(|e| e.sender == addr && e.nonced_verification_data.nonce == nonce)
+        {
+            Some(last_entry) => {
+                if let Entry::Occupied(mut user_state) = self.user_states.entry(addr) {
+                    user_state.get_mut().proofs_in_batch -= 1;
+                    user_state.get_mut().nonce -= U256::one();
+                    user_state.get_mut().total_fees_in_queue -= U256::one();
+                    user_state.get_mut().last_max_fee_limit =
+                        last_entry.nonced_verification_data.max_fee;
+                }
+            }
+            None => {
+                if let Entry::Occupied(mut user_state) = self.user_states.entry(addr) {
+                    user_state.get_mut().proofs_in_batch = 0;
+                    user_state.get_mut().nonce -= U256::one();
+                    user_state.get_mut().total_fees_in_queue = U256::zero();
+                    user_state.get_mut().last_max_fee_limit = U256::max_value();
+                }
+            }
+        }
     }
 }

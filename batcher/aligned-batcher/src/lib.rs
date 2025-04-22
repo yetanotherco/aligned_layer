@@ -704,7 +704,7 @@ impl Batcher {
         // This is needed because we need to query the user state to make validations and
         // finally add the proof to the batch queue.
 
-        let batch_state_lock = self.batch_state.lock().await;
+        let mut batch_state_lock = self.batch_state.lock().await;
 
         let msg_max_fee = nonced_verification_data.max_fee;
         let Some(user_last_max_fee_limit) =
@@ -800,17 +800,38 @@ impl Batcher {
         // *        Perform validation over batcher queue                         *
         // * ---------------------------------------------------------------------*
 
-        // if max batch qty exceded, remove least priority element
         if batch_state_lock.batch_queue.len() == self.max_queue_size {
-            info!("Queue limit exceded, removing least priority element");
+            // Check if the new proof have more priority than the lowest pirority entry
+            if let Some((_, lowest_priority_entry_priority)) = batch_state_lock.batch_queue.peek() {
+                if *lowest_priority_entry_priority
+                    > BatchQueueEntryPriority::new(
+                        nonced_verification_data.max_fee,
+                        nonced_verification_data.nonce,
+                    )
+                {
+                    let (removed_entry, _) = batch_state_lock.batch_queue.pop().unwrap();
+                    info!(
+                        "Removing proof from entry. Sender {}, Nonce {}.",
+                        removed_entry.sender, removed_entry.nonced_verification_data.nonce
+                    );
 
-            // if let Some(lowest_priority_entry) = batch_state_lock.batch_queue.pop() {
-            //     send_message(
-            //         lowest_priority_entry.0.messaging_sink.unwrap(),
-            //         SubmitProofResponseMessage::BatchQueueLimitExceededError,
-            //     )
-            //     .await;
-            // }
+                    batch_state_lock.remove_entry_from_user_state(&removed_entry);
+                    send_message(
+                        removed_entry.messaging_sink.unwrap(),
+                        SubmitProofResponseMessage::BatchQueueLimitExceededError,
+                    )
+                    .await;
+                } else {
+                    // Can't add new entry with less priority to the batch queue
+                    info!("Can't add new entry, the batcher queue is full");
+                    send_message(
+                        ws_conn_sink.clone(),
+                        SubmitProofResponseMessage::BatchQueueLimitExceededError,
+                    )
+                    .await;
+                    return Ok(());
+                }
+            }
         }
 
         // * ---------------------------------------------------------------------*
