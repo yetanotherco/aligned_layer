@@ -158,13 +158,13 @@ is_aggregator_set:
 		exit 1; \
 	fi
 
-start_proof_aggregator_local: is_aggregator_set ## Start the proof aggregator locally using Mock Verifier Contract
+start_proof_aggregator_dev: is_aggregator_set ## Starts proof aggregator with mock proofs (DEV mode)
 	RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features $(AGGREGATOR) -- config-files/config-proof-aggregator-mock.yaml
 
-start_proof_aggregator_local_with_proving: is_aggregator_set ## Start the proof aggregator locally using SP1 Verifier Contract
+start_proof_aggregator: is_aggregator_set ## Starts proof aggregator with proving activated
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
 
-start_proof_aggregator_local_with_proving_gpu: is_aggregator_set ## Start the proof aggregator locally using SP1 Verifier Contract
+start_proof_aggregator_gpu: is_aggregator_set ## Starts proof aggregator with proving + GPU acceleration (CUDA)
 	SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
 
 _AGGREGATOR_:
@@ -713,7 +713,7 @@ build_aligned_contracts:
 
 show_aligned_error_codes:
 	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@cd contracts && forge inspect src/core/IAligedLayerServiceManager.sol:IAlignedLayerServiceManager errors
 	@echo "\nBatcherPaymentService errors:"
 	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
 
