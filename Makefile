@@ -167,6 +167,31 @@ start_proof_aggregator: is_aggregator_set ## Starts proof aggregator with provin
 start_proof_aggregator_gpu: is_aggregator_set ## Starts proof aggregator with proving + GPU acceleration (CUDA)
 	SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
 
+verify_aggregated_proof_sp1_holesky_stage: 
+	@echo "Verifying SP1 in aggregated proofs on holesky..."
+	@cd batcher/aligned/ && \
+	cargo run verify-agg-proof \
+		--network holesky-stage \
+		--from-block $(FROM_BLOCK) \
+		--proving_system SP1 \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.pub \
+		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.vk \
+		--beacon_url $(BEACON_URL) \
+		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+
+verify_aggregated_proof_risc0_holesky_stage: 
+	@echo "Verifying RISC0 in aggregated proofs on holesky..."
+	@cd batcher/aligned/ && \
+	cargo run verify-agg-proof \
+		--network holesky-stage \
+		--from-block $(FROM_BLOCK) \
+		--proving_system Risc0 \
+		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--beacon_url $(BEACON_URL) \
+		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+
+
 _AGGREGATOR_:
 
 build_aggregator:
@@ -461,8 +486,8 @@ batcher_send_risc0_burst:
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
         --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
+		--rpc_url  https://ethereum-holesky-rpc.publicnode.com \
+		--network holesky-stage
 
 batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."

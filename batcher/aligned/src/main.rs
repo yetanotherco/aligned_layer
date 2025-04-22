@@ -327,7 +327,7 @@ pub struct VerifyProofInAggModeArgs {
     pub_input_file_name: Option<PathBuf>,
     #[arg(
         name = "Verification key hash",
-        long = "--program-id-file",
+        long = "program-id-file",
         required = true
     )]
     program_id_file: PathBuf,
