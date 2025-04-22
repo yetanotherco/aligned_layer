@@ -1,5 +1,4 @@
 use core::fmt;
-use std::ops::Sub;
 use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
 use ethers::types::transaction::eip712::Eip712Error;
