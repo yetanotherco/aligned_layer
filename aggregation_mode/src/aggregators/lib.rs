@@ -1,6 +1,6 @@
 use super::{
-    risc0_aggregator::{self, Risc0AggregationInput, Risc0ProofReceiptAndImageId},
-    sp1_aggregator::{self, SP1AggregationInput, SP1ProofWithPubValuesAndElf},
+    risc0_aggregator::{Risc0AggregationInput, Risc0ProofReceiptAndImageId},
+    sp1_aggregator::{SP1AggregationInput, SP1ProofWithPubValuesAndElf},
 };
 
 pub enum ProgramInput {
@@ -9,8 +9,8 @@ pub enum ProgramInput {
 }
 
 pub enum AggregatedProof {
-    SP1(SP1ProofWithPubValuesAndElf),
-    Risc0(Risc0ProofReceiptAndImageId),
+    SP1(Box<SP1ProofWithPubValuesAndElf>),
+    Risc0(Box<Risc0ProofReceiptAndImageId>),
 }
 
 pub struct ProgramOutput {
@@ -29,11 +29,4 @@ pub enum ProofAggregationError {
     SP1Proving,
     Risc0Proving(String),
     UnsupportedProof,
-}
-
-pub fn aggregate_proofs(input: ProgramInput) -> Result<ProgramOutput, ProofAggregationError> {
-    match input {
-        ProgramInput::SP1(input) => sp1_aggregator::aggregate_proofs(input),
-        ProgramInput::Risc0(input) => risc0_aggregator::aggregate_proofs(input),
-    }
 }
