@@ -823,7 +823,7 @@ impl Batcher {
                     .await;
                 } else {
                     // Can't add new entry with less priority to the batch queue
-                    info!("Can't add new entry, the batcher queue is full");
+                    error!("Can't add new entry, the batcher queue is full");
                     send_message(
                         ws_conn_sink.clone(),
                         SubmitProofResponseMessage::BatchQueueLimitExceededError,
@@ -1766,6 +1766,16 @@ impl Batcher {
         }
 
         let batch_state_lock = self.batch_state.lock().await;
+
+        if batch_state_lock.batch_queue.len() == self.max_queue_size {
+            error!("Can't add new entry, the batcher queue is full");
+            send_message(
+                ws_sink.clone(),
+                SubmitProofResponseMessage::BatchQueueLimitExceededError,
+            )
+            .await;
+            return Ok(());
+        }
 
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
