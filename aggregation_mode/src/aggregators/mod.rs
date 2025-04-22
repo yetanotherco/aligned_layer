@@ -39,8 +39,8 @@ impl ZKVMEngine {
 }
 
 pub enum AlignedProof {
-    SP1(SP1ProofWithPubValuesAndElf),
-    Risc0(Risc0ProofReceiptAndImageId),
+    SP1(Box<SP1ProofWithPubValuesAndElf>),
+    Risc0(Box<Risc0ProofReceiptAndImageId>),
 }
 
 impl AlignedProof {

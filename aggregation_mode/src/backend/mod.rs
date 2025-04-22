@@ -118,7 +118,7 @@ impl ProofAggregator {
                 let proofs = proofs
                     .into_iter()
                     .filter_map(|proof| match proof {
-                        AlignedProof::SP1(proof) => Some(proof),
+                        AlignedProof::SP1(proof) => Some(*proof),
                         _ => None,
                     })
                     .collect();
@@ -135,7 +135,7 @@ impl ProofAggregator {
                 let proofs = proofs
                     .into_iter()
                     .filter_map(|proof| match proof {
-                        AlignedProof::Risc0(proof) => Some(proof),
+                        AlignedProof::Risc0(proof) => Some(*proof),
                         _ => None,
                     })
                     .collect();

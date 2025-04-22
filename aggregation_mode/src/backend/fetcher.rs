@@ -119,7 +119,7 @@ impl ProofsFetcher {
                                 elf,
                             };
 
-                            Some(AlignedProof::SP1(sp1_proof))
+                            Some(AlignedProof::SP1(sp1_proof.into()))
                         }
 
                         _ => None,
@@ -138,7 +138,7 @@ impl ProofsFetcher {
                             let receipt = Receipt::new(inner_receipt, public_inputs);
                             let risc0_proof = Risc0ProofReceiptAndImageId { image_id, receipt };
 
-                            Some(AlignedProof::Risc0(risc0_proof))
+                            Some(AlignedProof::Risc0(risc0_proof.into()))
                         }
                         _ => None,
                     })
