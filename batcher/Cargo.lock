@@ -72,7 +72,7 @@ dependencies = [
 
 [[package]]
 name = "aligned"
-version = "0.15.1"
+version = "0.15.2"
 dependencies = [
  "aligned-sdk",
  "clap",
@@ -136,6 +136,7 @@ dependencies = [
  "hex",
  "lambdaworks-crypto",
  "log",
+ "reqwest 0.12.15",
  "serde",
  "serde_json",
  "serde_repr",

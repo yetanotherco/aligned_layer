@@ -25,3 +25,4 @@ hex = "0.4.3"
 ciborium = "=0.2.2"
 serde_repr = "0.1.19"
 dialoguer = "0.11.0"
+reqwest = { version = "0.12", features = ["json"] }

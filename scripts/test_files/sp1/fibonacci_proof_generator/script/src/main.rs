@@ -1,4 +1,4 @@
-use sp1_sdk::{include_elf, utils, ProverClient, SP1Stdin};
+use sp1_sdk::{include_elf, utils, HashableKey, ProverClient, SP1Stdin};
 use std::io::Write;
 
 /// The ELF we want to execute inside the zkVM.
@@ -36,6 +36,13 @@ fn main() {
     // Save the proof.
     let proof_file_path = "../../sp1_fibonacci_4_1_3.proof";
     proof.save(proof_file_path).expect("saving proof failed");
+
+    std::fs::write("../../sp1_fibonacci_4_1_3.pub", proof.public_values)
+        .expect("failed to save public inputs");
+
+    std::fs::write("../../sp1_fibonacci_4_1_3.vk", vk.hash_bytes())
+        .expect("failed to save vk hash");
+
     let elf_file_path = "../../sp1_fibonacci_4_1_3.elf";
     let mut file = std::fs::File::create(elf_file_path).unwrap();
     file.write_all(ELF).unwrap();
