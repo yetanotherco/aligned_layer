@@ -709,7 +709,7 @@ deploy_proof_aggregator:
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
 
 build_aligned_contracts:
-	@cd contracts/src/core && forge build
+	@cd contracts/src/core && forge build --via-ir
 
 show_aligned_error_codes:
 	@echo "\nAlignedLayerServiceManager errors:"

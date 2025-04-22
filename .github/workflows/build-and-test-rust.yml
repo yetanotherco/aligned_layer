@@ -89,6 +89,12 @@ jobs:
           source /home/runner/.bashrc
            ~/.sp1/bin/sp1up
 
+      - name: Install risc0 toolchain
+        run: |
+         curl -L https://risczero.com/install | bash
+         source /home/runner/.bashrc
+         rzup install
+
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:
