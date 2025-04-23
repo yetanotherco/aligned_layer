@@ -39,7 +39,7 @@ opt-level = 3
 
 [features]
 default = []
-prove = []
+proving = []
 sp1 = []
 risc0 = []
 gpu = ["risc0-zkvm/cuda"]

@@ -69,10 +69,10 @@ pub(crate) fn aggregate_proofs(
         stdin.write_proof(*proof, vk);
     }
 
-    #[cfg(feature = "prove")]
+    #[cfg(feature = "proving")]
     let client = &*SP1_PROVER_CLIENT;
     // If not in prove mode, create a mock proof via mock client
-    #[cfg(not(feature = "prove"))]
+    #[cfg(not(feature = "proving"))]
     let client = ProverClient::builder().mock().build();
 
     let (pk, vk) = client.setup(PROGRAM_ELF);
