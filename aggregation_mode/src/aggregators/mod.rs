@@ -23,18 +23,16 @@ impl Display for ZKVMEngine {
 }
 
 impl ZKVMEngine {
-    pub fn from_rust_features() -> Option<Self> {
-        #[cfg(feature = "sp1")]
-        {
-            return Some(ZKVMEngine::SP1);
-        }
+    pub fn from_env() -> Option<Self> {
+        let key = "AGGREGATOR";
+        let value = std::env::var(key).ok()?;
+        let engine = match value.as_str() {
+            "sp1" => ZKVMEngine::SP1,
+            "risc0" => ZKVMEngine::RISC0,
+            _ => panic!("Invalid AGGREGATOR, possible options are: sp1|risc0"),
+        };
 
-        #[cfg(feature = "risc0")]
-        {
-            return Some(ZKVMEngine::RISC0);
-        }
-
-        None
+        Some(engine)
     }
 }
 
