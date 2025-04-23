@@ -19,4 +19,5 @@ forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
     --broadcast \
     --verify \
     --etherscan-api-key $ETHERSCAN_API_KEY \
-    --sig "run(string memory batcherConfigPath, string memory outputPath)"
+    --sig "run(string memory configPath, string memory outputPath)" \
+    --via-ir
