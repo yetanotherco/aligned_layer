@@ -34,8 +34,8 @@ jobs:
       - name: Install risc0 toolchain
         run: |
           curl -L https://risczero.com/install | bash
-          source /home/runner/.bashrc
-          /home/runner/.risc0/bin/rzup install
+          source ~/.bashrc
+          ~/.risc0/bin/rzup install
 
       - name: Cache Rust dependencies
         uses: actions/cache@v3
@@ -99,8 +99,8 @@ jobs:
       - name: Install risc0 toolchain
         run: |
           curl -L https://risczero.com/install | bash
-          source /home/runner/.bashrc
-          /home/runner/.risc0/bin/rzup install
+          source ~/.bashrc
+          ~/.risc0/bin/rzup install
 
       - name: Cache Rust dependencies
         uses: actions/cache@v3

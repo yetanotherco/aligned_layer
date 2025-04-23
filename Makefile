@@ -713,7 +713,7 @@ build_aligned_contracts:
 
 show_aligned_error_codes:
 	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts && forge inspect src/core/IAligedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors  
 	@echo "\nBatcherPaymentService errors:"
 	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
 
