@@ -64,7 +64,8 @@ impl ProofAggregator {
             rpc_provider,
         );
 
-        let engine = ZKVMEngine::from_rust_features().expect("A feature defining zkvm engine");
+        let engine =
+            ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
         let fetcher = ProofsFetcher::new(config);
 
         Self {
@@ -75,7 +76,7 @@ impl ProofAggregator {
     }
 
     pub async fn start(&mut self, config: &Config) {
-        info!("Starting proof aggregator service",);
+        info!("Starting proof aggregator service");
 
         info!("About to aggregate and submit proof to be verified on chain");
         let res = self.aggregate_and_submit_proofs_on_chain().await;

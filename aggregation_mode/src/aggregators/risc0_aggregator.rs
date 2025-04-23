@@ -5,6 +5,7 @@ use sha3::{Digest, Keccak256};
 
 use super::lib::{AggregatedProof, ProgramOutput, ProofAggregationError};
 
+/// Byte representation of the aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
 const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
     let mut res = [0u8; 32];
     let mut i = 0;

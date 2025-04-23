@@ -16,7 +16,7 @@ fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
     hash
 }
 
-/// Computes the merkle root for the given proofs using the vk
+/// Computes the merkle root for the given proofs
 fn compute_merkle_root(proofs: &[Risc0ImageIdAndPubInputs]) -> [u8; 32] {
     let mut leaves: Vec<[u8; 32]> = proofs
         .chunks(2)

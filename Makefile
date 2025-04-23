@@ -163,13 +163,13 @@ is_aggregator_set:
 	fi
 
 start_proof_aggregator_dev: is_aggregator_set ## Starts proof aggregator with mock proofs (DEV mode)
-	RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features $(AGGREGATOR) -- config-files/config-proof-aggregator-mock.yaml
+	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
 
 start_proof_aggregator: is_aggregator_set ## Starts proof aggregator with proving activated
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
+	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
 
 start_proof_aggregator_gpu: is_aggregator_set ## Starts proof aggregator with proving + GPU acceleration (CUDA)
-	SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu -- config-files/config-proof-aggregator.yaml
 
 _AGGREGATOR_:
 
@@ -717,7 +717,7 @@ build_aligned_contracts:
 
 show_aligned_error_codes:
 	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts && forge inspect src/core/IAligedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors  
 	@echo "\nBatcherPaymentService errors:"
 	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
 
