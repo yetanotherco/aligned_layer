@@ -21,7 +21,8 @@ export DEPLOYER_PRIVATE_KEY='0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3
 forge script script/deploy/Risc0Groth16VerifierDeployer.s.sol:Risc0VerifierRouterDeployer \
     --rpc-url $RPC_DEVNET \
     --private-key $DEPLOYER_PRIVATE_KEY \
-    --broadcast
+    --broadcast \
+    --via-ir
 
 # Kill the anvil process to save state
 pkill anvil
