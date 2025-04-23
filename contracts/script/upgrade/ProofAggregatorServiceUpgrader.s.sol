@@ -18,10 +18,9 @@ contract AlignedProofAggregationServiceUpgrader is Script {
 
         AlignedProofAggregationService newProofAggregatorServiceImplementation = new AlignedProofAggregationService();
 
-        vm.stopBroadcast();
+        // Not link the new implementation to the proxy
+        // Because this must be executed in the multisig
 
-        vm.startBroadcast();
-        proofAggregationServiceProxy.upgradeToAndCall(address(newProofAggregatorServiceImplementation), "");
         vm.stopBroadcast();
 
         return (address(proofAggregationServiceProxy), address(newProofAggregatorServiceImplementation));

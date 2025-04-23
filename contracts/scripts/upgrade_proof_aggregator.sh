@@ -2,6 +2,8 @@
 
 # ENV VARIABLES
 #
+# MULTISIG=true|false whether the contract is deployed under a multisig account
+#
 # EXISTING_DEPLOYMENT_INFO_PATH: Path to the proof aggregator deployment output file
 #   - Holesky Stage: ./script/output/holesky/proof_aggregation_service_deployment_output.stage.json
 #   - Holesky Prod: ./script/output/holesky/roof_aggregation_service_deployment_output.json
@@ -16,6 +18,11 @@
 #
 # ETHERSCAN_API_KEY: The Etherscan API key to use for verification
 #
+
+if [ -z "$MULTISIG" ]; then
+  echo "Missing MULTISIG env variable"
+  exit 1
+fi
 
 # cd to the directory of this script so that this can be run from anywhere
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
@@ -51,3 +58,17 @@ mv "$PROOF_AGGREGATION_SERVICE_OUTPUT_PATH.temp" $PROOF_AGGREGATION_SERVICE_OUTP
 rm -f "$PROOF_AGGREGATION_SERVICE_OUTPUT_PATH.temp"
 
 echo "The new Proof Aggregator Service Implementation is $proof_aggregator_service_implementation"
+
+data=$(cast calldata "upgradeTo(address)" $proof_aggregator_service_implementation)
+
+echo "The new ProofAggregator Service Implementation is $proof_aggregator_service_implementation"
+
+if [ "$MULTISIG" = false ]; then
+  echo "Executing upgrade transaction"
+  cast send $proof_aggregator_service_proxy $data \
+    --rpc-url $RPC_URL \
+    --private-key $PRIVATE_KEY
+else
+  echo "You can propose the upgrade transaction with the multisig using this calldata"
+  echo $data
+fi
