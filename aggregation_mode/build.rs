@@ -4,5 +4,7 @@ fn main() {
             output_directory: Some("./aggregation_programs/sp1/elf".to_string()),
             ..Default::default()
         }
-    })
+    });
+
+    risc0_build::embed_methods();
 }

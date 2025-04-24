@@ -92,7 +92,7 @@ pub(crate) fn aggregate_proofs(
         elf: PROGRAM_ELF.to_vec(),
     };
 
-    let output = ProgramOutput::new(AggregatedProof::SP1(proof_and_elf));
+    let output = ProgramOutput::new(AggregatedProof::SP1(proof_and_elf.into()));
 
     Ok(output)
 }

@@ -151,11 +151,24 @@ anvil_start_with_more_prefunded_accounts:
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
 
 __AGGREGATION_MODE__: ## ____
-start_proof_aggregator_local: ## Start the proof aggregator locally using Mock Verifier Contract
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
 
-start_proof_aggregator_local_with_proving: ## Start the proof aggregator locally using SP1 Verifier Contract
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
+is_aggregator_set:
+	@if [ -z "$(AGGREGATOR)" ]; then \
+		echo "Error: AGGREGATOR is not set. Please provide arg AGGREGATOR='sp1' or 'risc0'."; \
+		exit 1; \
+	fi
+
+start_proof_aggregator_dev: is_aggregator_set ## Starts proof aggregator with mock proofs (DEV mode)
+	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
+
+start_proof_aggregator: is_aggregator_set ## Starts proof aggregator with proving activated
+	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
+
+start_proof_aggregator_gpu: is_aggregator_set ## Starts proof aggregator with proving + GPU acceleration (CUDA)
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu -- config-files/config-proof-aggregator.yaml
+
+install_aggregation_mode: ## Install the aggregation mode with proving enabled
+	cargo install --path aggregation_mode --features prove
 
 _AGGREGATOR_:
 
@@ -703,11 +716,11 @@ upgrade_proof_aggregator:
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
 
 build_aligned_contracts:
-	@cd contracts/src/core && forge build
+	@cd contracts/src/core && forge build --via-ir
 
 show_aligned_error_codes:
 	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors  
 	@echo "\nBatcherPaymentService errors:"
 	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
 

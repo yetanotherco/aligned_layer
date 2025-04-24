@@ -12,6 +12,7 @@ contract AlignedProofAggregationServiceDeployer is Script {
 
         address alignedAggregatorAddress = stdJson.readAddress(config_data, ".address.alignedAggregatorAddress");
         address sp1VerifierAddress = stdJson.readAddress(config_data, ".address.sp1VerifierAddress");
+        address risc0VerifierAddress = stdJson.readAddress(config_data, ".address.risc0VerifierAddress");
 
         address ownerAddress = stdJson.readAddress(config_data, ".permissions.owner");
 
@@ -22,7 +23,11 @@ contract AlignedProofAggregationServiceDeployer is Script {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(alignedProofAggregationService),
             abi.encodeWithSignature(
-                "initialize(address,address,address)", ownerAddress, alignedAggregatorAddress, sp1VerifierAddress
+                "initialize(address,address,address,address)",
+                ownerAddress,
+                alignedAggregatorAddress,
+                sp1VerifierAddress,
+                risc0VerifierAddress
             )
         );
 

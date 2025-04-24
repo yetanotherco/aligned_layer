@@ -1,11 +1,16 @@
-use super::sp1_aggregator::{self, SP1AggregationInput, SP1ProofWithPubValuesAndElf};
+use super::{
+    risc0_aggregator::{Risc0AggregationInput, Risc0ProofReceiptAndImageId},
+    sp1_aggregator::{SP1AggregationInput, SP1ProofWithPubValuesAndElf},
+};
 
 pub enum ProgramInput {
     SP1(SP1AggregationInput),
+    Risc0(Risc0AggregationInput),
 }
 
 pub enum AggregatedProof {
-    SP1(SP1ProofWithPubValuesAndElf),
+    SP1(Box<SP1ProofWithPubValuesAndElf>),
+    Risc0(Box<Risc0ProofReceiptAndImageId>),
 }
 
 pub struct ProgramOutput {
@@ -22,11 +27,6 @@ impl ProgramOutput {
 pub enum ProofAggregationError {
     SP1Verification(sp1_sdk::SP1VerificationError),
     SP1Proving,
+    Risc0Proving(String),
     UnsupportedProof,
-}
-
-pub fn aggregate_proofs(input: ProgramInput) -> Result<ProgramOutput, ProofAggregationError> {
-    match input {
-        ProgramInput::SP1(input) => sp1_aggregator::aggregate_proofs(input),
-    }
 }

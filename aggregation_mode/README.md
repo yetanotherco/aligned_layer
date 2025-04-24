@@ -1,4 +1,3 @@
-
 # Aligned aggregation mode
 
 ## How to run it locally
@@ -6,13 +5,15 @@
 1. Deploy aligned contracts on anvil:
 
 ```shell
-make deploy_aligned_contracts
+make anvil_deploy_risc0_contracts
+make anvil_deploy_sp1_contracts
+make anvil_deploy_aligned_contracts
 ```
 
 2. Start anvil:
 
 ```shell
-make anvil_start_with_block_time
+make anvil_start
 ```
 
 3. Start batcher
@@ -21,26 +22,39 @@ make anvil_start_with_block_time
 make start_batcher_local
 ```
 
-4. Send SP1 proofs:
+4. Send SP1/Risc0 proofs:
 
 ```shell
 make batcher_send_sp1_burst
+make batcher_send_risc0_burst
 ```
+
+Notes:
+
+-   For SP1 only `compressed` proofs are supported
+-   For Risc0 both `succinct` and `composite` proofs are supported.
 
 5. Start proof aggregator:
 
 ```shell
 # This will not run a real prover but a mocked one see below to run a real prover
-make start_proof_aggregator_local
+make start_proof_aggregator_dev AGGREGATOR="sp1|risc0"
 ```
 
 or
 
 ```shell
-make start_proof_aggregator_local_with_proving
+make start_proof_aggregator AGGREGATOR="sp1|risc0"
 ```
 
-Note: Proving can be quite slow without GPUs
+Notes:
+
+-   Stark2Snark is only supported for x86 architecture in Risc0, so you won't be able to run the risc0 aggregator on Apple Silicon.
+-   Proving can be quite slow without GPUs, to activate gpu run:
+
+```shell
+make start_proof_aggregator_gpu AGGREGATOR="sp1|risc0"
+```
 
 ### Check the logs
 
