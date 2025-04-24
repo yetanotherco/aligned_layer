@@ -698,6 +698,10 @@ deploy_proof_aggregator:
 	@echo "Deploying ProofAggregator contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
 
+upgrade_proof_aggregator:
+	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
+
 build_aligned_contracts:
 	@cd contracts/src/core && forge build
 
