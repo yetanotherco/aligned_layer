@@ -485,8 +485,8 @@ batcher_send_risc0_burst:
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
         --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url  https://ethereum-holesky-rpc.publicnode.com \
-		--network holesky-stage
+		--rpc_url  $(RPC_URL) \
+		--network $(NETWORK)
 
 batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
