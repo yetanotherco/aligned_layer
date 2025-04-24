@@ -88,9 +88,9 @@ source $HOME/.bashrc
 foundryup
 
 # Create directories
-mkdir -p config
-mkdir -p .config/systemd/user
-mkdir -p .keystores
+mkdir -p ~/config
+mkdir -p ~/.config/systemd/user
+mkdir -p ~/.keystores
 
 # Create keystore
 cast wallet import proof_aggregation.keystore -k $HOME/.keystores -i
