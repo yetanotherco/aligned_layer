@@ -24,5 +24,4 @@ impl Risc0ImageIdAndPubInputs {
 #[derive(Serialize, Deserialize)]
 pub struct Input {
     pub proofs_image_id_and_pub_inputs: Vec<Risc0ImageIdAndPubInputs>,
-    pub merkle_root: [u8; 32],
 }

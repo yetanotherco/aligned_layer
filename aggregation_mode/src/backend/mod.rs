@@ -4,12 +4,7 @@ mod merkle_tree;
 mod s3;
 mod types;
 
-use crate::aggregators::{
-    lib::{AggregatedProof, ProofAggregationError},
-    risc0_aggregator::{self, Risc0AggregationInput},
-    sp1_aggregator::{self, SP1AggregationInput},
-    AlignedProof, ZKVMEngine,
-};
+use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
 
 use alloy::{
     consensus::BlobTransactionSidecar,
@@ -32,7 +27,6 @@ use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContra
 
 #[derive(Debug)]
 pub enum AggregatedProofSubmissionError {
-    Aggregation(ProofAggregationError),
     BuildingBlobCommitment,
     BuildingBlobProof,
     BuildingBlobVersionedHash,
@@ -40,6 +34,8 @@ pub enum AggregatedProofSubmissionError {
     SendVerifyAggregatedProofTransaction(alloy::contract::Error),
     ReceiptError(PendingTransactionError),
     FetchingProofs(ProofsFetcherError),
+    ZKVMAggregation(ProofAggregationError),
+    MerkleRootMisMatch,
 }
 
 pub struct ProofAggregator {
@@ -113,45 +109,20 @@ impl ProofAggregator {
         info!("Merkle root constructed: 0x{}", hex::encode(merkle_root));
 
         info!("Starting proof aggregation program...");
-        let output = match self.engine {
-            ZKVMEngine::SP1 => {
-                // only SP1 compressed proofs are supported
-                let proofs = proofs
-                    .into_iter()
-                    .filter_map(|proof| match proof {
-                        AlignedProof::SP1(proof) => Some(*proof),
-                        _ => None,
-                    })
-                    .collect();
-
-                let input = SP1AggregationInput {
-                    proofs,
-                    merkle_root,
-                };
-
-                sp1_aggregator::aggregate_proofs(input)
-                    .map_err(AggregatedProofSubmissionError::Aggregation)?
-            }
-            ZKVMEngine::RISC0 => {
-                let proofs = proofs
-                    .into_iter()
-                    .filter_map(|proof| match proof {
-                        AlignedProof::Risc0(proof) => Some(*proof),
-                        _ => None,
-                    })
-                    .collect();
-
-                let input = Risc0AggregationInput {
-                    proofs,
-                    merkle_root,
-                };
-
-                risc0_aggregator::aggregate_proofs(input)
-                    .map_err(AggregatedProofSubmissionError::Aggregation)?
-            }
-        };
-
+        let (aggregated_proof, zkvm_merkle_root) = self
+            .engine
+            .aggregate_proofs(proofs)
+            .map_err(AggregatedProofSubmissionError::ZKVMAggregation)?;
         info!("Proof aggregation program finished");
+
+        info!("Starting Merkle root verification: comparing ZKVM output with off-VM computation");
+        if zkvm_merkle_root != merkle_root {
+            error!(
+                "Merkle root mismatch detected: ZKVM = {zkvm_merkle_root:?}, off-VM = {merkle_root:?}"
+            );
+            return Err(AggregatedProofSubmissionError::MerkleRootMisMatch);
+        }
+        info!("Merkle root verification successful: roots match");
 
         info!("Constructing blob...");
         let (blob, blob_versioned_hash) = self.construct_blob(leaves).await?;
@@ -162,7 +133,7 @@ impl ProofAggregator {
 
         info!("Sending proof to ProofAggregationService contract...");
         let receipt = self
-            .send_proof_to_verify_on_chain(blob, blob_versioned_hash, output.proof)
+            .send_proof_to_verify_on_chain(blob, blob_versioned_hash, aggregated_proof)
             .await?;
         info!(
             "Proof sent and verified, tx hash {:?}",
@@ -176,10 +147,10 @@ impl ProofAggregator {
         &self,
         blob: BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
-        aggregated_proof: AggregatedProof,
+        aggregated_proof: AlignedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         let res = match aggregated_proof {
-            AggregatedProof::SP1(proof) => {
+            AlignedProof::SP1(proof) => {
                 self.proof_aggregation_service
                     .verifySP1(
                         blob_versioned_hash.into(),
@@ -191,7 +162,7 @@ impl ProofAggregator {
                     .send()
                     .await
             }
-            AggregatedProof::Risc0(proof) => {
+            AlignedProof::Risc0(proof) => {
                 let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
                 })?;
