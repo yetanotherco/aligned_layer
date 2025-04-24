@@ -7,7 +7,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.15.1
+OPERATOR_VERSION=v0.15.2
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
 
@@ -159,13 +159,13 @@ is_aggregator_set:
 	fi
 
 start_proof_aggregator_dev: is_aggregator_set ## Starts proof aggregator with mock proofs (DEV mode)
-	RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features $(AGGREGATOR) -- config-files/config-proof-aggregator-mock.yaml
+	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
 
 start_proof_aggregator: is_aggregator_set ## Starts proof aggregator with proving activated
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
+	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
 
 start_proof_aggregator_gpu: is_aggregator_set ## Starts proof aggregator with proving + GPU acceleration (CUDA)
-	SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu,$(AGGREGATOR) -- config-files/config-proof-aggregator.yaml
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu -- config-files/config-proof-aggregator.yaml
 
 verify_aggregated_proof_sp1_holesky_stage: 
 	@echo "Verifying SP1 in aggregated proofs on holesky..."
@@ -190,7 +190,6 @@ verify_aggregated_proof_risc0_holesky_stage:
 		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 		--beacon_url $(BEACON_URL) \
 		--rpc_url https://ethereum-holesky-rpc.publicnode.com
-
 
 _AGGREGATOR_:
 
@@ -738,7 +737,7 @@ build_aligned_contracts:
 
 show_aligned_error_codes:
 	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts && forge inspect src/core/IAligedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors  
 	@echo "\nBatcherPaymentService errors:"
 	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
 
