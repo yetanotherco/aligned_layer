@@ -113,11 +113,9 @@ systemctl --user start aggregation_mode.timer
 
 # Run the proof_aggregator manually if you want
 systemctl --user start aggregation_mode.service
-systemctl --user start aggregation_mode_stage.service
 
 # Check timer status
 systemctl --user status aggregation_mode.timer
 
 # Check logs
 journalctl -xfeu aggregation_mode.service --user -n10
-journalctl -xfeu aggregation_mode_stage.service --user -n10
