@@ -4,10 +4,6 @@
 #
 # MULTISIG=true|false whether the contract is deployed under a multisig account
 #
-# EXISTING_DEPLOYMENT_INFO_PATH: Path to the proof aggregator deployment output file
-#   - Holesky Stage: ./script/output/holesky/proof_aggregation_service_deployment_output.stage.json
-#   - Holesky Prod: ./script/output/holesky/roof_aggregation_service_deployment_output.json
-#
 # PROOF_AGGREGATOR_OUTPUT_PATH: Path to the proof aggregator output file
 #   - Holesky Stage: ./script/output/holesky/proof_aggregation_service_deployment_output.stage.json
 #   - Holesky Prod: ./script/output/holesky/proof_aggregation_service_deployment_output.json
@@ -33,8 +29,7 @@ cd ../
 
 # Save the output to a variable to later extract the address of the new deployed contract
 forge_output=$(forge script script/upgrade/ProofAggregatorServiceUpgrader.s.sol \
-    $EXISTING_DEPLOYMENT_INFO_PATH \
-    $PROOF_AGGREGATION_SERVICE_OUTPUT_PATH \
+    $PROOF_AGGREGATOR_OUTPUT_PATH \
     --rpc-url $RPC_URL \
     --private-key $PRIVATE_KEY \
     --broadcast \
@@ -49,13 +44,13 @@ proof_aggregator_service_proxy=$(echo "$forge_output" | awk '/0: address/ {print
 proof_aggregator_service_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 
 # Use the extracted value to replace the  batcher payment service values in alignedlayer_deployment_output.json and save it to a temporary file
-jq --arg  proof_aggregator_service_implementation "$proof_aggregator_service_implementation" '.addresses.alignedProofAggregationServiceImplementation = $proof_aggregator_service_implementation' $PROOF_AGGREGATION_SERVICE_OUTPUT_PATH > "$PROOF_AGGREGATION_SERVICE_OUTPUT_PATH.temp"
+jq --arg  proof_aggregator_service_implementation "$proof_aggregator_service_implementation" '.addresses.alignedProofAggregationServiceImplementation = $proof_aggregator_service_implementation' $PROOF_AGGREGATOR_OUTPUT_PATH > "$PROOF_AGGREGATOR_OUTPUT_PATH.temp"
 
 # Replace the original file with the temporary file
-mv "$PROOF_AGGREGATION_SERVICE_OUTPUT_PATH.temp" $PROOF_AGGREGATION_SERVICE_OUTPUT_PATH
+mv "$PROOF_AGGREGATOR_OUTPUT_PATH.temp" $PROOF_AGGREGATOR_OUTPUT_PATH
 
 # Delete the temporary file
-rm -f "$PROOF_AGGREGATION_SERVICE_OUTPUT_PATH.temp"
+rm -f "$PROOF_AGGREGATOR_OUTPUT_PATH.temp"
 
 echo "The new Proof Aggregator Service Implementation is $proof_aggregator_service_implementation"
 
