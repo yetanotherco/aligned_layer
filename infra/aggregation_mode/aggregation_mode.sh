@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This guide assumes you already clone the github repository
+# You have to cd to the repository
+
 # Set new server name
 while :; do
 	echo -e "\nEnter new server name:"
@@ -85,32 +88,24 @@ source $HOME/.bashrc
 foundryup
 
 # Create directories
-mkdir -p repos/proof_aggregation
 mkdir -p config
 mkdir -p .config/systemd/user
 mkdir -p .keystores
-
-# Clone Repo
-cd repos/proof_aggregation
-git clone https://github.com/yetanotherco/aligned_layer.git
-cd aligned_layer
-git checkout staging
-cd
 
 # Create keystore
 cast wallet import proof_aggregation.keystore -k $HOME/.keystores -i
 
 # Create config file interactively
-$HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config_file.sh $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/config-proof-aggregator.template.yaml
-read -p "Enter a number (last_aggregated_block): " num && echo "{\"last_aggregated_block\":$num}" > $HOME/config/proof-aggregator.last_aggregated_block.json.test
+./infra/aggregation_mode/config_file.sh ./infra/aggregation_mode/config-proof-aggregator.template.yaml
+touch $HOME/config/proof-aggregator.last_aggregated_block.json
+read -p "Enter a number (last_aggregated_block): " num && echo "{\"last_aggregated_block\":$num}" > $HOME/config/proof-aggregator.last_aggregated_block.json
 
 # Build the proof_aggregator
-cd repos/proof_aggregation/aligned_layer
 make install_aggregation_mode
 
 # Setup systemd service
-cp $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/aggregation_mode.service $HOME/.config/systemd/user/aggregation_mode.service
-cp $HOME/repos/proof_aggregation/aligned_layer/infra/aggregation_mode/aggregation_mode.timer $HOME/.config/systemd/user/aggregation_mode.timer
+cp ./infra/aggregation_mode/aggregation_mode.service $HOME/.config/systemd/user/aggregation_mode.service
+cp ./infra/aggregation_mode/aggregation_mode.timer $HOME/.config/systemd/user/aggregation_mode.timer
 
 #sudo systemctl enable aggregation_mode.service
 systemctl --user enable aggregation_mode.timer
