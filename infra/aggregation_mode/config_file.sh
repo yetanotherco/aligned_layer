@@ -2,7 +2,7 @@
 
 # This script creates a configuration file for the proof aggregator
 
-# ENV VARIABLES
+# PARAMETERS
 #
 # TEMPLATE_FILE: Path to the template file
 #   - SP1: ./infra/aggregation_mode/config-proof-aggregator-sp1.template.yaml
@@ -19,6 +19,7 @@ if [ $# -ne 2 ]; then
 fi
 
 TEMPLATE_FILE="$1"
+OUTPUT_FILE="$2"
 
 # Verify template file exists
 if [ ! -f "$TEMPLATE_FILE" ]; then
