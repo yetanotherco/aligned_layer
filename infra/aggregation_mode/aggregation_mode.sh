@@ -113,6 +113,7 @@ make install_aggregation_mode
 
 # Copy run script
 cp ./infra/aggregation_mode/run.sh $HOME/run.sh
+chmod 744 $HOME/run.sh
 
 # Setup systemd service
 cp ./infra/aggregation_mode/aggregation_mode.service $HOME/.config/systemd/user/aggregation_mode.service
