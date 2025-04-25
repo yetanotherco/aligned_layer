@@ -113,7 +113,6 @@ contract AlignedProofAggregationService is
     /// @notice Sets the address of the Risc0 verifier contract
     /// @param _risc0VerifierAddress The new address for the Risc0 verifier contract
     function setRisc0VerifierAddress(address _risc0VerifierAddress) external onlyOwner {
-        require(_risc0VerifierAddress != address(0), "Invalid verifier address");
         risc0VerifierAddress = _risc0VerifierAddress;
     }
 }
