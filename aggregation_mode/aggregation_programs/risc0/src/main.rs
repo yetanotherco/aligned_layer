@@ -17,12 +17,18 @@ fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
 }
 
 /// Computes the merkle root for the given proofs
-fn compute_merkle_root(proofs: &[Risc0ImageIdAndPubInputs]) -> [u8; 32] {
+fn compute_merkle_root(proofs: &[Risc0ImageIdAndPubInputs], is_aggregated_chunk: bool) -> [u8; 32] {
     let mut leaves: Vec<[u8; 32]> = proofs
         .chunks(2)
         .map(|chunk| match chunk {
-            [a, b] => combine_hashes(&a.commitment(), &b.commitment()),
-            [a] => combine_hashes(&a.commitment(), &a.commitment()),
+            [a, b] => combine_hashes(
+                &a.commitment(is_aggregated_chunk),
+                &b.commitment(is_aggregated_chunk),
+            ),
+            [a] => combine_hashes(
+                &a.commitment(is_aggregated_chunk),
+                &a.commitment(is_aggregated_chunk),
+            ),
             _ => panic!("Unexpected chunk leaves"),
         })
         .collect();
@@ -52,7 +58,10 @@ fn main() {
         env::verify(image_id.clone(), &public_inputs).expect("proof to be verified correctly");
     }
 
-    let merkle_root = compute_merkle_root(&input.proofs_image_id_and_pub_inputs);
+    let merkle_root = compute_merkle_root(
+        &input.proofs_image_id_and_pub_inputs,
+        input.is_aggregated_chunk,
+    );
 
     env::commit_slice(&merkle_root);
 }

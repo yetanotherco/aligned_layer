@@ -38,21 +38,16 @@ pub enum SP1AggregationError {
     UnsupportedProof,
 }
 
-#[derive(Debug, Clone)]
-pub enum SP1ProofType {
-    Groth16,
-    Compressed,
-    Core,
-}
-
 pub(crate) fn aggregate_proofs(
     proofs: &[SP1ProofWithPubValuesAndElf],
-    to_proof_type: SP1ProofType,
+    is_aggregated_chunk: bool,
+    should_wrap_to_groth16: bool,
 ) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
     let mut stdin = SP1Stdin::new();
 
     let mut program_input = sp1_aggregation_program::Input {
         proofs_vk_and_pub_inputs: vec![],
+        is_aggregated_chunk,
     };
 
     // write vk + public inputs
@@ -85,10 +80,10 @@ pub(crate) fn aggregate_proofs(
 
     let (pk, vk) = client.setup(PROGRAM_ELF);
     let proof_builder = client.prove(&pk, &stdin);
-    let proof_builder = match to_proof_type {
-        SP1ProofType::Groth16 => proof_builder.groth16(),
-        SP1ProofType::Compressed => proof_builder.compressed(),
-        SP1ProofType::Core => proof_builder.core(),
+    let proof_builder = if should_wrap_to_groth16 {
+        proof_builder.groth16()
+    } else {
+        proof_builder.compressed()
     };
 
     let proof = proof_builder

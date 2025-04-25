@@ -13,12 +13,18 @@ fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
 }
 
 /// Computes the merkle root for the given proofs using the vk
-fn compute_merkle_root(proofs: &[SP1VkAndPubInputs]) -> [u8; 32] {
+fn compute_merkle_root(proofs: &[SP1VkAndPubInputs], is_aggregated_chunk: bool) -> [u8; 32] {
     let mut leaves: Vec<[u8; 32]> = proofs
         .chunks(2)
         .map(|chunk| match chunk {
-            [a, b] => combine_hashes(&a.hash(), &b.hash()),
-            [a] => combine_hashes(&a.hash(), &a.hash()),
+            [a, b] => combine_hashes(
+                &a.commitment(is_aggregated_chunk),
+                &b.commitment(is_aggregated_chunk),
+            ),
+            [a] => combine_hashes(
+                &a.commitment(is_aggregated_chunk),
+                &a.commitment(is_aggregated_chunk),
+            ),
             _ => panic!("Unexpected chunk leaves"),
         })
         .collect();
@@ -48,7 +54,8 @@ pub fn main() {
         sp1_zkvm::lib::verify::verify_sp1_proof(&vkey, &public_values_digest.into());
     }
 
-    let merkle_root = compute_merkle_root(&input.proofs_vk_and_pub_inputs);
+    let merkle_root =
+        compute_merkle_root(&input.proofs_vk_and_pub_inputs, input.is_aggregated_chunk);
 
     sp1_zkvm::io::commit_slice(&merkle_root);
 }

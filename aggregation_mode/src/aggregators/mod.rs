@@ -5,11 +5,12 @@ use std::fmt::Display;
 
 use risc0_aggregator::{
     AlignedRisc0VerificationError, Risc0AggregationError, Risc0ProofReceiptAndImageId,
-    Risc0ProofType,
 };
 use sp1_aggregator::{
-    AlignedSP1VerificationError, SP1AggregationError, SP1ProofType, SP1ProofWithPubValuesAndElf,
+    AlignedSP1VerificationError, SP1AggregationError, SP1ProofWithPubValuesAndElf,
 };
+
+const AGG_PROOF_CHUNKS: usize = 512;
 
 #[derive(Clone, Debug)]
 pub enum ZKVMEngine {
@@ -68,29 +69,21 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                // we run the aggregator in chunks of 512 proofs
-                let chunks = proofs.chunks(512);
-                let mut agg_proofs: Vec<SP1ProofWithPubValuesAndElf> = vec![];
-
-                let agg_chunks_type = if chunks.len() == 1 {
-                    SP1ProofType::Groth16
-                } else {
-                    SP1ProofType::Compressed
-                };
-
-                for chunk in chunks {
-                    let agg_proof =
-                        sp1_aggregator::aggregate_proofs(chunk, agg_chunks_type.clone())
+                let mut agg_proof = if proofs.len() > AGG_PROOF_CHUNKS {
+                    let chunks = proofs.chunks(AGG_PROOF_CHUNKS);
+                    let mut agg_proofs: Vec<SP1ProofWithPubValuesAndElf> = vec![];
+                    for chunk in chunks {
+                        let agg_proof = sp1_aggregator::aggregate_proofs(chunk, false, false)
                             .map_err(ProofAggregationError::SP1Aggregation)?;
 
-                    agg_proofs.push(agg_proof);
-                }
+                        agg_proofs.push(agg_proof);
+                    }
 
-                let mut agg_proof = if agg_proofs.len() > 1 {
-                    sp1_aggregator::aggregate_proofs(&agg_proofs, SP1ProofType::Groth16)
+                    sp1_aggregator::aggregate_proofs(&agg_proofs, true, true)
                         .map_err(ProofAggregationError::SP1Aggregation)?
                 } else {
-                    agg_proofs.pop().unwrap()
+                    sp1_aggregator::aggregate_proofs(&proofs, false, true)
+                        .map_err(ProofAggregationError::SP1Aggregation)?
                 };
 
                 let merkle_root: [u8; 32] = agg_proof
@@ -109,28 +102,20 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                let chunks = proofs.chunks(512);
-                let mut agg_proofs: Vec<Risc0ProofReceiptAndImageId> = vec![];
-
-                let agg_chunks_type = if chunks.len() == 1 {
-                    Risc0ProofType::Groth16
-                } else {
-                    Risc0ProofType::Composite
-                };
-
-                for chunk in chunks {
-                    let agg_proof =
-                        risc0_aggregator::aggregate_proofs(chunk, agg_chunks_type.clone())
+                let agg_proof = if proofs.len() > AGG_PROOF_CHUNKS {
+                    let chunks = proofs.chunks(AGG_PROOF_CHUNKS);
+                    let mut agg_proofs: Vec<Risc0ProofReceiptAndImageId> = vec![];
+                    for chunk in chunks {
+                        let agg_proof = risc0_aggregator::aggregate_proofs(chunk, false, false)
                             .map_err(ProofAggregationError::Risc0Aggregation)?;
+                        agg_proofs.push(agg_proof);
+                    }
 
-                    agg_proofs.push(agg_proof);
-                }
-
-                let agg_proof = if agg_proofs.len() > 1 {
-                    risc0_aggregator::aggregate_proofs(&agg_proofs, Risc0ProofType::Groth16)
+                    risc0_aggregator::aggregate_proofs(&agg_proofs, true, true)
                         .map_err(ProofAggregationError::Risc0Aggregation)?
                 } else {
-                    agg_proofs.pop().unwrap()
+                    risc0_aggregator::aggregate_proofs(&proofs, false, true)
+                        .map_err(ProofAggregationError::Risc0Aggregation)?
                 };
 
                 // Note: journal.decode() won't work here as risc0 deserializer works under u32 words

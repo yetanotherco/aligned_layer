@@ -8,17 +8,22 @@ pub struct SP1VkAndPubInputs {
 }
 
 impl SP1VkAndPubInputs {
-    pub fn hash(&self) -> [u8; 32] {
-        let mut hasher = Keccak256::new();
-        for &word in &self.vk {
-            hasher.update(word.to_be_bytes());
+    pub fn commitment(&self, is_aggregated_chunk: bool) -> [u8; 32] {
+        if is_aggregated_chunk {
+            self.public_inputs.clone().try_into().unwrap()
+        } else {
+            let mut hasher = Keccak256::new();
+            for &word in &self.vk {
+                hasher.update(word.to_be_bytes());
+            }
+            hasher.update(&self.public_inputs);
+            hasher.finalize().into()
         }
-        hasher.update(&self.public_inputs);
-        hasher.finalize().into()
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Input {
     pub proofs_vk_and_pub_inputs: Vec<SP1VkAndPubInputs>,
+    pub is_aggregated_chunk: bool,
 }

@@ -8,20 +8,25 @@ pub struct Risc0ImageIdAndPubInputs {
 }
 
 impl Risc0ImageIdAndPubInputs {
-    pub fn commitment(&self) -> [u8; 32] {
-        let mut hasher = Keccak::v256();
-        for &word in &self.image_id {
-            hasher.update(&word.to_be_bytes());
-        }
-        hasher.update(&self.public_inputs);
+    pub fn commitment(&self, is_aggregated_chunk: bool) -> [u8; 32] {
+        if is_aggregated_chunk {
+            self.public_inputs.clone().try_into().unwrap()
+        } else {
+            let mut hasher = Keccak::v256();
+            for &word in &self.image_id {
+                hasher.update(&word.to_be_bytes());
+            }
+            hasher.update(&self.public_inputs);
 
-        let mut hash = [0u8; 32];
-        hasher.finalize(&mut hash);
-        hash
+            let mut hash = [0u8; 32];
+            hasher.finalize(&mut hash);
+            hash
+        }
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Input {
     pub proofs_image_id_and_pub_inputs: Vec<Risc0ImageIdAndPubInputs>,
+    pub is_aggregated_chunk: bool,
 }
