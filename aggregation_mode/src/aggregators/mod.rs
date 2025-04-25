@@ -10,7 +10,7 @@ use sp1_aggregator::{
     AlignedSP1VerificationError, SP1AggregationError, SP1ProofWithPubValuesAndElf,
 };
 
-const AGG_PROOF_CHUNKS: usize = 512;
+const MAX_PROOFS_PER_AGGREGATION: usize = 512;
 
 #[derive(Clone, Debug)]
 pub enum ZKVMEngine {
@@ -55,6 +55,15 @@ impl ZKVMEngine {
     ///
     /// This function performs proof aggregation and ensures the resulting Merkle root
     /// can be independently verified by external systems.
+    ///
+    /// If the number of proofs exceeds [`MAX_PROOFS_PER_AGGREGATION`], it first aggregates
+    /// them in chunks of [`MAX_PROOFS_PER_AGGREGATION`], and then aggregates those intermediate results into
+    /// the final proof.
+    ///
+    /// Note: Intermediate proof commitments are not computed using the Keccak hash of the
+    /// verification key and public inputs. Instead, the raw bytes of the public input—
+    /// which represent the chunk's merkle root are used directly. This is to ensure
+    /// the final Merkle root matches the leaf hashes published on the blob.
     pub fn aggregate_proofs(
         &self,
         proofs: Vec<AlignedProof>,
@@ -69,8 +78,8 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                let mut agg_proof = if proofs.len() > AGG_PROOF_CHUNKS {
-                    let chunks = proofs.chunks(AGG_PROOF_CHUNKS);
+                let mut agg_proof = if proofs.len() > MAX_PROOFS_PER_AGGREGATION {
+                    let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
                     let mut agg_proofs: Vec<SP1ProofWithPubValuesAndElf> = vec![];
                     for chunk in chunks {
                         let agg_proof = sp1_aggregator::aggregate_proofs(chunk, false, false)
@@ -102,8 +111,8 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                let agg_proof = if proofs.len() > AGG_PROOF_CHUNKS {
-                    let chunks = proofs.chunks(AGG_PROOF_CHUNKS);
+                let agg_proof = if proofs.len() > MAX_PROOFS_PER_AGGREGATION {
+                    let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
                     let mut agg_proofs: Vec<Risc0ProofReceiptAndImageId> = vec![];
                     for chunk in chunks {
                         let agg_proof = risc0_aggregator::aggregate_proofs(chunk, false, false)

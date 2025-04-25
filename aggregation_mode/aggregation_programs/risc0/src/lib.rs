@@ -9,6 +9,8 @@ pub struct Risc0ImageIdAndPubInputs {
 
 impl Risc0ImageIdAndPubInputs {
     pub fn commitment(&self, is_aggregated_chunk: bool) -> [u8; 32] {
+        // If the proof is the aggregation of a chunk
+        // the commitment is simply the public input (the merkle root of the chunk)
         if is_aggregated_chunk {
             self.public_inputs.clone().try_into().unwrap()
         } else {
