@@ -48,7 +48,7 @@ prompt_and_replace "<private_key_store_path>" "ECDSA Private Key Store Path (~/.
 prompt_and_replace "<private_key_store_password>" "ECDSA Private Key Store Password"
 
 # Create destination directory if it doesn't exist
-mkdir -p /home/user/config
+mkdir -p $HOME/config
 
 # Copy the completed file to destination
 cp "$TEMP_FILE" "$OUTPUT_FILE"
