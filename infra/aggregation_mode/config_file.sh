@@ -13,8 +13,8 @@
 #   - Risc0: $HOME/config/config-proof-aggregator-risc0.yaml
 
 # Check if template file path is provided as argument
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <template_file_path>"
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <template_file_path> <output_file>"
     exit 1
 fi
 
