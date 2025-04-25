@@ -9,6 +9,7 @@ use risc0_aggregator::{
 use sp1_aggregator::{
     AlignedSP1VerificationError, SP1AggregationError, SP1ProofWithPubValuesAndElf,
 };
+use tracing::info;
 
 const MAX_PROOFS_PER_AGGREGATION: usize = 512;
 
@@ -78,16 +79,21 @@ impl ZKVMEngine {
                     })
                     .collect();
 
+                info!("Total proofs to aggregate {}", proofs.len());
                 let mut agg_proof = if proofs.len() > MAX_PROOFS_PER_AGGREGATION {
                     let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
                     let mut agg_proofs: Vec<SP1ProofWithPubValuesAndElf> = vec![];
-                    for chunk in chunks {
+
+                    info!("Proofs length is higher than {}, aggregation will be performed in {} chunks", MAX_PROOFS_PER_AGGREGATION, chunks.len());
+                    for (i, chunk) in chunks.enumerate() {
                         let agg_proof = sp1_aggregator::aggregate_proofs(chunk, false, false)
                             .map_err(ProofAggregationError::SP1Aggregation)?;
-
                         agg_proofs.push(agg_proof);
+
+                        info!("Chunk number {} has been aggregated", i);
                     }
 
+                    info!("All chunks have been aggregated, performing last aggregation...");
                     sp1_aggregator::aggregate_proofs(&agg_proofs, true, true)
                         .map_err(ProofAggregationError::SP1Aggregation)?
                 } else {
@@ -111,15 +117,21 @@ impl ZKVMEngine {
                     })
                     .collect();
 
+                info!("Total proofs to aggregate {}", proofs.len());
                 let agg_proof = if proofs.len() > MAX_PROOFS_PER_AGGREGATION {
                     let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
                     let mut agg_proofs: Vec<Risc0ProofReceiptAndImageId> = vec![];
-                    for chunk in chunks {
+
+                    info!("Proofs length is higher than {}, aggregation will be performed in {} chunks", MAX_PROOFS_PER_AGGREGATION, chunks.len());
+                    for (i, chunk) in chunks.enumerate() {
                         let agg_proof = risc0_aggregator::aggregate_proofs(chunk, false, false)
                             .map_err(ProofAggregationError::Risc0Aggregation)?;
                         agg_proofs.push(agg_proof);
+
+                        info!("Chunk number {} has been aggregated", i);
                     }
 
+                    info!("All chunks have been aggregated, performing last aggregation...");
                     risc0_aggregator::aggregate_proofs(&agg_proofs, true, true)
                         .map_err(ProofAggregationError::Risc0Aggregation)?
                 } else {
