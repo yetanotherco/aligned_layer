@@ -31,7 +31,7 @@ defmodule ExplorerWeb.AggProofs.Index do
 
   @impl true
   def handle_event("change_page", %{"page" => page}, socket) do
-    {:noreply, push_navigate(socket, to: ~p"/batches?page=#{page}")}
+    {:noreply, push_navigate(socket, to: ~p"/aggregated_proofs?page=#{page}")}
   end
 
   defp get_current_page(params) do
