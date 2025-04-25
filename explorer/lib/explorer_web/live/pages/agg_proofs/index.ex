@@ -6,7 +6,7 @@ defmodule ExplorerWeb.AggProofs.Index do
   @page_size 15
 
   @impl true
-  def mount(_, params, socket) do
+  def mount(params, _, socket) do
     current_page = get_current_page(params)
 
     proofs =
