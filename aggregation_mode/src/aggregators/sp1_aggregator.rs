@@ -38,8 +38,16 @@ pub enum SP1AggregationError {
     UnsupportedProof,
 }
 
+#[derive(Debug, Clone)]
+pub enum SP1ProofType {
+    Groth16,
+    Compressed,
+    Core,
+}
+
 pub(crate) fn aggregate_proofs(
-    proofs: Vec<SP1ProofWithPubValuesAndElf>,
+    proofs: &[SP1ProofWithPubValuesAndElf],
+    to_proof_type: SP1ProofType,
 ) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
     let mut stdin = SP1Stdin::new();
 
@@ -62,7 +70,8 @@ pub(crate) fn aggregate_proofs(
     for input_proof in proofs {
         let vk = input_proof.vk().vk;
         // we only support sp1 Compressed proofs for now
-        let sp1_sdk::SP1Proof::Compressed(proof) = input_proof.proof_with_pub_values.proof else {
+        let sp1_sdk::SP1Proof::Compressed(proof) = input_proof.proof_with_pub_values.proof.clone()
+        else {
             return Err(SP1AggregationError::UnsupportedProof);
         };
         stdin.write_proof(*proof, vk);
@@ -75,9 +84,14 @@ pub(crate) fn aggregate_proofs(
     let client = ProverClient::builder().mock().build();
 
     let (pk, vk) = client.setup(PROGRAM_ELF);
-    let proof = client
-        .prove(&pk, &stdin)
-        .groth16()
+    let proof_builder = client.prove(&pk, &stdin);
+    let proof_builder = match to_proof_type {
+        SP1ProofType::Groth16 => proof_builder.groth16(),
+        SP1ProofType::Compressed => proof_builder.compressed(),
+        SP1ProofType::Core => proof_builder.core(),
+    };
+
+    let proof = proof_builder
         .run()
         .map_err(|e| SP1AggregationError::Prove(e.to_string()))?;
 

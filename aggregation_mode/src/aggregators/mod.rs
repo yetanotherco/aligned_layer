@@ -5,9 +5,10 @@ use std::fmt::Display;
 
 use risc0_aggregator::{
     AlignedRisc0VerificationError, Risc0AggregationError, Risc0ProofReceiptAndImageId,
+    Risc0ProofType,
 };
 use sp1_aggregator::{
-    AlignedSP1VerificationError, SP1AggregationError, SP1ProofWithPubValuesAndElf,
+    AlignedSP1VerificationError, SP1AggregationError, SP1ProofType, SP1ProofWithPubValuesAndElf,
 };
 
 #[derive(Clone, Debug)]
@@ -59,7 +60,7 @@ impl ZKVMEngine {
     ) -> Result<(AlignedProof, [u8; 32]), ProofAggregationError> {
         let res = match self {
             ZKVMEngine::SP1 => {
-                let proofs = proofs
+                let proofs: Vec<SP1ProofWithPubValuesAndElf> = proofs
                     .into_iter()
                     .filter_map(|proof| match proof {
                         AlignedProof::SP1(proof) => Some(*proof),
@@ -67,8 +68,30 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                let mut agg_proof = sp1_aggregator::aggregate_proofs(proofs)
-                    .map_err(ProofAggregationError::SP1Aggregation)?;
+                // we run the aggregator in chunks of 512 proofs
+                let chunks = proofs.chunks(512);
+                let mut agg_proofs: Vec<SP1ProofWithPubValuesAndElf> = vec![];
+
+                let agg_chunks_type = if chunks.len() == 1 {
+                    SP1ProofType::Groth16
+                } else {
+                    SP1ProofType::Compressed
+                };
+
+                for chunk in chunks {
+                    let agg_proof =
+                        sp1_aggregator::aggregate_proofs(chunk, agg_chunks_type.clone())
+                            .map_err(ProofAggregationError::SP1Aggregation)?;
+
+                    agg_proofs.push(agg_proof);
+                }
+
+                let mut agg_proof = if agg_proofs.len() > 1 {
+                    sp1_aggregator::aggregate_proofs(&agg_proofs, SP1ProofType::Groth16)
+                        .map_err(ProofAggregationError::SP1Aggregation)?
+                } else {
+                    agg_proofs.pop().unwrap()
+                };
 
                 let merkle_root: [u8; 32] = agg_proof
                     .proof_with_pub_values
@@ -78,7 +101,7 @@ impl ZKVMEngine {
                 (AlignedProof::SP1(agg_proof.into()), merkle_root)
             }
             ZKVMEngine::RISC0 => {
-                let proofs = proofs
+                let proofs: Vec<Risc0ProofReceiptAndImageId> = proofs
                     .into_iter()
                     .filter_map(|proof| match proof {
                         AlignedProof::Risc0(proof) => Some(*proof),
@@ -86,8 +109,29 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                let agg_proof = risc0_aggregator::aggregate_proofs(proofs)
-                    .map_err(ProofAggregationError::Risc0Aggregation)?;
+                let chunks = proofs.chunks(512);
+                let mut agg_proofs: Vec<Risc0ProofReceiptAndImageId> = vec![];
+
+                let agg_chunks_type = if chunks.len() == 1 {
+                    Risc0ProofType::Groth16
+                } else {
+                    Risc0ProofType::Composite
+                };
+
+                for chunk in chunks {
+                    let agg_proof =
+                        risc0_aggregator::aggregate_proofs(chunk, agg_chunks_type.clone())
+                            .map_err(ProofAggregationError::Risc0Aggregation)?;
+
+                    agg_proofs.push(agg_proof);
+                }
+
+                let agg_proof = if agg_proofs.len() > 1 {
+                    risc0_aggregator::aggregate_proofs(&agg_proofs, Risc0ProofType::Groth16)
+                        .map_err(ProofAggregationError::Risc0Aggregation)?
+                } else {
+                    agg_proofs.pop().unwrap()
+                };
 
                 // Note: journal.decode() won't work here as risc0 deserializer works under u32 words
                 let public_input_bytes = agg_proof.receipt.journal.as_ref();

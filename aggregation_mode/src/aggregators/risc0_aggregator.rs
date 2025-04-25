@@ -46,8 +46,16 @@ pub enum Risc0AggregationError {
     Verification(String),
 }
 
+#[derive(Debug, Clone)]
+pub enum Risc0ProofType {
+    Groth16,
+    Composite,
+    Succinct,
+}
+
 pub(crate) fn aggregate_proofs(
-    proofs: Vec<Risc0ProofReceiptAndImageId>,
+    proofs: &[Risc0ProofReceiptAndImageId],
+    to_proof_type: Risc0ProofType,
 ) -> Result<Risc0ProofReceiptAndImageId, Risc0AggregationError> {
     let mut env_builder = ExecutorEnv::builder();
 
@@ -58,7 +66,7 @@ pub(crate) fn aggregate_proofs(
             image_id: proof.image_id,
             public_inputs: proof.receipt.journal.bytes.clone(),
         });
-        env_builder.add_assumption(proof.receipt);
+        env_builder.add_assumption(proof.receipt.clone());
     }
 
     // write input data
@@ -75,8 +83,14 @@ pub(crate) fn aggregate_proofs(
 
     let prover = default_prover();
 
+    let opts = match to_proof_type {
+        Risc0ProofType::Groth16 => ProverOpts::groth16(),
+        Risc0ProofType::Composite => ProverOpts::composite(),
+        Risc0ProofType::Succinct => ProverOpts::succinct(),
+    };
+
     let receipt = prover
-        .prove_with_opts(env, RISC0_AGGREGATOR_PROGRAM_ELF, &ProverOpts::groth16())
+        .prove_with_opts(env, RISC0_AGGREGATOR_PROGRAM_ELF, &opts)
         .map_err(|e| Risc0AggregationError::Prove(e.to_string()))?
         .receipt;
 
