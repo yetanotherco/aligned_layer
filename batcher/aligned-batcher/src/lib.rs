@@ -17,6 +17,7 @@ use types::batch_state::BatchState;
 use types::user_state::UserState;
 
 use batch_queue::calculate_batch_size;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -809,7 +810,7 @@ impl Batcher {
 
             if let Some(lowest_entry_priority) = batch_state_lock.lowest_entry_priority() {
                 // If the new proof has more priority than the lowest one in the queue, discard the latter one and push the new one
-                if msg_entry_priority > lowest_entry_priority {
+                if lowest_entry_priority.cmp(&msg_entry_priority) == Ordering::Greater {
                     let Some((removed_entry, _)) = batch_state_lock.batch_queue.pop() else {
                         warn!("Failed to remove lowest-priority proof despite queue being full.");
                         std::mem::drop(batch_state_lock);
