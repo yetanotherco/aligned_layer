@@ -8,6 +8,7 @@ export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.15.2
+EIGEN_SDK_GO_VERSION_DEVNET=v0.1.13
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
 
@@ -70,6 +71,9 @@ go_deps:
 
 install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
+
+install_eigenlayer_cli_devnet: ## Install Eigenlayer CLI v0.11.3 (Devnet compatible)
+	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.11.3
 
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
@@ -190,7 +194,9 @@ operator_set_eigen_sdk_go_version_testnet:
 	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_TESTNET)"
 	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_TESTNET)
 
-operator_set_eigen_sdk_go_version_devnet: operator_set_eigen_sdk_go_version_mainnet
+operator_set_eigen_sdk_go_version_devnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_DEVNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_DEVNET)
 
 operator_set_eigen_sdk_go_version_mainnet:
 	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_MAINNET)"
