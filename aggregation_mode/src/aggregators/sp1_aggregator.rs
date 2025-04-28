@@ -1,13 +1,11 @@
 use std::sync::LazyLock;
 
 use alloy::primitives::Keccak256;
-use sp1_aggregation_program::{ProofVkAndPubInputs, SP1VkAndPubInputs};
+use sp1_aggregation_program::SP1VkAndPubInputs;
 use sp1_sdk::{
     EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
     SP1VerifyingKey,
 };
-
-use super::lib::{AggregatedProof, ProgramOutput, ProofAggregationError};
 
 const PROGRAM_ELF: &[u8] =
     include_bytes!("../../aggregation_programs/sp1/elf/sp1_aggregator_program");
@@ -33,38 +31,39 @@ impl SP1ProofWithPubValuesAndElf {
     }
 }
 
-pub struct SP1AggregationInput {
-    pub proofs: Vec<SP1ProofWithPubValuesAndElf>,
-    pub merkle_root: [u8; 32],
+#[derive(Debug)]
+pub enum SP1AggregationError {
+    Verification(sp1_sdk::SP1VerificationError),
+    Prove(String),
+    UnsupportedProof,
 }
 
 pub(crate) fn aggregate_proofs(
-    input: SP1AggregationInput,
-) -> Result<ProgramOutput, ProofAggregationError> {
+    proofs: Vec<SP1ProofWithPubValuesAndElf>,
+) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
     let mut stdin = SP1Stdin::new();
 
     let mut program_input = sp1_aggregation_program::Input {
         proofs_vk_and_pub_inputs: vec![],
-        merkle_root: input.merkle_root,
     };
 
     // write vk + public inputs
-    for proof in input.proofs.iter() {
+    for proof in proofs.iter() {
         program_input
             .proofs_vk_and_pub_inputs
-            .push(ProofVkAndPubInputs::SP1Compressed(SP1VkAndPubInputs {
+            .push(SP1VkAndPubInputs {
                 public_inputs: proof.proof_with_pub_values.public_values.to_vec(),
                 vk: proof.vk().hash_u32(),
-            }));
+            });
     }
     stdin.write(&program_input);
 
     // write proofs
-    for input_proof in input.proofs {
+    for input_proof in proofs {
         let vk = input_proof.vk().vk;
         // we only support sp1 Compressed proofs for now
         let sp1_sdk::SP1Proof::Compressed(proof) = input_proof.proof_with_pub_values.proof else {
-            return Err(ProofAggregationError::UnsupportedProof);
+            return Err(SP1AggregationError::UnsupportedProof);
         };
         stdin.write_proof(*proof, vk);
     }
@@ -80,21 +79,19 @@ pub(crate) fn aggregate_proofs(
         .prove(&pk, &stdin)
         .groth16()
         .run()
-        .map_err(|_| ProofAggregationError::SP1Proving)?;
+        .map_err(|e| SP1AggregationError::Prove(e.to_string()))?;
 
     // a sanity check, vm already performs it
     client
         .verify(&proof, &vk)
-        .map_err(ProofAggregationError::SP1Verification)?;
+        .map_err(SP1AggregationError::Verification)?;
 
     let proof_and_elf = SP1ProofWithPubValuesAndElf {
         proof_with_pub_values: proof,
         elf: PROGRAM_ELF.to_vec(),
     };
 
-    let output = ProgramOutput::new(AggregatedProof::SP1(proof_and_elf.into()));
-
-    Ok(output)
+    Ok(proof_and_elf)
 }
 
 #[derive(Debug)]

@@ -35,4 +35,5 @@ forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
     --verify \
     --etherscan-api-key $ETHERSCAN_API_KEY \
     --slow \
-    --sig "run(string configPath, string outputPath)"
+    --sig "run(string configPath, string outputPath)" \
+    --via-ir

@@ -10,7 +10,7 @@ pub fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
 
 /// Returns (merkle_root, leaves)
 pub fn compute_proofs_merkle_root(proofs: &[AlignedProof]) -> ([u8; 32], Vec<[u8; 32]>) {
-    let leaves: Vec<[u8; 32]> = proofs.iter().map(|proof| proof.hash()).collect();
+    let leaves: Vec<[u8; 32]> = proofs.iter().map(|proof| proof.commitment()).collect();
 
     let mut root = leaves.clone();
 

@@ -75,6 +75,10 @@ anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
+anvil_deploy_risc0_contracts:
+	@echo "Deploying RISC0 Contracts..."
+	. contracts/scripts/anvil/deploy_risc0_contracts.sh
+
 anvil_deploy_sp1_contracts:
 	@echo "Deploying SP1 Contracts..."
 	. contracts/scripts/anvil/deploy_sp1_contracts.sh
@@ -190,6 +194,9 @@ verify_aggregated_proof_risc0_holesky_stage:
 		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 		--beacon_url $(BEACON_URL) \
 		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+
+install_aggregation_mode: ## Install the aggregation mode with proving enabled
+	cargo install --path aggregation_mode --features prove
 
 _AGGREGATOR_:
 
@@ -731,6 +738,10 @@ upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters
 deploy_proof_aggregator:
 	@echo "Deploying ProofAggregator contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
+
+upgrade_proof_aggregator:
+	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build --via-ir

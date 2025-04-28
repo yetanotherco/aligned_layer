@@ -50,6 +50,8 @@ impl ProofsFetcher {
         }
     }
 
+    /// Retrieves batches from the aligned fast mode since the last processed block,
+    /// filtering for proofs compatible with the specified zkVM engine.
     pub async fn fetch(
         &mut self,
         engine: ZKVMEngine,

@@ -54,7 +54,5 @@ fn main() {
 
     let merkle_root = compute_merkle_root(&input.proofs_image_id_and_pub_inputs);
 
-    assert_eq!(merkle_root, input.merkle_root);
-
     env::commit_slice(&merkle_root);
 }
