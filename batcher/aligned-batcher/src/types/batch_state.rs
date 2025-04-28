@@ -264,9 +264,8 @@ impl BatchState {
     }
 
     pub(crate) fn lowest_entry_priority(&self) -> Option<BatchQueueEntryPriority> {
-        match self.batch_queue.peek() {
-            Some((_, priority_entry)) => Some(priority_entry.clone()),
-            None => None,
-        }
+        self.batch_queue
+            .peek()
+            .map(|(_, priority_entry)| priority_entry.clone())
     }
 }
