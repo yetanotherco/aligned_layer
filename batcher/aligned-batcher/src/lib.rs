@@ -88,7 +88,6 @@ pub struct Batcher {
     max_proof_size: usize,
     max_batch_byte_size: usize,
     max_batch_proof_qty: usize,
-    max_queue_size: usize,
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
@@ -211,7 +210,7 @@ impl Batcher {
         .expect("Failed to get fallback Service Manager contract");
 
         let mut user_states = HashMap::new();
-        let mut batch_state = BatchState::new();
+        let mut batch_state = BatchState::new(config.batcher.max_queue_size);
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
                 non_paying_config.address);
@@ -229,7 +228,8 @@ impl Batcher {
                 non_paying_user_state,
             );
 
-            batch_state = BatchState::new_with_user_states(user_states);
+            batch_state =
+                BatchState::new_with_user_states(user_states, config.batcher.max_queue_size);
             Some(non_paying_config)
         } else {
             None
@@ -264,7 +264,6 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_byte_size: config.batcher.max_batch_byte_size,
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
-            max_queue_size: config.batcher.max_queue_size,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -800,30 +799,51 @@ impl Batcher {
         // *        Perform validation over batcher queue                         *
         // * ---------------------------------------------------------------------*
 
-        if batch_state_lock.batch_queue.len() == self.max_queue_size {
-            // Check if the new proof have more priority than the lowest pirority entry
-            if let Some((_, lowest_priority_entry_priority)) = batch_state_lock.batch_queue.peek() {
-                if *lowest_priority_entry_priority
-                    > BatchQueueEntryPriority::new(
-                        nonced_verification_data.max_fee,
-                        nonced_verification_data.nonce,
-                    )
-                {
-                    let (removed_entry, _) = batch_state_lock.batch_queue.pop().unwrap();
+        if batch_state_lock.is_queue_full() {
+            info!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
+
+            let msg_entry_priority = BatchQueueEntryPriority::new(
+                nonced_verification_data.max_fee,
+                nonced_verification_data.nonce,
+            );
+
+            if let Some(lowest_entry_priority) = batch_state_lock.lowest_entry_priority() {
+                // If the new proof has more priority than the lowest one in the queue, discard the latter one and push the new one
+                if msg_entry_priority > lowest_entry_priority {
+                    let Some((removed_entry, _)) = batch_state_lock.batch_queue.pop() else {
+                        warn!("Failed to remove lowest-priority proof despite queue being full.");
+                        std::mem::drop(batch_state_lock);
+                        send_message(
+                            ws_conn_sink.clone(),
+                            SubmitProofResponseMessage::BatchQueueLimitExceededError,
+                        )
+                        .await;
+                        return Ok(());
+                    };
+
                     info!(
-                        "Removing proof from entry. Sender {}, Nonce {}.",
-                        removed_entry.sender, removed_entry.nonced_verification_data.nonce
+                        "Incoming proof (nonce: {}, fee: {}) has higher priority. Replacing lowest priority proof from sender {} with nonce {}.",
+                        nonced_verification_data.nonce,
+                        nonced_verification_data.max_fee,
+                        removed_entry.sender,
+                        removed_entry.nonced_verification_data.nonce
                     );
 
                     batch_state_lock.remove_entry_from_user_state(&removed_entry);
-                    send_message(
-                        removed_entry.messaging_sink.unwrap(),
-                        SubmitProofResponseMessage::BatchQueueLimitExceededError,
-                    )
-                    .await;
+                    if let Some(removed_entry_ws) = removed_entry.messaging_sink {
+                        send_message(
+                            removed_entry_ws,
+                            SubmitProofResponseMessage::BatchQueueLimitExceededError,
+                        )
+                        .await;
+                    };
                 } else {
-                    // Can't add new entry with less priority to the batch queue
-                    error!("Can't add new entry, the batcher queue is full");
+                    warn!(
+                        "Incoming proof (nonce: {}, fee: {}) has lower priority than all entries in the full queue. Rejecting submission.",
+                        nonced_verification_data.nonce,
+                        nonced_verification_data.max_fee
+                    );
+                    std::mem::drop(batch_state_lock);
                     send_message(
                         ws_conn_sink.clone(),
                         SubmitProofResponseMessage::BatchQueueLimitExceededError,
@@ -1767,7 +1787,7 @@ impl Batcher {
 
         let batch_state_lock = self.batch_state.lock().await;
 
-        if batch_state_lock.batch_queue.len() == self.max_queue_size {
+        if batch_state_lock.is_queue_full() {
             error!("Can't add new entry, the batcher queue is full");
             send_message(
                 ws_sink.clone(),

@@ -1,5 +1,7 @@
 use std::collections::{hash_map::Entry, HashMap};
 
+use crate::BatchQueueEntryPriority;
+
 use super::{
     batch_queue::{BatchQueue, BatchQueueEntry},
     user_state::UserState,
@@ -10,22 +12,28 @@ use log::debug;
 pub(crate) struct BatchState {
     pub(crate) batch_queue: BatchQueue,
     pub(crate) user_states: HashMap<Address, UserState>,
+    pub(crate) max_size: usize,
 }
 
 impl BatchState {
     // CONSTRUCTORS:
 
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(max_size: usize) -> Self {
         Self {
             batch_queue: BatchQueue::new(),
             user_states: HashMap::new(),
+            max_size,
         }
     }
 
-    pub(crate) fn new_with_user_states(user_states: HashMap<Address, UserState>) -> Self {
+    pub(crate) fn new_with_user_states(
+        user_states: HashMap<Address, UserState>,
+        max_size: usize,
+    ) -> Self {
         Self {
             batch_queue: BatchQueue::new(),
             user_states,
+            max_size,
         }
     }
 
@@ -248,6 +256,17 @@ impl BatchState {
                     user_state.get_mut().last_max_fee_limit = U256::max_value();
                 }
             }
+        }
+    }
+
+    pub(crate) fn is_queue_full(&self) -> bool {
+        self.batch_queue.len() >= self.max_size
+    }
+
+    pub(crate) fn lowest_entry_priority(&self) -> Option<BatchQueueEntryPriority> {
+        match self.batch_queue.peek() {
+            Some((_, priority_entry)) => Some(priority_entry.clone()),
+            None => None,
         }
     }
 }
