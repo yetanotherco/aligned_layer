@@ -223,39 +223,33 @@ impl BatchState {
         })
     }
 
-    // removes a proof from a user state
-    pub(crate) fn remove_entry_from_user_state(&mut self, entry: &BatchQueueEntry) {
-        let addr = entry.sender;
+    /// Updates or removes a user's state when their latest proof entry is removed from the batch queue.
+    ///
+    /// If the user has no other proofs remaining in the queue, their state is removed entirely.
+    /// Otherwise, the user's state is updated to reflect the next most recent entry in the queue.
+    ///
+    /// Note: The given `removed_entry` must be the most recent (latest or highest nonce) entry for the user in the queue.
+    pub(crate) fn update_user_state_on_entry_removal(&mut self, removed_entry: &BatchQueueEntry) {
+        let addr = removed_entry.sender;
 
-        if entry.nonced_verification_data.nonce == U256::zero() {
-            self.user_states.remove(&addr);
-            return;
-        }
-        let nonce = entry.nonced_verification_data.nonce - U256::one();
-
-        match self
+        let last_max_fee_limit = match self
             .batch_queue
             .iter()
-            .map(|(e, _)| e)
-            .find(|e| e.sender == addr && e.nonced_verification_data.nonce == nonce)
+            .filter(|(e, _)| e.sender == addr)
+            .last()
         {
-            Some(last_entry) => {
-                if let Entry::Occupied(mut user_state) = self.user_states.entry(addr) {
-                    user_state.get_mut().proofs_in_batch -= 1;
-                    user_state.get_mut().nonce -= U256::one();
-                    user_state.get_mut().total_fees_in_queue -= U256::one();
-                    user_state.get_mut().last_max_fee_limit =
-                        last_entry.nonced_verification_data.max_fee;
-                }
-            }
+            Some((last_entry, _)) => last_entry.nonced_verification_data.max_fee,
             None => {
-                if let Entry::Occupied(mut user_state) = self.user_states.entry(addr) {
-                    user_state.get_mut().proofs_in_batch = 0;
-                    user_state.get_mut().nonce -= U256::one();
-                    user_state.get_mut().total_fees_in_queue = U256::zero();
-                    user_state.get_mut().last_max_fee_limit = U256::max_value();
-                }
+                self.user_states.remove(&addr);
+                return;
             }
+        };
+
+        if let Entry::Occupied(mut user_state) = self.user_states.entry(addr) {
+            user_state.get_mut().proofs_in_batch -= 1;
+            user_state.get_mut().nonce -= U256::one();
+            user_state.get_mut().total_fees_in_queue -= U256::one();
+            user_state.get_mut().last_max_fee_limit = last_max_fee_limit;
         }
     }
 

@@ -829,7 +829,7 @@ impl Batcher {
                         removed_entry.nonced_verification_data.nonce
                     );
 
-                    batch_state_lock.remove_entry_from_user_state(&removed_entry);
+                    batch_state_lock.update_user_state_on_entry_removal(&removed_entry);
                     if let Some(removed_entry_ws) = removed_entry.messaging_sink {
                         send_message(
                             removed_entry_ws,
