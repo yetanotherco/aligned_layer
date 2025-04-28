@@ -72,7 +72,8 @@ forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
     --broadcast \
-    --sig "run(string configPath, string outputPath)"
+    --sig "run(string configPath, string outputPath)" \
+    --via-ir
 
 # Deploy proof aggregation service contract with Mocked Verifier
 forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
@@ -81,7 +82,8 @@ forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
     --broadcast \
-    --sig "run(string configPath, string outputPath)"
+    --sig "run(string configPath, string outputPath)" \
+    --via-ir
 
 # Kill the anvil process to save state
 pkill anvil

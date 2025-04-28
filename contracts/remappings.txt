@@ -7,3 +7,4 @@ forge-std/=lib/forge-std/src/
 @openzeppelin-upgrades/contracts/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/contracts/
 @sp1-contracts/=lib/sp1-contracts/contracts/src/
 @risc0-contracts/=lib/risc0-ethereum/contracts/src/
+openzeppelin/=lib/risc0-ethereum/lib/openzeppelin-contracts

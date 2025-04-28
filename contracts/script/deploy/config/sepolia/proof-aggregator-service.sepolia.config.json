@@ -1,6 +1,7 @@
 {
   "address": {
     "sp1VerifierAddress": "0x397A5f7f3dBd538f23DE225B51f532c34448dA9B",
+    "risc0VerifierAddress": "0x925d8331ddc0a1F0d96E68CF073DFE1d92b69187",
     "alignedAggregatorAddress": "<aligned_aggregator_address>"
   },
   "permissions": {

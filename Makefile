@@ -8,6 +8,7 @@ export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.15.2
+EIGEN_SDK_GO_VERSION_DEVNET=v0.1.13
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
 
@@ -71,9 +72,16 @@ go_deps:
 install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
+install_eigenlayer_cli_devnet: ## Install Eigenlayer CLI v0.11.3 (Devnet compatible)
+	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.11.3
+
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
+
+anvil_deploy_risc0_contracts:
+	@echo "Deploying RISC0 Contracts..."
+	. contracts/scripts/anvil/deploy_risc0_contracts.sh
 
 anvil_deploy_sp1_contracts:
 	@echo "Deploying SP1 Contracts..."
@@ -167,6 +175,9 @@ start_proof_aggregator: is_aggregator_set ## Starts proof aggregator with provin
 start_proof_aggregator_gpu: is_aggregator_set ## Starts proof aggregator with proving + GPU acceleration (CUDA)
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu -- config-files/config-proof-aggregator.yaml
 
+install_aggregation_mode: ## Install the aggregation mode with proving enabled
+	cargo install --path aggregation_mode --features prove
+
 _AGGREGATOR_:
 
 build_aggregator:
@@ -200,7 +211,9 @@ operator_set_eigen_sdk_go_version_testnet:
 	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_TESTNET)"
 	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_TESTNET)
 
-operator_set_eigen_sdk_go_version_devnet: operator_set_eigen_sdk_go_version_mainnet
+operator_set_eigen_sdk_go_version_devnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_DEVNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_DEVNET)
 
 operator_set_eigen_sdk_go_version_mainnet:
 	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_MAINNET)"
@@ -707,6 +720,10 @@ upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters
 deploy_proof_aggregator:
 	@echo "Deploying ProofAggregator contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
+
+upgrade_proof_aggregator:
+	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
 
 build_aligned_contracts:
 	@cd contracts/src/core && forge build --via-ir

@@ -73,6 +73,9 @@ impl ZKVMEngine {
             ZKVMEngine::SP1 => {
                 let proofs: Vec<SP1ProofWithPubValuesAndElf> = proofs
                     .into_iter()
+                    // Fetcher already filtered for SP1
+                    // We do this for type casting, as to avoid using generics
+                    // or macros in this function
                     .filter_map(|proof| match proof {
                         AlignedProof::SP1(proof) => Some(*proof),
                         _ => None,
@@ -111,6 +114,9 @@ impl ZKVMEngine {
             ZKVMEngine::RISC0 => {
                 let proofs: Vec<Risc0ProofReceiptAndImageId> = proofs
                     .into_iter()
+                    // Fetcher already filtered for Risc0
+                    // We do this for type casting, as to avoid using generics
+                    // or macros in this function
                     .filter_map(|proof| match proof {
                         AlignedProof::Risc0(proof) => Some(*proof),
                         _ => None,

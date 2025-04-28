@@ -102,6 +102,15 @@ defmodule ExplorerWeb.Helpers do
     Integer.to_string(value) |> String.pad_leading(2, "0")
   end
 
+  def is_mainnet() do
+    prefix = System.get_env("ENVIRONMENT")
+
+    case prefix do
+      "mainnet" -> true
+      _ -> false
+    end
+  end
+
   @doc """
   Get the EigenLayer Explorer URL based on the environment.
   - `holesky` -> https://holesky.eigenlayer.xyz
