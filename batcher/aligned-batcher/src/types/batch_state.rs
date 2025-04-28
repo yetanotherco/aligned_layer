@@ -236,7 +236,7 @@ impl BatchState {
             .batch_queue
             .iter()
             .filter(|(e, _)| e.sender == addr)
-            .last()
+            .next_back()
         {
             Some((last_entry, _)) => last_entry.nonced_verification_data.max_fee,
             None => {
