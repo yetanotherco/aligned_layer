@@ -61,7 +61,7 @@ defmodule ExplorerWeb.AggProofsTable do
 
   defp sp1_badge(assigns) do
     ~H"""
-    <div class="rounded-full p-2 px-5 border w-fit" style="border-color: #FE11C5">
+    <div class="rounded-full p-1 px-5 border w-fit" style="border-color: #FE11C5">
         <p style="color: #FE11C5">SP1</p>
     </div>
     """
@@ -69,7 +69,7 @@ defmodule ExplorerWeb.AggProofsTable do
 
   defp risc0_badge(assigns) do
     ~H"""
-    <div class="rounded-full p-2 px-5 w-fit" style="background-color: #FEFF9D">
+    <div class="rounded-full p-1 px-5 w-fit" style="background-color: #FEFF9D">
         <p class="text-black">RISC0</p>
     </div>
     """
