@@ -32,7 +32,7 @@ jobs:
            ~/.sp1/bin/sp1up
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -90,7 +90,7 @@ jobs:
            ~/.sp1/bin/sp1up
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
