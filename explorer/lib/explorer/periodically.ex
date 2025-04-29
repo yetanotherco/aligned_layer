@@ -24,7 +24,7 @@ defmodule Explorer.Periodically do
     :timer.send_interval(one_second * seconds_in_an_hour, :restakings)
 
     # Fetch new aggregated proofs every 1 minute
-    :timer.send_interval(one_second * 12, :aggregated_proofs)
+    :timer.send_interval(one_second * 60, :aggregated_proofs)
   end
 
   # Reads and process last blocks for operators and restaking changes
@@ -78,11 +78,11 @@ defmodule Explorer.Periodically do
   def handle_info(:aggregated_proofs, state) do
     # This task runs every hour
     # We read a bit more than 300 blocks (1hr) to make sure we don't lose any event
-    read_block_qty = 5000
+    read_block_qty = 310
     latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
     read_from_block = max(0, latest_block_number - read_block_qty)
 
-    Task.start(fn -> process_aggregated_proofs(3_734_200, 3_734_500) end)
+    Task.start(fn -> process_aggregated_proofs(read_from_block, latest_block_number) end)
 
     {:noreply, state}
   end
