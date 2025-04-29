@@ -77,7 +77,6 @@ defmodule AlignedProofAggregationService do
     # In solidity, the function signatures are the first 4 bytes of the input
     # Note: first two characters are the 0x
     function_signature = String.slice(input, 0..9)
-    IO.inspect(function_signature, label: "SIGNATURE")
 
     case function_signature do
       @verifyRisc0_solidity_signature -> :risc0
