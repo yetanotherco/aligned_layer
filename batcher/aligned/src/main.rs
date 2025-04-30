@@ -325,8 +325,12 @@ pub struct VerifyProofInAggModeArgs {
     proving_system: ProvingSystemArg,
     #[arg(name = "Public input file name", long = "public_input")]
     pub_input_file_name: Option<PathBuf>,
-    #[arg(name = "Verification key hash", long = "vk", required = true)]
-    verification_key_hash: PathBuf,
+    #[arg(
+        name = "Verification key hash",
+        long = "program-id-file",
+        required = true
+    )]
+    program_id_file: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -790,20 +794,25 @@ async fn main() -> Result<(), AlignedError> {
             return Ok(());
         }
         AlignedCommands::VerifyProofInAggMode(args) => {
+            let program_id_key = read_file(args.program_id_file)?
+                .try_into()
+                .expect("Invalid hexadecimal encoded vk hash");
+
+            let Some(pub_inputs_file_name) = args.pub_input_file_name else {
+                error!("Public input file not provided");
+                return Ok(());
+            };
+            let public_inputs = read_file(pub_inputs_file_name)?;
+
             let proof_data = match args.proving_system {
-                ProvingSystemArg::SP1 => {
-                    let vk = read_file(args.verification_key_hash)?
-                        .try_into()
-                        .expect("Invalid hexadecimal encoded vk hash");
-
-                    let Some(pub_inputs_file_name) = args.pub_input_file_name else {
-                        error!("Public input file not provided");
-                        return Ok(());
-                    };
-                    let public_inputs = read_file(pub_inputs_file_name)?;
-
-                    AggregationModeVerificationData::SP1 { vk, public_inputs }
-                }
+                ProvingSystemArg::SP1 => AggregationModeVerificationData::SP1 {
+                    vk: program_id_key,
+                    public_inputs,
+                },
+                ProvingSystemArg::Risc0 => AggregationModeVerificationData::Risc0 {
+                    image_id: program_id_key,
+                    public_inputs,
+                },
                 _ => {
                     error!("Proving system not supported in aggregation mode");
                     return Ok(());
