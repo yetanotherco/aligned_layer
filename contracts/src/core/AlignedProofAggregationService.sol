@@ -24,13 +24,13 @@ contract AlignedProofAggregationService is
     ///      https://docs.succinct.xyz/onchain-verification/contract-addresses
     address public sp1VerifierAddress;
 
+    /// @notice The address of the Wallet that is allowed to call the verify function.
+    address public alignedAggregatorAddress;
+
     /// @notice The address of the Risc0 verifier contract
     /// @dev See supported verifier here:
     /// https://dev.risczero.com/api/blockchain-integration/contracts/verifier#contract-addresses
     address public risc0VerifierAddress;
-
-    /// @notice The address of the Wallet that is allowed to call the verify function.
-    address public alignedAggregatorAddress;
 
     /// @notice whether we are in dev mode or not
     /// if the sp1 verifier address is set to this address, then we skip verification
@@ -108,5 +108,11 @@ contract AlignedProofAggregationService is
             revert OnlyAlignedAggregator(msg.sender);
         }
         _;
+    }
+
+    /// @notice Sets the address of the Risc0 verifier contract
+    /// @param _risc0VerifierAddress The new address for the Risc0 verifier contract
+    function setRisc0VerifierAddress(address _risc0VerifierAddress) external onlyOwner {
+        risc0VerifierAddress = _risc0VerifierAddress;
     }
 }

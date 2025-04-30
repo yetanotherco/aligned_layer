@@ -18,6 +18,10 @@ pub enum AggregationModeVerificationData {
         vk: [u8; 32],
         public_inputs: Vec<u8>,
     },
+    Risc0 {
+        image_id: [u8; 32],
+        public_inputs: Vec<u8>,
+    },
 }
 
 impl AggregationModeVerificationData {
@@ -26,6 +30,15 @@ impl AggregationModeVerificationData {
             AggregationModeVerificationData::SP1 { vk, public_inputs } => {
                 let mut hasher = Keccak256::new();
                 hasher.update(vk);
+                hasher.update(public_inputs);
+                hasher.finalize().into()
+            }
+            AggregationModeVerificationData::Risc0 {
+                image_id,
+                public_inputs,
+            } => {
+                let mut hasher = Keccak256::new();
+                hasher.update(image_id);
                 hasher.update(public_inputs);
                 hasher.finalize().into()
             }
