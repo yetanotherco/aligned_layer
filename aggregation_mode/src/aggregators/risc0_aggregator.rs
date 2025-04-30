@@ -4,7 +4,7 @@ use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt};
 use sha3::{Digest, Keccak256};
 
 /// Byte representation of the aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
-const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
+pub const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
     let mut res = [0u8; 32];
     let mut i = 0;
     while i < 8 {
