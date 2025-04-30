@@ -4,6 +4,10 @@
     "risc0VerifierAddress": "0x8EaB2D97Dfce405A1692a21b3ff3A172d593D319",
     "alignedAggregatorAddress": "<aligned_aggregator_address>"
   },
+  "programs_id": {
+    "sp1AggregationProgramVKHash": "0x00964e05feb8c81d33714c9a9d66d0941210996853b8886d40e8c85ed3a4fa39",
+    "risc0AggregationProgramImageId": "0x616eccca41e741062c79481078c0cbaa034da436c2ba254b09de8c2cf20bdd86"
+  },
   "permissions": {
     "owner": "<owner_address>"
   }
