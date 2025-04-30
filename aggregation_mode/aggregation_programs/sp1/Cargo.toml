@@ -15,5 +15,9 @@ serde_json = "1.0.117"
 path = "./src/lib.rs"
 
 [[bin]]
-name = "sp1_aggregator_program"
-path = "./src/main.rs"
+name = "sp1_chunk_aggregator_program"
+path = "./bin/chunk_aggregator.rs"
+
+[[bin]]
+name = "sp1_root_aggregator_program"
+path = "./bin/root_aggregator.rs"

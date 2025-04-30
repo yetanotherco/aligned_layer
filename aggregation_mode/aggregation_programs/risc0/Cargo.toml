@@ -15,5 +15,9 @@ tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 path = "./src/lib.rs"
 
 [[bin]]
-name = "risc0_aggregator_program"
-path = "./src/main.rs"
+name = "risc0_chunk_aggregator_program"
+path = "./bin/chunk_aggregator.rs"
+
+[[bin]]
+name = "risc0_root_aggregator_program"
+path = "./bin/root_aggregator.rs"
