@@ -202,6 +202,9 @@ verify_aggregated_proof_risc0_holesky_stage:
 install_aggregation_mode: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode --features prove
 
+agg_mode_write_program_ids: ## Write proof aggregator zkvm programs ids 
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin write_program_image_id_vk_hash
+
 _AGGREGATOR_:
 
 build_aggregator:
