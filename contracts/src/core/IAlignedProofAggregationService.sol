@@ -22,6 +22,11 @@ interface IAlignedProofAggregationService {
         bytes calldata risc0JournalBytes
     ) external;
 
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 proofCommitment)
+        external
+        view
+        returns (bool);
+
     /// @notice event that gets emitted after a successful aggregated proof verification
     event AggregatedProofVerified(bytes32 indexed merkleRoot, bytes32 blobVersionedHash);
 

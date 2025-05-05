@@ -7,6 +7,7 @@ import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPS
 import {IAlignedProofAggregationService} from "./IAlignedProofAggregationService.sol";
 import {ISP1Verifier} from "@sp1-contracts/ISP1Verifier.sol";
 import {IRiscZeroVerifier} from "@risc0-contracts/IRiscZeroVerifier.sol";
+import {MerkleProof} from "../../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 
 contract AlignedProofAggregationService is
     IAlignedProofAggregationService,
@@ -87,6 +88,11 @@ contract AlignedProofAggregationService is
 
         aggregatedProofs[merkleRoot] = true;
         emit AggregatedProofVerified(merkleRoot, blobVersionedHash);
+    }
+
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 proofCommitment) public view returns (bool) {
+        bytes32 merkleRoot = MerkleProof.processProofCalldata(merklePath, proofCommitment);
+        return aggregatedProofs[merkleRoot];
     }
 
     function _isSP1VerificationEnabled() internal view returns (bool) {
