@@ -116,12 +116,6 @@ pub enum AlignedProof {
     Risc0(Box<Risc0ProofReceiptAndImageId>),
 }
 
-impl Default for AlignedProof {
-    fn default() -> Self {
-        todo!()
-    }
-}
-
 impl AlignedProof {
     pub fn commitment(&self) -> [u8; 32] {
         match self {

@@ -2,7 +2,7 @@ use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
 pub struct Risc0ImageIdAndPubInputs {
     pub image_id: [u8; 32],
     pub public_inputs: Vec<u8>,

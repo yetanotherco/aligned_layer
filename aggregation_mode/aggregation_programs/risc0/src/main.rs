@@ -3,7 +3,6 @@
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use risc0_aggregation_program::{Input, Risc0ImageIdAndPubInputs};
 use risc0_zkvm::guest::env;
-use tiny_keccak::{Hasher, Keccak};
 
 risc0_zkvm::guest::entry!(main);
 

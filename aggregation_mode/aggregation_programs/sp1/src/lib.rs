@@ -2,7 +2,7 @@ use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
 pub struct SP1VkAndPubInputs {
     pub vk: [u32; 8],
     pub public_inputs: Vec<u8>,

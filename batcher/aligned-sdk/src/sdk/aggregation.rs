@@ -25,12 +25,6 @@ pub enum AggregationModeVerificationData {
     },
 }
 
-impl Default for AggregationModeVerificationData {
-    fn default() -> Self {
-        todo!()
-    }
-}
-
 impl AggregationModeVerificationData {
     fn commitment(&self) -> [u8; 32] {
         match self {
