@@ -32,11 +32,7 @@ fn main() {
     });
 
     // Write to the file
-    fs::write(
-        &dest_path,
-        serde_json::to_string_pretty(&json_data).unwrap(),
-    )
-    .unwrap();
+    fs::write(dest_path, serde_json::to_string_pretty(&json_data).unwrap()).unwrap();
 
     info!("Program ids written to {:?}", dest_path);
 }
