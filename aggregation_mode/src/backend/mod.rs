@@ -35,6 +35,7 @@ pub enum AggregatedProofSubmissionError {
     ReceiptError(PendingTransactionError),
     FetchingProofs(ProofsFetcherError),
     ZKVMAggregation(ProofAggregationError),
+    BuildingMerkleRoot,
     MerkleRootMisMatch,
 }
 
@@ -105,7 +106,9 @@ impl ProofAggregator {
         }
 
         info!("Proofs fetched, constructing merkle root...");
-        let (merkle_root, leaves) = compute_proofs_merkle_root(&proofs);
+        let (merkle_tree, leaves) = compute_proofs_merkle_root(&proofs)
+            .ok_or(AggregatedProofSubmissionError::BuildingMerkleRoot)?;
+        let merkle_root = merkle_tree.root;
         info!("Merkle root constructed: 0x{}", hex::encode(merkle_root));
 
         info!("Starting proof aggregation program...");

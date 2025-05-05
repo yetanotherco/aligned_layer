@@ -3,9 +3,11 @@ pub mod sp1_aggregator;
 
 use std::fmt::Display;
 
+use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use risc0_aggregator::{
     AlignedRisc0VerificationError, Risc0AggregationError, Risc0ProofReceiptAndImageId,
 };
+use sha3::{Digest, Keccak256};
 use sp1_aggregator::{
     AlignedSP1VerificationError, SP1AggregationError, SP1ProofWithPubValuesAndElf,
 };
@@ -114,12 +116,34 @@ pub enum AlignedProof {
     Risc0(Box<Risc0ProofReceiptAndImageId>),
 }
 
+impl Default for AlignedProof {
+    fn default() -> Self {
+        todo!()
+    }
+}
+
 impl AlignedProof {
     pub fn commitment(&self) -> [u8; 32] {
         match self {
             AlignedProof::SP1(proof) => proof.hash_vk_and_pub_inputs(),
             AlignedProof::Risc0(proof) => proof.hash_image_id_and_public_inputs(),
         }
+    }
+}
+
+impl IsMerkleTreeBackend for AlignedProof {
+    type Data = AlignedProof;
+    type Node = [u8; 32];
+
+    fn hash_data(leaf: &Self::Data) -> Self::Node {
+        leaf.commitment()
+    }
+
+    fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
+        let mut hasher = Keccak256::new();
+        hasher.update(child_1);
+        hasher.update(child_2);
+        hasher.finalize().into()
     }
 }
 

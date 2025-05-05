@@ -94,7 +94,7 @@ dependencies = [
  "ethers",
  "futures-util",
  "hex",
- "lambdaworks-crypto",
+ "lambdaworks-crypto 0.10.0",
  "log",
  "reqwest 0.12.15",
  "serde",
@@ -4722,7 +4722,21 @@ name = "lambdaworks-crypto"
 version = "0.10.0"
 source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=efd46f0b0aea3aa95d94bba7de86cb96611b40d3#efd46f0b0aea3aa95d94bba7de86cb96611b40d3"
 dependencies = [
- "lambdaworks-math",
+ "lambdaworks-math 0.10.0",
+ "serde",
+ "sha2 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sha3 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "lambdaworks-crypto"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fce8f59622ed408c318c9b5eca17f1a1154159e3738b5c4d5a22a0dd3700c906"
+dependencies = [
+ "lambdaworks-math 0.12.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "serde",
  "sha2 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha3 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4733,6 +4747,18 @@ name = "lambdaworks-math"
 version = "0.10.0"
 source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=efd46f0b0aea3aa95d94bba7de86cb96611b40d3#efd46f0b0aea3aa95d94bba7de86cb96611b40d3"
 dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lambdaworks-math"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "405d65a26831650ba348a503a2881ed7a0483ef3ec17f66e0fc8e2f9c97fc7ca"
+dependencies = [
+ "getrandom 0.2.15",
+ "rand 0.8.5",
  "serde",
  "serde_json",
 ]
@@ -6190,6 +6216,7 @@ dependencies = [
  "bincode",
  "c-kzg",
  "ciborium",
+ "lambdaworks-crypto 0.12.0",
  "reqwest 0.12.15",
  "risc0-build",
  "risc0-ethereum-contracts",
@@ -7208,6 +7235,7 @@ dependencies = [
 name = "risc0_aggregation_program"
 version = "0.1.0"
 dependencies = [
+ "lambdaworks-crypto 0.12.0",
  "risc0-zkvm 2.0.0",
  "serde",
  "serde_json",
@@ -8484,6 +8512,7 @@ dependencies = [
 name = "sp1_aggregation_program"
 version = "0.1.0"
 dependencies = [
+ "lambdaworks-crypto 0.12.0",
  "serde",
  "serde_json",
  "sha2 0.10.8 (git+https://github.com/sp1-patches/RustCrypto-hashes?tag=sha2-v0.10.8-patch-v1)",
