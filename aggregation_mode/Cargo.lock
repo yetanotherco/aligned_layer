@@ -4720,7 +4720,7 @@ dependencies = [
 [[package]]
 name = "lambdaworks-crypto"
 version = "0.12.0"
-source = "git+https://github.com/lambdaclass/lambdaworks?rev=5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b#5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b#5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b"
 dependencies = [
  "lambdaworks-math",
  "rand 0.8.5",
@@ -4733,7 +4733,7 @@ dependencies = [
 [[package]]
 name = "lambdaworks-math"
 version = "0.12.0"
-source = "git+https://github.com/lambdaclass/lambdaworks?rev=5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b#5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b#5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b"
 dependencies = [
  "getrandom 0.2.15",
  "rand 0.8.5",
