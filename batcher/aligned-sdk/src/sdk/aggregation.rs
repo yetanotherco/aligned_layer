@@ -4,7 +4,7 @@ use crate::{
 };
 use ethers::{
     providers::{Http, Middleware, Provider},
-    types::Filter,
+    types::{Filter, Log},
 };
 use lambdaworks_crypto::merkle_tree::{merkle::MerkleTree, traits::IsMerkleTreeBackend};
 use sha3::{Digest, Keccak256};
@@ -109,9 +109,63 @@ pub async fn is_proof_verified_in_aggregation_mode(
     beacon_client_url: String,
     from_block: Option<u64>,
 ) -> Result<[u8; 32], ProofVerificationAggModeError> {
+    let logs = get_aggregated_proofs_logs(network, eth_rpc_url.clone(), from_block).await?;
+
+    for log in logs {
+        let Ok((merkle_root, leaves)) =
+            get_blob_data_from_log(eth_rpc_url.clone(), beacon_client_url.clone(), log).await
+        else {
+            continue;
+        };
+
+        let leaves: Vec<Hash32> = leaves.iter().map(|leaf| Hash32(*leaf)).collect();
+        let merkle_tree: MerkleTree<Hash32> = MerkleTree::build(&leaves).unwrap();
+
+        if leaves.contains(&Hash32(verification_data.commitment())) {
+            return if merkle_tree.root == merkle_root {
+                Ok(merkle_root)
+            } else {
+                Err(ProofVerificationAggModeError::UnmatchedBlobAndEventMerkleRoot)
+            };
+        }
+    }
+
+    Err(ProofVerificationAggModeError::ProofNotFoundInLogs)
+}
+
+pub async fn get_merkle_path_for_proof(
+    network: Network,
+    eth_rpc_url: String,
+    beacon_client_url: String,
+    from_block: Option<u64>,
+    proof_commitment: [u8; 32],
+) -> Result<Option<Vec<[u8; 32]>>, ProofVerificationAggModeError> {
+    let logs = get_aggregated_proofs_logs(network, eth_rpc_url.clone(), from_block).await?;
+
+    for log in logs {
+        let (_merkle_root, leaves) =
+            get_blob_data_from_log(eth_rpc_url.clone(), beacon_client_url.clone(), log).await?;
+
+        let leaves: Vec<Hash32> = leaves.iter().map(|leaf| Hash32(*leaf)).collect();
+        let merkle_tree: MerkleTree<Hash32> = MerkleTree::build(&leaves).unwrap();
+
+        let Some(pos) = leaves.iter().position(|p| p.0 == proof_commitment) else {
+            continue;
+        };
+
+        return Ok(Some(merkle_tree.get_proof_by_pos(pos).unwrap().merkle_path));
+    }
+
+    Ok(None)
+}
+
+async fn get_aggregated_proofs_logs(
+    network: Network,
+    eth_rpc_url: String,
+    from_block: Option<u64>,
+) -> Result<Vec<Log>, ProofVerificationAggModeError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
-    let beacon_client = BeaconClient::new(beacon_client_url);
 
     let from_block = match from_block {
         Some(from_block) => from_block,
@@ -132,76 +186,73 @@ pub async fn is_proof_verified_in_aggregation_mode(
         .event("AggregatedProofVerified(bytes32,bytes32)")
         .from_block(from_block);
 
-    let logs = eth_rpc_provider.get_logs(&filter).await.unwrap();
-    for log in logs {
-        // First 32 bytes of the data are the bytes of the blob versioned hash
-        let blob_versioned_hash: [u8; 32] = log.data[0..32]
-            .try_into()
-            .map_err(|_| ProofVerificationAggModeError::EventDecoding)?;
+    Ok(eth_rpc_provider.get_logs(&filter).await.unwrap())
+}
 
-        // Event is indexed by merkle root
-        let merkle_root = log.topics[1].0;
+async fn get_blob_data_from_log(
+    eth_rpc_url: String,
+    beacon_client_url: String,
+    log: Log,
+) -> Result<([u8; 32], Vec<[u8; 32]>), ProofVerificationAggModeError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+    let beacon_client = BeaconClient::new(beacon_client_url);
 
-        // Block Number shouldn't be empty, in case it is,
-        // there is a problem with this log, and we skip it
-        // This same logic is replicated for other checks.
-        let Some(block_number) = log.block_number else {
-            continue;
-        };
+    // First 32 bytes of the data are the bytes of the blob versioned hash
+    let blob_versioned_hash: [u8; 32] = log.data[0..32]
+        .try_into()
+        .map_err(|_| ProofVerificationAggModeError::EventDecoding)?;
 
-        let Some(block) = eth_rpc_provider
-            .get_block(block_number.as_u64())
-            .await
-            .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?
-        else {
-            continue;
-        };
+    // Event is indexed by merkle root
+    let merkle_root = log.topics[1].0;
 
-        let Some(beacon_parent_root) = block.parent_beacon_block_root else {
-            continue;
-        };
+    // Block Number shouldn't be empty, in case it is,
+    // there is a problem with this log, and we skip it
+    // This same logic is replicated for other checks.
+    let Some(block_number) = log.block_number else {
+        return Err(ProofVerificationAggModeError::EventDecoding);
+    };
 
-        let Some(beacon_block) = beacon_client
-            .get_block_header_from_parent_hash(beacon_parent_root.0)
-            .await
-            .map_err(ProofVerificationAggModeError::BeaconClient)?
-        else {
-            continue;
-        };
+    let Some(block) = eth_rpc_provider
+        .get_block(block_number.as_u64())
+        .await
+        .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?
+    else {
+        return Err(ProofVerificationAggModeError::EventDecoding);
+    };
 
-        let slot: u64 = beacon_block
-            .header
-            .message
-            .slot
-            .parse()
-            .expect("Slot to be parsable number");
+    let Some(beacon_parent_root) = block.parent_beacon_block_root else {
+        return Err(ProofVerificationAggModeError::EventDecoding);
+    };
 
-        let Some(blob_data) = beacon_client
-            .get_blob_by_versioned_hash(slot, blob_versioned_hash)
-            .await
-            .map_err(ProofVerificationAggModeError::BeaconClient)?
-        else {
-            continue;
-        };
+    let Some(beacon_block) = beacon_client
+        .get_block_header_from_parent_hash(beacon_parent_root.0)
+        .await
+        .map_err(ProofVerificationAggModeError::BeaconClient)?
+    else {
+        return Err(ProofVerificationAggModeError::EventDecoding);
+    };
 
-        let blob_bytes =
-            hex::decode(blob_data.blob.replace("0x", "")).expect("A valid hex encoded data");
-        let proof_commitments: Vec<Hash32> = decoded_blob(blob_bytes)
-            .iter()
-            .map(|p| Hash32(*p))
-            .collect();
-        let merkle_tree: MerkleTree<Hash32> = MerkleTree::build(&proof_commitments).unwrap();
+    let slot: u64 = beacon_block
+        .header
+        .message
+        .slot
+        .parse()
+        .expect("Slot to be parsable number");
 
-        if proof_commitments.contains(&Hash32(verification_data.commitment())) {
-            return if merkle_tree.root == merkle_root {
-                Ok(merkle_root)
-            } else {
-                Err(ProofVerificationAggModeError::UnmatchedBlobAndEventMerkleRoot)
-            };
-        }
-    }
+    let Some(blob_data) = beacon_client
+        .get_blob_by_versioned_hash(slot, blob_versioned_hash)
+        .await
+        .map_err(ProofVerificationAggModeError::BeaconClient)?
+    else {
+        return Err(ProofVerificationAggModeError::EventDecoding);
+    };
 
-    Err(ProofVerificationAggModeError::ProofNotFoundInLogs)
+    let blob_bytes =
+        hex::decode(blob_data.blob.replace("0x", "")).expect("A valid hex encoded data");
+    let proof_commitments = decoded_blob(blob_bytes);
+
+    Ok((merkle_root, proof_commitments))
 }
 
 fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
