@@ -1,7 +1,8 @@
+use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Risc0ImageIdAndPubInputs {
     pub image_id: [u8; 32],
     pub public_inputs: Vec<u8>,
@@ -14,6 +15,25 @@ impl Risc0ImageIdAndPubInputs {
             hasher.update(&word.to_be_bytes());
         }
         hasher.update(&self.public_inputs);
+
+        let mut hash = [0u8; 32];
+        hasher.finalize(&mut hash);
+        hash
+    }
+}
+
+impl IsMerkleTreeBackend for Risc0ImageIdAndPubInputs {
+    type Data = Risc0ImageIdAndPubInputs;
+    type Node = [u8; 32];
+
+    fn hash_data(leaf: &Self::Data) -> Self::Node {
+        leaf.commitment()
+    }
+
+    fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
+        let mut hasher = Keccak::v256();
+        hasher.update(child_1);
+        hasher.update(child_2);
 
         let mut hash = [0u8; 32];
         hasher.finalize(&mut hash);
