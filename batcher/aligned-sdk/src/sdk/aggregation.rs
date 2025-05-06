@@ -1,6 +1,7 @@
 use crate::{
     beacon::{BeaconClient, BeaconClientError},
     core::types::Network,
+    eth::aligned_proof_agg_service::aligned_proof_aggregation_service,
 };
 use ethers::{
     providers::{Http, Middleware, Provider},
@@ -131,6 +132,43 @@ pub async fn is_proof_verified_in_aggregation_mode(
     }
 
     Err(ProofVerificationAggModeError::ProofNotFoundInLogs)
+}
+
+pub async fn verify_agg_proof_on_chain(
+    network: Network,
+    eth_rpc_url: String,
+    beacon_client_url: String,
+    from_block: Option<u64>,
+    proof_commitment: [u8; 32],
+) -> Result<bool, ProofVerificationAggModeError> {
+    let Some(merkle_path) = get_merkle_path_for_proof(
+        network.clone(),
+        eth_rpc_url.clone(),
+        beacon_client_url,
+        from_block,
+        proof_commitment,
+    )
+    .await?
+    else {
+        return Ok(false);
+    };
+
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+    let contract_provider = aligned_proof_aggregation_service(
+        eth_rpc_provider,
+        network.get_aligned_proof_agg_service_address(),
+    )
+    .await
+    .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+
+    let res: bool = contract_provider
+        .verify_proof_inclusion(merkle_path, proof_commitment)
+        .call()
+        .await
+        .expect("Message to be sent");
+
+    Ok(res)
 }
 
 pub async fn get_merkle_path_for_proof(
