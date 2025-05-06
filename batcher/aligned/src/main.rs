@@ -11,7 +11,7 @@ use aligned_sdk::core::{
     errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
-use aligned_sdk::sdk::aggregation::is_proof_verified_in_aggregation_mode;
+use aligned_sdk::sdk::aggregation;
 use aligned_sdk::sdk::aggregation::AggregationModeVerificationData;
 use aligned_sdk::sdk::estimate_fee;
 use aligned_sdk::sdk::get_chain_id;
@@ -819,7 +819,7 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            match is_proof_verified_in_aggregation_mode(
+            match aggregation::is_proof_verified(
                 proof_data,
                 args.network.into(),
                 args.eth_rpc_url,
