@@ -24,6 +24,18 @@
 
       <div>
         <h3>
+          Aggregator:
+        </h3>
+        <%= case @agg_proof.aggregator do %>
+          <% :sp1 ->  %>
+            <p>SP1</p>
+          <% :risc0 ->  %>
+            <p>RISC0</p>
+        <% end %>
+      </div>
+
+      <div>
+        <h3>
           Number of Proofs included:
         </h3>
         <p><%= @agg_proof.number_of_proofs %></p>
@@ -110,7 +122,7 @@
     <div class="flex flex-col space-y-6 justify-center grow relative text-center md:pt-14">
       <h1 class="text-5xl font-semibold">Oops!</h1>
       <h2 class="text-xl font-medium">
-        The batch you are looking for <br /> doesn't exist.
+        The aggregated proof you are looking for <br /> doesn't exist.
       </h2>
       <img
         class="z-0 w-64 rounded-xl mx-auto"

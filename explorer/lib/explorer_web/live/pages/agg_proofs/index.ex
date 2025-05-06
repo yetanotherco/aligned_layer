@@ -6,7 +6,7 @@ defmodule ExplorerWeb.AggProofs.Index do
   @page_size 15
 
   @impl true
-  def mount(_, params, socket) do
+  def mount(params, _, socket) do
     current_page = get_current_page(params)
 
     proofs =
@@ -31,7 +31,7 @@ defmodule ExplorerWeb.AggProofs.Index do
 
   @impl true
   def handle_event("change_page", %{"page" => page}, socket) do
-    {:noreply, push_navigate(socket, to: ~p"/batches?page=#{page}")}
+    {:noreply, push_navigate(socket, to: ~p"/aggregated_proofs?page=#{page}")}
   end
 
   defp get_current_page(params) do
