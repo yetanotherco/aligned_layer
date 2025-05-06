@@ -69,13 +69,21 @@ pub async fn is_proof_verified(
     Err(ProofVerificationAggModeError::ProofNotFoundInLogs)
 }
 
-/// Sames as [`is_proof_verified`] only that the verification is done in the ProofAggregationService contract on chain calling the function `verifyProofInclusion`
-/// This is done by fetching the aggregated proof blob and constructing the merkle tree and then calling `verifyProofInclusion` with:
-/// 1. The merkle path for the given [`AggregationModeVerificationData`]
-/// 2. The proof commitment
+/// Performs the same verification as [`is_proof_verified`], but instead of verifying locally, it simulates
+/// an on-chain verification by calling the `verifyProofInclusion` function on the `ProofAggregationService` contract.
 ///
-/// For local verification, you probably want to call [`is_proof_verified`], the function `verifyProofInclusion` is useful in actual contract calls to verify a statement with Aligned
-/// This here is simulation an testing purposes
+/// This function:
+/// 1. Fetches the aggregated proof blob from the blockchain.
+/// 2. Constructs the corresponding Merkle tree from the proof commitments.
+/// 3. Calls the contract's `verifyProofInclusion` function with:
+///     - The Merkle path corresponding to the given [`AggregationModeVerificationData`].
+///     - The proof commitment, computed from the program ID and public inputs.
+///
+/// This is mainly useful for testing and simulation purposes to ensure that a given proof commitment
+/// would be accepted by the contract on-chain. For typical off-chain verification (e.g., in services or indexers),
+/// prefer using [`is_proof_verified`].
+///
+/// Note: This function does not perform the actual on-chain transaction but simulates the contract call.
 pub async fn is_proof_verified_on_chain(
     verification_data: AggregationModeVerificationData,
     network: Network,
@@ -117,8 +125,16 @@ pub async fn is_proof_verified_on_chain(
     Ok(res)
 }
 
-/// Given [`AggregationModeVerificationData`] it fetches the logs starting from `from_block` until it finds it
-/// Once found, it retrieves the blob (if not expired) and constructs the respective merkle tree to return the merkle path for the proof.
+/// Given the [`AggregationModeVerificationData`], this function queries the blockchain logs starting from the
+/// specified `from_block` until it founds the proof.
+///
+/// Once the proof is found:
+/// 1. It retrieves the corresponding proof blob.
+/// 2. Constructs the Merkle tree based on the proof blob.
+/// 3. Returns the Merkle proof needed for verifying the proof.
+///
+/// Note: This function prepares the Merkle path for on-chain verification, and is typically used in combination with
+/// `verifyProofInclusion` to confirm proof validity within the ProofAggregationService contract.
 pub async fn get_merkle_path_for_proof(
     network: Network,
     eth_rpc_url: String,
