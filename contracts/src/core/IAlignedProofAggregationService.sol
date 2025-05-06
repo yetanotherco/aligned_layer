@@ -22,7 +22,7 @@ interface IAlignedProofAggregationService {
         bytes calldata risc0JournalBytes
     ) external;
 
-    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 proofCommitment)
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
         external
         view
         returns (bool);

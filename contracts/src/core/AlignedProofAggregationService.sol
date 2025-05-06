@@ -90,7 +90,27 @@ contract AlignedProofAggregationService is
         emit AggregatedProofVerified(merkleRoot, blobVersionedHash);
     }
 
-    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 proofCommitment) public view returns (bool) {
+    /// @notice Verifies the inclusion of proof in an aggregated proof via Merkle tree proof.
+    ///
+    /// @dev
+    /// - The `programId` parameter represents the unique identifier for the vm program:
+    ///   - In RISC Zero, this corresponds to the `image_id`.
+    ///   - In SP1, this corresponds to the `vk` (verification key) hash.
+    /// - The proof commitment is derived by hashing together the `programId` and the `publicInputs`.
+    /// - The `merklePath` is then used to compute the Merkle root from this commitment.
+    /// - The function returns `true` if this Merkle root is known to correspond to a valid aggregated proof.
+    ///
+    /// @param merklePath The Merkle proof (sibling hashes) needed to reconstruct the Merkle root.
+    /// @param programId The identifier for the ZK program (image_id in RISC0 or vk hash in SP1).
+    /// @param publicInputs The public inputs bytes of the proof.
+    ///
+    /// @return bool Returns true if the computed Merkle root is a recognized valid aggregated proof.
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
+        public
+        view
+        returns (bool)
+    {
+        bytes32 proofCommitment = keccak256(abi.encodePacked(programId, publicInputs));
         bytes32 merkleRoot = MerkleProof.processProofCalldata(merklePath, proofCommitment);
         return aggregatedProofs[merkleRoot];
     }
