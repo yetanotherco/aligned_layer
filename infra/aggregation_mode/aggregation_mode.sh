@@ -82,6 +82,11 @@ curl -L https://sp1.succinct.xyz | bash
 source $HOME/.bashrc
 sp1up
 
+# Install Risc0
+curl -L https://risczero.com/install | bash
+source $HOME/.bashrc
+rzup install
+
 # Install cast
 curl -L https://foundry.paradigm.xyz | bash
 source $HOME/.bashrc
@@ -95,13 +100,20 @@ mkdir -p ~/.keystores
 # Create keystore
 cast wallet import proof_aggregation.keystore -k $HOME/.keystores -i
 
-# Create config file interactively
-./infra/aggregation_mode/config_file.sh ./infra/aggregation_mode/config-proof-aggregator.template.yaml
-touch $HOME/config/proof-aggregator.last_aggregated_block.json
-read -p "Enter a number (last_aggregated_block): " num && echo "{\"last_aggregated_block\":$num}" > $HOME/config/proof-aggregator.last_aggregated_block.json
+# Create config file for SP1
+./infra/aggregation_mode/config_file.sh ./infra/aggregation_mode/config-proof-aggregator-sp1.template.yaml $HOME/config/config-proof-aggregator-sp1.yaml
+read -p "Enter a block number for SP1 (last_aggregated_block): " num && echo "{\"last_aggregated_block\":$num}" > $HOME/config/proof-aggregator-sp1.last_aggregated_block.json
+
+# Create config file for Risc0
+./infra/aggregation_mode/config_file.sh ./infra/aggregation_mode/config-proof-aggregator-risc0.template.yaml $HOME/config/config-proof-aggregator-risc0.yaml
+read -p "Enter a block number for Risc0 (last_aggregated_block): " num && echo "{\"last_aggregated_block\":$num}" > $HOME/config/proof-aggregator-risc0.last_aggregated_block.json
 
 # Build the proof_aggregator
 make install_aggregation_mode
+
+# Copy run script
+cp ./infra/aggregation_mode/run.sh $HOME/run.sh
+chmod 744 $HOME/run.sh
 
 # Setup systemd service
 cp ./infra/aggregation_mode/aggregation_mode.service $HOME/.config/systemd/user/aggregation_mode.service

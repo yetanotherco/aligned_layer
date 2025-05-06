@@ -9,7 +9,7 @@
   <% end %>
   <div class="flex gap-x-2 items-center justify-center w-full">
     <%= if @current_page >= 2 do %>
-      <.link navigate={~p"/batches?page=#{1}"}>
+      <.link navigate={~p"/aggregated_proofs?page=#{1}"}>
         <.button class="text-muted-foreground group">
           First
         </.button>
@@ -54,7 +54,7 @@
           <span class="sr-only">Next Page</span>
         </.button>
       </.link>
-      <.link navigate={~p"/batches?page=#{@last_page}"}>
+      <.link navigate={~p"/aggregated_proofs?page=#{@last_page}"}>
         <.button class="text-muted-foreground group">
           Last
         </.button>
