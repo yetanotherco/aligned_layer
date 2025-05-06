@@ -166,13 +166,17 @@ is_aggregator_set:
 		exit 1; \
 	fi
 
-start_proof_aggregator_dev: is_aggregator_set ## Starts proof aggregator with mock proofs (DEV mode)
+reset_last_aggregated_block:
+	@echo "Resetting last aggregated block..."
+	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
+
+start_proof_aggregator_dev: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with mock proofs (DEV mode)
 	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
 
-start_proof_aggregator: is_aggregator_set ## Starts proof aggregator with proving activated
+start_proof_aggregator: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated
 	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
 
-start_proof_aggregator_gpu: is_aggregator_set ## Starts proof aggregator with proving + GPU acceleration (CUDA)
+start_proof_aggregator_gpu: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving + GPU acceleration (CUDA)
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu -- config-files/config-proof-aggregator.yaml
 
 verify_aggregated_proof_sp1_holesky_stage: 
