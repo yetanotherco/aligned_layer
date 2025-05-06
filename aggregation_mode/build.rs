@@ -5,7 +5,7 @@ fn main() {
             output_directory: Some("./aggregation_programs/sp1/elf".to_string()),
             // We use Docker to generate a reproducible ELF that will be identical across all platforms
             // (https://docs.succinct.xyz/docs/sp1/writing-programs/compiling#production-builds)
-            docker: true,  
+            docker: true,
             ..Default::default()
         }
     });
