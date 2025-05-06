@@ -16,6 +16,20 @@ pub enum AggregationModeVerificationData {
 }
 
 impl AggregationModeVerificationData {
+    pub fn program_id(&self) -> [u8; 32] {
+        match self {
+            Self::Risc0 { image_id, .. } => *image_id,
+            Self::SP1 { vk, .. } => *vk,
+        }
+    }
+
+    pub fn public_inputs(&self) -> &Vec<u8> {
+        match self {
+            Self::Risc0 { public_inputs, .. } => public_inputs,
+            Self::SP1 { public_inputs, .. } => public_inputs,
+        }
+    }
+
     pub fn commitment(&self) -> [u8; 32] {
         match self {
             AggregationModeVerificationData::SP1 { vk, public_inputs } => {

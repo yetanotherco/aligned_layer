@@ -8,7 +8,10 @@ pub use types::{AggregationModeVerificationData, ProofVerificationAggModeError};
 use crate::{
     core::types::Network, eth::aligned_proof_agg_service::aligned_proof_aggregation_service,
 };
-use ethers::providers::{Http, Provider};
+use ethers::{
+    providers::{Http, Provider},
+    types::Bytes,
+};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 
 /// Given the [`AggregationModeVerificationData`], this function checks whether the proof was included in a
@@ -102,7 +105,11 @@ pub async fn is_proof_verified_on_chain(
     .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
 
     let res = contract_provider
-        .verify_proof_inclusion(merkle_path, verification_data.commitment())
+        .verify_proof_inclusion(
+            merkle_path,
+            verification_data.program_id(),
+            Bytes::from(verification_data.public_inputs().clone()),
+        )
         .call()
         .await
         .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
