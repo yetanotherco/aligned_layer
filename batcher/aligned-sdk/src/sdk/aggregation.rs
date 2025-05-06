@@ -50,7 +50,7 @@ impl AggregationModeVerificationData {
 
 // We use a newtype wrapper around `[u8; 32]` because Rust's orphan rule
 // prevents implementing a foreign trait (`IsMerkleTreeBackend`) for a foreign type (`[u8; 32]`).
-#[derive(Default, PartialEq, Eq)]
+#[derive(Default, Debug, PartialEq, Eq)]
 struct Hash32([u8; 32]);
 
 impl IsMerkleTreeBackend for Hash32 {
@@ -58,9 +58,7 @@ impl IsMerkleTreeBackend for Hash32 {
     type Node = [u8; 32];
 
     fn hash_data(leaf: &Self::Data) -> Self::Node {
-        let mut hasher = Keccak256::new();
-        hasher.update(leaf.0);
-        hasher.finalize().into()
+        leaf.0
     }
 
     fn hash_leaves(leaves: &[Self::Data]) -> Vec<Self::Node> {
@@ -139,8 +137,10 @@ pub async fn verify_agg_proof_on_chain(
     eth_rpc_url: String,
     beacon_client_url: String,
     from_block: Option<u64>,
-    proof_commitment: [u8; 32],
+    verification_data: AggregationModeVerificationData,
 ) -> Result<bool, ProofVerificationAggModeError> {
+    let proof_commitment = verification_data.commitment();
+
     let Some(merkle_path) = get_merkle_path_for_proof(
         network.clone(),
         eth_rpc_url.clone(),
@@ -162,7 +162,7 @@ pub async fn verify_agg_proof_on_chain(
     .await
     .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
 
-    let res: bool = contract_provider
+    let res = contract_provider
         .verify_proof_inclusion(merkle_path, proof_commitment)
         .call()
         .await
@@ -181,7 +181,7 @@ pub async fn get_merkle_path_for_proof(
     let logs = get_aggregated_proofs_logs(network, eth_rpc_url.clone(), from_block).await?;
 
     for log in logs {
-        let (_merkle_root, leaves) =
+        let (merkle_root, leaves) =
             get_blob_data_from_log(eth_rpc_url.clone(), beacon_client_url.clone(), log).await?;
 
         let leaves: Vec<Hash32> = leaves.iter().map(|leaf| Hash32(*leaf)).collect();
@@ -190,8 +190,16 @@ pub async fn get_merkle_path_for_proof(
         let Some(pos) = leaves.iter().position(|p| p.0 == proof_commitment) else {
             continue;
         };
+        let Some(proof) = merkle_tree.get_proof_by_pos(pos) else {
+            continue;
+        };
 
-        return Ok(Some(merkle_tree.get_proof_by_pos(pos).unwrap().merkle_path));
+        let result = proof.verify::<Hash32>(&merkle_root, pos, &Hash32(proof_commitment));
+        if !result {
+            return Ok(None);
+        }
+
+        return Ok(Some(proof.merkle_path));
     }
 
     Ok(None)
