@@ -49,13 +49,14 @@ impl AggregationModeVerificationData {
 
 // We use a newtype wrapper around `[u8; 32]` because Rust's orphan rule
 // prevents implementing a foreign trait (`IsMerkleTreeBackend`) for a foreign type (`[u8; 32]`).
-#[derive(Default, PartialEq, Eq)]
-struct Hash32([u8; 32]);
+#[derive(Default, Debug, PartialEq, Eq)]
+pub struct Hash32([u8; 32]);
 
 impl IsMerkleTreeBackend for Hash32 {
     type Data = Hash32;
     type Node = [u8; 32];
 
+    /// We don't have to hash the data, as the blob already contains the proof commitments (which represent the merkle leaves)
     fn hash_data(leaf: &Self::Data) -> Self::Node {
         leaf.0
     }
