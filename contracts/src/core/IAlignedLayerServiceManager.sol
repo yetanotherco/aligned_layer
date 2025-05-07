@@ -61,6 +61,16 @@ interface IAlignedLayerServiceManager {
         address senderAddress
     ) external view returns (bool);
 
+    function verifyBatchInclusion(
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
+        bytes32 batchMerkleRoot,
+        bytes memory merkleProof,
+        uint256 verificationDataBatchIndex
+    ) external view returns (bool);
+
     function balanceOf(address account) external view returns (uint256);
 
     function setAggregator(address _aggregator) external;

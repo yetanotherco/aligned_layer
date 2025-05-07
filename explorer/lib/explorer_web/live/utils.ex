@@ -155,10 +155,36 @@ defmodule ExplorerWeb.Helpers do
     end
   end
 
+  @doc """
+  Get the Etherscan URL based on the environment.
+  - `holesky` -> https://holesky.etherscan.io
+  - `mainnet` -> https://etherscan.io
+  - `default` -> http://localhost:4000
+  """
+  def get_blobscan_url() do
+    prefix = System.get_env("ENVIRONMENT")
+
+    case prefix do
+      "mainnet" -> "https://blobscan.com/"
+      "holesky" -> "https://holesky.blobscan.com/"
+      _ -> "http://localhost:4000"
+    end
+  end
+
   def get_aligned_contracts_addresses() do
+    Map.merge(get_batcher_service_addresses(), get_proof_aggregation_addresses())
+  end
+
+  defp get_proof_aggregation_addresses() do
+    proof_agg_config_file = System.get_env("ALIGNED_PROOF_AGG_CONFIG_FILE")
+    {_, config_json_string} = File.read(proof_agg_config_file)
+    proof_agg_service_addresses = Jason.decode!(config_json_string) |> Map.get("addresses")
+  end
+
+  defp get_batcher_service_addresses() do
     aligned_config_file = System.get_env("ALIGNED_CONFIG_FILE")
     {_, config_json_string} = File.read(aligned_config_file)
-    Jason.decode!(config_json_string) |> Map.get("addresses")
+    agg_service_addresses = Jason.decode!(config_json_string) |> Map.get("addresses")
   end
 
   def binary_to_hex_string(binary) do
@@ -228,22 +254,36 @@ defmodule Utils do
 
   @batcher_submission_gas_cost Application.compile_env(:explorer, :batcher_submission_gas_cost)
   @aggregator_gas_cost Application.compile_env(:explorer, :aggregator_gas_cost)
-  @aggregator_fee_percentage_multiplier Application.compile_env(:explorer, :aggregator_fee_percentage_multiplier)
+  @aggregator_fee_percentage_multiplier Application.compile_env(
+                                          :explorer,
+                                          :aggregator_fee_percentage_multiplier
+                                        )
   @percentage_divider Application.compile_env(:explorer, :percentage_divider)
-  @additional_submission_gas_cost_per_proof Application.compile_env(:explorer, :additional_submission_gas_cost_per_proof)
+  @additional_submission_gas_cost_per_proof Application.compile_env(
+                                              :explorer,
+                                              :additional_submission_gas_cost_per_proof
+                                            )
 
   def scheduled_batch_interval() do
     default_value = 10
+
     case System.get_env("SCHEDULED_BATCH_INTERVAL_MINUTES") do
       nil ->
-        Logger.warning("SCHEDULED_BATCH_INTERVAL_MINUTES .env var is not set, using default value: #{default_value}")
+        Logger.warning(
+          "SCHEDULED_BATCH_INTERVAL_MINUTES .env var is not set, using default value: #{default_value}"
+        )
+
         default_value
+
       value ->
         try do
           String.to_integer(value)
         rescue
           ArgumentError ->
-            Logger.warning("Invalid SCHEDULED_BATCH_INTERVAL_MINUTES .env var: #{value}, using default value: #{default_value}")
+            Logger.warning(
+              "Invalid SCHEDULED_BATCH_INTERVAL_MINUTES .env var: #{value}, using default value: #{default_value}"
+            )
+
             default_value
         end
     end
@@ -457,8 +497,8 @@ defmodule Utils do
   def constant_batch_submission_gas_cost() do
     trunc(
       @aggregator_gas_cost * @aggregator_fee_percentage_multiplier /
-      @percentage_divider +
-      @batcher_submission_gas_cost
+        @percentage_divider +
+        @batcher_submission_gas_cost
     )
   end
 

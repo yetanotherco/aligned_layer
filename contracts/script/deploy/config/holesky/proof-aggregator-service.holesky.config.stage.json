@@ -1,0 +1,9 @@
+{
+  "address": {
+    "sp1VerifierAddress": "0x397A5f7f3dBd538f23DE225B51f532c34448dA9B",
+    "alignedAggregatorAddress": "0x3595aa7d30f89f65933e7421dec77e4478d9fb01"
+  },
+  "permissions": {
+    "owner": "0xE3C695b73dbe27106aF4530b152de3e57456B385"
+  }
+}

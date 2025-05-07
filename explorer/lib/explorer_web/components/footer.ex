@@ -9,6 +9,7 @@ defmodule FooterComponent do
          {"General",
           [
             {"Batches", "/batches"},
+            {"Aggregation", "/aggregated_proofs"},
             {"Operators", "/operators"},
             {"Restake", "/restaked"}
           ]},

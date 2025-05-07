@@ -11,6 +11,8 @@ use aligned_sdk::core::{
     errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
+use aligned_sdk::sdk::aggregation::is_proof_verified_in_aggregation_mode;
+use aligned_sdk::sdk::aggregation::AggregationModeVerificationData;
 use aligned_sdk::sdk::estimate_fee;
 use aligned_sdk::sdk::get_chain_id;
 use aligned_sdk::sdk::get_nonce_from_batcher;
@@ -78,6 +80,8 @@ pub enum AlignedCommands {
         name = "get-user-amount-of-queued-proofs"
     )]
     GetUserAmountOfQueuedProofs(GetUserAmountOfQueuedProofsArgs),
+    #[clap(about = "", name = "verify-agg-proof")]
+    VerifyProofInAggMode(VerifyProofInAggModeArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -297,6 +301,32 @@ pub struct GetUserAmountOfQueuedProofsArgs {
     address: String,
     #[clap(flatten)]
     network: NetworkArg,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct VerifyProofInAggModeArgs {
+    #[arg(
+        name = "Ethereum RPC provider url",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[arg(name = "Ethereum Beacon client url", long = "beacon_url")]
+    beacon_client_url: String,
+    #[clap(flatten)]
+    network: NetworkArg,
+    #[arg(
+        name = "From which block to start, if not provided it defaults to fetch logs from the past 25hs",
+        long = "from-block"
+    )]
+    from_block: Option<u64>,
+    #[arg(name = "Proving system", long = "proving_system")]
+    proving_system: ProvingSystemArg,
+    #[arg(name = "Public input file name", long = "public_input")]
+    pub_input_file_name: Option<PathBuf>,
+    #[arg(name = "Verification key hash", long = "vk", required = true)]
+    verification_key_hash: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -757,6 +787,47 @@ async fn main() -> Result<(), AlignedError> {
                 address,
                 batcher_nonce - ethereum_nonce
             );
+            return Ok(());
+        }
+        AlignedCommands::VerifyProofInAggMode(args) => {
+            let proof_data = match args.proving_system {
+                ProvingSystemArg::SP1 => {
+                    let vk = read_file(args.verification_key_hash)?
+                        .try_into()
+                        .expect("Invalid hexadecimal encoded vk hash");
+
+                    let Some(pub_inputs_file_name) = args.pub_input_file_name else {
+                        error!("Public input file not provided");
+                        return Ok(());
+                    };
+                    let public_inputs = read_file(pub_inputs_file_name)?;
+
+                    AggregationModeVerificationData::SP1 { vk, public_inputs }
+                }
+                _ => {
+                    error!("Proving system not supported in aggregation mode");
+                    return Ok(());
+                }
+            };
+
+            match is_proof_verified_in_aggregation_mode(
+                proof_data,
+                args.network.into(),
+                args.eth_rpc_url,
+                args.beacon_client_url,
+                args.from_block,
+            )
+            .await
+            {
+                Ok(res) => {
+                    info!(
+                        "Your proof has been verified in the aggregated proof with merkle root 0x{}",
+                        hex::encode(res)
+                    );
+                }
+                Err(e) => error!("Error while trying to verify proof {:?}", e),
+            }
+
             return Ok(());
         }
     }

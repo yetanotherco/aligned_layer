@@ -16,9 +16,15 @@ defmodule Explorer.Periodically do
     one_second = 1000
     seconds_in_an_hour = 60 * 60
 
-    :timer.send_interval(one_second * 60, :next_batch_progress) # every minute
-    :timer.send_interval(one_second * 12, :batches) # every 12 seconds, once per block
-    :timer.send_interval(one_second * seconds_in_an_hour, :restakings) # every 1 hour
+    # every minute
+    :timer.send_interval(one_second * 60, :next_batch_progress)
+    # every 12 seconds, once per block
+    :timer.send_interval(one_second * 12, :batches)
+    # every 1 hour
+    :timer.send_interval(one_second * seconds_in_an_hour, :restakings)
+
+    # Fetch new aggregated proofs every 1 minute
+    :timer.send_interval(one_second * 60, :aggregated_proofs)
   end
 
   # Reads and process last blocks for operators and restaking changes
@@ -37,13 +43,14 @@ defmodule Explorer.Periodically do
 
   def handle_info(:next_batch_progress, state) do
     Logger.debug("handling block progress timer")
-    remaining_time =  ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time()
+    remaining_time = ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time()
+
     PubSub.broadcast(Explorer.PubSub, "update_views", %{
       next_scheduled_batch_remaining_time_percentage:
         ExplorerWeb.Helpers.get_next_scheduled_batch_remaining_time_percentage(remaining_time),
       next_scheduled_batch_remaining_time: remaining_time
-    }) 
-      
+    })
+
     {:noreply, state}
   end
 
@@ -66,6 +73,71 @@ defmodule Explorer.Periodically do
     PubSub.broadcast(Explorer.PubSub, "update_views", :block_age)
 
     {:noreply, %{state | batches_count: new_count}}
+  end
+
+  def handle_info(:aggregated_proofs, state) do
+    # This task runs every hour
+    # We read a bit more than 300 blocks (1hr) to make sure we don't lose any event
+    read_block_qty = 310
+    latest_block_number = AlignedLayerServiceManager.get_latest_block_number()
+    read_from_block = max(0, latest_block_number - read_block_qty)
+
+    Task.start(fn -> process_aggregated_proofs(read_from_block, latest_block_number) end)
+
+    {:noreply, state}
+  end
+
+  def process_aggregated_proofs(from_block, to_block) do
+    "Processing aggregated proofs from #{from_block} to #{to_block}" |> Logger.debug()
+
+    {:ok, proofs} =
+      AlignedProofAggregationService.get_aggregated_proof_event(%{
+        from_block: from_block,
+        to_block: to_block
+      })
+
+    blob_data =
+      proofs
+      |> Enum.map(&AlignedProofAggregationService.get_blob_data!/1)
+
+    proof_hashes =
+      blob_data
+      |> Enum.map(fn x ->
+        AlignedProofAggregationService.decode_blob(
+          to_charlist(String.replace_prefix(x, "0x", ""))
+        )
+      end)
+
+    # Store aggregated proofs to db
+    proofs =
+      proofs
+      |> Enum.zip(proof_hashes)
+      |> Enum.map(fn {agg_proof, hashes} ->
+        agg_proof =
+          agg_proof
+          |> Map.merge(%{number_of_proofs: length(hashes)})
+
+        {:ok, %{id: id}} = AggregatedProofs.insert_or_update(agg_proof)
+
+        Map.merge(agg_proof, %{id: id})
+      end)
+
+    # Store each individual proof
+    proofs
+    |> Enum.zip(proof_hashes)
+    |> Enum.each(fn {agg_proof, hashes} ->
+      hashes
+      |> Enum.with_index()
+      |> Enum.each(fn {hash, index} ->
+        AggregationModeProof.insert_or_update(%{
+          agg_proof_id: agg_proof.id,
+          proof_hash: "0x" <> List.to_string(hash),
+          index: index
+        })
+      end)
+    end)
+
+    "Done processing aggregated proofs from #{from_block} to #{to_block}" |> Logger.debug()
   end
 
   def process_batches(fromBlock, toBlock) do
@@ -108,6 +180,7 @@ defmodule Explorer.Periodically do
         else
           {:error, reason} ->
             Logger.error("Error processing batch #{batch.merkle_root}. Error: #{inspect(reason)}")
+
           # no changes in DB
           nil ->
             nil

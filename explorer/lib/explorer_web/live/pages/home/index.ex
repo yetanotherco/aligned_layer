@@ -6,6 +6,7 @@ defmodule ExplorerWeb.Home.Index do
 
   def get_stats() do
     verified_batches = Batches.get_amount_of_verified_batches()
+    aggregated_proofs = AggregatedProofs.get_number_of_agg_proofs()
     avg_fee_per_proof = Batches.get_avg_fee_per_proof()
 
     avg_fee_per_proof_usd =
@@ -58,6 +59,12 @@ defmodule ExplorerWeb.Home.Index do
             _ -> nil
           end,
         link: nil
+      },
+      %{
+        title: "Aggregated proofs",
+        value: aggregated_proofs,
+        tooltip_text: nil,
+        link: "/aggregated_proofs"
       },
       %{
         title: "AVG proof cost",
