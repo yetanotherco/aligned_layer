@@ -125,6 +125,16 @@ impl AlignedProof {
     }
 }
 
+/// Merkle tree commitment for aligned proofs.
+///
+/// Each leaf node (representing a proof) is committed by hashing:
+/// — The program id: the verification key hash in SP1 or the image ID in RISC Zero
+/// — Public inputs.
+///
+/// Intermediate nodes in the tree are formed by computing the keccak pairs of child nodes.
+///
+/// Note: this commitment scheme is repeated in both risc0 and sp1 aggregation programs.
+/// Therefore, any change to the commitment scheme must be mirrored there.
 impl IsMerkleTreeBackend for AlignedProof {
     type Data = AlignedProof;
     type Node = [u8; 32];
