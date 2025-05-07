@@ -37,7 +37,12 @@ pub async fn fetch_verified_proofs_events(
         .event("AggregatedProofVerified(bytes32,bytes32)")
         .from_block(from_block);
 
-    Ok(eth_rpc_provider.get_logs(&filter).await.unwrap())
+    let logs = eth_rpc_provider
+        .get_logs(&filter)
+        .await
+        .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+
+    Ok(logs)
 }
 
 pub async fn get_blob_data_from_verified_proof_event(
