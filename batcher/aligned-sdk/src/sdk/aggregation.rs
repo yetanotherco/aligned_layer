@@ -57,13 +57,7 @@ impl IsMerkleTreeBackend for Hash32 {
     type Node = [u8; 32];
 
     fn hash_data(leaf: &Self::Data) -> Self::Node {
-        let mut hasher = Keccak256::new();
-        hasher.update(leaf.0);
-        hasher.finalize().into()
-    }
-
-    fn hash_leaves(leaves: &[Self::Data]) -> Vec<Self::Node> {
-        leaves.iter().map(|l| l.0).collect()
+        leaf.0
     }
 
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
@@ -190,7 +184,9 @@ pub async fn is_proof_verified_in_aggregation_mode(
             .iter()
             .map(|p| Hash32(*p))
             .collect();
-        let merkle_tree: MerkleTree<Hash32> = MerkleTree::build(&proof_commitments).unwrap();
+        let Some(merkle_tree) = MerkleTree::<Hash32>::build(&proof_commitments) else {
+            continue;
+        };
 
         if proof_commitments.contains(&Hash32(verification_data.commitment())) {
             return if merkle_tree.root == merkle_root {
