@@ -1,0 +1,142 @@
+- name: Grafana Setup
+  hosts: "{{ host }}"
+
+  tasks:
+  - name: Create keyrings directory for Grafana
+    file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
+
+  - name: Download and install Grafana GPG key
+    shell: 
+      cmd: wget -q -O - https://apt.grafana.com/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+      creates: /etc/apt/keyrings/grafana.gpg
+    vars: 
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add Grafana stable repository
+    shell:
+      cmd: echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+      creates: /etc/apt/sources.list.d/grafana.list
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Update apt cache and install Grafana
+    become: true
+    apt:
+      name: grafana
+      state: present
+      update_cache: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Create /etc/grafana directory
+    become: true
+    file:
+      path: /etc/grafana/
+      state: directory
+      owner: grafana
+      group: grafana
+      mode: '0755'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add grafana config file
+    become: true
+    template:
+      src: grafana/grafana.ini.j2
+      dest: /etc/grafana/grafana.ini
+      owner: grafana
+      group: grafana
+      mode: '0755'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+      grafana_domain: "{{ lookup('ini', 'grafana_domain', file=ini_file) }}"
+      grafana_oath_client_id: "{{ lookup('ini', 'grafana_oath_client_id', file=ini_file) }}"
+      grafana_oath_client_secret: "{{ lookup('ini', 'grafana_oath_client_secret', file=ini_file) }}"
+      grafana_oath_auth_url: "{{ lookup('ini', 'grafana_oath_auth_url', file=ini_file) }}"
+      grafana_oath_token_url: "{{ lookup('ini', 'grafana_oath_token_url', file=ini_file) }}"
+      grafana_oath_api_url: "{{ lookup('ini', 'grafana_oath_api_url', file=ini_file) }}"
+
+  - name: Clone Aligned repository
+    git:
+      repo: https://github.com/yetanotherco/aligned_layer.git
+      dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
+      version: v0.12.1
+      recursive: false
+
+  - name: Ensure /etc/grafana/provisioning directory exists
+    become: true
+    file:
+      path: /etc/grafana/provisioning/
+      state: directory
+      owner: grafana
+      group: grafana
+      mode: '0755'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Copy provisioning files to /etc/grafana/
+    become: true
+    copy:
+      src: /home/{{ ansible_user }}/repos/telemetry/aligned_layer/grafana/provisioning/
+      dest: /etc/grafana/provisioning/
+      owner: grafana
+      group: grafana
+      mode: '0755'
+      remote_src: yes
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Add template for datasource file
+    become: true
+    template:
+      src: grafana/datasource.yaml.j2
+      dest: "/etc/grafana/provisioning/datasources/datasource.yaml"
+      owner: grafana
+      group: grafana
+      mode: '0755'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+      grafana_prometheus_datasource: "{{ lookup('ini', 'grafana_prometheus_datasource', file=ini_file) }}"
+
+  - name: Change admin password for grafana
+    shell: 
+      cmd: sudo grafana-cli admin reset-admin-password {{ lookup('ini', 'grafana_admin_password', file=ini_file) }}
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Ensure /etc/grafana/ directory is owned by user grafana
+    become: true
+    file:
+      path: /etc/grafana/
+      recurse: true
+      state: directory
+      owner: grafana
+      group: grafana
+      mode: '0755'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Ensure /var/lib/grafana/ directory is owned by user grafana
+    become: true
+    file:
+      path: /var/lib/grafana/
+      recurse: true
+      state: directory
+      owner: grafana
+      group: grafana
+      mode: '0755'
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+
+  - name: Restart Grafana
+    become: true
+    service:
+      name: grafana-server
+      state: started
+      daemon_reload: true
+      enabled: true
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"

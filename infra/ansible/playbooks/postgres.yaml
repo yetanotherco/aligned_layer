@@ -1,0 +1,59 @@
+- name: Install PostgreSQL 16
+  hosts: "{{ host }}"
+
+  vars:
+    ansible_ssh_user: "{{ admin_user }}"
+
+  tasks:
+
+    - name: Update apt and install required system packages
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - curl
+          - ca-certificates
+        state: latest
+        update_cache: true
+
+    - name: Ensure directory exists for postgres ca-certificates
+      become: true
+      ansible.builtin.file:
+        path: /usr/share/postgresql-common/pgdg
+        state: directory
+        mode: '0755'
+
+    - name: Download postgres ca-certificates if not already present
+      become: true
+      ansible.builtin.get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+        mode: '0644'
+        force: no
+
+    - name: Add postgres apt repository
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/apt/sources.list.d/pgdg.list
+        line: "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+        state: present
+        create: true
+
+    - name: Install PostgreSQL 16
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - postgresql-16
+        state: latest
+        update_cache: true
+
+    - name: Create PostgreSQL credentials
+      shell:
+        cmd: |
+          sudo -u postgres psql -U postgres -c "CREATE USER {{ DB_USER }} WITH PASSWORD '{{ DB_PASS }}';"
+          sudo -u postgres psql -U postgres -c "CREATE DATABASE {{ DB_NAME }} OWNER {{ DB_USER }};"
+      vars:
+        DB_USER: "{{ lookup('ini', 'DB_USER', file=ini_file) }}"
+        DB_PASS: "{{ lookup('ini', 'DB_PASS', file=ini_file) }}"
+        DB_NAME: "{{ lookup('ini', 'DB_NAME', file=ini_file) }}"
+      ignore_errors: true
+      no_log: true

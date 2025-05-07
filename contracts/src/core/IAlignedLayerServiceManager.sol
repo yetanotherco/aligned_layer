@@ -61,6 +61,16 @@ interface IAlignedLayerServiceManager {
         address senderAddress
     ) external view returns (bool);
 
+    function verifyBatchInclusion(
+        bytes32 proofCommitment,
+        bytes32 pubInputCommitment,
+        bytes32 provingSystemAuxDataCommitment,
+        bytes20 proofGeneratorAddr,
+        bytes32 batchMerkleRoot,
+        bytes memory merkleProof,
+        uint256 verificationDataBatchIndex
+    ) external view returns (bool);
+
     function balanceOf(address account) external view returns (uint256);
 
     function setAggregator(address _aggregator) external;
@@ -74,4 +84,10 @@ interface IAlignedLayerServiceManager {
     function enableVerifier(uint8 verifierIdx) external;
     
     function setDisabledVerifiers(uint256 bitmap) external;
+
+    function withdraw(uint256 amount) external;
+
+    function depositToBatcher(address account) external payable;
+
+    function checkPublicInput(bytes calldata publicInput, bytes32 hash) external pure returns (bool);
 }

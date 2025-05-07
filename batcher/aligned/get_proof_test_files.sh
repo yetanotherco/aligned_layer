@@ -6,11 +6,11 @@ CURRENT_TAG=$(curl -s -L \
   https://api.github.com/repos/yetanotherco/aligned_layer/releases/latest \
   | grep '"tag_name":' | awk -F'"' '{print $4}')
 
-SP1_ELF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/$CURRENT_TAG/scripts/test_files/sp1/sp1_fibonacci.elf"
-SP1_PROOF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/$CURRENT_TAG/scripts/test_files/sp1/sp1_fibonacci.proof"
+SP1_ELF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/$CURRENT_TAG/scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf"
+SP1_PROOF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/$CURRENT_TAG/scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof"
 
-SP1_ELF_NAME="sp1_fibonacci.elf"
-SP1_PROOF_NAME="sp1_fibonacci.proof"
+SP1_ELF_NAME="sp1_fibonacci_4_1_3.elf"
+SP1_PROOF_NAME="sp1_fibonacci_4_1_3.proof"
 
 BASE_DIR=$HOME
 ALIGNED_DIR="${ALIGNED_DIR-"$BASE_DIR/.aligned"}"

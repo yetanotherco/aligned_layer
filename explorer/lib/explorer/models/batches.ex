@@ -76,6 +76,16 @@ defmodule Batches do
     Explorer.Repo.one(query)
   end
 
+  def get_latest_verified_batch() do
+    query = from(b in Batches,
+      order_by: [desc: b.submission_block_number],
+      limit: 1,
+      where: b.is_verified,
+      select: b)
+
+    Explorer.Repo.one(query)
+  end
+
   def get_latest_batches(%{amount: amount} = %{order_by: :desc}) do
     query = from(b in Batches,
       order_by: [desc: b.submission_block_number],

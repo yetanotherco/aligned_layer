@@ -20,11 +20,11 @@ use log::info;
 use serde_json::json;
 
 const PROOF_FILE_RISC0_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof";
 const PUB_INPUT_RISC0_FILE_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub";
 const IMAGE_ID_RISC0_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id_2_0.bin";
 const PROOF_SP1_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.proof";
 const PUB_INPUT_SP1_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.pub";
 const ELF_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.elf";
@@ -45,8 +45,8 @@ pub enum ProvingSystemArg {
 struct Args {
     #[arg(short, long, default_value = "wss://batcher.alignedlayer.com")]
     batcher_url: String,
-    #[arg(short, long, default_value = "holesky")]
-    network: Network,
+    #[clap(flatten)]
+    network: NetworkArg,
     #[arg(short, long)]
     keystore_path: Option<String>,
     #[arg(short, long)]
@@ -57,6 +57,93 @@ struct Args {
         default_value = "https://ethereum-holesky-rpc.publicnode.com"
     )]
     rpc_url: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum NetworkNameArg {
+    Devnet,
+    Holesky,
+    HoleskyStage,
+    Mainnet,
+}
+
+impl FromStr for NetworkNameArg {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "devnet" => Ok(NetworkNameArg::Devnet),
+            "holesky" => Ok(NetworkNameArg::Holesky),
+            "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
+            "mainnet" => Ok(NetworkNameArg::Mainnet),
+            _ => Err(
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                    .to_string(),
+            ),
+        }
+    }
+}
+
+#[derive(Debug, clap::Args, Clone)]
+struct NetworkArg {
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet",
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet]"
+    )]
+    network: Option<NetworkNameArg>,
+    #[arg(
+        name = "Aligned Service Manager Contract Address",
+        long = "aligned_service_manager",
+        conflicts_with("The working network's name"),
+        requires("Batcher Payment Service Contract Address"),
+        requires("Batcher URL")
+    )]
+    aligned_service_manager_address: Option<String>,
+
+    #[arg(
+        name = "Batcher Payment Service Contract Address",
+        long = "batcher_payment_service",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher URL")
+    )]
+    batcher_payment_service_address: Option<String>,
+
+    #[arg(
+        name = "Batcher URL",
+        long = "batcher_url",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher Payment Service Contract Address")
+    )]
+    batcher_url: Option<String>,
+}
+
+impl From<NetworkArg> for Network {
+    fn from(network_arg: NetworkArg) -> Self {
+        let mut processed_network_argument = network_arg.clone();
+
+        if network_arg.batcher_url.is_some()
+            || network_arg.aligned_service_manager_address.is_some()
+            || network_arg.batcher_payment_service_address.is_some()
+        {
+            processed_network_argument.network = None; // We need this because network is Devnet as default, which is not true for a Custom network
+        }
+
+        match processed_network_argument.network {
+            None => Network::Custom(
+                network_arg.aligned_service_manager_address.unwrap(),
+                network_arg.batcher_payment_service_address.unwrap(),
+                network_arg.batcher_url.unwrap(),
+            ),
+            Some(NetworkNameArg::Devnet) => Network::Devnet,
+            Some(NetworkNameArg::Holesky) => Network::Holesky,
+            Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
+            Some(NetworkNameArg::Mainnet) => Network::Mainnet,
+        }
+    }
 }
 
 #[tokio::main]
@@ -73,7 +160,7 @@ async fn main() -> Result<(), SubmitError> {
         .await
         .expect("Failed to get chain_id");
 
-    let network: Network = args.network;
+    let network: Network = args.network.clone().into();
     let wallet = match network {
         Network::Holesky => {
             let keystore_password = rpassword::prompt_password("Enter keystore password: ")
@@ -128,15 +215,14 @@ async fn main() -> Result<(), SubmitError> {
     // Set a fee of 0.01 Eth
     let max_fee = U256::from(100_000_000_000_000u128);
 
-    let nonce = get_nonce_from_ethereum(&args.rpc_url, wallet.address(), network)
+    let nonce = get_nonce_from_ethereum(&args.rpc_url, wallet.address(), network.clone())
         .await
         .expect("Failed to get next nonce");
 
     info!("Submitting Fibonacci proof to Aligned and waiting for verification...");
     let aligned_verification_data = submit_and_wait_verification(
-        &args.batcher_url,
         &args.rpc_url,
-        network,
+        network.clone().into(),
         &verification_data,
         max_fee,
         wallet,

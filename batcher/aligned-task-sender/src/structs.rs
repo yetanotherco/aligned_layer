@@ -2,6 +2,7 @@ use aligned_sdk::core::types::Network;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
+use std::str::FromStr;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -77,23 +78,15 @@ pub struct GenerateAndFundWalletsArgs {
         long = "private-keys-filepath"
     )]
     pub private_keys_filepath: String,
-    #[arg(
-        name = "The Ethereum network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     pub network: NetworkArg,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct TestConnectionsArgs {
-    #[arg(
-        name = "Batcher connection address",
-        long = "batcher-url",
-        default_value = "ws://localhost:8080"
-    )]
-    pub batcher_url: String,
+    #[clap(flatten)]
+    pub network: NetworkArg,
     #[arg(
         name = "Number of spawned sockets",
         long = "num-senders",
@@ -112,12 +105,6 @@ pub struct SendInfiniteProofsArgs {
     )]
     pub eth_rpc_url: String,
     #[arg(
-        name = "Batcher connection address",
-        long = "batcher-url",
-        default_value = "ws://localhost:8080"
-    )]
-    pub batcher_url: String,
-    #[arg(
         name = "Number of proofs per burst",
         long = "burst-size",
         default_value = "10"
@@ -131,11 +118,7 @@ pub struct SendInfiniteProofsArgs {
     pub burst_time_secs: u64,
     #[arg(name = "Max Fee", long = "max-fee", default_value = "1300000000000000")]
     pub max_fee: String,
-    #[arg(
-        name = "The Ethereum network's name",
-        long = "network",
-        default_value = "devnet"
-    )]
+    #[clap(flatten)]
     pub network: NetworkArg,
     #[arg(
         name = "Private keys filepath for the senders",
@@ -150,21 +133,87 @@ pub struct SendInfiniteProofsArgs {
     pub proofs_dir: String,
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum)]
-pub enum NetworkArg {
+#[derive(Debug, Clone, Copy)]
+enum NetworkNameArg {
     Devnet,
     Holesky,
     HoleskyStage,
     Mainnet,
 }
 
+impl FromStr for NetworkNameArg {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "devnet" => Ok(NetworkNameArg::Devnet),
+            "holesky" => Ok(NetworkNameArg::Holesky),
+            "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
+            "mainnet" => Ok(NetworkNameArg::Mainnet),
+            _ => Err(
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                    .to_string(),
+            ),
+        }
+    }
+}
+
+#[derive(Debug, clap::Args, Clone)]
+pub struct NetworkArg {
+    #[arg(
+        name = "The working network's name",
+        long = "network",
+        default_value = "devnet",
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet]"
+    )]
+    network: Option<NetworkNameArg>,
+    #[arg(
+        name = "Aligned Service Manager Contract Address",
+        long = "aligned_service_manager",
+        conflicts_with("The working network's name"),
+        requires("Batcher Payment Service Contract Address"),
+        requires("Batcher URL")
+    )]
+    aligned_service_manager_address: Option<String>,
+    #[arg(
+        name = "Batcher Payment Service Contract Address",
+        long = "batcher_payment_service",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher URL")
+    )]
+    batcher_payment_service_address: Option<String>,
+    #[arg(
+        name = "Batcher URL",
+        long = "batcher_url",
+        conflicts_with("The working network's name"),
+        requires("Aligned Service Manager Contract Address"),
+        requires("Batcher Payment Service Contract Address")
+    )]
+    batcher_url: Option<String>,
+}
+
 impl From<NetworkArg> for Network {
-    fn from(chain_arg: NetworkArg) -> Self {
-        match chain_arg {
-            NetworkArg::Devnet => Network::Devnet,
-            NetworkArg::Holesky => Network::Holesky,
-            NetworkArg::HoleskyStage => Network::HoleskyStage,
-            NetworkArg::Mainnet => Network::Mainnet,
+    fn from(network_arg: NetworkArg) -> Self {
+        let mut processed_network_argument = network_arg.clone();
+
+        if network_arg.batcher_url.is_some()
+            || network_arg.aligned_service_manager_address.is_some()
+            || network_arg.batcher_payment_service_address.is_some()
+        {
+            processed_network_argument.network = None; // We need this because network is Devnet as default, which is not true for a Custom network
+        }
+
+        match processed_network_argument.network {
+            None => Network::Custom(
+                network_arg.aligned_service_manager_address.unwrap(),
+                network_arg.batcher_payment_service_address.unwrap(),
+                network_arg.batcher_url.unwrap(),
+            ),
+            Some(NetworkNameArg::Devnet) => Network::Devnet,
+            Some(NetworkNameArg::Holesky) => Network::Holesky,
+            Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
+            Some(NetworkNameArg::Mainnet) => Network::Mainnet,
         }
     }
 }

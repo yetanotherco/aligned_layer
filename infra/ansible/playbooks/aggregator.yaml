@@ -65,7 +65,7 @@
         group: '{{ ansible_user }}'
 
     - name: Build aggregator
-      shell: 
+      shell:
         chdir: /home/{{ ansible_user }}/repos/aggregator/aligned_layer/
         cmd: /usr/local/go/bin/go build -o /home/{{ ansible_user }}/repos/aggregator/aligned_layer/build/aligned-aggregator /home/{{ ansible_user }}/repos/aggregator/aligned_layer/aggregator/cmd/main.go
 
@@ -86,7 +86,7 @@
         bls_private_key_store_password: "{{ lookup('ini', 'bls_private_key_store_password', file='ini/config-aggregator.ini') }}"
         enable_metrics: "{{ lookup('ini', 'enable_metrics', file='ini/config-aggregator.ini') }}"
         metrics_ip_port_address: "{{ lookup('ini', 'metrics_ip_port_address', file='ini/config-aggregator.ini') }}"
-        telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-aggregator.ini') }}" 
+        telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-aggregator.ini') }}"
 
     - name: Allow access to tcp port 8090
       become: true
@@ -114,3 +114,8 @@
         state: started
         enabled: true
         scope: user
+
+    - name: Run node_exporter playbook
+      ansible.builtin.import_playbook: node_exporter.yaml
+      vars:
+        host: aggregator

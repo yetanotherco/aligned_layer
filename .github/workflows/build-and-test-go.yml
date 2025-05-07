@@ -20,23 +20,26 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
           cache: false
+
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
+
       - name: Build SP1 bindings
         run: make build_sp1_linux
-      - name: Build Old SP1 bindings
-        run: make build_sp1_linux_old
+
       - name: Build Risc Zero go bindings
         run: make build_risc_zero_linux
-      - name: Build Old Risc Zero go bindings
-        run: make build_risc_zero_linux_old
+
       - name: Build Merkle Tree bindings
         run: make build_merkle_tree_linux
+
       - name: Build operator
         run: go build operator/cmd/main.go
+
       - name: Build aggregator
         run: go build aggregator/cmd/main.go

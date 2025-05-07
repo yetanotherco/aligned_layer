@@ -3,9 +3,9 @@
 use methods::{FIBONACCI_ELF, FIBONACCI_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
 
-const PROOF_FILE_PATH: &str = "risc_zero_fibonacci.proof";
-const PUB_INPUT_FILE_PATH: &str = "risc_zero_fibonacci.pub";
-const FIBONACCI_ID_FILE_PATH: &str = "risc_zero_fibonacci_id.bin";
+const PROOF_FILE_PATH: &str = "risc_zero_fibonacci_2_0.proof";
+const PUB_INPUT_FILE_PATH: &str = "risc_zero_fibonacci_2_0.pub";
+const FIBONACCI_ID_FILE_PATH: &str = "risc_zero_fibonacci_id_2_0.bin";
 
 fn main() {
     let program_id_le: Vec<u8> = FIBONACCI_ID

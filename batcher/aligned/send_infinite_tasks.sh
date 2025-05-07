@@ -14,7 +14,6 @@ fi
 
 # Set default values for RPC and BATCHER if they are not set
 RPC=${RPC:-http://localhost:8545}
-BATCHER_CONN=${BATCHER_CONN:-ws://localhost:8080}
 if [ -z "$NETWORK" ]; then
     echo "NETWORK is not set. Setting it to devnet"
     NETWORK="devnet"
@@ -35,7 +34,6 @@ do
     --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
     --repetitions "2" \
     --rpc_url "$RPC" \
-    --batcher_url "$BATCHER_CONN" \
     --network "$NETWORK"
 
     cd ../..

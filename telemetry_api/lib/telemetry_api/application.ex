@@ -10,7 +10,7 @@ defmodule TelemetryApi.Application do
     TelemetryApi.MetricsExporter.setup()
 
     children = [
-      TraceStore,
+      TelemetryApi.Traces,
       TelemetryApiWeb.Telemetry,
       TelemetryApi.Repo,
       {DNSCluster, query: Application.get_env(:telemetry_api, :dns_cluster_query) || :ignore},

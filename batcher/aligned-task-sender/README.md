@@ -42,7 +42,7 @@ NUM_WALLETS=<N> make task_sender_generate_and_fund_wallets_holesky_stage
 ### In Devnet:
 Run anvil with more prefunded accounts, using the following make target:
 ```bash
-make anvil_start_with_block_time_with_more_prefunded
+make anvil_start_with_more_prefunded_accounts
 ```
 
 Then run the following make target, with `NUM_WALLETS` being the amount of wallets you want to deposit funds to aligned payment service, up to 1000.
@@ -61,8 +61,7 @@ To run it, you can:
 cargo run --release -- send-infinite-proofs \
         --burst-size <BURST_SIZE> --burst-time-secs <BURST_TIME_SECS> \
         --eth-rpc-url <RPC_URL> \
-        --batcher-url <BATCHER_URL> \
-        --network holesky-stage \
+        --network <network> \
         --proofs-dirpath $(PWD)/scripts/test_files/task_sender/proofs \
         --private-keys-filepath <PATH_TO_PRIVATE_KEYS_FILE>
 ```
@@ -82,7 +81,6 @@ This command enables and hangs N connections with the Batcher.
 To run it, you can:
 ```
 cargo run --release -- test-connections \
-        --batcher-url <BATCHER_URL> \
         --num-senders <NUM_SENDERS>
 ```
 

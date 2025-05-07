@@ -137,7 +137,6 @@ This will create the following file in `infra/ansible/playbooks/ini`:
 ```shell
 make ansible_aggregator_create_env
 ```
-
 - `config-aggregator.ini`
 
 The `config-aggregator.ini` contains the variables to run the Operator in Aligned:
@@ -165,6 +164,49 @@ make ansible_aggregator_deploy INVENTORY=</path/to/inventory> ECDSA_KEYSTORE=<pa
 ```
 > [!Note]
 > ECDSA_KEYSTORE and BLS_KEYSTORE are the paths of the keystores in your machine.
+
+## Telemetry
+To deploy the Telemetry Services you need to set some variables and then run the Telemetry playbook
+
+This will create the following file in `infra/ansible/playbooks/ini`:
+
+```shell
+make ansible_telemetry_create_env
+```
+
+- `config-telemetry.ini`
+
+The `config-telemetry.ini` contains the variables to run the Telemetry in Aligned:
+
+| Variable                      | Description                                       | Testnet                                       | Stage                                              | Mainnet
+|-------------------------------|---------------------------------------------------|-----------------------------------------------|----------------------------------------------------|------------------------------------|
+| grafana_admin_password        | Password for Grafana's admin user                 | <your_grafana_admin_password>                 | <your_grafana_admin_password>                      | <your_grafana_admin_password>
+| grafana_prometheus_datasource | Prometheus location for Grafana to pull data from | localhost                                     | localhost                                          | localhost
+| grafana_domain                | Public URL for Grafana Metrics                    | `holesky.metrics.alignedlayer.com`            | `stage1.metrics.alignedlayer.com`                  | `mainnet.metrics.alignedlayer.com`
+| grafana_oath_client_id        | Generic OAuth Client ID                           | <your_oauth_client_id>                        | <your_oauth_client_id>                             | <your_oauth_client_id>
+| grafana_oath_client_secret    | Generic OAuth Client Secret                       | <your_oauth_client_secret>                    | <your_oauth_client_secret>                         | <your_oauth_client_secret>
+| grafana_oath_auth_url         | Generic OAuth Auth URL                            | <your_oauth_auth_url>                         | <your_oauth_auth_url>                              | <your_oauth_auth_url>        
+| grafana_oath_token_url        | Generic OAuth Token URL                           | <your_oauth_token_url>                        | <your_oauth_token_url>                             | <your_oauth_token_url>
+| grafana_oath_api_url          | Generic OAuth API URL (User Info)                 | <your_oauth_api_url>                          | <your_oauth_api_url>                               | <your_oauth_api_url>
+| prometheus_aggregator_ip      | Aggregator IP+PORT location for prometheus        | aligned-holesky-aggregator:9091               | aligned-holesky-stage-1-aggregator:9091            | aligned-mainnet-aggregator:9091
+| prometheus_operator_ip        | Operators IP+PORT location for prometheus         | aligned-holesky-operator-1:9092               | aligned-holesky-stage-1-operator-1:9092            | aligned-mainnet-operator-1:9092
+| prometheus_batcher_ip         | Batcher IP+PORT location for prometheus           | aligned-holesky-batcher:9093                  | aligned-holesky-stage-1-batcher-1:9093             | aligned-mainnet-batcher:9093
+| prometheus_tracker_ip         | Tracker IP+PORT location for prometheus           | aligned-holesky-tracker:4001                  | aligned-holesky-stage-1-tracker:4001               | aligned-mainnet-telemetry:4001
+| postgresql_telemetry_db_name  | Postgres Database Name                            | <your_postgres_db_name>                       | <your_postgres_db_name>                            | <your_postgres_db_name>
+| postgresql_telemetry_user     | Postgres Username                                 | <your_postgres_db_username>                   | <your_postgres_db_username>                        | <your_postgres_db_username>
+| postgresql_telemetry_pass     | Postgres Username's Password                      | <your_postgres_db_password>                   | <your_postgres_db_password>                        | <your_postgres_db_password>
+| cassandra_telemetry_user      | Cassandra Username                                | <your_cassandra_db_name>                      | <your_cassandra_db_name>                           | <your_cassandra_db_name>
+| cassandra_telemetry_pass      | Cassandra Username's Password                     | <your_cassandra_db_password>                  | <your_cassandra_db_password>                       | <your_cassandra_db_password>
+| telemetry_aligned_rpc         | HTTP ETH RPC URL                                  | `https://aligned-rpc-node-2.tail665ae.ts.net` | `https://aligned-rpc-node-2.tail665ae.ts.net`      | `https://aligned-mainnet-rpc-1.tail665ae.ts.net`
+| telemetry_api_phx_host        | Telemetry API Elixir's Phoenix host for           | `holesky.telemetry.alignedlayer.com`          | `stage1.telemetry.alignedlayer.com`                | `mainnet.metrics.alignedlayer.com`
+| telemetry_api_elixir_hostname | Telemetry API Server's Hostname                   | `aligned-holesky-metrics`                     | `aligned-holesky-stage-1-telemetry`                | `aligned-mainnet-telemetry`
+| telemetry_api_secret_key_base | Telemetry API Secret Key Base                     | <your_secret_key_base>                        | <your_secret_key_base>                             | <your_secret_key_base>
+| pagerduty_routing_key         | Pagerduty Routing Key                             | <your_pagerduty_routing_key>                  | <your_pagerduty_routing_key>                       | <your_pagerduty_routing_key>
+
+Deploy the Telemetry Services:
+
+```shell
+make ansible_telemetry_deploy INVENTORY=</path/to/inventory> 
 
 # How to Create Keystores
 
@@ -265,4 +307,5 @@ Public Key: E([...,...])
 ```
 
 Refer to this link for more details about keystore creation https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#create-keys
+
 

@@ -1,6 +1,9 @@
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
-    core::types::{NoncedVerificationData, VerificationDataCommitment},
+    core::{
+        constants::CBOR_ARRAY_MAX_OVERHEAD,
+        types::{NoncedVerificationData, VerificationDataCommitment},
+    },
 };
 use ethers::types::{Address, Signature, U256};
 use priority_queue::PriorityQueue;
@@ -132,7 +135,10 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
     });
 
     if let ControlFlow::Continue(batch_size) = folded_result {
-        Ok(batch_size)
+        // We over-estimate the size of the batch by at most 8 bytes.
+        // This saves us from a scenario where we actually try to send more
+        // than the maximum allowed bytes and get rejected by operators.
+        Ok(CBOR_ARRAY_MAX_OVERHEAD + batch_size)
     } else {
         Err(BatcherError::SerializationError(String::from(
             "Could not calculate size of batch",
@@ -146,7 +152,7 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
 /// 1. Traverse each batch priority queue, starting from the one with minimum max fee.
 /// 2. Calculate the `fee_per_proof` for the whole batch and compare with the `max_fee` of the entry.
 /// 3. If `fee_per_proof` is less than the `max_fee` of the current entry, submit the batch. If not, pop this entry
-///     from the queue. then repeat step 1.
+///    from the queue. then repeat step 1.
 ///
 /// Returns the finalized batch.
 pub(crate) fn try_build_batch(

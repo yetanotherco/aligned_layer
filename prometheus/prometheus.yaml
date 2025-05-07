@@ -3,7 +3,6 @@ global:
 
 # A scrape configuration containing exactly one endpoint to scrape.
 scrape_configs:
-
   - job_name: "aligned-aggregator"
     scrape_interval: 1s
     static_configs:
@@ -14,20 +13,27 @@ scrape_configs:
   - job_name: "aligned-operator"
     scrape_interval: 1s
     static_configs:
-      - targets: [ "host.docker.internal:9092" ]
+      - targets: ["host.docker.internal:9092"]
         labels:
           bot: "operator"
-  
+
   - job_name: "aligned-batcher"
     scrape_interval: 1s
     static_configs:
-      - targets: [ "host.docker.internal:9093" ]
+      - targets: ["host.docker.internal:9093"]
         labels:
           bot: "batcher"
-  
+
   - job_name: "aligned-tracker"
     scrape_interval: 1s
     static_configs:
-      - targets: [ "host.docker.internal:4001" ]
+      - targets: ["host.docker.internal:4001"]
         labels:
           bot: "tracker"
+
+  - job_name: "node-exporter"
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["host.docker.internal:9100"]
+        labels:
+          bot: "node-exporter"

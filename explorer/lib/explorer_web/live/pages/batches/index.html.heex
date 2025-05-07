@@ -1,5 +1,16 @@
 <div class="flex flex-col space-y-3 text-foreground px-1 sm:max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto capitalize">
   <.card_preheding>Batches</.card_preheding>
+  <!-- Progress bar based on https://dev.to/mikekennedydev/progress-bar-text-colour-1gg6 -->
+  <.live_component
+  id="labeled-progress-bar"
+  module={LabeledProgressBarComponent}
+  percent_progress={@next_scheduled_batch_remaining_time_percentage}
+  label={
+    case @next_scheduled_batch_remaining_time do
+      0 -> "Next batch is around the corner!"
+      time -> "Next batch in #{time} minutes" 
+    end
+  }/>
   <%= if @batches != :empty and @batches != [] do %>
     <.card_background class="w-full overflow-x-auto sm:col-span-2">
       <.batches_table batches={@batches} />

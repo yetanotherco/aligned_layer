@@ -1,43 +1,135 @@
-- import_playbook: setup.yaml
-- import_playbook: webserver.yaml
-#- import_playbook: elixir.yaml # Not working
-#- import_playbook: docker.yaml
-
-- hosts: aligned-holesky-explorer
-  become: true
+- name: Run setup playbook
+  ansible.builtin.import_playbook: setup.yaml
   vars:
-    user: "{{ user }}"
+    host: explorer
+
+- name: Run elixir playbook
+  ansible.builtin.import_playbook: elixir.yaml
+  vars:
+    host: explorer
+
+- name: Run nodejs playbook
+  ansible.builtin.import_playbook: nodejs.yaml
+  vars:
+    host: explorer
+
+- name: Run postgres playbook
+  ansible.builtin.import_playbook: postgres.yaml
+  vars:
+    host: explorer
+    ini_file: ini/config-explorer.ini
+
+- name: Setup Explorer
+  hosts: explorer
+  vars:
+    service: "explorer"
+
+  pre_tasks:
+    - name: Install pnpm
+      become: true
+      ansible.builtin.shell:
+        cmd: npm install -g pnpm
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Allow all access to tcp port 443
+      become: true
+      ufw:
+        rule: allow
+        port: 443
+        proto: tcp
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Clone the aligned_layer repository
+      ansible.builtin.git:
+        repo: https://github.com/yetanotherco/aligned_layer
+        dest: "/home/{{ ansible_user }}/repos/explorer/aligned_layer"
+        update: yes
+
+    - name: Create .ssl directory
+      file:
+        path: /home/{{ ansible_user }}/.ssl/
+        state: directory
+
+    - name: Upload SSL key to server (infra/ansible/playbooks/files/key.pem)
+      copy:
+        src: key.pem
+        dest: /home/{{ ansible_user }}/.ssl/key.pem
+
+    - name: Upload SSL certificate to server (infra/ansible/playbooks/files/cert.pem)
+      copy:
+        src: cert.pem
+        dest: /home/{{ ansible_user }}/.ssl/cert.pem
 
   tasks:
-    # Install required packages
-    - name: Update apt and install required system packages
-      apt:
-        pkg:
-          - unzip
-        state: latest
-        update_cache: true
+    - name: Add environment file for Explorer
+      template:
+        src: explorer/explorer_env.j2
+        dest: /home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer/.env
+      vars:
+        MIX_ENV: prod
+        RPC_URL: "{{ lookup('ini', 'RPC_URL file=ini/config-explorer.ini') }}"
+        ENVIRONMENT: "{{ lookup('ini', 'ENVIRONMENT file=ini/config-explorer.ini') }}"
+        ALIGNED_CONFIG_FILE: "{{ lookup('ini', 'ALIGNED_CONFIG_FILE file=ini/config-explorer.ini') }}"
+        PHX_HOST: "{{ lookup('ini', 'PHX_HOST file=ini/config-explorer.ini') }}"
+        PHX_SERVER: true
+        ELIXIR_HOSTNAME: "{{ lookup('ini', 'ELIXIR_HOSTNAME file=ini/config-explorer.ini') }}"
+        DB_NAME: "{{ lookup('ini', 'DB_NAME file=ini/config-explorer.ini') }}"
+        DB_USER: "{{ lookup('ini', 'DB_USER file=ini/config-explorer.ini') }}"
+        DB_PASS: "{{ lookup('ini', 'DB_PASS file=ini/config-explorer.ini') }}"
+        DB_HOST: "{{ lookup('ini', 'DB_HOST file=ini/config-explorer.ini') }}"
+        TRACKER_API_URL: "{{ lookup('ini', 'TRACKER_API_URL file=ini/config-explorer.ini') }}"
+        SECRET_KEY_BASE: "{{ lookup('ini', 'SECRET_KEY_BASE file=ini/config-explorer.ini') }}"
+        KEYFILE_PATH: "{{ lookup('ini', 'KEYFILE_PATH file=ini/config-explorer.ini') }}"
+        CERTFILE_PATH: "{{ lookup('ini', 'CERTFILE_PATH file=ini/config-explorer.ini') }}"
+        BATCH_TTL_MINUTES: "{{ lookup('ini', 'BATCH_TTL_MINUTES file=ini/config-explorer.ini') }}"
+        SCHEDULED_BATCH_INTERVAL_MINUTES: "{{ lookup('ini', 'SCHEDULED_BATCH_INTERVAL_MINUTES file=ini/config-explorer.ini') }}"
+        LATEST_RELEASE: "{{ lookup('ini', 'LATEST_RELEASE file=ini/config-explorer.ini') }}"
 
-    # Create directories for each service
-    - name: Create directories for each service if do not exist
-      ansible.builtin.file:
-        path: /home/{{ user }}/repos/{{ item }}
+    - name: Build the explorer release
+      args:
+        chdir: "/home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer"
+      environment:
+        MIX_ENV: prod
+      shell:
+        executable: /bin/bash
+        cmd: |
+          set -ex
+          source .env
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get --only $MIX_ENV
+          mix compile
+          pnpm --prefix=assets/ install
+          mix phx.digest
+          mix assets.deploy
+          mix release --overwrite
+          mix ecto.migrate
+
+    - name: Set CAP_NET_BIND_SERVICE to beam
+      shell:
+        cmd: sudo setcap CAP_NET_BIND_SERVICE=+eip /home/app/repos/explorer/aligned_layer/explorer/_build/prod/rel/explorer/erts-14.2.1/bin/beam.smp
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create .env for Explorer systemd service
+      shell: cat /home/{{ ansible_user }}/repos/explorer/aligned_layer/explorer/.env | sed 's/export //g' > /home/{{ ansible_user }}/config/.env.explorer
+
+    - name: Create systemd services directory
+      file:
+        path: "/home/{{ ansible_user }}/.config/systemd/user/"
         state: directory
-        mode: '0755'
-      become_user: "{{ user }}"
-      loop:
-        - explorer
 
-    # Clone Aligned repository for each service
-    - name: Clone Aligned repository
-      ansible.builtin.git:
-        repo: https://github.com/yetanotherco/aligned_layer.git
-        dest: /home/{{ user }}/repos/{{ item }}/aligned_layer
-        version: v0.10.2
-      become_user: "{{ user }}"
-      loop:
-        - explorer
-      register: repo_clone
-      failed_when:
-        - repo_clone.failed
-        - not 'Local modifications exist in the destination' in repo_clone.msg
+    - name: Add service to systemd
+      template:
+        src: services/explorer.service.j2
+        dest: "/home/{{ ansible_user }}/.config/systemd/user/explorer.service"
+        force: no
 
+    - name: Start explorer service
+      systemd_service:
+        name: explorer
+        state: started
+        enabled: true
+        scope: user

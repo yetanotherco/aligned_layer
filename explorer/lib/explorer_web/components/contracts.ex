@@ -12,6 +12,10 @@ defmodule ContractsComponent do
      assign(socket,
        contracts: [
          %{
+           contract_name: "AlignedProofAggregationService",
+           address: addresses["alignedProofAggregationService"]
+         },
+         %{
            contract_name: "AlignedServiceManager",
            address: addresses["alignedLayerServiceManager"]
          },

@@ -1,0 +1,15 @@
+[Unit]
+Description=Node exporter
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/{{ ansible_user }}/
+ExecStart=/home/admin/.node_exporter/bin/node_exporter --collector.systemd --collector.processes
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+LimitNOFILE=100000
+
+[Install]
+WantedBy=multi-user.target

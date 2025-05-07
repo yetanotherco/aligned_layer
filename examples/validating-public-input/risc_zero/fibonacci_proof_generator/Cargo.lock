@@ -340,7 +340,7 @@ dependencies = [
 [[package]]
 name = "bonsai-sdk"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "duplicate",
  "maybe-async",
@@ -1944,7 +1944,7 @@ dependencies = [
 [[package]]
 name = "risc0-binfmt"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "anyhow",
  "borsh",
@@ -1958,7 +1958,7 @@ dependencies = [
 [[package]]
 name = "risc0-build"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -1976,7 +1976,7 @@ dependencies = [
 [[package]]
 name = "risc0-build-kernel"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "cc",
  "directories",
@@ -1991,7 +1991,7 @@ dependencies = [
 [[package]]
 name = "risc0-circuit-recursion"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -2015,7 +2015,7 @@ dependencies = [
 [[package]]
 name = "risc0-circuit-recursion-sys"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "glob",
  "risc0-build-kernel",
@@ -2026,7 +2026,7 @@ dependencies = [
 [[package]]
 name = "risc0-circuit-rv32im"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -2052,7 +2052,7 @@ dependencies = [
 [[package]]
 name = "risc0-circuit-rv32im-sys"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "glob",
  "risc0-build-kernel",
@@ -2063,7 +2063,7 @@ dependencies = [
 [[package]]
 name = "risc0-core"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "bytemuck",
  "nvtx",
@@ -2074,7 +2074,7 @@ dependencies = [
 [[package]]
 name = "risc0-groth16"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "anyhow",
  "ark-bn254",
@@ -2097,7 +2097,7 @@ dependencies = [
 [[package]]
 name = "risc0-sys"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "cc",
  "risc0-build-kernel",
@@ -2106,7 +2106,7 @@ dependencies = [
 [[package]]
 name = "risc0-zkp"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "anyhow",
  "blake2",
@@ -2135,7 +2135,7 @@ dependencies = [
 [[package]]
 name = "risc0-zkvm"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "addr2line 0.22.0",
  "anyhow",
@@ -2173,7 +2173,7 @@ dependencies = [
 [[package]]
 name = "risc0-zkvm-platform"
 version = "1.1.2"
-source = "git+https://github.com/risc0/risc0?tag=v1.1.2#2ba504fddd84376235d335ec4db6b2353d967fc9"
+source = "git+https://github.com/risc0/risc0?tag=v2.0.0#2ba504fddd84376235d335ec4db6b2353d967fc9"
 dependencies = [
  "bytemuck",
  "getrandom",

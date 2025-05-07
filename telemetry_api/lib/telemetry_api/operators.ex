@@ -1,4 +1,6 @@
 defmodule TelemetryApi.Operators do
+  require Logger
+
   @moduledoc """
   The Operators context.
   """
@@ -130,6 +132,7 @@ defmodule TelemetryApi.Operators do
   #    {:error, string}
   #
   defp add_operator_metadata(op_data) do
+    Logger.info("Fetching metadata for operator: #{op_data.address}")
     with {:ok, url} <- DelegationManager.get_operator_url(op_data.address),
          {:ok, metadata} <- TelemetryApi.Utils.fetch_json_data(url) do
       operator = %{
@@ -140,6 +143,17 @@ defmodule TelemetryApi.Operators do
       }
 
       {:ok, operator}
+    else
+      {:error, reason} ->
+        Logger.error("Failed to fetch metadata for operator: #{op_data.address}. Reason: #{inspect(reason)}")
+        operator = %{
+          id: op_data.id,
+          address: op_data.address,
+          stake: op_data.stake,
+          name: op_data.address
+        }
+
+        {:ok, operator}
     end
   end
 

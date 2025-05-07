@@ -1,0 +1,127 @@
+<div class="flex flex-col space-y-3 px-1 text-foreground max-w-[27rem] sm:max-w-3xl md:max-w-5xl mx-auto capitalize">
+  <%= if @agg_proof != :empty do %>
+    <.card_preheding class="text-4xl sm:text-5xl font-bold font-foreground">
+      Aggregated proof details
+    </.card_preheding>
+    <.card
+      class="relative px-4 py-5 min-h-fit flex flex-col"
+      inner_class="font-semibold inline-flex flex-col text-base gap-y-4 text-muted-foreground [&>div>p]:text-foreground [&>div>a]:text-foreground [&>div>*]:break-all [&>div>*]:font-normal [&>div]:flex [&>div]:flex-col [&>div]:lg:flex-row [&>div>h3]:basis-1/4"
+    >
+      <div>
+        <h3>
+          Merkle root:
+        </h3>
+        <p class="flex flex-wrap md:items-center md:gap-x-2">
+          <%= @agg_proof.merkle_root %>
+          <.live_component
+            module={CopyToClipboardButtonComponent}
+            text_to_copy={@agg_proof.merkle_root}
+            id={"copy_batch_hash_#{@agg_proof.merkle_root}"}
+            class="inline-flex"
+          />
+        </p>
+      </div>
+
+      <div>
+        <h3>
+          Number of Proofs included:
+        </h3>
+        <p><%= @agg_proof.number_of_proofs %></p>
+      </div>
+
+      <div>
+        <h3>
+          Proofs included:
+        </h3>
+        <%= if @proof_hashes != :empty do %>
+          <%= if @proof_hashes == :nil do %>
+            <p class="normal-case">
+              Proofs couldn't be shown for this aggregated proof
+            </p>
+          <% else %>
+            <div class="space-y-2 basis-3/4">
+              <div class="h-36 overflow-y-auto text-foreground space-y-2">
+                <p :for={{proof, index} <- Enum.with_index(@proof_hashes)}>
+                  <%= proof %>
+                  <.live_component
+                    module={CopyToClipboardButtonComponent}
+                    text_to_copy={proof}
+                    id={"copy_proof_batch_hash_#{proof}_#{Utils.random_id("cp_#{index}")}"}
+                    class="inline-flex"
+                  />
+                </p>
+              </div>
+              <.button class="w-fit text-foreground" phx-click="hide_proofs">
+                <.icon name="hero-eye-slash" class="size-4" /> Hide Proofs
+              </.button>
+            </div>
+          <% end %>
+        <% else %>
+          <.button class="w-fit text-foreground font-semibold" phx-click="show_proofs">
+            <.icon name="hero-eye" class="size-4" /> Show Proofs
+          </.button>
+        <% end %>
+      </div>
+      <.divider />
+      <div>
+        <h3>
+          Block Number:
+        </h3>
+        <.a
+          target="_blank"
+          rel="noopener"
+          href={
+          "#{Helpers.get_etherescan_url()}/block/#{@agg_proof.block_number}"
+        }
+          class="hover:text-foreground/80"
+        >
+          <%= @agg_proof.block_number |> Helpers.format_number() %>
+        </.a>
+      </div>
+      <div>
+        <h3>
+          Transaction Hash:
+        </h3>
+        <.a
+          target="_blank"
+          rel="noopener"
+          href={"#{Helpers.get_etherescan_url()}/tx/#{@agg_proof.tx_hash}"}
+          class="hover:text-foreground/80"
+        >
+          <%= @agg_proof.tx_hash %>
+        </.a>
+      </div>
+
+      <div>
+        <h3>
+          Blob versioned hash:
+        </h3>
+        <.a
+          target="_blank"
+          rel="noopener"
+          href={"#{Helpers.get_blobscan_url()}/blob/#{@agg_proof.blob_versioned_hash}"}
+          class="hover:text-foreground/80"
+        >
+          <%= @agg_proof.blob_versioned_hash %>
+        </.a>
+      </div>
+    </.card>
+  <% else %>
+    <div class="flex flex-col space-y-6 justify-center grow relative text-center md:pt-14">
+      <h1 class="text-5xl font-semibold">Oops!</h1>
+      <h2 class="text-xl font-medium">
+        The batch you are looking for <br /> doesn't exist.
+      </h2>
+      <img
+        class="z-0 w-64 rounded-xl mx-auto"
+        alt="block not found"
+        src={~p"/images/not-found.webp"}
+      />
+      <.link navigate={~p"/"}>
+        <.button>
+          Go Home
+        </.button>
+      </.link>
+    </div>
+  <% end %>
+</div>

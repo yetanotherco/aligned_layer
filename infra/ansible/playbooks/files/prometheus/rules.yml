@@ -1,0 +1,54 @@
+groups:
+
+- name: AllInstances
+  rules:
+  - alert: InstanceDown
+    # Condition for alerting
+    expr: up == 0
+    for: 5m
+    # Annotation - additional informational labels to store more information
+    annotations:
+      title: 'Instance {{ $labels.job }} down'
+      description: '{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute'
+    # Labels - additional labels to be attached to the alert
+    labels:
+      severity: 'critical'
+      text: 'Instance {{ $labels.job }} down'
+
+  - alert: TaskDifferenceAggregatorBatcher
+    # Condition for alerting
+    expr: floor(increase(aligned_aggregator_received_tasks{job="aligned-aggregator"}[15m])) - on() floor(increase(sent_batches{job="aligned-batcher"}[15m])) > 1
+    for: 30s
+    # Annotation - additional informational labels to store more information
+    annotations:
+      title: 'Tasks not being received by the aggregator'
+      description: 'The difference between aggregator recevied tasks and batcher sent batches is greater than 1 for more than 30 seconds'
+    # Labels - additional labels to be attached to the alert
+    labels:
+      severity: 'critical'
+      text: 'Tasks not being received by the aggregator'
+
+  - alert: TaskDifferenceAggregator
+    # Condition for alerting
+    expr: floor(increase(aligned_aggregator_received_tasks{job="aligned-aggregator"}[15m])) - floor(increase(aligned_aggregated_responses{job="aligned-aggregator"}[15m])) > 1
+    for: 30s
+    # Annotation - additional informational labels to store more information
+    annotations:
+      title: 'Tasks not being verified'
+      description: 'The difference between aggregator received tasks and verified tasks is greater than 1 for more than 30 seconds'
+    # Labels - additional labels to be attached to the alert
+    labels:
+      severity: 'critical'
+      text: 'Tasks not being verified'
+
+  - alert: UserErrorRate
+    # Condition for alerting
+    expr: rate(user_errors[5m]) > 2
+    for: 1m
+    # Annotation - additional informational labels to store more information
+    annotations:
+      title: 'High error rate {{ $labels.error_type }}'
+      description: 'User error rate is greater than 2 for more than 1 minute'
+    labels:
+      severity: 'critical'
+      text: 'High error rate {{ $labels.error_type }}'

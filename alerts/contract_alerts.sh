@@ -41,7 +41,8 @@ do
   if [ -z "$new_batch_logs" ]; then
     printf "No new batches logs found\n"
     if [ "$no_new_batches_alert" = false ]; then
-      message="🚨 ALERT: No new batches in Service Manager since block $from_block"
+      message="🚨 $NETWORK ALERT: No new batches in Service Manager since block $from_block"
+      printf "$message\n"
       send_slack_message "$message"
       send_telegram_message "$message"
       send_pagerduty_alert "$message"
@@ -50,7 +51,8 @@ do
   else
     printf "New batches logs found\n"
     if [ "$no_new_batches_alert" = true ]; then
-      message="🟩 INFO: Batches creation resumed in Service Manager since block $from_block"
+      message="🟩 $NETWORK INFO: Batches creation resumed in Service Manager since block $from_block"
+      printf "$message\n"
       send_slack_message "$message"
       send_telegram_message "$message"
     fi
@@ -61,7 +63,8 @@ do
   if [ -z "$verified_batch_logs" ]; then
     printf "No verified batches logs found\n"
     if [ "$no_verified_batches_alert" = false ]; then
-      message="🚨 ALERT: No verified batches in Service Manager since block $from_block"
+      message="🚨 $NETWORK ALERT: No verified batches in Service Manager since block $from_block"
+      printf "$message\n"
       send_slack_message "$message"
       send_telegram_message "$message"
       send_pagerduty_alert "$message"
@@ -70,7 +73,8 @@ do
   else
     printf "Verified batches logs found\n"
     if [ "$no_verified_batches_alert" = true ]; then
-      message="🟩 INFO: Batches verification resumed in Service Manager since block $from_block"
+      message="🟩 $NETWORK INFO: Batches verification resumed in Service Manager since block $from_block"
+      printf "$message\n"
       send_slack_message "$message"
       send_telegram_message "$message"
     fi

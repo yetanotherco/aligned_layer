@@ -22,7 +22,7 @@ contract BatcherPaymentService is
     event FundsWithdrawn(address indexed recipient, uint256 amount);
     event BalanceLocked(address indexed user);
     event BalanceUnlocked(address indexed user, uint256 unlockBlockTime);
-    event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof);
+    event TaskCreated(bytes32 indexed batchMerkleRoot, uint256 feePerProof, uint256 amountOfProofs);
 
     // ERRORS
     error OnlyBatcherAllowed(address caller); // 152bc288
@@ -75,12 +75,23 @@ contract BatcherPaymentService is
         alignedLayerServiceManager = _alignedLayerServiceManager;
         batcherWallet = _batcherWallet;
     }
-
+    
     // PAYABLE FUNCTIONS
+    /**
+     * @notice Fallback function to receive ETH payments
+     * @dev This function handles two scenarios:
+     *      1. Direct user deposits: Updates the user's balance and emits an event
+     *      2. Batcher withdrawals from ServiceManager: Ignores balance updates since they don't apply
+     */
+
     receive() external payable {
-        userData[msg.sender].balance += msg.value;
-        userData[msg.sender].unlockBlockTime = 0;
-        emit PaymentReceived(msg.sender, msg.value);
+        // Skip balance updates when receiving funds from ServiceManager withdrawals
+        if (msg.sender != address(alignedLayerServiceManager)) { 
+            // Only update balances for direct user deposits
+            userData[msg.sender].balance += msg.value;
+            userData[msg.sender].unlockBlockTime = 0;
+            emit PaymentReceived(msg.sender, msg.value);
+        }
     }
 
     // PUBLIC FUNCTIONS
@@ -132,7 +143,7 @@ contract BatcherPaymentService is
             respondToTaskFeeLimit
         );
 
-        emit TaskCreated(batchMerkleRoot, feePerProof);
+        emit TaskCreated(batchMerkleRoot, feePerProof, proofSubmittersQty);
 
         payable(batcherWallet).transfer(
             (feePerProof * proofSubmittersQty) - feeForAggregator
@@ -176,6 +187,17 @@ contract BatcherPaymentService is
         emit BalanceLocked(msg.sender);
         payable(msg.sender).transfer(amount);
         emit FundsWithdrawn(msg.sender, amount);
+    }
+
+
+    function withdrawFromServiceManager(
+        uint256 amount,
+        address withdrawAddress
+    ) public payable onlyOwner {
+        alignedLayerServiceManager.withdraw(amount); // reverts if InsufficientBalance
+        // money is now in this contract
+        // we transfer it to the withdraw address
+        payable(withdrawAddress).transfer(amount); // non-reentrant since .transfer() has low gas limit.
     }
 
     function pause() public onlyOwner {

@@ -5,8 +5,8 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 # At this point we are in tests/integration
 cd "$parent_path"
 
-# Start an empty anvil chain in the background and dump its state to a json file upon exit
-anvil --load-state state/eigenlayer-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
+# Start anvil chain in the background and dump its state to a json file upon exit
+anvil --load-state state/sp1-deployed-anvil-state.json --dump-state state/alignedlayer-deployed-anvil-state.json &
 
 cd ../../
 
@@ -35,18 +35,20 @@ forge script ../examples/verify/script/VerifyBatchInclusionCallerDeployer.s.sol 
     --broadcast \
     --sig "run(address _targetContract)"
 
+output_path=./script/output/devnet/batcher_deployment_output.json
+
 # Deploy Batcher Payments Contract
-forge_output=$(forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
+forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
     ./script/deploy/config/devnet/batcher-payment-service.devnet.config.json \
+    $output_path \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
     --broadcast \
-    --sig "run(string batcherConfigPath)")
+    --sig "run(string batcherConfigPath, string outputPath)"
 
 # Extract the batcher payment service values from the output
-# new_aligned_layer_service_manager_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
-batcher_payment_service_proxy=$(echo "$forge_output" | awk '/0: address/ {print $3}')
-batcher_payment_service_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
+batcher_payment_service_proxy=$(jq -r '.addresses.batcherPaymentService' $output_path)
+batcher_payment_service_implementation=$(jq -r '.addresses.batcherPaymentServiceImplementation' $output_path)
 
 # Give initial funds to ServiceManager for the Batcher
 cast send $ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS "depositToBatcher(address)()" $batcher_payment_service_proxy --value 1ether --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" --rpc-url "http://localhost:8545"
@@ -62,6 +64,24 @@ mv "script/output/devnet/alignedlayer_deployment_output.temp2.json" "script/outp
 rm -f "script/output/devnet/alignedlayer_deployment_output.temp1.json"
 rm -f "script/output/devnet/alignedlayer_deployment_output.temp2.json"
 
+
+# Deploy proof aggregation service contract with SP1 Verifier
+forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
+    ./script/deploy/config/devnet/proof-aggregator-service.devnet.config.json \
+    ./script/output/devnet/proof_aggregation_service_deployment_output.json \
+    --rpc-url "http://localhost:8545" \
+    --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+    --broadcast \
+    --sig "run(string configPath, string outputPath)"
+
+# Deploy proof aggregation service contract with Mocked Verifier
+forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
+    ./script/deploy/config/devnet/proof-aggregator-service.devnet.mock.config.json \
+    ./script/output/devnet/proof_aggregation_service_deployment_output.mock.json \
+    --rpc-url "http://localhost:8545" \
+    --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+    --broadcast \
+    --sig "run(string configPath, string outputPath)"
 
 # Kill the anvil process to save state
 pkill anvil

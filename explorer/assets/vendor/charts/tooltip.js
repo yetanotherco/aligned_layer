@@ -106,7 +106,7 @@ export const alignedTooltip = (
 	const position = context.chart.canvas.getBoundingClientRect();
 
 	tooltipEl.style.opacity = 1;
-	tooltipEl.style.zIndex = 1;
+	tooltipEl.style.zIndex = 100;
 	tooltipEl.style.position = "absolute";
 	tooltipEl.style.left =
 		position.left -

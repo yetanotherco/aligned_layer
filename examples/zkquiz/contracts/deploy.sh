@@ -33,4 +33,5 @@ forge script script/Deployer.s.sol \
     --rpc-url "$RPC_URL" \
     --private-key "$PRIVATE_KEY" \
     --broadcast \
+    ${ETHERSCAN_API_KEY:+--verify --etherscan-api-key "$ETHERSCAN_API_KEY"} \
     --sig "run(address _alignedServiceManager, address _paymentService)"

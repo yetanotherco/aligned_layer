@@ -34,7 +34,7 @@ config :phoenix, :json_library, Jason
 # https://opentelemetry.io/docs/languages/erlang/exporters/#setting-up-the-collector
 config :opentelemetry_exporter,
   otlp_protocol: :grpc,
-  otlp_endpoint: "http://localhost:4317"
+  otlp_endpoint: "http://localhost:4319"
 
 config :opentelemetry,
   resource: %{service: %{name: "telemetry_api"}},

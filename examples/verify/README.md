@@ -38,21 +38,31 @@ This will output the address of the deployed contract. You will need this addres
 First encode the ethereum call to the contract using the following command:
 
 ```bash
-python3 encode_verification_data.py --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA]
+python3 encode_verification_data.py --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA] --sender-address [SENDER_ADDRESS]
 ```
 
 Replace `[PATH_TO_ALIGNED_VERIFICATION_DATA]` with the path to the json file containing the verification data. 
 This is the output when submitting a proof from the aligned cli.
 
+Replace `[SENDER_ADDRESS]` with the address of the `BatcherPaymentService` contract.
+
 This will output the encoded call. You can then use this encoded call to check your submitted proof with the associated data is verified in Ethereum by running the following command:
 
 ```bash
-curl -H "Content-Type: application/json" \
-    --data '{"jsonrpc":"2.0","method":"eth_call","params":[{"to": "<CONTRACT_ADDRESS>", "data": "<CALL_DATA>"}]}' \
-    -X POST <RPC_URL>
+curl -X POST http://localhost:8545 \
+-H "Content-Type: application/json" \
+-d '{
+    "jsonrpc": "2.0",
+    "method": "eth_call",
+    "params": [{
+        "to": "<CONTRACT_ADDRESS>",
+        "data": "<CALLDATA>"
+    }],
+    "id": 1
+}'
 ```
 
-Replace `<CONTRACT_ADDRESS>` with the address of the contract you deployed earlier (or `0x58F280BeBE9B34c9939C3C39e0890C81f163B623` for Aligned ServiceManager in Holesky), `<CALL_DATA>` with the encoded call, 
+Replace `<CONTRACT_ADDRESS>` with the address of the contract you deployed earlier (or `0x58F280BeBE9B34c9939C3C39e0890C81f163B623` for Aligned ServiceManager in Holesky), `<CALLDATA>` with the encoded call, 
 and `<RPC_URL>` with the RPC URL of the blockchain you are using.
 
 The output data should be something like this:
@@ -61,7 +71,7 @@ The output data should be something like this:
 {
   "jsonrpc":"2.0",
   "result":"0x0000000000000000000000000000000000000000000000000000000000000001",
-  "id":null
+  "id":q
 }
 ```
 
@@ -78,13 +88,17 @@ Note that if result ends in 1 it means that your submitted proof with the associ
 
 Then, you can run the script by running the following command:
 ```bash
-python3 verify.py --contract-address [CONTRACT_ADDRESS] --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA]
+python3 verify.py --contract-address [CONTRACT_ADDRESS] --aligned-verification-data [PATH_TO_ALIGNED_VERIFICATION_DATA] --sender-address [SENDER_ADDRESS]
 ```
 
-Replace `[CONTRACT_ADDRESS]`, and `[PATH_TO_ALIGNED_VERIFICATION_DATA]` with your actual values.
+Replace `[CONTRACT_ADDRESS]`, `[PATH_TO_ALIGNED_VERIFICATION_DATA]` and `[SENDER_ADDRESS]` with your actual values.
 
 #### Example Command
 
 ```bash
-python3 verify.py --contract-address 0x623926229DD27c45AE40B4e16ba4CD6522fC4d22 --aligned-verification-data ../../aligned_verification_data/7553cb14bff387c06e016cb3e7946e91d9fe44a54ad5d888ce8343ddb16116a7_118.json
+python3 verify.py --contract-address 0x58F280BeBE9B34c9939C3C39e0890C81f163B623 --aligned-verification-data ../../aligned_verification_data/b8c17406_4.json --sender-address 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
+
+In this case, `--contract-address` is the address of the `AlignedLayerServiceManager` and `--sender-address` is the address of the `BatcherPaymentService` in Holesky Testnet.
+
+You need to replace the `--aligned-verification-data` with the path to the JSON file containing the verification data. This is the output when submitting a proof.

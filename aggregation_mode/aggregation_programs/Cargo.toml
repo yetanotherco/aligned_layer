@@ -1,0 +1,6 @@
+[workspace]
+name = "zkvm_aggregation_programs"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+members = ["sp1"]

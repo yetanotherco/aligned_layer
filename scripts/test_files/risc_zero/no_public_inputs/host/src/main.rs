@@ -3,8 +3,8 @@
 use methods::{FIBONACCI_ELF, FIBONACCI_ID};
 use risc0_zkvm::{default_prover, ExecutorEnv};
 
-const PROOF_FILE_PATH: &str = "risc_zero_no_pub_input.proof";
-const IMAGE_ID_FILE_PATH: &str = "no_pub_input_id.bin";
+const PROOF_FILE_PATH: &str = "risc_zero_no_pub_input_2_0.proof";
+const IMAGE_ID_FILE_PATH: &str = "risc_zero_no_pub_input_id_2_0.bin";
 
 fn main() {
     // Initialize tracing. In order to view logs, run `RUST_LOG=info cargo run`

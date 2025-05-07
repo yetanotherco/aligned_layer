@@ -1,4 +1,5 @@
-- hosts: "{{ host }}"
+- name: Server setup
+  hosts: "{{ host }}"
 
   tasks:
     # Install required packages
@@ -50,6 +51,8 @@
 
     - name: Enable linger for {{ ansible_user }}
       become: true
-      shell: loginctl enable-linger {{ ansible_user }}
+      command: sudo loginctl enable-linger {{ ansible_user }}
+      args:
+        creates: /var/lib/systemd/linger/{{ ansible_user }}
       vars:
         ansible_ssh_user: "{{ admin_user }}"

@@ -1,0 +1,27 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 127.0.0.1:4319 # 4317 is already in use by Jaeger
+processors:
+extensions:
+  health_check: {}
+exporters:
+  otlp:
+    endpoint: localhost:4317
+    tls:
+      insecure: true
+  debug:
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters: [otlp]
+
+    metrics:
+      receivers: [ otlp ]
+      processors: [ ]
+      exporters: [ debug ]

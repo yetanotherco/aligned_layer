@@ -17,7 +17,7 @@ pub enum AlignedError {
     SubmitError(SubmitError),
     VerificationError(VerificationError),
     ChainIdError(ChainIdError),
-    MaxFeeEstimateError(MaxFeeEstimateError),
+    FeeEstimateError(FeeEstimateError),
     FileError(FileError),
 }
 
@@ -39,9 +39,9 @@ impl From<ChainIdError> for AlignedError {
     }
 }
 
-impl From<MaxFeeEstimateError> for AlignedError {
-    fn from(e: MaxFeeEstimateError) -> Self {
-        AlignedError::MaxFeeEstimateError(e)
+impl From<FeeEstimateError> for AlignedError {
+    fn from(e: FeeEstimateError) -> Self {
+        AlignedError::FeeEstimateError(e)
     }
 }
 
@@ -57,7 +57,7 @@ impl fmt::Display for AlignedError {
             AlignedError::SubmitError(e) => write!(f, "Submit error: {}", e),
             AlignedError::VerificationError(e) => write!(f, "Verification error: {}", e),
             AlignedError::ChainIdError(e) => write!(f, "Chain ID error: {}", e),
-            AlignedError::MaxFeeEstimateError(e) => write!(f, "Max fee estimate error: {}", e),
+            AlignedError::FeeEstimateError(e) => write!(f, "Fee estimate error: {}", e),
             AlignedError::FileError(e) => write!(f, "File error: {}", e),
         }
     }
@@ -266,19 +266,23 @@ impl fmt::Display for ChainIdError {
 }
 
 #[derive(Debug)]
-pub enum MaxFeeEstimateError {
+pub enum FeeEstimateError {
     EthereumProviderError(String),
     EthereumGasPriceError(String),
+    FeeEstimateParseError(String),
 }
 
-impl fmt::Display for MaxFeeEstimateError {
+impl fmt::Display for FeeEstimateError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            MaxFeeEstimateError::EthereumProviderError(e) => {
+            FeeEstimateError::EthereumProviderError(e) => {
                 write!(f, "Ethereum provider error: {}", e)
             }
-            MaxFeeEstimateError::EthereumGasPriceError(e) => {
+            FeeEstimateError::EthereumGasPriceError(e) => {
                 write!(f, "Failed to retreive the current gas price: {}", e)
+            }
+            FeeEstimateError::FeeEstimateParseError(e) => {
+                write!(f, "Error parsing PriceEstimate: {}", e)
             }
         }
     }

@@ -175,41 +175,44 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             Ok(batch_inclusion_data)
         }
         Ok(SubmitProofResponseMessage::InvalidNonce) => {
-            error!("Batcher responded with invalid nonce");
+            error!("Batcher responded with invalid nonce. Funds have not been spent.");
             Err(SubmitError::InvalidNonce)
         }
         Ok(SubmitProofResponseMessage::InvalidSignature) => {
-            error!("Batcher responded with invalid signature");
+            error!("Batcher responded with invalid signature. Funds have not been spent.");
             Err(SubmitError::InvalidSignature)
         }
         Ok(SubmitProofResponseMessage::ProofTooLarge) => {
-            error!("Batcher responded with proof too large");
+            error!("Batcher responded with proof too large. Funds have not been spent.");
             Err(SubmitError::ProofTooLarge)
         }
         Ok(SubmitProofResponseMessage::InvalidMaxFee) => {
-            error!("Batcher responded with invalid max fee");
+            error!("Batcher responded with invalid max fee. Funds have not been spent.");
             Err(SubmitError::InvalidMaxFee)
         }
         Ok(SubmitProofResponseMessage::InsufficientBalance(addr)) => {
-            error!("Batcher responded with insufficient balance");
+            error!("Batcher responded with insufficient balance. Funds have not been spent for submittions which had insufficient balance.");
             Err(SubmitError::InsufficientBalance(addr))
         }
         Ok(SubmitProofResponseMessage::InvalidChainId) => {
-            error!("Batcher responded with invalid chain id");
+            error!("Batcher responded with invalid chain id. Funds have not been spent.");
             Err(SubmitError::InvalidChainId)
         }
         Ok(SubmitProofResponseMessage::InvalidReplacementMessage) => {
-            error!("Batcher responded with invalid replacement message");
+            error!(
+                "Batcher responded with invalid replacement message. Funds have not been spent."
+            );
             Err(SubmitError::InvalidReplacementMessage)
         }
         Ok(SubmitProofResponseMessage::AddToBatchError) => {
-            error!("Batcher responded with add to batch error");
+            error!("Batcher responded with add to batch error. Funds have not been spent.");
             Err(SubmitError::AddToBatchError)
         }
         Ok(SubmitProofResponseMessage::EthRpcError) => {
-            error!("Batcher experienced Eth RPC connection error");
+            error!("Batcher experienced Eth RPC connection error. Funds have not been spent.");
             Err(SubmitError::EthereumProviderError(
-                "Batcher experienced Eth RPC connection error".to_string(),
+                "Batcher experienced Eth RPC connection error. Funds have not been spent."
+                    .to_string(),
             ))
         }
         Ok(SubmitProofResponseMessage::InvalidPaymentServiceAddress(
@@ -217,7 +220,7 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             expected_addr,
         )) => {
             error!(
-                "Batcher responded with invalid payment service address: {:?}, expected: {:?}",
+                "Batcher responded with invalid payment service address: {:?}, expected: {:?}. Funds have not been spent.",
                 received_addr, expected_addr
             );
             Err(SubmitError::InvalidPaymentServiceAddress(
@@ -226,11 +229,17 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             ))
         }
         Ok(SubmitProofResponseMessage::InvalidProof(reason)) => {
-            error!("Batcher responded with invalid proof: {}", reason);
+            error!(
+                "Batcher responded with invalid proof: {}. Funds have not been spent.",
+                reason
+            );
             Err(SubmitError::InvalidProof(reason))
         }
         Ok(SubmitProofResponseMessage::CreateNewTaskError(merkle_root, error)) => {
-            error!("Batcher responded with create new task error: {}", error);
+            error!(
+                "Batcher responded with create new task error: {}. Funds have not been spent.",
+                error
+            );
             Err(SubmitError::BatchSubmissionFailed(
                 "Could not create task with merkle root ".to_owned()
                     + &merkle_root
@@ -239,22 +248,28 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             ))
         }
         Ok(SubmitProofResponseMessage::ProtocolVersion(_)) => {
-            error!("Batcher responded with protocol version instead of batch inclusion data");
+            error!("Batcher responded with protocol version instead of batch inclusion data. Funds have not been spent.");
             Err(SubmitError::UnexpectedBatcherResponse(
-                "Batcher responded with protocol version instead of batch inclusion data"
+                "Batcher responded with protocol version instead of batch inclusion data. Funds have not been spent."
                     .to_string(),
             ))
         }
         Ok(SubmitProofResponseMessage::BatchReset) => {
-            error!("Batcher responded with batch reset");
+            error!("Batcher responded with batch reset. Funds have not been spent.");
             Err(SubmitError::ProofQueueFlushed)
         }
         Ok(SubmitProofResponseMessage::Error(e)) => {
-            error!("Batcher responded with error: {}", e);
+            error!(
+                "Batcher responded with error: {}. Funds have not been spent.",
+                e
+            );
             Err(SubmitError::GenericError(e))
         }
         Err(e) => {
-            error!("Error while deserializing batch inclusion data: {}", e);
+            error!(
+                "Error while deserializing batch inclusion data: {}. Funds have not been spent.",
+                e
+            );
             Err(SubmitError::SerializationError(e))
         }
     }

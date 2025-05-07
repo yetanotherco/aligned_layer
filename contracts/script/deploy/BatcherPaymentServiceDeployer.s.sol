@@ -8,26 +8,15 @@ import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 
 contract BatcherPaymentServiceDeployer is Script {
-    function run(
-        string memory batcherConfigPath
-    ) external returns (address, address) {
+    function run(string memory batcherConfigPath, string memory outputPath) external returns (address, address) {
         // READ JSON CONFIG DATA
         string memory config_data = vm.readFile(batcherConfigPath);
 
-        address batcherWallet = stdJson.readAddress(
-            config_data,
-            ".address.batcherWallet"
-        );
+        address batcherWallet = stdJson.readAddress(config_data, ".address.batcherWallet");
 
-        address alignedLayerServiceManager = stdJson.readAddress(
-            config_data,
-            ".address.alignedLayerServiceManager"
-        );
+        address alignedLayerServiceManager = stdJson.readAddress(config_data, ".address.alignedLayerServiceManager");
 
-        address batcherPaymentServiceOwner = stdJson.readAddress(
-            config_data,
-            ".permissions.owner"
-        );
+        address batcherPaymentServiceOwner = stdJson.readAddress(config_data, ".permissions.owner");
 
         vm.startBroadcast();
 
@@ -44,6 +33,15 @@ contract BatcherPaymentServiceDeployer is Script {
         );
 
         vm.stopBroadcast();
+
+        string memory addresses = "addresses";
+        vm.serializeAddress(addresses, "batcherPaymentService", address(proxy));
+        string memory addressesStr =
+            vm.serializeAddress(addresses, "batcherPaymentServiceImplementation", address(batcherPaymentService));
+
+        string memory parentObject = "parent";
+        string memory finalJson = vm.serializeString(parentObject, "addresses", addressesStr);
+        vm.writeJson(finalJson, outputPath);
 
         return (address(proxy), address(batcherPaymentService));
     }

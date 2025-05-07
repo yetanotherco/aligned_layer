@@ -1,0 +1,20 @@
+[server]
+http_port = 3000
+domain = {{ grafana_domain }}
+root_url = https://{{ grafana_domain }}/
+
+[auth.generic_oauth]
+enabled = true
+client_id = {{ grafana_oath_client_id }}
+client_secret = {{ grafana_oath_client_secret }}
+scopes = openid profile email 
+auth_url = {{ grafana_oath_auth_url }}
+token_url = {{ grafana_oath_token_url }}
+api_url = {{ grafana_oath_api_url }}
+role_attribute_path = 'Viewer'
+icon = signin
+
+[auth.basic]
+enabled = true
+disable_login_form = false
+admin_user = admin

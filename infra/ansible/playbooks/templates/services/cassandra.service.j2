@@ -1,0 +1,16 @@
+[Unit]
+Description=Cassandra
+After=network.target
+
+[Service]
+Type=forking
+User=cassandra
+ExecStart=/opt/cassandra/bin/cassandra
+Environment="CASSANDRA_USER={{ cassandra_telemetry_user }}"
+Environment="CASSANDRA_PASSWORD={{ cassandra_telemetry_pass }}"
+Restart=on-failure
+ExecReload=/bin/kill -HUP
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

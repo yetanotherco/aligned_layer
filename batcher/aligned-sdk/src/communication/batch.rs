@@ -41,7 +41,7 @@ pub async fn await_batch_verification(
     network: Network,
 ) -> Result<(), errors::SubmitError> {
     for _ in 0..RETRIES {
-        if is_proof_verified(aligned_verification_data, network, rpc_url)
+        if is_proof_verified(aligned_verification_data, network.clone(), rpc_url)
             .await
             .is_ok_and(|r| r)
         {
