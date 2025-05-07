@@ -65,11 +65,6 @@ impl IsMerkleTreeBackend for Hash32 {
         leaf.0
     }
 
-    /// Leaves don't have to be hashed as the blob already contains the proof commitments (which represent the merkle leaves)
-    fn hash_leaves(leaves: &[Self::Data]) -> Vec<Self::Node> {
-        leaves.iter().map(|l| l.0).collect()
-    }
-
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
         let mut hasher = Keccak256::new();
         hasher.update(child_1);
