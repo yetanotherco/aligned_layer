@@ -52,6 +52,15 @@ impl AggregationModeVerificationData {
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct Hash32([u8; 32]);
 
+// Note:
+// We define a version that of the backend that takes the leaves as hashed data
+// since the user may not have access to the proofs that he didn't submit
+// The original MerkleTreeBackend is defined in three places
+// aggregation_mode/src/aggregators/mod.rs
+// aggregation_mode/src/aggregators/risc0_aggregator.rs and
+// aggregation_mode/src/aggregators/sp1_aggregator.rs
+// The definition on aggregator/mod.rs supports taking proofs from both Risc0 and SP1
+// Hashes of all implementations should match
 impl IsMerkleTreeBackend for Hash32 {
     type Data = Hash32;
     type Node = [u8; 32];

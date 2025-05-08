@@ -132,9 +132,16 @@ impl AlignedProof {
 /// — Public inputs.
 ///
 /// Intermediate nodes in the tree are formed by computing the keccak pairs of child nodes.
-///
-/// Note: this commitment scheme is repeated in both risc0 and sp1 aggregation programs.
-/// Therefore, any change to the commitment scheme must be mirrored there.
+// Note: this MerkleTreeBackend is defined in three places
+// aggregation_mode/src/aggregators/mod.rs
+// aggregation_mode/src/aggregators/risc0_aggregator.rs and
+// aggregation_mode/src/aggregators/sp1_aggregator.rs
+// All 3 implementations should match
+// The definition on aggregator/mod.rs supports taking proofs from both Risc0 and SP1,
+// Additionally, a version that takes the leaves as already hashed data is defined on:
+// batcher/aligned-sdk/src/sdk/aggregation.rs
+// This one is used in the SDK since,
+// the user may not have access to the proofs that he didn't submit
 impl IsMerkleTreeBackend for AlignedProof {
     type Data = AlignedProof;
     type Node = [u8; 32];
