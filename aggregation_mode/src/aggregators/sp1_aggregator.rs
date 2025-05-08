@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use alloy::primitives::Keccak256;
 use sp1_aggregation_program::SP1VkAndPubInputs;
 use sp1_sdk::{
-    EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
+    EnvProver, HashableKey, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
     SP1VerifyingKey,
 };
 
