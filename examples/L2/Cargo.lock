@@ -236,7 +236,7 @@ dependencies = [
  "ruint",
  "rustc-hash 2.1.1",
  "serde",
- "sha3",
+ "sha3 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "tiny-keccak",
 ]
 
@@ -3040,7 +3040,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "serde",
  "sha2",
- "sha3",
+ "sha3 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -4103,8 +4103,7 @@ dependencies = [
  "risc0_state_transition_program",
  "serde",
  "serde_json",
- "serde_yaml",
- "sha3",
+ "sha3 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "sp1-build",
  "sp1-sdk",
  "sp1_state_transition_program",
@@ -5309,19 +5308,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_yaml"
-version = "0.9.34+deprecated"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
-dependencies = [
- "indexmap 2.9.0",
- "itoa",
- "ryu",
- "serde",
- "unsafe-libyaml",
-]
-
-[[package]]
 name = "serdect"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5372,6 +5358,15 @@ name = "sha3"
 version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75872d278a8f37ef87fa0ddbda7802605cb18344497949862c0d4dcb291eba60"
+dependencies = [
+ "digest 0.10.7",
+ "keccak",
+]
+
+[[package]]
+name = "sha3"
+version = "0.10.8"
+source = "git+https://github.com/sp1-patches/RustCrypto-hashes?tag=sha3-v0.10.8-patch-v1#8f6d303c0861ba7e5adcc36207c0f41fe5edaabc"
 dependencies = [
  "digest 0.10.7",
  "keccak",
@@ -5939,8 +5934,11 @@ dependencies = [
 name = "sp1_state_transition_program"
 version = "0.1.0"
 dependencies = [
+ "lambdaworks-crypto",
+ "primitive-types",
  "serde",
  "serde_json",
+ "sha3 0.10.8 (git+https://github.com/sp1-patches/RustCrypto-hashes?tag=sha3-v0.10.8-patch-v1)",
  "sp1-zkvm",
 ]
 
@@ -6607,12 +6605,6 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
-
-[[package]]
-name = "unsafe-libyaml"
-version = "0.2.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"
@@ -7366,6 +7358,6 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "sha2",
- "sha3",
+ "sha3 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "subtle",
 ]

@@ -2,23 +2,49 @@
 sp1_zkvm::entrypoint!(main);
 
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use sha2::{Digest, Sha256};
-use sha3::Keccak256;
-use sp1_aggregation_program::{Input, SP1VkAndPubInputs};
+use sp1_state_transition_program::{ProgramInput, ProgramOutput, UserState};
 
 pub fn main() {
-    let input = sp1_zkvm::io::read::<Input>();
+    let mut input = sp1_zkvm::io::read::<ProgramInput>();
 
-    // Verify the proofs.
-    for proof in input.proofs_vk_and_pub_inputs.iter() {
-        let vkey = proof.vk;
-        let public_values = &proof.public_inputs;
-        let public_values_digest = Sha256::digest(public_values);
-        sp1_zkvm::lib::verify::verify_sp1_proof(&vkey, &public_values_digest.into());
+    let initial_state: Vec<UserState> = input.user_states.clone().into_values().collect();
+    let initial_state_merkle_tree: MerkleTree<UserState> =
+        MerkleTree::build(&initial_state).expect("to build merkle tree with the provided state");
+    let initial_state_merkle_root = initial_state_merkle_tree.root;
+
+    for transfer in input.transfers {
+        let mut user_from = input
+            .user_states
+            .get(&transfer.from)
+            .expect("User must exist in state")
+            .clone();
+        let mut user_to = input
+            .user_states
+            .get(&transfer.to)
+            .expect("User must exist in state")
+            .clone();
+
+        if user_from.balance >= transfer.amount {
+            user_from.balance -= transfer.amount
+        } else {
+            panic!("User does not have enough balance to perform the transfer");
+        }
+
+        user_to.balance += transfer.amount;
+
+        input.user_states.insert(transfer.from, user_from.clone());
+        input.user_states.insert(transfer.to, user_to.clone());
     }
 
-    let merkle_tree: MerkleTree<SP1VkAndPubInputs> =
-        MerkleTree::build(&input.proofs_vk_and_pub_inputs).unwrap();
+    let post_state: Vec<UserState> = input.user_states.clone().into_values().collect();
+    let post_state_merkle_tree: MerkleTree<UserState> =
+        MerkleTree::build(&post_state).expect("to build merkle tree with the provided state");
+    let post_state_merkle_root = post_state_merkle_tree.root;
 
-    sp1_zkvm::io::commit_slice(&merkle_tree.root);
+    let program_output = ProgramOutput {
+        initial_state_merkle_root,
+        post_state_merkle_root,
+    };
+
+    sp1_zkvm::io::commit(&program_output);
 }
