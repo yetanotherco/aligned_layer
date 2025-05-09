@@ -166,14 +166,18 @@ is_aggregator_set:
 		exit 1; \
 	fi
 
-start_proof_aggregator_dev: is_aggregator_set ## Starts proof aggregator with mock proofs (DEV mode)
-	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
+reset_last_aggregated_block:
+	@echo "Resetting last aggregated block..."
+	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
 
-start_proof_aggregator: is_aggregator_set ## Starts proof aggregator with proving activated
-	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
+start_proof_aggregator_dev: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with mock proofs (DEV mode)
+	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator -- config-files/config-proof-aggregator-mock.yaml
 
-start_proof_aggregator_gpu: is_aggregator_set ## Starts proof aggregator with proving + GPU acceleration (CUDA)
-	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu -- config-files/config-proof-aggregator.yaml
+start_proof_aggregator: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated
+	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove --bin proof_aggregator -- config-files/config-proof-aggregator.yaml
+
+start_proof_aggregator_gpu: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving + GPU acceleration (CUDA)
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator.yaml
 
 verify_aggregated_proof_sp1_holesky_stage: 
 	@echo "Verifying SP1 in aggregated proofs on holesky..."
@@ -200,7 +204,11 @@ verify_aggregated_proof_risc0_holesky_stage:
 		--rpc_url https://ethereum-holesky-rpc.publicnode.com
 
 install_aggregation_mode: ## Install the aggregation mode with proving enabled
-	cargo install --path aggregation_mode --features prove
+	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator
+
+agg_mode_write_program_ids: ## Write proof aggregator zkvm programs ids 
+	@cd aggregation_mode && \
+	cargo run --release --bin write_program_image_id_vk_hash
 
 _AGGREGATOR_:
 
@@ -568,6 +576,11 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
+batcher_send_proof_with_random_address:
+	@cd batcher/aligned/ && ./send_proof_with_random_address.sh
+
+batcher_send_burst_with_random_address:
+	@cd batcher/aligned/ && ./send_burst_with_random_address.sh
 
 __TASK_SENDER__:
 BURST_TIME_SECS ?= 3

@@ -1,12 +1,25 @@
 #!/bin/bash
 
+# This script creates a configuration file for the proof aggregator
+
+# PARAMETERS
+#
+# TEMPLATE_FILE: Path to the template file
+#   - SP1: ./infra/aggregation_mode/config-proof-aggregator-sp1.template.yaml
+#   - Risc0: ./infra/aggregation_mode/config-proof-aggregator-risc0.template.yaml
+#
+# OUTPUT_FILE: Path to the output file
+#   - SP1: $HOME/config/config-proof-aggregator-sp1.yaml
+#   - Risc0: $HOME/config/config-proof-aggregator-risc0.yaml
+
 # Check if template file path is provided as argument
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <template_file_path>"
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <template_file_path> <output_file>"
     exit 1
 fi
 
 TEMPLATE_FILE="$1"
+OUTPUT_FILE="$2"
 
 # Verify template file exists
 if [ ! -f "$TEMPLATE_FILE" ]; then
@@ -36,12 +49,12 @@ prompt_and_replace "<private_key_store_path>" "ECDSA Private Key Store Path (~/.
 prompt_and_replace "<private_key_store_password>" "ECDSA Private Key Store Password"
 
 # Create destination directory if it doesn't exist
-mkdir -p /home/user/config
+mkdir -p $HOME/config
 
 # Copy the completed file to destination
-cp "$TEMP_FILE" $HOME/config/config-proof-aggregator.yaml
+cp "$TEMP_FILE" "$OUTPUT_FILE"
 
 # Clean up temporary file
 rm "$TEMP_FILE"
 
-echo "Configuration file has been created and copied to $HOME/config/config-proof-aggregator.yaml"
+echo "Configuration file has been created and copied to $OUTPUT_FILE"

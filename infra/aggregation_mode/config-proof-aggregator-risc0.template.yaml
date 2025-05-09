@@ -3,7 +3,7 @@ proof_aggregation_service_address: <proof_aggregation_service_address>
 eth_rpc_url: <eth_rpc_url>
 eth_ws_url: <eth_ws_url>
 max_proofs_in_queue: 1000
-last_aggregated_block_filepath: ~/config/proof-aggregator.last_aggregated_block.json
+last_aggregated_block_filepath: /home/user/config/proof-aggregator-risc0.last_aggregated_block.json
 
 ecdsa:
     private_key_store_path: <private_key_store_path>

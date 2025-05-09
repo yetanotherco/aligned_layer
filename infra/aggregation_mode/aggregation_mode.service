@@ -6,8 +6,7 @@ After=network.target
 Type=oneshot
 WorkingDirectory=/home/user
 ExecStartPre=sleep 60
-ExecStart=/home/user/.cargo/bin/proof_aggregator /home/user/config/config-proof-aggregator.yaml
-Environment="SP1_PROVER=cuda"
+ExecStart=/home/user/run.sh
 
 [Install]
 WantedBy=multi-user.target
