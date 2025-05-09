@@ -36,7 +36,7 @@ impl IsMerkleTreeBackend for UserState {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Transfer {
     pub from: H160,
     pub to: H160,

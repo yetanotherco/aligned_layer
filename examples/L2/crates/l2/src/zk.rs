@@ -1,0 +1,28 @@
+use types::Transfer;
+
+use crate::db::DB;
+
+pub const PROGRAM_ELF: &[u8] =
+    include_bytes!("../zkvm_programs/sp1/elf/sp1_state_transition_program");
+
+pub fn prove_state_transition(
+    db: &mut DB,
+    transfers: Vec<Transfer>,
+) -> (sp1_sdk::SP1ProofWithPublicValues, sp1_sdk::SP1VerifyingKey) {
+    let mut stdin = sp1_sdk::SP1Stdin::new();
+    let program_input = sp1_state_transition_program::ProgramInput {
+        transfers,
+        user_states: db.user_states.clone(),
+    };
+    stdin.write(&program_input);
+
+    let prover = sp1_sdk::ProverClient::from_env();
+    let (pk, vk) = prover.setup(PROGRAM_ELF);
+    let proof = prover
+        .prove(&pk, &stdin)
+        .groth16()
+        .run()
+        .expect("Prover to run fine");
+
+    (proof, vk)
+}

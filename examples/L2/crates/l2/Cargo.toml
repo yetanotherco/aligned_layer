@@ -14,6 +14,10 @@ sp1-sdk = "4.1.3"
 sp1_state_transition_program = { path = "./zkvm_programs/sp1/" }
 aligned-sdk = { path = "../../../../batcher/aligned-sdk" }
 bincode = "1.3.3"
+futures-util = "0.3"
+tokio = "1.44"
+alloy = { version = "0.14", features = ["full", "providers"] }
+
 
 [build-dependencies]
 sp1-build = { version = "4.1.3" } 
