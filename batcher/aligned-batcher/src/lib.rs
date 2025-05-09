@@ -803,7 +803,10 @@ impl Batcher {
             debug!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
 
             // This cannot panic, if the batch queue is full it has at least one item
-            let (lowest_priority_entry, _) = batch_state_lock.batch_queue.peek().expect("Batch queue was expected to be full, but somehow no item was inside");
+            let (lowest_priority_entry, _) = batch_state_lock
+                .batch_queue
+                .peek()
+                .expect("Batch queue was expected to be full, but somehow no item was inside");
 
             let lowest_fee_in_queue = lowest_priority_entry.nonced_verification_data.max_fee;
 
@@ -814,9 +817,11 @@ impl Batcher {
             // So this will never eject a proof of the same user with a lower nonce
             // which is the expected behaviour
             if new_proof_fee > lowest_fee_in_queue {
-     
                 // This cannot panic, if the batch queue is full it has at least one item
-                let (removed_entry, _) = batch_state_lock.batch_queue.pop().expect("Batch queue was expected to be full, but somehow no item was inside");
+                let (removed_entry, _) = batch_state_lock
+                    .batch_queue
+                    .pop()
+                    .expect("Batch queue was expected to be full, but somehow no item was inside");
 
                 info!(
                     "Incoming proof (nonce: {}, fee: {}) has higher fee. Replacing lowest fee proof from sender {} with nonce {}.",

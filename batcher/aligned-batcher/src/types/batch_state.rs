@@ -246,7 +246,8 @@ impl BatchState {
         if let Entry::Occupied(mut user_state) = self.user_states.entry(addr) {
             user_state.get_mut().proofs_in_batch -= 1;
             user_state.get_mut().nonce -= U256::one();
-            user_state.get_mut().total_fees_in_queue -= removed_entry.nonced_verification_data.max_fee;
+            user_state.get_mut().total_fees_in_queue -=
+                removed_entry.nonced_verification_data.max_fee;
             user_state.get_mut().last_max_fee_limit = new_last_max_fee_limit;
         }
     }
