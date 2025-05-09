@@ -37,3 +37,6 @@
 [submodule "contracts/lib/risc0-ethereum"]
 	path = contracts/lib/risc0-ethereum
 	url = https://github.com/risc0/risc0-ethereum
+[submodule "examples/L2/contracts/lib/forge-std"]
+	path = examples/L2/contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
