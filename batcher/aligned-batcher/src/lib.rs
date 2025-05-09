@@ -719,18 +719,6 @@ impl Batcher {
             return Ok(());
         };
 
-        if msg_max_fee > user_last_max_fee_limit {
-            std::mem::drop(batch_state_lock);
-            warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidMaxFee,
-            )
-            .await;
-            self.metrics.user_error(&["invalid_max_fee", ""]);
-            return Ok(());
-        }
-
         let Some(user_accumulated_fee) = batch_state_lock.get_user_total_fees_in_queue(&addr).await
         else {
             std::mem::drop(batch_state_lock);
@@ -792,6 +780,20 @@ impl Batcher {
             )
             .await;
 
+            return Ok(());
+        }
+
+        // We check this after replacement logic because if user wants to replace a proof, their
+        // new_max_fee must be greater or equal than old_max_fee
+        if msg_max_fee > user_last_max_fee_limit {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidMaxFee,
+            )
+                .await;
+            self.metrics.user_error(&["invalid_max_fee", ""]);
             return Ok(());
         }
 
