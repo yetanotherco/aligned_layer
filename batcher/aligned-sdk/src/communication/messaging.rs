@@ -265,7 +265,7 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             );
             Err(SubmitError::GenericError(e))
         }
-        Ok(SubmitProofResponseMessage::BatchQueueLimitExceededError) => {
+        Ok(SubmitProofResponseMessage::UnderpricedProof) => {
             error!("Batcher responded with error: queue limit has been exceeded. Funds have not been spent.");
             Err(SubmitError::BatchQueueLimitExceededError)
         }

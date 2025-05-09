@@ -399,7 +399,7 @@ pub enum SubmitProofResponseMessage {
     AddToBatchError,
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
-    BatchQueueLimitExceededError,
+    UnderpricedProof,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

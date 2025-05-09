@@ -1,7 +1,5 @@
 use std::collections::{hash_map::Entry, HashMap};
 
-use crate::BatchQueueEntryPriority;
-
 use super::{
     batch_queue::{BatchQueue, BatchQueueEntry},
     user_state::UserState,
@@ -255,11 +253,5 @@ impl BatchState {
 
     pub(crate) fn is_queue_full(&self) -> bool {
         self.batch_queue.len() >= self.max_size
-    }
-
-    pub(crate) fn lowest_entry_priority(&self) -> Option<BatchQueueEntryPriority> {
-        self.batch_queue
-            .peek()
-            .map(|(_, priority_entry)| priority_entry.clone())
     }
 }

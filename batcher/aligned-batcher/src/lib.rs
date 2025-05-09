@@ -17,7 +17,6 @@ use types::batch_state::BatchState;
 use types::user_state::UserState;
 
 use batch_queue::calculate_batch_size;
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::env;
 use std::net::SocketAddr;
@@ -801,57 +800,50 @@ impl Batcher {
         // * ---------------------------------------------------------------------*
 
         if batch_state_lock.is_queue_full() {
-            info!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
+            debug!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
 
-            let msg_entry_priority = BatchQueueEntryPriority::new(
-                nonced_verification_data.max_fee,
-                nonced_verification_data.nonce,
-            );
+            // This cannot panic, if the batch queue is full it has at least one item
+            let (lowest_priority_entry, _) = batch_state_lock.batch_queue.peek().expect("Batch queue was expected to be full, but somehow no item was inside");
 
-            if let Some(lowest_entry_priority) = batch_state_lock.lowest_entry_priority() {
-                // If the new proof has more priority than the lowest one in the queue, discard the latter one and push the new one
-                if lowest_entry_priority.cmp(&msg_entry_priority) == Ordering::Greater {
-                    let Some((removed_entry, _)) = batch_state_lock.batch_queue.pop() else {
-                        warn!("Failed to remove lowest-priority proof despite queue being full.");
-                        std::mem::drop(batch_state_lock);
-                        send_message(
-                            ws_conn_sink.clone(),
-                            SubmitProofResponseMessage::BatchQueueLimitExceededError,
-                        )
-                        .await;
-                        return Ok(());
-                    };
+            let lowest_fee_in_queue = lowest_priority_entry.nonced_verification_data.max_fee;
 
-                    info!(
-                        "Incoming proof (nonce: {}, fee: {}) has higher priority. Replacing lowest priority proof from sender {} with nonce {}.",
-                        nonced_verification_data.nonce,
-                        nonced_verification_data.max_fee,
-                        removed_entry.sender,
-                        removed_entry.nonced_verification_data.nonce
-                    );
+            let new_proof_fee = nonced_verification_data.max_fee;
 
-                    batch_state_lock.update_user_state_on_entry_removal(&removed_entry);
-                    if let Some(removed_entry_ws) = removed_entry.messaging_sink {
-                        send_message(
-                            removed_entry_ws,
-                            SubmitProofResponseMessage::BatchQueueLimitExceededError,
-                        )
-                        .await;
-                    };
-                } else {
-                    warn!(
-                        "Incoming proof (nonce: {}, fee: {}) has lower priority than all entries in the full queue. Rejecting submission.",
-                        nonced_verification_data.nonce,
-                        nonced_verification_data.max_fee
-                    );
-                    std::mem::drop(batch_state_lock);
+            if new_proof_fee > lowest_fee_in_queue {
+     
+                // This cannot panic, if the batch queue is full it has at least one item
+                let (removed_entry, _) = batch_state_lock.batch_queue.pop().expect("Batch queue was expected to be full, but somehow no item was inside");
+
+                info!(
+                    "Incoming proof (nonce: {}, fee: {}) has higher fee. Replacing lowest fee proof from sender {} with nonce {}.",
+                    nonced_verification_data.nonce,
+                    nonced_verification_data.max_fee,
+                    removed_entry.sender,
+                    removed_entry.nonced_verification_data.nonce
+                );
+
+                batch_state_lock.update_user_state_on_entry_removal(&removed_entry);
+
+                if let Some(removed_entry_ws) = removed_entry.messaging_sink {
                     send_message(
-                        ws_conn_sink.clone(),
-                        SubmitProofResponseMessage::BatchQueueLimitExceededError,
+                        removed_entry_ws,
+                        SubmitProofResponseMessage::UnderpricedProof,
                     )
                     .await;
-                    return Ok(());
-                }
+                };
+            } else {
+                info!(
+                    "Incoming proof (nonce: {}, fee: {}) has lower priority than all entries in the full queue. Rejecting submission.",
+                    nonced_verification_data.nonce,
+                    nonced_verification_data.max_fee
+                );
+                std::mem::drop(batch_state_lock);
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::UnderpricedProof,
+                )
+                .await;
+                return Ok(());
             }
         }
 
@@ -1792,7 +1784,7 @@ impl Batcher {
             error!("Can't add new entry, the batcher queue is full");
             send_message(
                 ws_sink.clone(),
-                SubmitProofResponseMessage::BatchQueueLimitExceededError,
+                SubmitProofResponseMessage::UnderpricedProof,
             )
             .await;
             return Ok(());
