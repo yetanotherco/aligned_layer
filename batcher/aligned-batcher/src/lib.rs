@@ -809,6 +809,10 @@ impl Batcher {
 
             let new_proof_fee = nonced_verification_data.max_fee;
 
+            // We will keep the proof with the highest fee
+            // Note: we previously checked that if it's a new proof from the same user the fee is the same or lower
+            // So this will never eject a proof of the same user with a lower nonce
+            // which is the expected behaviour
             if new_proof_fee > lowest_fee_in_queue {
      
                 // This cannot panic, if the batch queue is full it has at least one item
