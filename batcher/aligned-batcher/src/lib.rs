@@ -808,8 +808,10 @@ impl Batcher {
                 nonced_verification_data.nonce,
             );
 
+
             if let Some(lowest_entry_priority) = batch_state_lock.lowest_entry_priority() {
-                // If the new proof has more priority than the lowest one in the queue, discard the latter one and push the new one
+                // If the new proof has higher priority than the lowest-priority proof in the queue,
+                // discard the lowest-priority proof and insert the new proof according to its priority.
                 if lowest_entry_priority.cmp(&msg_entry_priority) == Ordering::Greater {
                     let Some((removed_entry, _)) = batch_state_lock.batch_queue.pop() else {
                         warn!("Failed to remove lowest-priority proof despite queue being full.");
