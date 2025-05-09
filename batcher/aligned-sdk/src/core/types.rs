@@ -3,9 +3,8 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::str::FromStr;
 
-use ethers::core::k256::ecdsa::SigningKey;
-use ethers::signers::Signer;
-use ethers::signers::Wallet;
+pub use ethers::core::k256::ecdsa::SigningKey;
+pub use ethers::signers::{Signer, Wallet};
 use ethers::types::transaction::eip712::EIP712Domain;
 use ethers::types::transaction::eip712::Eip712;
 use ethers::types::transaction::eip712::Eip712Error;

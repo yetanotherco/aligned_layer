@@ -2,7 +2,8 @@
 sp1_zkvm::entrypoint!(main);
 
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use sp1_state_transition_program::{ProgramInput, ProgramOutput, UserState};
+use sp1_state_transition_program::{ProgramInput, ProgramOutput};
+use types::UserState;
 
 pub fn main() {
     let mut input = sp1_zkvm::io::read::<ProgramInput>();

@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use primitive_types::{H160, U256};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct UserState {
     pub address: H160,
     pub balance: U256,
@@ -38,21 +36,9 @@ impl IsMerkleTreeBackend for UserState {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Transfer {
     pub from: H160,
     pub to: H160,
     pub amount: U256,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct ProgramInput {
-    pub user_states: HashMap<H160, UserState>,
-    pub transfers: Vec<Transfer>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ProgramOutput {
-    pub initial_state_merkle_root: [u8; 32],
-    pub post_state_merkle_root: [u8; 32],
 }

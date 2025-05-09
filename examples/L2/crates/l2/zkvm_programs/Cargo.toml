@@ -3,4 +3,7 @@ name = "zkvm_state_transition_programs"
 version = "0.1.0"
 edition = "2021"
 resolver = "2"
-members = ["sp1", "risc0"]
+members = ["sp1"]
+
+[workspace.dependencies]
+types = { path = "../../types"}
