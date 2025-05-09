@@ -792,7 +792,7 @@ impl Batcher {
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::InvalidMaxFee,
             )
-                .await;
+            .await;
             self.metrics.user_error(&["invalid_max_fee", ""]);
             return Ok(());
         }
