@@ -230,7 +230,7 @@ impl BatchState {
     pub(crate) fn update_user_state_on_entry_removal(&mut self, removed_entry: &BatchQueueEntry) {
         let addr = removed_entry.sender;
 
-        let last_max_fee_limit = match self
+        let new_last_max_fee_limit = match self
             .batch_queue
             .iter()
             .filter(|(e, _)| e.sender == addr)
@@ -246,8 +246,8 @@ impl BatchState {
         if let Entry::Occupied(mut user_state) = self.user_states.entry(addr) {
             user_state.get_mut().proofs_in_batch -= 1;
             user_state.get_mut().nonce -= U256::one();
-            user_state.get_mut().total_fees_in_queue -= U256::one();
-            user_state.get_mut().last_max_fee_limit = last_max_fee_limit;
+            user_state.get_mut().total_fees_in_queue -= user_state.get_mut().last_max_fee_limit;
+            user_state.get_mut().last_max_fee_limit = new_last_max_fee_limit;
         }
     }
 
