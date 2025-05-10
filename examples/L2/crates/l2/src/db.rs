@@ -1,17 +1,17 @@
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fs::File,
     io::{BufReader, BufWriter},
+    str::FromStr,
 };
 
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
-use primitive_types::H160;
+use primitive_types::{H160, U256};
 use rand::Rng;
 use types::{Transfer, UserState};
 
 pub struct DB {
-    pub user_states: HashMap<H160, UserState>,
-    pub root: [u8; 32],
+    pub user_states: BTreeMap<H160, UserState>,
     pub file_path: String,
 }
 
@@ -21,21 +21,39 @@ pub enum DBError {
 }
 
 impl DB {
-    pub fn new(file_path: String) -> Result<Self, DBError> {
+    pub fn new(file_path: String) -> Self {
+        match Self::new_from_file(file_path.clone()) {
+            Ok(db) => db,
+            Err(e) => {
+                println!("Error when loading db from file {:?}, will start a new db with a default initial state", e);
+                // if db does not exists, create one with initial state
+                let initial_state = Self::initial_state();
+                let mut user_states: BTreeMap<H160, UserState> = BTreeMap::new();
+                for state in initial_state {
+                    user_states.insert(state.address, state);
+                }
+
+                DB {
+                    user_states,
+                    file_path,
+                }
+            }
+        }
+    }
+
+    fn new_from_file(file_path: String) -> Result<Self, DBError> {
         let file = File::open(&file_path).map_err(|e| DBError::IO(e.to_string()))?;
         let reader = BufReader::new(file);
         let user_states: Vec<UserState> =
             serde_json::from_reader(reader).map_err(|e| DBError::IO(e.to_string()))?;
-        let root = MerkleTree::<UserState>::build(&user_states).unwrap().root;
 
-        let mut user_states_map: HashMap<H160, UserState> = HashMap::new();
+        let mut user_states_map: BTreeMap<H160, UserState> = BTreeMap::new();
         for state in user_states {
             user_states_map.insert(state.address, state);
         }
 
         let db = Self {
             user_states: user_states_map,
-            root,
             file_path,
         };
 
@@ -58,11 +76,28 @@ impl DB {
     }
 
     fn initial_state() -> Vec<UserState> {
-        vec![]
-    }
-
-    pub fn upsert(&mut self, address: H160, new_state: UserState) {
-        self.user_states.insert(address, new_state);
+        vec![
+            UserState {
+                address: H160::from_str("0x742d35Cc6634C0532925a3b844Bc454e4438f44e").unwrap(),
+                balance: U256::from_dec_str("100000000000000000000").unwrap(),
+                nonce: U256::from(0),
+            },
+            UserState {
+                address: H160::from_str("0x53d284357ec70cE289D6D64134DfAc8E511c8a3D").unwrap(),
+                balance: U256::from_dec_str("50000000000000000000").unwrap(),
+                nonce: U256::from(1),
+            },
+            UserState {
+                address: H160::from_str("0xfe9e8709d3215310075d67e3ed32a380ccf451c8").unwrap(),
+                balance: U256::from_dec_str("250000000000000000000").unwrap(),
+                nonce: U256::from(2),
+            },
+            UserState {
+                address: H160::from_str("0xab5801a7d398351b8be11c439e05c5b3259aec9b").unwrap(),
+                balance: U256::from_dec_str("75000000000000000000").unwrap(),
+                nonce: U256::from(5),
+            },
+        ]
     }
 }
 
@@ -70,24 +105,25 @@ pub fn generate_random_transfers(db: &DB, num_to_generate: usize) -> Vec<Transfe
     let mut transfers = vec![];
     let mut rng = rand::thread_rng();
 
+    let mut accounts: Vec<UserState> = db.user_states.clone().into_values().collect();
+
     for _ in 0..num_to_generate {
-        let accounts: Vec<&UserState> = db.user_states.values().collect();
+        let (from, amount) = {
+            let user = accounts
+                .get_mut(rng.gen_range(0..db.user_states.len()))
+                .unwrap();
+            let new_balance = user.balance / 2;
+            user.balance = new_balance;
 
-        let sender = accounts
-            .get(rng.gen_range(0..db.user_states.len()))
-            .cloned()
-            .unwrap();
-
-        let receiver = accounts
-            .get(rng.gen_range(0..db.user_states.len()))
-            .cloned()
-            .unwrap();
-
-        let transfer = Transfer {
-            amount: sender.balance / 2,
-            from: sender.address,
-            to: receiver.address,
+            (user.address, new_balance)
         };
+
+        let to = accounts
+            .get(rng.gen_range(0..db.user_states.len()))
+            .unwrap()
+            .address;
+
+        let transfer = Transfer { amount, from, to };
 
         transfers.push(transfer);
     }
