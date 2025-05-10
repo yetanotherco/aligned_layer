@@ -18,7 +18,6 @@ futures-util = "0.3"
 tokio = "1.44"
 alloy = { version = "0.14", features = ["full", "providers"] }
 
-
 [build-dependencies]
 sp1-build = { version = "4.1.3" } 
 

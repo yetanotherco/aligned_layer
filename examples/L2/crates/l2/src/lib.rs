@@ -1,5 +1,7 @@
 use aligned::{send_proof_to_be_verified_on_aligned, wait_until_proof_is_aggregated};
+use alloy::hex;
 use db::{generate_random_transfers, DB};
+use primitive_types::U256;
 use sp1_state_transition_program::ProgramOutput;
 use zk::{prove_state_transition, PROGRAM_ELF};
 
@@ -14,13 +16,13 @@ pub async fn start_l2(
     wallet: aligned_sdk::core::types::Wallet<aligned_sdk::core::types::SigningKey>,
 ) {
     // 0. Load merkle tree file, if not created, create initial state
-    let mut db = DB::new("./db".to_string()).expect("create db");
+    let mut db = DB::new("./db".to_string());
 
     // 1. Create random transfers
-    let account_updates = generate_random_transfers(&db, 10);
+    let transfers = generate_random_transfers(&db, 10);
 
     // 2. Call zkvm and pass (MerkleTree, Updates to perform)
-    let (mut proof, _vk) = prove_state_transition(&mut db, account_updates.clone());
+    let (mut proof, _vk) = prove_state_transition(&db, transfers.clone());
     let ProgramOutput {
         initial_state_merkle_root,
         post_state_merkle_root,
@@ -28,16 +30,25 @@ pub async fn start_l2(
 
     // 3. If the proving went alright, update the db and verify that the merkle root matches
     assert!(db.commitment() == initial_state_merkle_root);
-    for update in account_updates {
-        db.user_states
-            .get_mut(&update.from)
-            .expect("User should exist")
-            .balance -= update.amount;
+    for transfer in transfers {
+        let mut user_from = db
+            .user_states
+            .get(&transfer.from)
+            .expect("User must exist in state")
+            .clone();
 
-        db.user_states
-            .get_mut(&update.to)
-            .expect("User should exist")
-            .balance += update.amount;
+        let mut user_to = db
+            .user_states
+            .get(&transfer.to)
+            .expect("User must exist in state")
+            .clone();
+
+        user_from.balance -= transfer.amount;
+        user_from.nonce += U256::one();
+        user_to.balance += transfer.amount;
+
+        db.user_states.insert(transfer.from, user_from);
+        db.user_states.insert(transfer.to, user_to);
     }
     assert!(db.commitment() == post_state_merkle_root);
 

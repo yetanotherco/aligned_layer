@@ -2,6 +2,7 @@
 sp1_zkvm::entrypoint!(main);
 
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+use primitive_types::U256;
 use sp1_state_transition_program::{ProgramInput, ProgramOutput};
 use types::UserState;
 
@@ -26,15 +27,15 @@ pub fn main() {
             .clone();
 
         if user_from.balance >= transfer.amount {
-            user_from.balance -= transfer.amount
+            user_from.balance -= transfer.amount;
+            user_from.nonce += U256::one();
+            user_to.balance += transfer.amount;
         } else {
-            panic!("User does not have enough balance to perform the transfer");
+            panic!("User does not have enough balance to perform the transfer",);
         }
 
-        user_to.balance += transfer.amount;
-
-        input.user_states.insert(transfer.from, user_from.clone());
-        input.user_states.insert(transfer.to, user_to.clone());
+        input.user_states.insert(transfer.from, user_from);
+        input.user_states.insert(transfer.to, user_to);
     }
 
     let post_state: Vec<UserState> = input.user_states.clone().into_values().collect();

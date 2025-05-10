@@ -1,11 +1,11 @@
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use types::{Transfer, UserState};
 
 #[derive(Deserialize, Serialize)]
 pub struct ProgramInput {
-    pub user_states: HashMap<H160, UserState>,
+    pub user_states: BTreeMap<H160, UserState>,
     pub transfers: Vec<Transfer>,
 }
 

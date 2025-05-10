@@ -3,7 +3,7 @@ use primitive_types::{H160, U256};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct UserState {
     pub address: H160,
     pub balance: U256,
@@ -36,7 +36,7 @@ impl IsMerkleTreeBackend for UserState {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Transfer {
     pub from: H160,
     pub to: H160,
