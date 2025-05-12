@@ -3848,6 +3848,8 @@ dependencies = [
  "sp1-sdk",
  "sp1_state_transition_program",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "types",
 ]
 
