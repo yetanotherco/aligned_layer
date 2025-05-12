@@ -75,6 +75,8 @@ impl DB {
         root
     }
 
+    /// Db genesis state used if a file is not provided
+    /// Its commitment is: 0x454691b501bc38536f4156a5b7d86502c49d13710d5e5b52b22c563fff4afee0
     fn initial_state() -> Vec<UserState> {
         vec![
             UserState {

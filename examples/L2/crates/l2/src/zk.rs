@@ -1,4 +1,3 @@
-use sp1_sdk::Prover;
 use types::Transfer;
 
 use crate::db::DB;

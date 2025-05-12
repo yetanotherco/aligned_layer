@@ -4,6 +4,7 @@ use aligned_sdk::{
 };
 use alloy::{
     eips::BlockNumberOrTag,
+    hex,
     primitives::Address,
     providers::{Provider, ProviderBuilder, WsConnect},
     rpc::types::Filter,
@@ -40,7 +41,7 @@ pub async fn send_proof_to_be_verified_on_aligned(
     .expect("Max fee to be retrieved");
 
     let aligned_verification_data =
-        aligned_sdk::sdk::submit(network, &verification_data, max_fee, wallet, 0.into())
+        aligned_sdk::sdk::submit(network, &verification_data, max_fee, wallet, nonce.into())
             .await
             .expect("Proof to be sent");
 
@@ -54,8 +55,8 @@ pub async fn wait_until_proof_is_aggregated(
     proof: &sp1_sdk::SP1ProofWithPublicValues,
     vk: &SP1VerifyingKey,
 ) -> Option<Vec<[u8; 32]>> {
-    let rpc_url = "";
-    let ws = WsConnect::new(rpc_url);
+    let ws_rpc_url = "wss://ethereum-holesky-rpc.publicnode.com";
+    let ws = WsConnect::new(ws_rpc_url);
     let provider = ProviderBuilder::new().on_ws(ws).await.unwrap();
 
     let aligned_proof_agg_address =
@@ -74,11 +75,11 @@ pub async fn wait_until_proof_is_aggregated(
         vk: vk.hash_bytes(),
         public_inputs: proof.public_values.to_vec(),
     };
-
+    
     let mut merkle_path = None;
 
     while let Some(_) = stream.next().await {
-        merkle_path = aligned_sdk::sdk::aggregation::get_merkle_path_for_proof(
+        if let Some(merkle_proof) = aligned_sdk::sdk::aggregation::get_merkle_path_for_proof(
             network.clone(),
             eth_rpc_url.clone(),
             beacon_client_url.clone(),
@@ -86,7 +87,11 @@ pub async fn wait_until_proof_is_aggregated(
             &verification_data,
         )
         .await
-        .unwrap();
+        .unwrap()
+        {
+            merkle_path = Some(merkle_proof);
+            break;
+        };
     }
 
     merkle_path
