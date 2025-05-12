@@ -21,7 +21,7 @@ pub fn prove_state_transition(
     let (pk, vk) = prover.setup(PROGRAM_ELF);
     let proof = prover
         .prove(&pk, &stdin)
-        .groth16()
+        .compressed()
         .run()
         .expect("Prover to run fine");
 

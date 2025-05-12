@@ -1,5 +1,4 @@
 use aligned::{send_proof_to_be_verified_on_aligned, wait_until_proof_is_aggregated};
-use alloy::hex;
 use db::{generate_random_transfers, DB};
 use primitive_types::U256;
 use sp1_state_transition_program::ProgramOutput;
@@ -9,10 +8,10 @@ mod aligned;
 mod db;
 mod zk;
 
-async fn send_state_transition_to_chain() {}
-
 pub async fn start_l2(
     network: aligned_sdk::core::types::Network,
+    eth_rpc_url: String,
+    beacon_client_url: String,
     wallet: aligned_sdk::core::types::Wallet<aligned_sdk::core::types::SigningKey>,
 ) {
     // 0. Load merkle tree file, if not created, create initial state
@@ -22,7 +21,7 @@ pub async fn start_l2(
     let transfers = generate_random_transfers(&db, 10);
 
     // 2. Call zkvm and pass (MerkleTree, Updates to perform)
-    let (mut proof, _vk) = prove_state_transition(&db, transfers.clone());
+    let (mut proof, vk) = prove_state_transition(&db, transfers.clone());
     let ProgramOutput {
         initial_state_merkle_root,
         post_state_merkle_root,
@@ -58,10 +57,18 @@ pub async fn start_l2(
 
     // 4. Send the proof to aligned and wait for verification
     let _ =
-        send_proof_to_be_verified_on_aligned(&proof, PROGRAM_ELF.to_vec(), network, wallet).await;
+        send_proof_to_be_verified_on_aligned(&proof, PROGRAM_ELF.to_vec(), network.clone(), wallet)
+            .await;
 
     // 5. Wait until proof is aggregated
-    wait_until_proof_is_aggregated().await;
+    let merkle_path = wait_until_proof_is_aggregated(
+        network.clone(),
+        eth_rpc_url,
+        beacon_client_url,
+        &proof,
+        &vk,
+    )
+    .await;
 
     // 6. Send updateState transaction to Ethereum
     // let receipt = update_state_on_chain();
