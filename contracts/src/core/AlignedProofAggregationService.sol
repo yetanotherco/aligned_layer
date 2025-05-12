@@ -14,12 +14,6 @@ contract AlignedProofAggregationService is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-
-    event Risc0VerifierAddressUpdated(address indexed newAddress);
-    event SP1VerifierAddressUpdated(address indexed newAddress);
-    event Risc0AggregatorProgramImageIdUpdated(bytes32 indexed newImageId);
-    event SP1AggregatorProgramVKHashUpdated(bytes32 indexed newVKHash);
-    
     /// @notice Map the merkle root to a boolean to indicate it was verified
     mapping(bytes32 => bool) public aggregatedProofs;
 
