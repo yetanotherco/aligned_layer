@@ -10,3 +10,5 @@ print_program_id:
 	@cat ./crates/l2/programs_ids.json
 
 
+deploy_contract_holesky:
+	@. ./contracts/.env.holesky && . ./contracts/scripts/deploy.sh
