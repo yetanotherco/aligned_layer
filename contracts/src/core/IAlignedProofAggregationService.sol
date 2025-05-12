@@ -1,6 +1,10 @@
 pragma solidity ^0.8.12;
 
 interface IAlignedProofAggregationService {
+
+    /// @notice event that gets emitted after a successful aggregated proof verification
+    event AggregatedProofVerified(bytes32 indexed merkleRoot, bytes32 blobVersionedHash);
+
     /// @notice Event emitted when the Risc0 verifier address is updated
     event Risc0VerifierAddressUpdated(address indexed newAddress);
     
@@ -12,9 +16,6 @@ interface IAlignedProofAggregationService {
     
     /// @notice Event emitted when the SP1 aggregator program VK hash is updated
     event SP1AggregatorProgramVKHashUpdated(bytes32 indexed newVKHash);
-
-    /// @notice event that gets emitted after a successful aggregated proof verification
-    event AggregatedProofVerified(bytes32 indexed merkleRoot, bytes32 blobVersionedHash);
 
     /// @notice Method to verify an aggregated proof from aligned
     /// @dev This function is called by the aligned proof aggregator after collecting the proofs and aggregating them
