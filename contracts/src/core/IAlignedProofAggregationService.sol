@@ -13,6 +13,9 @@ interface IAlignedProofAggregationService {
     /// @notice Event emitted when the SP1 aggregator program VK hash is updated
     event SP1AggregatorProgramVKHashUpdated(bytes32 indexed newVKHash);
 
+    /// @notice event that gets emitted after a successful aggregated proof verification
+    event AggregatedProofVerified(bytes32 indexed merkleRoot, bytes32 blobVersionedHash);
+
     /// @notice Method to verify an aggregated proof from aligned
     /// @dev This function is called by the aligned proof aggregator after collecting the proofs and aggregating them
     /// to be verified on-chain. We expect the blobTransactionHash to be called before
@@ -40,9 +43,6 @@ interface IAlignedProofAggregationService {
     /// @notice Sets the vk hash of the sp1 program
     /// @param _sp1AggregatorProgramVKHash The new vk hash for the sp1 aggregator program
     function setSP1AggregatorProgramVKHash(bytes32 _sp1AggregatorProgramVKHash) external;
-
-    /// @notice event that gets emitted after a successful aggregated proof verification
-    event AggregatedProofVerified(bytes32 indexed merkleRoot, bytes32 blobVersionedHash);
 
     error OnlyAlignedAggregator(address sender);
 }
