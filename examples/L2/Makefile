@@ -2,6 +2,9 @@
 
 SHELL := /bin/bash
 
+gen_env:
+	cp .env.example .env
+
 run_l2:
 	@cd crates/l2 && cargo run --release --bin main
 
