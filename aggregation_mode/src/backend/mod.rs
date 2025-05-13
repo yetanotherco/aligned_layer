@@ -103,8 +103,9 @@ impl ProofAggregator {
             warn!("No proofs collected, skipping aggregation...");
             return Ok(());
         }
+        info!("Total proofs to aggregate {}", proofs.len());
 
-        info!("Proofs fetched, constructing merkle root...");
+        info!("Constructing merkle root...");
         let (merkle_tree, leaves) = compute_proofs_merkle_root(&proofs)
             .ok_or(AggregatedProofSubmissionError::BuildingMerkleRoot)?;
         let merkle_root = merkle_tree.root;
