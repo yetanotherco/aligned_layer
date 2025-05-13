@@ -125,6 +125,23 @@ impl AlignedProof {
     }
 }
 
+/// Merkle tree commitment for aligned proofs.
+///
+/// Each leaf node (representing a proof) is committed by hashing:
+/// — The program id: the verification key hash in SP1 or the image ID in RISC Zero
+/// — Public inputs.
+///
+/// Intermediate nodes in the tree are formed by computing the keccak pairs of child nodes.
+// Note: this MerkleTreeBackend is defined in three locations
+// - aggregation_mode/src/aggregators/mod.rs
+// - aggregation_mode/src/aggregators/risc0_aggregator.rs
+// - aggregation_mode/src/aggregators/sp1_aggregator.rs
+// All 3 implementations should match
+// The definition on aggregator/mod.rs supports taking proofs from both Risc0 and SP1,
+// Additionally, a version that takes the leaves as already hashed data is defined on:
+// - batcher/aligned-sdk/src/sdk/aggregation.rs
+// This one is used in the SDK since,
+// the user may not have access to the proofs that he didn't submit
 impl IsMerkleTreeBackend for AlignedProof {
     type Data = AlignedProof;
     type Node = [u8; 32];

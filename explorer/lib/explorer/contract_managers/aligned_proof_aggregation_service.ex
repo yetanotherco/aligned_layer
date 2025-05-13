@@ -2,6 +2,8 @@ defmodule AlignedProofAggregationService do
   require Logger
 
   @aligned_config_file System.get_env("ALIGNED_PROOF_AGG_CONFIG_FILE")
+  @verifyRisc0_solidity_signature "0x54687ccf"
+  @verifySp1_solidity_signature "0xf6e04ac4"
 
   config_file_path =
     case @aligned_config_file do
@@ -63,6 +65,23 @@ defmodule AlignedProofAggregationService do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  # From a given aggregated proof event, it fetches the transaction
+  # and returns the aggregator (:sp1, :risc0) based on the function signature
+  def get_aggregator!(agg_proof) do
+    tx_hash = agg_proof.tx_hash
+    {:ok, tx} = Explorer.EthClient.get_transaction_by_hash(tx_hash)
+    input = Map.get(tx, "input")
+    # In solidity, the function signatures are the first 4 bytes of the input
+    # Note: first two characters are the 0x
+    function_signature = String.slice(input, 0..9)
+
+    case function_signature do
+      @verifyRisc0_solidity_signature -> :risc0
+      @verifySp1_solidity_signature -> :sp1
+      _ -> nil
     end
   end
 

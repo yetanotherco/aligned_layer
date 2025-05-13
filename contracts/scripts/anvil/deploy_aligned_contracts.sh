@@ -65,6 +65,23 @@ rm -f "script/output/devnet/alignedlayer_deployment_output.temp1.json"
 rm -f "script/output/devnet/alignedlayer_deployment_output.temp2.json"
 
 
+# Update Program IDs in anvil deployment
+cd ..
+make agg_mode_write_program_ids
+
+# Copy new values to config file
+jq '.programs_id.risc0AggregationProgramImageId = $input[0].risc0_image_id | .programs_id.sp1AggregationProgramVKHash = $input[0].sp1_vk_hash' \
+  --slurpfile input aggregation_mode/programs_ids.json \
+  contracts/script/deploy/config/devnet/proof-aggregator-service.devnet.config.json \
+  > temp.json && mv temp.json contracts/script/deploy/config/devnet/proof-aggregator-service.devnet.config.json
+
+jq '.programs_id.risc0AggregationProgramImageId = $input[0].risc0_image_id | .programs_id.sp1AggregationProgramVKHash = $input[0].sp1_vk_hash' \
+  --slurpfile input aggregation_mode/programs_ids.json \
+  contracts/script/deploy/config/devnet/proof-aggregator-service.devnet.mock.config.json \
+  > temp.json && mv temp.json contracts/script/deploy/config/devnet/proof-aggregator-service.devnet.mock.config.json
+
+cd contracts
+
 # Deploy proof aggregation service contract with SP1 Verifier
 forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
     ./script/deploy/config/devnet/proof-aggregator-service.devnet.config.json \

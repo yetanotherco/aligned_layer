@@ -113,8 +113,11 @@ defmodule Explorer.Periodically do
       proofs
       |> Enum.zip(proof_hashes)
       |> Enum.map(fn {agg_proof, hashes} ->
+        aggregator = AlignedProofAggregationService.get_aggregator!(agg_proof)
+
         agg_proof =
           agg_proof
+          |> Map.merge(%{aggregator: aggregator})
           |> Map.merge(%{number_of_proofs: length(hashes)})
 
         {:ok, %{id: id}} = AggregatedProofs.insert_or_update(agg_proof)
