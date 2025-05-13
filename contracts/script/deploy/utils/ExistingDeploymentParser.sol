@@ -142,10 +142,6 @@ contract ExistingDeploymentParser is Script, Test {
         eigenLayerPauserReg = PauserRegistry(
             stdJson.readAddress(existingDeploymentData, ".addresses.eigenLayerPauserReg")
         );
-        slasher = Slasher(stdJson.readAddress(existingDeploymentData, ".addresses.slasher"));
-        slasherImplementation = Slasher(
-            stdJson.readAddress(existingDeploymentData, ".addresses.slasherImplementation")
-        );
         delegationManager = DelegationManager(stdJson.readAddress(existingDeploymentData, ".addresses.delegationManager"));
         delegationManagerImplementation = DelegationManager(
             stdJson.readAddress(existingDeploymentData, ".addresses.delegationManagerImplementation")
@@ -167,15 +163,6 @@ contract ExistingDeploymentParser is Script, Test {
         eigenPodManager = EigenPodManager(stdJson.readAddress(existingDeploymentData, ".addresses.eigenPodManager"));
         eigenPodManagerImplementation = EigenPodManager(
             stdJson.readAddress(existingDeploymentData, ".addresses.eigenPodManagerImplementation")
-        );
-        delayedWithdrawalRouter = DelayedWithdrawalRouter(
-            stdJson.readAddress(existingDeploymentData, ".addresses.delayedWithdrawalRouter")
-        );
-        delayedWithdrawalRouterImplementation = DelayedWithdrawalRouter(
-            stdJson.readAddress(existingDeploymentData, ".addresses.delayedWithdrawalRouterImplementation")
-        );
-        beaconOracle = IBeaconChainOracle(
-            stdJson.readAddress(existingDeploymentData, ".addresses.beaconOracle")
         );
         eigenPodBeacon = UpgradeableBeacon(stdJson.readAddress(existingDeploymentData, ".addresses.eigenPodBeacon"));
         eigenPodImplementation = EigenPod(

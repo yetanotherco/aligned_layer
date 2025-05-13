@@ -75,6 +75,8 @@ install_foundry:
 install_eigenlayer_cli_devnet: ## Install Eigenlayer CLI v0.11.3 (Devnet compatible)
 	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.11.3
 
+anvil_deploy_all_contracts: anvil_deploy_eigen_contracts anvil_deploy_risc0_contracts anvil_deploy_sp1_contracts anvil_deploy_aligned_contracts
+
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
