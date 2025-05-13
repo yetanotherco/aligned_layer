@@ -22,7 +22,7 @@ pub fn prove_state_transition(
         .prove(&pk, &stdin)
         .compressed()
         .run()
-        .expect("Prover to run fine");
+        .expect("Prover to run well");
 
     (proof, vk)
 }

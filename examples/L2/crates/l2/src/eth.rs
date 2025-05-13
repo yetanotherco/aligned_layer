@@ -2,8 +2,10 @@ use std::str::FromStr;
 
 use alloy::{
     network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
-    rpc::types::TransactionReceipt, signers::local::PrivateKeySigner, sol,
+    rpc::types::TransactionReceipt, signers::local::LocalSigner, sol,
 };
+
+use crate::Config;
 
 sol!(
     #[sol(rpc)]
@@ -12,20 +14,21 @@ sol!(
 );
 
 pub async fn send_state_transition_to_chain(
+    config: &Config,
     public_inputs: Vec<u8>,
     merkle_proof: Vec<[u8; 32]>,
-    eth_rpc_url: String,
-    state_transition_address: String,
-    private_key: String,
 ) -> TransactionReceipt {
-    let rpc_url = eth_rpc_url.parse().expect("RPC URL should be valid");
-    let signer = PrivateKeySigner::from_str(&private_key)
-        .expect("Keystore signer should be `cast wallet` compliant");
+    let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
+    let signer = LocalSigner::decrypt_keystore(
+        &config.private_key_store_path,
+        &config.private_key_store_password,
+    )
+    .expect("Keystore signer should be `cast wallet` compliant");
     let wallet = EthereumWallet::from(signer);
 
     let rpc_provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
     let state_transition_contract = StateTransition::new(
-        Address::from_str(&state_transition_address)
+        Address::from_str(&config.state_transition_contract_address)
             .expect("State transition address should be valid"),
         rpc_provider,
     );
