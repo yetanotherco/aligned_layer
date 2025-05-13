@@ -6,8 +6,11 @@ contract StateTransition {
     event ProgramIdUpdated(bytes32);
 
     error OnlyOwner(address);
+    error AlignedVerifyProofInclusionCallFailed();
+    error ProofVerificationFailed();
+    error PrevStateRootDidNotMatch();
 
-    bytes32 public PROGRAM_ID = 0x00;
+    bytes32 public PROGRAM_ID;
     bytes32 public stateRoot;
     address public alignedProofAggregator;
     address public owner;
@@ -24,16 +27,21 @@ contract StateTransition {
             "verifyProofInclusion(bytes32[],bytes32,bytes)", merkleProof, PROGRAM_ID, publicInputs
         );
         (bool callResult, bytes memory response) = alignedProofAggregator.staticcall(callData);
-        require(callResult, "static_call failed");
+        if (!callResult) {
+            revert AlignedVerifyProofInclusionCallFailed();
+        }
 
         bool proofVerified = abi.decode(response, (bool));
-        require(proofVerified, "proof not verified in aligned");
+        if (!proofVerified) {
+            revert ProofVerificationFailed();
+        }
 
         (bytes32 prevStateRoot, bytes32 newStateRoot) = abi.decode(publicInputs, (bytes32, bytes32));
-        require(prevStateRoot == stateRoot);
+        if (prevStateRoot != stateRoot) {
+            revert PrevStateRootDidNotMatch();
+        }
 
         stateRoot = newStateRoot;
-
         emit StateUpdated(stateRoot);
     }
 
