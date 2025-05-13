@@ -4719,10 +4719,12 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-crypto"
-version = "0.10.0"
-source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=efd46f0b0aea3aa95d94bba7de86cb96611b40d3#efd46f0b0aea3aa95d94bba7de86cb96611b40d3"
+version = "0.12.0"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b#5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b"
 dependencies = [
  "lambdaworks-math",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
  "serde",
  "sha2 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha3 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4730,9 +4732,11 @@ dependencies = [
 
 [[package]]
 name = "lambdaworks-math"
-version = "0.10.0"
-source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=efd46f0b0aea3aa95d94bba7de86cb96611b40d3#efd46f0b0aea3aa95d94bba7de86cb96611b40d3"
+version = "0.12.0"
+source = "git+https://github.com/lambdaclass/lambdaworks.git?rev=5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b#5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b"
 dependencies = [
+ "getrandom 0.2.15",
+ "rand 0.8.5",
  "serde",
  "serde_json",
 ]
@@ -6190,6 +6194,7 @@ dependencies = [
  "bincode",
  "c-kzg",
  "ciborium",
+ "lambdaworks-crypto",
  "reqwest 0.12.15",
  "risc0-build",
  "risc0-ethereum-contracts",
@@ -7208,6 +7213,7 @@ dependencies = [
 name = "risc0_aggregation_program"
 version = "0.1.0"
 dependencies = [
+ "lambdaworks-crypto",
  "risc0-zkvm 2.0.0",
  "serde",
  "serde_json",
@@ -8484,6 +8490,7 @@ dependencies = [
 name = "sp1_aggregation_program"
 version = "0.1.0"
 dependencies = [
+ "lambdaworks-crypto",
  "serde",
  "serde_json",
  "sha2 0.10.8 (git+https://github.com/sp1-patches/RustCrypto-hashes?tag=sha2-v0.10.8-patch-v1)",

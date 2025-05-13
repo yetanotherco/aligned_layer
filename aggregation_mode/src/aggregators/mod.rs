@@ -3,15 +3,17 @@ pub mod sp1_aggregator;
 
 use std::fmt::Display;
 
+use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use risc0_aggregator::{
     AlignedRisc0VerificationError, Risc0AggregationError, Risc0ProofReceiptAndImageId,
 };
+use sha3::{Digest, Keccak256};
 use sp1_aggregator::{
     AlignedSP1VerificationError, SP1AggregationError, SP1ProofWithPubValuesAndElf,
 };
 use tracing::info;
 
-const MAX_PROOFS_PER_AGGREGATION: usize = 512;
+const MAX_PROOFS_PER_AGGREGATION: usize = 4;
 
 #[derive(Clone, Debug)]
 pub enum ZKVMEngine {
@@ -168,8 +170,43 @@ impl AlignedProof {
     pub fn commitment(&self) -> [u8; 32] {
         match self {
             AlignedProof::SP1(proof) => proof.hash_vk_and_pub_inputs(),
-            AlignedProof::Risc0(proof) => proof.hash_image_id_and_public_inputs(),
+            //AlignedProof::Risc0(proof) => proof.hash_image_id_and_public_inputs(),
+            AlignedProof::Risc0(proof) => todo!(),
+
         }
+    }
+}
+
+/// Merkle tree commitment for aligned proofs.
+///
+/// Each leaf node (representing a proof) is committed by hashing:
+/// — The program id: the verification key hash in SP1 or the image ID in RISC Zero
+/// — Public inputs.
+///
+/// Intermediate nodes in the tree are formed by computing the keccak pairs of child nodes.
+// Note: this MerkleTreeBackend is defined in three locations
+// - aggregation_mode/src/aggregators/mod.rs
+// - aggregation_mode/src/aggregators/risc0_aggregator.rs
+// - aggregation_mode/src/aggregators/sp1_aggregator.rs
+// All 3 implementations should match
+// The definition on aggregator/mod.rs supports taking proofs from both Risc0 and SP1,
+// Additionally, a version that takes the leaves as already hashed data is defined on:
+// - batcher/aligned-sdk/src/sdk/aggregation.rs
+// This one is used in the SDK since,
+// the user may not have access to the proofs that he didn't submit
+impl IsMerkleTreeBackend for AlignedProof {
+    type Data = AlignedProof;
+    type Node = [u8; 32];
+
+    fn hash_data(leaf: &Self::Data) -> Self::Node {
+        leaf.commitment()
+    }
+
+    fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
+        let mut hasher = Keccak256::new();
+        hasher.update(child_1);
+        hasher.update(child_2);
+        hasher.finalize().into()
     }
 }
 
@@ -188,7 +225,8 @@ impl AlignedProof {
                 },
             ),
             AlignedProof::Risc0(proof) => {
-                risc0_aggregator::verify(proof).map_err(AlignedVerificationError::Risc0)
+                todo!()
+                //risc0_aggregator::verify(proof).map_err(AlignedVerificationError::Risc0)
             }
         }
     }

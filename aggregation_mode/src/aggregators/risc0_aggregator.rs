@@ -1,10 +1,37 @@
-include!(concat!(env!("OUT_DIR"), "/methods.rs"));
+//include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt};
 use sha3::{Digest, Keccak256};
 
+
+pub struct Risc0ProofReceiptAndImageId {
+    pub image_id: [u8; 32],
+    pub receipt: Receipt,
+}
+
+impl Risc0ProofReceiptAndImageId {
+    pub fn public_inputs(&self) -> &Vec<u8> {
+        &self.receipt.journal.bytes
+    }
+}
+
+#[derive(Debug)]
+pub enum Risc0AggregationError {
+    WriteInput(String),
+    BuildExecutor(String),
+    Prove(String),
+    Verification(String),
+}
+
+#[derive(Debug)]
+pub enum AlignedRisc0VerificationError {
+    Verification(String),
+    UnsupportedProof,
+}
+
 /// Byte representation of the aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
-const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
+/* 
+pub const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
     let mut res = [0u8; 32];
     let mut i = 0;
     while i < 8 {
@@ -18,16 +45,6 @@ const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
     res
 };
 
-pub struct Risc0ProofReceiptAndImageId {
-    pub image_id: [u8; 32],
-    pub receipt: Receipt,
-}
-
-impl Risc0ProofReceiptAndImageId {
-    pub fn public_inputs(&self) -> &Vec<u8> {
-        &self.receipt.journal.bytes
-    }
-}
 
 impl Risc0ProofReceiptAndImageId {
     pub fn hash_image_id_and_public_inputs(&self) -> [u8; 32] {
@@ -38,13 +55,6 @@ impl Risc0ProofReceiptAndImageId {
     }
 }
 
-#[derive(Debug)]
-pub enum Risc0AggregationError {
-    WriteInput(String),
-    BuildExecutor(String),
-    Prove(String),
-    Verification(String),
-}
 
 pub(crate) fn aggregate_proofs(
     proofs: &[Risc0ProofReceiptAndImageId],
@@ -65,8 +75,7 @@ pub(crate) fn aggregate_proofs(
 
     // write input data
     let input = risc0_aggregation_program::Input {
-        proofs_image_id_and_pub_inputs,
-        is_aggregated_chunk,
+        proofs_image_id_and_pub_inputs
     };
     env_builder
         .write(&input)
@@ -101,11 +110,7 @@ pub(crate) fn aggregate_proofs(
     Ok(proof)
 }
 
-#[derive(Debug)]
-pub enum AlignedRisc0VerificationError {
-    Verification(String),
-    UnsupportedProof,
-}
+
 
 pub(crate) fn verify(
     proof: &Risc0ProofReceiptAndImageId,
@@ -119,4 +124,20 @@ pub(crate) fn verify(
     } else {
         Err(AlignedRisc0VerificationError::UnsupportedProof)
     }
+}
+*/
+
+pub(crate) fn aggregate_proofs(
+    proofs: &[Risc0ProofReceiptAndImageId],
+    is_aggregated_chunk: bool,
+    should_wrap_to_groth16: bool,
+) -> Result<Risc0ProofReceiptAndImageId, Risc0AggregationError> {
+
+    todo!()
+}
+
+pub(crate) fn verify(
+    proof: &Risc0ProofReceiptAndImageId,
+) -> Result<(), AlignedRisc0VerificationError> {
+    todo!();
 }

@@ -6,6 +6,7 @@ use ethers::{
     providers::{Http, Middleware, Provider},
     types::Filter,
 };
+use lambdaworks_crypto::merkle_tree::{merkle::MerkleTree, traits::IsMerkleTreeBackend};
 use sha3::{Digest, Keccak256};
 
 /// How much to go back from current block if from_block is not provided
@@ -43,6 +44,37 @@ impl AggregationModeVerificationData {
                 hasher.finalize().into()
             }
         }
+    }
+}
+
+// We use a newtype wrapper around `[u8; 32]` because Rust's orphan rule
+// prevents implementing a foreign trait (`IsMerkleTreeBackend`) for a foreign type (`[u8; 32]`).
+#[derive(Default, Debug, PartialEq, Eq)]
+pub struct Hash32([u8; 32]);
+
+// Note:
+// We define a version of the backend that takes the leaves as hashed data
+// since the user may not have access to the proofs that he didn't submit
+// The original MerkleTreeBackend is defined in three locations
+// - aggregation_mode/src/aggregators/mod.rs
+// - aggregation_mode/src/aggregators/risc0_aggregator.rs
+// - aggregation_mode/src/aggregators/sp1_aggregator.rs
+// The definition on aggregator/mod.rs supports taking proofs from both Risc0 and SP1
+// Hashes of all implementations should match
+impl IsMerkleTreeBackend for Hash32 {
+    type Data = Hash32;
+    type Node = [u8; 32];
+
+    /// We don't have to hash the data, as the blob already contains the proof commitments (which represent the merkle leaves)
+    fn hash_data(leaf: &Self::Data) -> Self::Node {
+        leaf.0
+    }
+
+    fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
+        let mut hasher = Keccak256::new();
+        hasher.update(child_1);
+        hasher.update(child_2);
+        hasher.finalize().into()
     }
 }
 
@@ -158,10 +190,16 @@ pub async fn is_proof_verified_in_aggregation_mode(
 
         let blob_bytes =
             hex::decode(blob_data.blob.replace("0x", "")).expect("A valid hex encoded data");
-        let proof_commitments = decoded_blob(blob_bytes);
+        let proof_commitments: Vec<Hash32> = decoded_blob(blob_bytes)
+            .iter()
+            .map(|p| Hash32(*p))
+            .collect();
+        let Some(merkle_tree) = MerkleTree::<Hash32>::build(&proof_commitments) else {
+            continue;
+        };
 
-        if proof_commitments.contains(&verification_data.commitment()) {
-            return if verify_blob_merkle_root(proof_commitments, merkle_root) {
+        if proof_commitments.contains(&Hash32(verification_data.commitment())) {
+            return if merkle_tree.root == merkle_root {
                 Ok(merkle_root)
             } else {
                 Err(ProofVerificationAggModeError::UnmatchedBlobAndEventMerkleRoot)
@@ -205,26 +243,4 @@ fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
     }
 
     proof_hashes
-}
-
-pub fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
-    let mut hasher = Keccak256::new();
-    hasher.update(hash_a);
-    hasher.update(hash_b);
-    hasher.finalize().into()
-}
-
-fn verify_blob_merkle_root(mut commitments: Vec<[u8; 32]>, merkle_root: [u8; 32]) -> bool {
-    while commitments.len() > 1 {
-        commitments = commitments
-            .chunks(2)
-            .map(|chunk| match chunk {
-                [a, b] => combine_hashes(a, b),
-                [a] => combine_hashes(a, a),
-                _ => panic!("Unexpected chunk size in leaves"),
-            })
-            .collect()
-    }
-
-    commitments[0] == merkle_root
 }
