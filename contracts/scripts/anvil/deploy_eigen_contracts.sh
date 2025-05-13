@@ -25,6 +25,15 @@ forge script script/deploy/local/deploy_from_scratch.slashing.s.sol \
   --broadcast \
   --sig "run(string memory configFile)" -- local/deploy_from_scratch.slashing.anvil.config.json
 
+# Whitelist strategy into strategyManager
+strategy_manager=$(jq -r '.addresses.strategyManager' script/output/devnet/SLASHING_deploy_from_scratch_deployment_data.json)
+strategy=$(jq -r '.addresses.strategy' script/output/devnet/SLASHING_deploy_from_scratch_deployment_data.json)
+echo "Whitelisting strategy ($strategy) into strategy manager ($strategy_manager)"
+cast send "$strategy_manager" \
+  "addStrategiesToDepositWhitelist(address[])" "[$strategy]" \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+
 # Copy the deployment data to Aligned output directory
 cp script/output/devnet/SLASHING_deploy_from_scratch_deployment_data.json ../../script/output/devnet/eigenlayer_deployment_output.json
 

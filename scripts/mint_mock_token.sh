@@ -12,7 +12,7 @@ if [[ "$#" -ne 2 ]]; then
   exit 1
 fi;
 
-mock_strategy_address=$(cat "contracts/script/output/devnet/eigenlayer_deployment_output.json" | jq -r '.addresses.strategies.MOCK')
+mock_strategy_address=$(cat "contracts/script/output/devnet/eigenlayer_deployment_output.json" | jq -r '.addresses.strategies.WETH')
 mock_token_address=$(cast call "$mock_strategy_address" "underlyingToken()")
 
 operator_address=$(cat "$1" | yq -r '.operator.address')
@@ -42,8 +42,11 @@ echo "Mock token address: $mock_token_address"
 private_key="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 # Mint tokens
+# The deployment `contracts/eigenlayer_contracts/eigenlayer-contracts/script/deploy/local/deploy_from_scratch.slashing.s.sol`
+# send tokens to `executorMultisig` which is `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (Anvil address 1)
+# We need to send tokens from `executorMultisig` to `operator_address`
 cast send "$mock_token_address" \
-    "mint(address, uint256)" \
+    "transfer(address recipient, uint256 amount)(bool)" \
     "$operator_address" "$2" \
     --private-key $private_key \
     --rpc-url "http://localhost:8545"
