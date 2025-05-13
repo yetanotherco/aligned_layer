@@ -124,17 +124,27 @@ contract AlignedProofAggregationService is
     /// @param _risc0VerifierAddress The new address for the Risc0 verifier contract
     function setRisc0VerifierAddress(address _risc0VerifierAddress) external onlyOwner {
         risc0VerifierAddress = _risc0VerifierAddress;
+        emit Risc0VerifierAddressUpdated(_risc0VerifierAddress);
     }
 
     /// @notice Sets the image id of the Risc0 program
     /// @param _risc0AggregatorProgramImageId The new imageid for the Risc0 aggregator program
     function setRisc0AggregatorProgramImageId(bytes32 _risc0AggregatorProgramImageId) external onlyOwner {
         risc0AggregatorProgramImageId = _risc0AggregatorProgramImageId;
+        emit Risc0AggregatorProgramImageIdUpdated(_risc0AggregatorProgramImageId);
+    }
+
+    /// @notice Sets the address of the SP1 verifier contract
+    /// @param _sp1VerifierAddress The new address for the SP1 verifier contract
+    function setSP1VerifierAddress(address _sp1VerifierAddress) external onlyOwner {
+        sp1VerifierAddress = _sp1VerifierAddress;
+        emit SP1VerifierAddressUpdated(_sp1VerifierAddress);
     }
 
     /// @notice Sets the vk hash of the sp1 program
     /// @param _sp1AggregatorProgramVKHash The new vk hash for the sp1 aggregator program
     function setSP1AggregatorProgramVKHash(bytes32 _sp1AggregatorProgramVKHash) external onlyOwner {
         sp1AggregatorProgramVKHash = _sp1AggregatorProgramVKHash;
+        emit SP1AggregatorProgramVKHashUpdated(_sp1AggregatorProgramVKHash);
     }
 }
