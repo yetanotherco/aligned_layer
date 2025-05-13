@@ -73,11 +73,16 @@ impl IsMerkleTreeBackend for Hash32 {
     fn hash_data(leaf: &Self::Data) -> Self::Node {
         leaf.0
     }
-
+    
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
         let mut hasher = Keccak256::new();
-        hasher.update(child_1);
-        hasher.update(child_2);
+        if child_1 < child_2 {
+            hasher.update(child_1);
+            hasher.update(child_2);
+        } else {
+            hasher.update(child_2);
+            hasher.update(child_1);
+        }
         hasher.finalize().into()
     }
 }
