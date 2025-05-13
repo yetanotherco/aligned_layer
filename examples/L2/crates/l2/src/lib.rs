@@ -29,7 +29,7 @@ pub async fn start_l2(config: Config) {
     let transfers = generate_random_transfers(&db, 10);
 
     // 2. Call zkvm and transfer to perform and verify
-    info!("Staring prover");
+    info!("Starting prover");
     let (mut proof, vk) = prove_state_transition(&db, transfers.clone());
     let ProgramOutput {
         initial_state_merkle_root,
@@ -80,7 +80,10 @@ pub async fn start_l2(config: Config) {
     let receipt =
         send_state_transition_to_chain(&config, proof.public_values.to_vec(), merkle_path).await;
 
-    info!("State update in contracts tx receipt {:?}", receipt);
+    info!(
+        "State update in contracts tx hash: {:?}",
+        receipt.transaction_hash
+    );
 
     // Finally save the db to a file to be retrieved later
     db.save().unwrap();
