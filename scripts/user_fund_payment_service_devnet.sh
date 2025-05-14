@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ -z "$RPC_URL" ]]; then
+  echo "RPC_URL is empty, using default value http://localhost:8545"
+  RPC_URL="http://localhost:8545"
+fi;
+
 # Check that OPERATOR_ADDRESS is not empty
 if [[ -z "$USER_ADDRESS" ]]; then
   echo "USER_ADDRESS is empty, using default value 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
@@ -18,6 +23,6 @@ amount_in_eth="100ether"
 cast send --from $USER_ADDRESS \
     --value $amount_in_eth \
     --private-key $USER_PRIVATE_KEY \
-    --rpc-url "http://localhost:8545" \
+    --rpc-url $RPC_URL \
     "$batcher_payment_service_address" \
-    --gas-price $(cast gas-price --rpc-url "http://localhost:8545")
+    --gas-price $(cast gas-price --rpc-url "$RPC_URL")

@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ -z "$RPC_URL" ]]; then
+  echo "RPC_URL is empty, using default value http://localhost:8545"
+  RPC_URL="http://localhost:8545"
+fi;
+
 # check that OPERATOR_ADDRESS is not empty
 if [[ -z "$OPERATOR_ADDRESS" ]]; then
   echo "OPERATOR_ADDRESS is empty, using default value 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
@@ -13,7 +18,7 @@ if [[ "$#" -ne 2 ]]; then
 fi;
 
 mock_strategy_address=$(cat "contracts/script/output/devnet/eigenlayer_deployment_output.json" | jq -r '.addresses.strategies.WETH')
-mock_token_address=$(cast call "$mock_strategy_address" "underlyingToken()")
+mock_token_address=$(cast call "$mock_strategy_address" "underlyingToken()" --rpc-url "$RPC_URL")
 
 operator_address=$(cat "$1" | yq -r '.operator.address')
 
@@ -49,4 +54,4 @@ cast send "$mock_token_address" \
     "transfer(address recipient, uint256 amount)(bool)" \
     "$operator_address" "$2" \
     --private-key $private_key \
-    --rpc-url "http://localhost:8545"
+    --rpc-url $RPC_URL

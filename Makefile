@@ -1319,6 +1319,7 @@ ethereum_package_inspect: ## Prints detailed information about the net
 
 ethereum_package_rm: ## Stops and removes the ethereum_package environment and used resources
 	kurtosis enclave rm aligned -f
+	kurtosis engine stop
 
 batcher_start_ethereum_package: user_fund_payment_service
 	@echo "Starting Batcher..."
@@ -1329,11 +1330,11 @@ aggregator_start_ethereum_package:
 	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
 
 operator_start_ethereum_package:
-	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	$(MAKE) operator_start ENVIRONMENT=devnet OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
 
 operator_register_start_ethereum_package:
-	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
-	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	$(MAKE) operator_start ENVIRONMENT=devnet OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
 
 
 install_spamoor: ## Instal spamoor to spam transactions
