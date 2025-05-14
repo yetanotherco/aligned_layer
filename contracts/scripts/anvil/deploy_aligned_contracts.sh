@@ -10,8 +10,6 @@ anvil --load-state state/sp1-deployed-anvil-state.json --dump-state state/aligne
 
 cd ../../
 
-ALIGNED_LAYER_SERVICE_MANAGER_ADDRESS=$(jq -r '.addresses.alignedLayerServiceManager' ./script/output/devnet/alignedlayer_deployment_output.json)
-
 sleep 1
 
 # Deploy the contracts
