@@ -23,8 +23,8 @@ impl IsMerkleTreeBackend for UserState {
         leaf.nonce.to_little_endian(&mut nonce_bytes);
 
         hasher.update(leaf.address);
-        hasher.update(&balance_bytes);
-        hasher.update(&nonce_bytes);
+        hasher.update(balance_bytes);
+        hasher.update(nonce_bytes);
         hasher.finalize().into()
     }
 

@@ -8,6 +8,7 @@ use std::{
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use primitive_types::{H160, U256};
 use rand::Rng;
+use tracing::warn;
 use types::{Transfer, UserState};
 
 pub struct DB {
@@ -17,6 +18,7 @@ pub struct DB {
 
 #[derive(Debug)]
 pub enum DBError {
+    #[allow(dead_code)]
     IO(String),
 }
 
@@ -25,7 +27,7 @@ impl DB {
         match Self::new_from_file(file_path.clone()) {
             Ok(db) => db,
             Err(e) => {
-                println!("Error when loading db from file {:?}, will start a new db with a default initial state", e);
+                warn!("Error when loading db from file {:?}, will start a new db with a default initial state", e);
                 // if db does not exists, create one with initial state
                 let initial_state = Self::initial_state();
                 let mut user_states: BTreeMap<H160, UserState> = BTreeMap::new();
@@ -71,12 +73,11 @@ impl DB {
 
     pub fn commitment(&self) -> [u8; 32] {
         let values: Vec<UserState> = self.user_states.clone().into_values().collect();
-        let root = MerkleTree::<UserState>::build(&values).unwrap().root;
-        root
+        MerkleTree::<UserState>::build(&values).unwrap().root
     }
 
     /// Db genesis state used if a file is not provided
-    /// Its commitment is: 0x454691b501bc38536f4156a5b7d86502c49d13710d5e5b52b22c563fff4afee0
+    /// Its commitment is: 0x3c1d1c01f8e0a4533085bc9d8a3829c5f6872e6d6cf62e04ae71acbc803747ce
     fn initial_state() -> Vec<UserState> {
         vec![
             UserState {
@@ -87,17 +88,17 @@ impl DB {
             UserState {
                 address: H160::from_str("0x53d284357ec70cE289D6D64134DfAc8E511c8a3D").unwrap(),
                 balance: U256::from_dec_str("50000000000000000000").unwrap(),
-                nonce: U256::from(1),
+                nonce: U256::from(0),
             },
             UserState {
                 address: H160::from_str("0xfe9e8709d3215310075d67e3ed32a380ccf451c8").unwrap(),
                 balance: U256::from_dec_str("250000000000000000000").unwrap(),
-                nonce: U256::from(2),
+                nonce: U256::from(0),
             },
             UserState {
                 address: H160::from_str("0xab5801a7d398351b8be11c439e05c5b3259aec9b").unwrap(),
                 balance: U256::from_dec_str("75000000000000000000").unwrap(),
-                nonce: U256::from(5),
+                nonce: U256::from(0),
             },
         ]
     }

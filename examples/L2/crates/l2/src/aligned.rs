@@ -19,7 +19,7 @@ pub async fn send_proof_to_be_verified_on_aligned(
     vm_program_code: Vec<u8>,
 ) -> AlignedVerificationData {
     let proof = bincode::serialize(proof).expect("Serialize sp1 proof to binary");
-    let chain_id = get_chain_id(&config.eth_rpc_url).await.unwrap();
+    let chain_id = get_chain_id(&config.eth_rpc_url).await.expect("To query chain id from rpc");
     let wallet = Wallet::decrypt_keystore(
         &config.private_key_store_path,
         &config.private_key_store_password,
@@ -47,17 +47,15 @@ pub async fn send_proof_to_be_verified_on_aligned(
     .await
     .expect("Max fee to be retrieved");
 
-    let aligned_verification_data = aligned_sdk::sdk::submit(
+    aligned_sdk::sdk::submit(
         config.network.clone(),
         &verification_data,
         max_fee,
         wallet,
-        nonce.into(),
+        nonce,
     )
     .await
-    .expect("Proof to be sent");
-
-    aligned_verification_data
+    .expect("Proof to be sent")
 }
 
 pub async fn wait_until_proof_is_aggregated(
@@ -88,7 +86,7 @@ pub async fn wait_until_proof_is_aggregated(
 
     let mut merkle_path = vec![];
 
-    while let Some(_) = stream.next().await {
+    while stream.next().await.is_some() {
         if let Some(merkle_proof) = aligned_sdk::sdk::aggregation::get_merkle_path_for_proof(
             config.network.clone(),
             config.eth_rpc_url.clone(),
