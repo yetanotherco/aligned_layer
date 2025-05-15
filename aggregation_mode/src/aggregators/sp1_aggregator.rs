@@ -3,7 +3,8 @@ use std::sync::LazyLock;
 use alloy::primitives::Keccak256;
 use sp1_aggregation_program::SP1VkAndPubInputs;
 use sp1_sdk::{
-    EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey, SP1Stdin, SP1VerifyingKey
+    EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey,
+    SP1Stdin, SP1VerifyingKey,
 };
 
 const ROOT_PROGRAM_ELF: &[u8] =
@@ -40,24 +41,17 @@ pub enum SP1AggregationError {
     UnsupportedProof,
 }
 
-pub(crate) fn aggregate_proofs(
+pub(crate) fn run_chunk_aggregator(
     proofs: &[SP1ProofWithPubValuesAndElf],
-    is_aggregated_chunk: bool,
-    should_wrap_to_groth16: bool,
 ) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
     let mut stdin = SP1Stdin::new();
 
-    println!("Len proofs: {}", proofs.len());
-
-    let mut program_input = sp1_aggregation_program::Input {
-        proofs_vk_and_pub_inputs: vec![]
+    let mut program_input = sp1_aggregation_program::ChunkAggregatorInput {
+        proofs_vk_and_pub_inputs: vec![],
     };
 
-    
     // write vk + public inputs
-    for (i, proof) in proofs.iter().enumerate() {
-        println!("Proof #{} public values: {:?}", i, proof.proof_with_pub_values.public_values);
-        
+    for proof in proofs.iter() {
         program_input
             .proofs_vk_and_pub_inputs
             .push(SP1VkAndPubInputs {
@@ -69,7 +63,7 @@ pub(crate) fn aggregate_proofs(
     stdin.write(&program_input);
 
     // write proofs
-    for (i, input_proof) in proofs.iter().enumerate() {
+    for input_proof in proofs.iter() {
         let vk = input_proof.vk().vk;
         // we only support sp1 Compressed proofs for now
         let sp1_sdk::SP1Proof::Compressed(proof) = input_proof.proof_with_pub_values.proof.clone()
@@ -77,39 +71,20 @@ pub(crate) fn aggregate_proofs(
             return Err(SP1AggregationError::UnsupportedProof);
         };
 
-        println!("Proof # VK: {:?}", vk);
-        println!("Proof #: {:?}", proof);
-
-        // Print first 32 bytes of the proof for debugging
         stdin.write_proof(*proof, vk);
     }
 
     #[cfg(feature = "prove")]
     let client = &*SP1_PROVER_CLIENT;
-    
     // If not in prove mode, create a mock proof via mock client
     #[cfg(not(feature = "prove"))]
     let client = ProverClient::builder().mock().build();
 
-    let (pk, vk): (SP1ProvingKey, SP1VerifyingKey);
-    let program_elf: Vec<u8>;
+    let (pk, vk) = client.setup(CHUNK_PROGRAM_ELF);
 
-    if is_aggregated_chunk {
-        program_elf = ROOT_PROGRAM_ELF.to_vec();
-        (pk, vk) = client.setup(ROOT_PROGRAM_ELF);
-    } else {
-        program_elf = CHUNK_PROGRAM_ELF.to_vec();
-        (pk, vk) = client.setup(CHUNK_PROGRAM_ELF);
-    }
-
-    let proof_builder = client.prove(&pk, &stdin);
-    let proof_builder = if should_wrap_to_groth16 {
-        proof_builder.groth16()
-    } else {
-        proof_builder.compressed()
-    };
-
-    let proof = proof_builder
+    let proof = client
+        .prove(&pk, &stdin)
+        .compressed()
         .run()
         .map_err(|e| SP1AggregationError::Prove(e.to_string()))?;
 
@@ -120,7 +95,68 @@ pub(crate) fn aggregate_proofs(
 
     let proof_and_elf = SP1ProofWithPubValuesAndElf {
         proof_with_pub_values: proof,
-        elf: program_elf,
+        elf: CHUNK_PROGRAM_ELF.to_vec(),
+    };
+
+    Ok(proof_and_elf)
+}
+
+pub(crate) fn run_root_aggregator(
+    proofs: &[(SP1ProofWithPubValuesAndElf, Vec<[u8; 32]>)],
+) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
+    let mut stdin = SP1Stdin::new();
+
+    let mut program_input = sp1_aggregation_program::RootAggregatorInput {
+        proofs_and_leaves_commitment: vec![],
+    };
+
+    // write vk + public inputs
+    for (proof, leaves_commitment) in proofs.iter() {
+        program_input.proofs_and_leaves_commitment.push((
+            SP1VkAndPubInputs {
+                public_inputs: proof.proof_with_pub_values.public_values.to_vec(),
+                vk: proof.vk().hash_u32(),
+            },
+            leaves_commitment.clone(),
+        ));
+    }
+
+    stdin.write(&program_input);
+
+    // write proofs
+    for (input_proof, _) in proofs.iter() {
+        let vk = input_proof.vk().vk;
+        // we only support sp1 Compressed proofs for now
+        let sp1_sdk::SP1Proof::Compressed(proof) = input_proof.proof_with_pub_values.proof.clone()
+        else {
+            return Err(SP1AggregationError::UnsupportedProof);
+        };
+
+        stdin.write_proof(*proof, vk);
+    }
+
+    #[cfg(feature = "prove")]
+    let client = &*SP1_PROVER_CLIENT;
+    // If not in prove mode, create a mock proof via mock client
+    #[cfg(not(feature = "prove"))]
+    let client = ProverClient::builder().mock().build();
+
+    let (pk, vk) = client.setup(ROOT_PROGRAM_ELF);
+
+    let proof = client
+        .prove(&pk, &stdin)
+        .groth16()
+        .run()
+        .map_err(|e| SP1AggregationError::Prove(e.to_string()))?;
+
+    // a sanity check, vm already performs it
+    client
+        .verify(&proof, &vk)
+        .map_err(SP1AggregationError::Verification)?;
+
+    let proof_and_elf = SP1ProofWithPubValuesAndElf {
+        proof_with_pub_values: proof,
+        elf: ROOT_PROGRAM_ELF.to_vec(),
     };
 
     Ok(proof_and_elf)

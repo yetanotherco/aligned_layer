@@ -85,26 +85,27 @@ impl ZKVMEngine {
                     .collect();
 
                 info!("Total proofs to aggregate {}", proofs.len());
-                let mut agg_proof = if proofs.len() > MAX_PROOFS_PER_AGGREGATION {
-                    let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
-                    let mut agg_proofs: Vec<SP1ProofWithPubValuesAndElf> = vec![];
+                let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
+                let mut agg_proofs: Vec<(SP1ProofWithPubValuesAndElf, Vec<[u8; 32]>)> = vec![];
 
-                    info!("Proofs length is higher than {}, aggregation will be performed in {} chunks", MAX_PROOFS_PER_AGGREGATION, chunks.len());
-                    for (i, chunk) in chunks.enumerate() {
-                        let agg_proof = sp1_aggregator::aggregate_proofs(chunk, false, false)
-                            .map_err(ProofAggregationError::SP1Aggregation)?;
-                        agg_proofs.push(agg_proof);
+                info!(
+                    "Proofs length is higher than {}, aggregation will be performed in {} chunks",
+                    MAX_PROOFS_PER_AGGREGATION,
+                    chunks.len()
+                );
+                for (i, chunk) in chunks.enumerate() {
+                    let leaves_commitment =
+                        chunk.iter().map(|e| e.hash_vk_and_pub_inputs()).collect();
+                    let agg_proof = sp1_aggregator::run_chunk_aggregator(chunk)
+                        .map_err(ProofAggregationError::SP1Aggregation)?;
+                    agg_proofs.push((agg_proof, leaves_commitment));
 
-                        info!("Chunk number {} has been aggregated", i);
-                    }
+                    info!("Chunk number {} has been aggregated", i);
+                }
 
-                    info!("All chunks have been aggregated, performing last aggregation...");
-                    sp1_aggregator::aggregate_proofs(&agg_proofs, true, true)
-                        .map_err(ProofAggregationError::SP1Aggregation)?
-                } else {
-                    sp1_aggregator::aggregate_proofs(&proofs, false, true)
-                        .map_err(ProofAggregationError::SP1Aggregation)?
-                };
+                info!("All chunks have been aggregated, performing last aggregation...");
+                let mut agg_proof = sp1_aggregator::run_root_aggregator(&agg_proofs)
+                    .map_err(ProofAggregationError::SP1Aggregation)?;
 
                 let merkle_root: [u8; 32] = agg_proof
                     .proof_with_pub_values
@@ -126,26 +127,29 @@ impl ZKVMEngine {
                     .collect();
 
                 info!("Total proofs to aggregate {}", proofs.len());
-                let agg_proof = if proofs.len() > MAX_PROOFS_PER_AGGREGATION {
-                    let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
-                    let mut agg_proofs: Vec<Risc0ProofReceiptAndImageId> = vec![];
+                let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
+                let mut agg_proofs: Vec<(Risc0ProofReceiptAndImageId, Vec<[u8; 32]>)> = vec![];
 
-                    info!("Proofs length is higher than {}, aggregation will be performed in {} chunks", MAX_PROOFS_PER_AGGREGATION, chunks.len());
-                    for (i, chunk) in chunks.enumerate() {
-                        let agg_proof = risc0_aggregator::aggregate_proofs(chunk, false, false)
-                            .map_err(ProofAggregationError::Risc0Aggregation)?;
-                        agg_proofs.push(agg_proof);
+                info!(
+                    "Proofs length is higher than {}, aggregation will be performed in {} chunks",
+                    MAX_PROOFS_PER_AGGREGATION,
+                    chunks.len()
+                );
+                for (i, chunk) in chunks.enumerate() {
+                    let leaves_commitment = chunk
+                        .iter()
+                        .map(|e| e.hash_image_id_and_public_inputs())
+                        .collect();
+                    let agg_proof = risc0_aggregator::run_chunk_aggregator(chunk)
+                        .map_err(ProofAggregationError::Risc0Aggregation)?;
+                    agg_proofs.push((agg_proof, leaves_commitment));
 
-                        info!("Chunk number {} has been aggregated", i);
-                    }
+                    info!("Chunk number {} has been aggregated", i);
+                }
 
-                    info!("All chunks have been aggregated, performing last aggregation...");
-                    risc0_aggregator::aggregate_proofs(&agg_proofs, true, true)
-                        .map_err(ProofAggregationError::Risc0Aggregation)?
-                } else {
-                    risc0_aggregator::aggregate_proofs(&proofs, false, true)
-                        .map_err(ProofAggregationError::Risc0Aggregation)?
-                };
+                info!("All chunks have been aggregated, performing last aggregation...");
+                let agg_proof = risc0_aggregator::run_root_aggregator(&agg_proofs)
+                    .map_err(ProofAggregationError::Risc0Aggregation)?;
 
                 // Note: journal.decode() won't work here as risc0 deserializer works under u32 words
                 let public_input_bytes = agg_proof.receipt.journal.as_ref();
@@ -170,9 +174,7 @@ impl AlignedProof {
     pub fn commitment(&self) -> [u8; 32] {
         match self {
             AlignedProof::SP1(proof) => proof.hash_vk_and_pub_inputs(),
-            //AlignedProof::Risc0(proof) => proof.hash_image_id_and_public_inputs(),
-            AlignedProof::Risc0(proof) => todo!(),
-
+            AlignedProof::Risc0(proof) => proof.hash_image_id_and_public_inputs(),
         }
     }
 }
@@ -225,8 +227,7 @@ impl AlignedProof {
                 },
             ),
             AlignedProof::Risc0(proof) => {
-                todo!()
-                //risc0_aggregator::verify(proof).map_err(AlignedVerificationError::Risc0)
+                risc0_aggregator::verify(proof).map_err(AlignedVerificationError::Risc0)
             }
         }
     }
