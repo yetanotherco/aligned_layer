@@ -265,6 +265,10 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             );
             Err(SubmitError::GenericError(e))
         }
+        Ok(SubmitProofResponseMessage::UnderpricedProof) => {
+            error!("Batcher responded with error: queue limit has been exceeded. Funds have not been spent.");
+            Err(SubmitError::BatchQueueLimitExceededError)
+        }
         Err(e) => {
             error!(
                 "Error while deserializing batch inclusion data: {}. Funds have not been spent.",

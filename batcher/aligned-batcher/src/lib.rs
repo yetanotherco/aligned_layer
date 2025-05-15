@@ -210,7 +210,7 @@ impl Batcher {
         .expect("Failed to get fallback Service Manager contract");
 
         let mut user_states = HashMap::new();
-        let mut batch_state = BatchState::new();
+        let mut batch_state = BatchState::new(config.batcher.max_queue_size);
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
                 non_paying_config.address);
@@ -228,7 +228,8 @@ impl Batcher {
                 non_paying_user_state,
             );
 
-            batch_state = BatchState::new_with_user_states(user_states);
+            batch_state =
+                BatchState::new_with_user_states(user_states, config.batcher.max_queue_size);
             Some(non_paying_config)
         } else {
             None
@@ -702,7 +703,7 @@ impl Batcher {
         // This is needed because we need to query the user state to make validations and
         // finally add the proof to the batch queue.
 
-        let batch_state_lock = self.batch_state.lock().await;
+        let mut batch_state_lock = self.batch_state.lock().await;
 
         let msg_max_fee = nonced_verification_data.max_fee;
         let Some(user_last_max_fee_limit) =
@@ -782,6 +783,8 @@ impl Batcher {
             return Ok(());
         }
 
+        // We check this after replacement logic because if user wants to replace a proof, their
+        // new_max_fee must be greater or equal than old_max_fee
         if msg_max_fee > user_last_max_fee_limit {
             std::mem::drop(batch_state_lock);
             warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
@@ -792,6 +795,67 @@ impl Batcher {
             .await;
             self.metrics.user_error(&["invalid_max_fee", ""]);
             return Ok(());
+        }
+
+        // * ---------------------------------------------------------------------*
+        // *        Perform validation over batcher queue                         *
+        // * ---------------------------------------------------------------------*
+
+        if batch_state_lock.is_queue_full() {
+            debug!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
+
+            // This cannot panic, if the batch queue is full it has at least one item
+            let (lowest_priority_entry, _) = batch_state_lock
+                .batch_queue
+                .peek()
+                .expect("Batch queue was expected to be full, but somehow no item was inside");
+
+            let lowest_fee_in_queue = lowest_priority_entry.nonced_verification_data.max_fee;
+
+            let new_proof_fee = nonced_verification_data.max_fee;
+
+            // We will keep the proof with the highest fee
+            // Note: we previously checked that if it's a new proof from the same user the fee is the same or lower
+            // So this will never eject a proof of the same user with a lower nonce
+            // which is the expected behaviour
+            if new_proof_fee > lowest_fee_in_queue {
+                // This cannot panic, if the batch queue is full it has at least one item
+                let (removed_entry, _) = batch_state_lock
+                    .batch_queue
+                    .pop()
+                    .expect("Batch queue was expected to be full, but somehow no item was inside");
+
+                info!(
+                    "Incoming proof (nonce: {}, fee: {}) has higher fee. Replacing lowest fee proof from sender {} with nonce {}.",
+                    nonced_verification_data.nonce,
+                    nonced_verification_data.max_fee,
+                    removed_entry.sender,
+                    removed_entry.nonced_verification_data.nonce
+                );
+
+                batch_state_lock.update_user_state_on_entry_removal(&removed_entry);
+
+                if let Some(removed_entry_ws) = removed_entry.messaging_sink {
+                    send_message(
+                        removed_entry_ws,
+                        SubmitProofResponseMessage::UnderpricedProof,
+                    )
+                    .await;
+                };
+            } else {
+                info!(
+                    "Incoming proof (nonce: {}, fee: {}) has lower priority than all entries in the full queue. Rejecting submission.",
+                    nonced_verification_data.nonce,
+                    nonced_verification_data.max_fee
+                );
+                std::mem::drop(batch_state_lock);
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::UnderpricedProof,
+                )
+                .await;
+                return Ok(());
+            }
         }
 
         // * ---------------------------------------------------------------------*
@@ -1726,6 +1790,16 @@ impl Batcher {
         }
 
         let batch_state_lock = self.batch_state.lock().await;
+
+        if batch_state_lock.is_queue_full() {
+            error!("Can't add new entry, the batcher queue is full");
+            send_message(
+                ws_sink.clone(),
+                SubmitProofResponseMessage::UnderpricedProof,
+            )
+            .await;
+            return Ok(());
+        }
 
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
