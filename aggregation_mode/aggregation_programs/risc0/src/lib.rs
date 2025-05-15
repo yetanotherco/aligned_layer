@@ -40,6 +40,17 @@ impl IsMerkleTreeBackend for Risc0ImageIdAndPubInputs {
         leaf.commitment()
     }
 
+    /// Computes a commutative Keccak256 hash, ensuring H(a, b) == H(b, a).
+    ///
+    /// See: https://docs.openzeppelin.com/contracts/5.x/api/utils#Hashes
+    ///
+    /// Source: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/Hashes.sol#L17-L19
+    ///
+    /// Compliant with OpenZeppelin's `processProofCalldata` function from MerkleProof.sol.
+    ///
+    /// See: https://docs.openzeppelin.com/contracts/5.x/api/utils#MerkleProof
+    ///
+    /// Source: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol#L114-L128
     fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
         let mut hasher = Keccak::v256();
         if child_1 < child_2 {

@@ -48,30 +48,14 @@ defmodule ExplorerWeb.AggProofsTable do
       <:col :let={proof} label="Aggregator">
         <%= case proof.aggregator do %>
           <% :sp1 -> %>
-            <.sp1_badge />
+            SP1
           <% :risc0 -> %>
-            <.risc0_badge />
+            RISC0
           <% _ -> %>
-            <span>Unknown</span>
+            Unknown
         <% end %>
       </:col>
     </.table>
-    """
-  end
-
-  defp sp1_badge(assigns) do
-    ~H"""
-    <div class="rounded-full p-1 px-5 border w-fit" style="border-color: #FE11C5">
-        <p style="color: #FE11C5">SP1</p>
-    </div>
-    """
-  end
-
-  defp risc0_badge(assigns) do
-    ~H"""
-    <div class="rounded-full p-1 px-5 w-fit" style="background-color: #FEFF9D">
-        <p class="text-black">RISC0</p>
-    </div>
     """
   end
 end

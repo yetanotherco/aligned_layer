@@ -8,7 +8,7 @@ export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.15.2
-EIGEN_SDK_GO_VERSION_DEVNET=v0.1.13
+EIGEN_SDK_GO_VERSION_DEVNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
 
@@ -73,7 +73,9 @@ install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
 install_eigenlayer_cli_devnet: ## Install Eigenlayer CLI v0.11.3 (Devnet compatible)
-	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.11.3
+	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.13.0
+
+anvil_deploy_all_contracts: anvil_deploy_eigen_contracts anvil_deploy_risc0_contracts anvil_deploy_sp1_contracts anvil_deploy_aligned_contracts
 
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
@@ -346,7 +348,7 @@ operator_remove_from_whitelist:
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"
-	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
+	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.WETH' contracts/script/output/devnet/eigenlayer_deployment_output.json))
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
