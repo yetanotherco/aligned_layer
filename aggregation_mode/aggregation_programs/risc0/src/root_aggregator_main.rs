@@ -6,7 +6,8 @@ use risc0_zkvm::guest::env;
 
 risc0_zkvm::guest::entry!(main);
 
-pub const CHUNK_AGGREGATOR_PROGRAM_IMAGE_ID: [u8; 32] = [0u8; 32];
+// Generated with `make agg_mode_write_program_ids` and copied from program_ids.json
+pub const CHUNK_AGGREGATOR_PROGRAM_IMAGE_ID: [u8; 32] = [200, 155, 105, 236, 200, 48, 124, 101, 178, 175, 101, 213, 67, 76, 52, 119, 110, 9, 50, 215, 92, 126, 5, 172, 211, 193, 88, 83, 150, 62, 51, 74];
 
 fn main() {
     let input = env::read::<RootAggregatorInput>();

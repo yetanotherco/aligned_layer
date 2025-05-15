@@ -5,7 +5,8 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use sha2::{Digest, Sha256};
 use sp1_aggregation_program::{Hash32, RootAggregatorInput};
 
-pub const CHUNK_AGGREGATOR_PROGRAM_VK_HASH: [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
+// Generated with `make agg_mode_write_program_ids` and copied from program_ids.json
+pub const CHUNK_AGGREGATOR_PROGRAM_VK_HASH: [u32; 8] = [899813587, 1068831252, 2000190855, 1210454658, 1057127892, 56287617, 1572193608, 1379769886];
 
 pub fn main() {
     let input = sp1_zkvm::io::read::<RootAggregatorInput>();
