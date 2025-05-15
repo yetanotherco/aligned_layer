@@ -1,4 +1,8 @@
 {
-  "risc0_image_id": "0xb0ce0665805c4219d134845b74be6f1f97ab74dbbc1b341b73af4068d33bc1b0",
-  "sp1_vk_hash": "0x0035279b39b0a20aac302dd3c569f3a6324a00acc1b8e864af9e3a5fbf453b69"
+  "risc0_chunk_aggregator_image_id": "0x0184e25336a5ce1757febbca2ec2cd9ae0e7de82389b8d4e4189a044f2adceef",
+  "risc0_chunk_aggregator_image_id_bytes": "[1, 132, 226, 83, 54, 165, 206, 23, 87, 254, 187, 202, 46, 194, 205, 154, 224, 231, 222, 130, 56, 155, 141, 78, 65, 137, 160, 68, 242, 173, 206, 239]",
+  "risc0_root_aggregator_image_id": "0x4e2bb70eabcbf1a1f2cda2dd46d84f77014489f938e860d64114df01012cb379",
+  "sp1_chunk_aggregator_vk_hash": "0x006b4421a6fed44853b9c3ec3c82612827e04fba80d6b8606edae2a4523d9e1e",
+  "sp1_chunk_aggregator_vk_hash_words": "[899813587, 1068831252, 2000190855, 1210454658, 1057127892, 56287617, 1572193608, 1379769886]",
+  "sp1_root_aggregator_vk_hash": "0x00a2d19dfab6d777d6cc83ca708170098e1ba92ce2a50b23d980f7e3cff1b36e"
 }
