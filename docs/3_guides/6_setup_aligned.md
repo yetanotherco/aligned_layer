@@ -13,7 +13,7 @@ Ensure you have the following installed:
 After installing foundryup, you need to install a specific Foundry version:
 
 ```shell
-foundryup -i nightly-a428ba6ad8856611339a6319290aade3347d25d9
+foundryup -i v1.1.0
 ```
 
 Then run:
