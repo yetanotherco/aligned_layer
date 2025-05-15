@@ -1,7 +1,7 @@
 {
   "address": {
-    "sp1VerifierAddress": "0xB146FbFdFeC2a5182b3Cef9becE03290224256D5",
-    "risc0VerifierAddress": "0x663F3ad617193148711d28f5334eE4Ed07016602",
+    "sp1VerifierAddress": "0x06530DD13aFB697B81E2d602a279EBAEC8Ca2E31",
+    "risc0VerifierAddress": "0x14C66A76b06A414e62048c50e4d21B295ad2Cb0C",
     "alignedAggregatorAddress": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
     "alignedAggregatorAddressPrivateKey": "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
   },

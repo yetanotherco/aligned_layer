@@ -37,3 +37,6 @@
 [submodule "contracts/lib/risc0-ethereum"]
 	path = contracts/lib/risc0-ethereum
 	url = https://github.com/risc0/risc0-ethereum
+[submodule "contracts/eigenlayer_contracts/eigenlayer-contracts"]
+	path = contracts/eigenlayer_contracts/eigenlayer-contracts
+	url = https://github.com/Layr-Labs/eigenlayer-contracts.git

@@ -39,6 +39,7 @@ For additional details, refer to the [official EigenLayer documentation](https:/
 
 | Contract                   | Address                                                                                                                       |
 |----------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| AlignedProofAggregationService | [0xe84CD4084d8131841CE6DC265361f81F4C59a1d4](https://holesky.etherscan.io/address/0xe84CD4084d8131841CE6DC265361f81F4C59a1d4) |
 | AlignedLayerServiceManager | [0x58F280BeBE9B34c9939C3C39e0890C81f163B623](https://holesky.etherscan.io/address/0x58F280BeBE9B34c9939C3C39e0890C81f163B623) |
 | BlsApkRegistry             | [0xD0A725d82649f9e4155D7A60B638Fe33b3F25e3b](https://holesky.etherscan.io/address/0xD0A725d82649f9e4155D7A60B638Fe33b3F25e3b) |
 | IndexRegistry              | [0x4A7DE0a9fBBAa4fF0270d31852B363592F68B81F](https://holesky.etherscan.io/address/0x4A7DE0a9fBBAa4fF0270d31852B363592F68B81F) |
