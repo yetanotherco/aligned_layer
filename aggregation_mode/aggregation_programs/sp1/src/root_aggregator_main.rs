@@ -1,23 +1,19 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
+use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use sha2::{Digest, Sha256};
-use sp1_aggregation_program::{compute_merkle_root, Input};
+use sp1_aggregation_program::{Hash32, RootAggregatorInput};
 
-pub const LEAVES_AGG_PROGRAM_VK_HASH: [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
+pub const CHUNK_AGGREGATOR_PROGRAM_VK_HASH: [u32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
 
 pub fn main() {
-    let input = sp1_zkvm::io::read::<Input>();
-    
-    println!("Number of proofs in input: {}", input.proofs_vk_and_pub_inputs.len());
+    let input = sp1_zkvm::io::read::<RootAggregatorInput>();
 
-    let mut proofs_hash: Vec<[u8; 32]> = vec![];
-    println!("Initial proofs_hash length: {}", proofs_hash.len());
+    let mut leaves = vec![];
 
     // Verify the proofs.
-    for (i, proof) in input.proofs_vk_and_pub_inputs.iter().enumerate() {
-        println!("Processing proof {}, public_inputs length: {}", i, proof.public_inputs.len());
-        
+    for (proof, leaves_commitment) in input.proofs_and_leaves_commitment {
         let vkey = proof.vk;
         let public_values_digest = Sha256::digest(&proof.public_inputs);
 
@@ -25,9 +21,7 @@ pub fn main() {
         // This validation step guarantees that the proof was genuinely verified
         // by this program. Without this check, a different program using the
         // same public inputs could bypass verification.
-        
-        // TODO: Add the assert here
-        //assert!(proof.vk == LEAVES_AGG_PROGRAM_VK_HASH);
+        assert!(proof.vk == CHUNK_AGGREGATOR_PROGRAM_VK_HASH);
 
         let merkle_root: [u8; 32] = proof
             .public_inputs
@@ -35,17 +29,19 @@ pub fn main() {
             .try_into()
             .expect("Public input to be the hash of the chunk tree");
 
-        proofs_hash.push(merkle_root);
-        println!("proofs_hash length after push: {}", proofs_hash.len());
+        // Reconstruct the merkle tree and verify that the roots match
+        let leaves_commitment: Vec<Hash32> =
+            leaves_commitment.into_iter().map(|el| Hash32(el)).collect();
+        let merkle_tree: MerkleTree<Hash32> = MerkleTree::build(&leaves_commitment).unwrap();
+        assert!(merkle_tree.root == merkle_root);
 
-        println!("vkey (debug): {:?}", vkey);
-        println!("public_values_digest (debug): {:?}", public_values_digest);
+        leaves.extend(leaves_commitment);
 
         sp1_zkvm::lib::verify::verify_sp1_proof(&vkey, &public_values_digest.into());
     }
 
-    println!("Final proofs_hash length before compute_merkle_root: {}", proofs_hash.len());
-    let merkle_root = compute_merkle_root(proofs_hash);
+    // Finally, compute the final merkle root with all the leaves
+    let merkle_tree: MerkleTree<Hash32> = MerkleTree::build(&leaves).unwrap();
 
-    sp1_zkvm::io::commit_slice(&merkle_root);
+    sp1_zkvm::io::commit_slice(&merkle_tree.root);
 }

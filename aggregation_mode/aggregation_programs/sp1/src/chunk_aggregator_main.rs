@@ -1,13 +1,12 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
+use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use sha2::{Digest, Sha256};
-use sp1_aggregation_program::{compute_merkle_root, Input};
+use sp1_aggregation_program::{ChunkAggregatorInput, SP1VkAndPubInputs};
 
 pub fn main() {
-    let input = sp1_zkvm::io::read::<Input>();
-
-    let mut proofs_commitment: Vec<[u8; 32]> = vec![];
+    let input = sp1_zkvm::io::read::<ChunkAggregatorInput>();
 
     // Verify the proofs.
     for proof in input.proofs_vk_and_pub_inputs.iter() {
@@ -15,12 +14,11 @@ pub fn main() {
         let public_values = &proof.public_inputs;
         let public_values_digest = Sha256::digest(public_values);
 
-        proofs_commitment.push(proof.commitment());
-
         sp1_zkvm::lib::verify::verify_sp1_proof(&vkey, &public_values_digest.into());
     }
 
-    let merkle_root = compute_merkle_root(proofs_commitment);
+    let merkle_tree =
+        MerkleTree::<SP1VkAndPubInputs>::build(&input.proofs_vk_and_pub_inputs).unwrap();
 
-    sp1_zkvm::io::commit_slice(&merkle_root);
+    sp1_zkvm::io::commit_slice(&merkle_tree.root);
 }

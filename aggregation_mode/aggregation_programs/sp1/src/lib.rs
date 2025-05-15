@@ -46,29 +46,30 @@ impl IsMerkleTreeBackend for SP1VkAndPubInputs {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Input {
+pub struct Hash32(pub [u8; 32]);
+
+impl IsMerkleTreeBackend for Hash32 {
+    type Data = Hash32;
+    type Node = [u8; 32];
+
+    fn hash_data(leaf: &Self::Data) -> Self::Node {
+        leaf.0
+    }
+
+    fn hash_new_parent(child_1: &Self::Node, child_2: &Self::Node) -> Self::Node {
+        let mut hasher = Keccak256::new();
+        hasher.update(child_1);
+        hasher.update(child_2);
+        hasher.finalize().into()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ChunkAggregatorInput {
     pub proofs_vk_and_pub_inputs: Vec<SP1VkAndPubInputs>,
 }
 
-fn combine_hashes(hash_a: &[u8; 32], hash_b: &[u8; 32]) -> [u8; 32] {
-    let mut hasher = Keccak256::new();
-    hasher.update(hash_a);
-    hasher.update(hash_b);
-    hasher.finalize().into()
-}
-
-/// Computes the merkle root for the given proofs
-pub fn compute_merkle_root(mut leaves_hash: Vec<[u8; 32]>) -> [u8; 32] {
-    while leaves_hash.len() > 1 {
-        leaves_hash = leaves_hash
-            .chunks(2)
-            .map(|chunk| match chunk {
-                [a, b] => combine_hashes(&a, &b),
-                [a] => combine_hashes(&a, &a),
-                _ => panic!("Unexpected chunk size in leaves"),
-            })
-            .collect()
-    }
-
-    leaves_hash[0]
+#[derive(Serialize, Deserialize)]
+pub struct RootAggregatorInput {
+    pub proofs_and_leaves_commitment: Vec<(SP1VkAndPubInputs, Vec<[u8; 32]>)>,
 }
