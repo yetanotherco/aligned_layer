@@ -7,7 +7,6 @@ participants:
 ethereum_metrics_exporter_enabled: true
 
 additional_services:
-  - blockscout
   - dora
   - assertoor
   - prometheus_grafana
@@ -16,6 +15,9 @@ port_publisher:
   el:
     enabled: true
     public_port_start: 8542
+  cl:
+    enabled: true
+    public_port_start: 58800
 
 ethereum_genesis_generator_params:
   # The image to use for ethereum genesis generator
