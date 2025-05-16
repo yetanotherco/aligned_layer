@@ -1,5 +1,3 @@
-pub mod aggregation;
-
 use crate::{
     communication::{
         batch::await_batch_verification,
@@ -7,7 +5,7 @@ use crate::{
         protocol::check_protocol_version,
         serialization::{cbor_deserialize, cbor_serialize},
     },
-    core::{
+    common::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, DEFAULT_CONSTANT_GAS_COST,
             DEFAULT_MAX_FEE_BATCH_SIZE, GAS_PRICE_PERCENTAGE_MULTIPLIER,

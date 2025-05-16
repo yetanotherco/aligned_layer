@@ -1,6 +1,6 @@
 use aligned_sdk::{
     communication::serialization::cbor_serialize,
-    core::{
+    common::{
         constants::CBOR_ARRAY_MAX_OVERHEAD,
         types::{NoncedVerificationData, VerificationDataCommitment},
     },
@@ -214,9 +214,9 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
 
 #[cfg(test)]
 mod test {
-    use aligned_sdk::core::constants::DEFAULT_CONSTANT_GAS_COST;
-    use aligned_sdk::core::types::ProvingSystemId;
-    use aligned_sdk::core::types::VerificationData;
+    use aligned_sdk::common::constants::DEFAULT_CONSTANT_GAS_COST;
+    use aligned_sdk::common::types::ProvingSystemId;
+    use aligned_sdk::common::types::VerificationData;
     use ethers::types::Address;
 
     use super::*;

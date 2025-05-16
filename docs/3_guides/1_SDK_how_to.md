@@ -23,7 +23,7 @@ version of the release that has the `latest` badge.
 To get the SDK up and running in your project, you must first import it
 
 ```rust
-use aligned_sdk::core::types::{PriceEstimate, AlignedVerificationData, Network, ProvingSystemId, VerificationData};
+use aligned_sdk::common::types::{PriceEstimate, AlignedVerificationData, Network, ProvingSystemId, VerificationData};
 use aligned_sdk::sdk::{estimate_fee, submit_and_wait, get_nonce_from_ethereum};
 ```
 

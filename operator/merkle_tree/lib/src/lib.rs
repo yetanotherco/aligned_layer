@@ -1,4 +1,4 @@
-use aligned_sdk::core::types::{
+use aligned_sdk::common::types::{
     VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;

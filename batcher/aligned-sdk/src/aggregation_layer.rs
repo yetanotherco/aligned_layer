@@ -1,6 +1,6 @@
 use crate::{
     beacon::{BeaconClient, BeaconClientError},
-    core::types::Network,
+    common::types::Network,
 };
 use ethers::{
     providers::{Http, Middleware, Provider},
