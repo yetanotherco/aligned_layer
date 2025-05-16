@@ -5,20 +5,22 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::aggregation_layer::is_proof_verified_in_aggregation_mode;
+use aligned_sdk::aggregation_layer::AggregationModeVerificationData;
 use aligned_sdk::common::types::FeeEstimationType;
 use aligned_sdk::common::{
     errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
-use aligned_sdk::aggregation_layer::is_proof_verified_in_aggregation_mode;
-use aligned_sdk::aggregation_layer::AggregationModeVerificationData;
+use aligned_sdk::communication::serialization::cbor_deserialize;
 use aligned_sdk::verification_layer::estimate_fee;
 use aligned_sdk::verification_layer::get_chain_id;
 use aligned_sdk::verification_layer::get_nonce_from_batcher;
 use aligned_sdk::verification_layer::get_nonce_from_ethereum;
 use aligned_sdk::verification_layer::{deposit_to_aligned, get_balance_in_aligned};
-use aligned_sdk::verification_layer::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
+use aligned_sdk::verification_layer::{
+    get_vk_commitment, is_proof_verified, save_response, submit_multiple,
+};
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;

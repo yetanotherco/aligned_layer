@@ -1,10 +1,4 @@
 use crate::{
-    communication::{
-        batch::await_batch_verification,
-        messaging::{receive, send_messages, ResponseStream},
-        protocol::check_protocol_version,
-        serialization::{cbor_deserialize, cbor_serialize},
-    },
     common::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, DEFAULT_CONSTANT_GAS_COST,
@@ -16,6 +10,12 @@ use crate::{
             AlignedVerificationData, ClientMessage, FeeEstimationType, GetNonceResponseMessage,
             Network, ProvingSystemId, VerificationData,
         },
+    },
+    communication::{
+        batch::await_batch_verification,
+        messaging::{receive, send_messages, ResponseStream},
+        protocol::check_protocol_version,
+        serialization::{cbor_deserialize, cbor_serialize},
     },
     eth::{
         aligned_service_manager::aligned_service_manager,

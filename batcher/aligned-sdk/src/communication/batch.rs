@@ -7,7 +7,8 @@ use crate::{
             AlignedVerificationData, BatchInclusionData, Network, VerificationCommitmentBatch,
             VerificationDataCommitment,
         },
-    }, verification_layer::is_proof_verified
+    },
+    verification_layer::is_proof_verified,
 };
 
 const RETRIES: u64 = 10;

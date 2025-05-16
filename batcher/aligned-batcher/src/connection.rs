@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::types::{batch_queue::BatchQueueEntry, errors::BatcherError};
 use aligned_sdk::{
-    communication::serialization::cbor_serialize,
     common::types::{BatchInclusionData, SubmitProofResponseMessage, VerificationCommitmentBatch},
+    communication::serialization::cbor_serialize,
 };
 use futures_util::{stream::SplitSink, SinkExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;

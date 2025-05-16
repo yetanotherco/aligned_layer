@@ -5,11 +5,10 @@ pub mod verification_layer;
 pub mod common;
 
 // Eth and Communication modules should be outside the SDK in the future
-/// Eth module is mostly for internal use
-pub mod eth;
 /// Communication module is mostly for internal use
 /// It contains code for communication protocols
 pub mod communication;
+/// Eth module is mostly for internal use
+pub mod eth;
 
-pub (crate) mod beacon;
-
+pub(crate) mod beacon;

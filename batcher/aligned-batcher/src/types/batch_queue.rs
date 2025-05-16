@@ -1,9 +1,9 @@
 use aligned_sdk::{
-    communication::serialization::cbor_serialize,
     common::{
         constants::CBOR_ARRAY_MAX_OVERHEAD,
         types::{NoncedVerificationData, VerificationDataCommitment},
     },
+    communication::serialization::cbor_serialize,
 };
 use ethers::types::{Address, Signature, U256};
 use priority_queue::PriorityQueue;
