@@ -1,6 +1,6 @@
 use std::env;
 
-use aligned_sdk::core::types::Network;
+use aligned_sdk::common::types::Network;
 use dotenv::dotenv;
 use l2_example::{start_l2, Config};
 use tracing_subscriber::FmtSubscriber;

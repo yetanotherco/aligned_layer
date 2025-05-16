@@ -1,6 +1,6 @@
 use aligned_sdk::{
-    core::types::{AlignedVerificationData, Signer, VerificationData, Wallet},
-    sdk::{estimate_fee, get_chain_id},
+    common::types::{AlignedVerificationData, Signer, VerificationData, Wallet},
+    verification_layer::{estimate_fee, get_chain_id},
 };
 use alloy::{
     eips::BlockNumberOrTag,
@@ -19,7 +19,9 @@ pub async fn send_proof_to_be_verified_on_aligned(
     vm_program_code: Vec<u8>,
 ) -> AlignedVerificationData {
     let proof = bincode::serialize(proof).expect("Serialize sp1 proof to binary");
-    let chain_id = get_chain_id(&config.eth_rpc_url).await.expect("To query chain id from rpc");
+    let chain_id = get_chain_id(&config.eth_rpc_url)
+        .await
+        .expect("To query chain id from rpc");
     let wallet = Wallet::decrypt_keystore(
         &config.private_key_store_path,
         &config.private_key_store_password,
@@ -29,25 +31,28 @@ pub async fn send_proof_to_be_verified_on_aligned(
 
     let verification_data = VerificationData {
         proof_generator_addr: wallet.address(),
-        proving_system: aligned_sdk::core::types::ProvingSystemId::SP1,
+        proving_system: aligned_sdk::common::types::ProvingSystemId::SP1,
         proof,
         vm_program_code: Some(vm_program_code),
         pub_input: None,
         verification_key: None,
     };
 
-    let nonce = aligned_sdk::sdk::get_nonce_from_batcher(config.network.clone(), wallet.address())
-        .await
-        .expect("Retrieve nonce from aligned batcher");
+    let nonce = aligned_sdk::verification_layer::get_nonce_from_batcher(
+        config.network.clone(),
+        wallet.address(),
+    )
+    .await
+    .expect("Retrieve nonce from aligned batcher");
 
     let max_fee = estimate_fee(
         &config.eth_rpc_url,
-        aligned_sdk::core::types::FeeEstimationType::Instant,
+        aligned_sdk::common::types::FeeEstimationType::Instant,
     )
     .await
     .expect("Max fee to be retrieved");
 
-    aligned_sdk::sdk::submit(
+    aligned_sdk::verification_layer::submit(
         config.network.clone(),
         &verification_data,
         max_fee,
@@ -79,7 +84,7 @@ pub async fn wait_until_proof_is_aggregated(
     let sub = provider.subscribe_logs(&filter).await.unwrap();
     let mut stream = sub.into_stream();
 
-    let verification_data = aligned_sdk::sdk::aggregation::AggregationModeVerificationData::SP1 {
+    let verification_data = aligned_sdk::aggregation_layer::AggregationModeVerificationData::SP1 {
         vk: vk.hash_bytes(),
         public_inputs: proof.public_values.to_vec(),
     };
@@ -87,7 +92,7 @@ pub async fn wait_until_proof_is_aggregated(
     let mut merkle_path = vec![];
 
     while stream.next().await.is_some() {
-        if let Some(merkle_proof) = aligned_sdk::sdk::aggregation::get_merkle_path_for_proof(
+        if let Some(merkle_proof) = aligned_sdk::aggregation_layer::get_merkle_path_for_proof(
             config.network.clone(),
             config.eth_rpc_url.clone(),
             config.beacon_client_url.clone(),
