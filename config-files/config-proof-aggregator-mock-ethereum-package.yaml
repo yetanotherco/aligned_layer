@@ -1,7 +1,7 @@
 aligned_service_manager_address: "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
-proof_aggregation_service_address: "0xFD471836031dc5108809D173A067e8486B9047A3"
+proof_aggregation_service_address: "0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f"
 eth_rpc_url: "http://localhost:8545"
-eth_ws_url: "ws://localhost:8545"
+eth_ws_url: "ws://localhost:8546"
 max_proofs_in_queue: 1000
 last_aggregated_block_filepath: config-files/proof-aggregator.last_aggregated_block.json
 
