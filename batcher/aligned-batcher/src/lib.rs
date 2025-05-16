@@ -23,7 +23,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use aligned_sdk::core::constants::{
+use aligned_sdk::common::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, BATCHER_SUBMISSION_BASE_GAS_COST,
     BUMP_BACKOFF_FACTOR, BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY,
     CBOR_ARRAY_MAX_OVERHEAD, CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF,
@@ -31,7 +31,7 @@ use aligned_sdk::core::constants::{
     ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
-use aligned_sdk::core::types::{
+use aligned_sdk::common::types::{
     ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason,
     ProvingSystemId, SubmitProofMessage, SubmitProofResponseMessage, VerificationCommitmentBatch,
     VerificationData, VerificationDataCommitment,

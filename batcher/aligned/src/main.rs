@@ -5,20 +5,22 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::communication::serialization::cbor_deserialize;
-use aligned_sdk::core::types::FeeEstimationType;
-use aligned_sdk::core::{
+use aligned_sdk::aggregation_layer;
+use aligned_sdk::aggregation_layer::AggregationModeVerificationData;
+use aligned_sdk::common::types::FeeEstimationType;
+use aligned_sdk::common::{
     errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
-use aligned_sdk::sdk::aggregation;
-use aligned_sdk::sdk::aggregation::AggregationModeVerificationData;
-use aligned_sdk::sdk::estimate_fee;
-use aligned_sdk::sdk::get_chain_id;
-use aligned_sdk::sdk::get_nonce_from_batcher;
-use aligned_sdk::sdk::get_nonce_from_ethereum;
-use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
-use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
+
+use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::verification_layer;
+use aligned_sdk::verification_layer::estimate_fee;
+use aligned_sdk::verification_layer::get_chain_id;
+use aligned_sdk::verification_layer::get_nonce_from_batcher;
+use aligned_sdk::verification_layer::get_nonce_from_ethereum;
+use aligned_sdk::verification_layer::{deposit_to_aligned, get_balance_in_aligned};
+use aligned_sdk::verification_layer::{get_vk_commitment, save_response, submit_multiple};
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
@@ -542,23 +544,23 @@ async fn main() -> Result<(), AlignedError> {
                     get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
                         .await
                         .map_err(|e| match e {
-                            aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
+                            aligned_sdk::common::errors::GetNonceError::EthRpcError(e) => {
                                 SubmitError::GetNonceError(e)
                             }
-                            aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
+                            aligned_sdk::common::errors::GetNonceError::ConnectionFailed(e) => {
                                 SubmitError::GenericError(e)
                             }
-                            aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
+                            aligned_sdk::common::errors::GetNonceError::InvalidRequest(e) => {
                                 SubmitError::GenericError(e)
                             }
-                            aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
+                            aligned_sdk::common::errors::GetNonceError::SerializationError(e) => {
                                 SubmitError::GenericError(e)
                             }
-                            aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
+                            aligned_sdk::common::errors::GetNonceError::ProtocolMismatch {
                                 current,
                                 expected,
                             } => SubmitError::ProtocolVersionMismatch { current, expected },
-                            aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
+                            aligned_sdk::common::errors::GetNonceError::UnexpectedResponse(e) => {
                                 SubmitError::UnexpectedBatcherResponse(e)
                             }
                         })?
@@ -639,7 +641,7 @@ async fn main() -> Result<(), AlignedError> {
                 cbor_deserialize(reader).map_err(SubmitError::SerializationError)?;
 
             info!("Verifying response data matches sent proof data...");
-            let response = is_proof_verified(
+            let response = verification_layer::is_proof_verified(
                 &aligned_verification_data,
                 verify_inclusion_args.network.into(),
                 &verify_inclusion_args.eth_rpc_url,
@@ -819,7 +821,7 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            match aggregation::is_proof_verified(
+            match aggregation_layer::is_proof_verified(
                 proof_data,
                 args.network.into(),
                 args.eth_rpc_url,

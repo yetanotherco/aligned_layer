@@ -93,9 +93,9 @@ impl ContractDeploymentOutput {
 }
 
 fn default_aggregator_fee_percentage_multiplier() -> u128 {
-    aligned_sdk::core::constants::DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER
+    aligned_sdk::common::constants::DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER
 }
 
 fn default_aggregator_gas_cost() -> u128 {
-    aligned_sdk::core::constants::DEFAULT_AGGREGATOR_GAS_COST
+    aligned_sdk::common::constants::DEFAULT_AGGREGATOR_GAS_COST
 }

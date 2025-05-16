@@ -1,12 +1,17 @@
+// Modules
+
 mod helpers;
 mod types;
 
-use helpers::{fetch_verified_proofs_events, get_blob_data_from_verified_proof_event};
-use types::Hash32;
+// Makes only the two types on this use public
 pub use types::{AggregationModeVerificationData, ProofVerificationAggModeError};
 
+use helpers::{fetch_verified_proofs_events, get_blob_data_from_verified_proof_event};
+use types::Hash32;
+
+//
 use crate::{
-    core::types::Network, eth::aligned_proof_agg_service::aligned_proof_aggregation_service,
+    common::types::Network, eth::aligned_proof_agg_service::aligned_proof_aggregation_service,
 };
 use ethers::{
     providers::{Http, Provider},
