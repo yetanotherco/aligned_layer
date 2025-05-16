@@ -13,7 +13,7 @@ use sp1_aggregator::{
 };
 use tracing::info;
 
-const MAX_PROOFS_PER_AGGREGATION: usize = 4;
+const MAX_PROOFS_PER_AGGREGATION: usize = 512;
 
 #[derive(Clone, Debug)]
 pub enum ZKVMEngine {

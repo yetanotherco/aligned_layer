@@ -3,8 +3,8 @@ use std::sync::LazyLock;
 use alloy::primitives::Keccak256;
 use sp1_aggregation_program::SP1VkAndPubInputs;
 use sp1_sdk::{
-    EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1ProvingKey,
-    SP1Stdin, SP1VerifyingKey,
+    EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
+    SP1VerifyingKey,
 };
 
 const ROOT_PROGRAM_ELF: &[u8] =
