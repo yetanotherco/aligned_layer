@@ -1,8 +1,8 @@
 {
-  "risc0_chunk_aggregator_image_id": "0xc89b69ecc8307c65b2af65d5434c34776e0932d75c7e05acd3c15853963e334a",
-  "risc0_chunk_aggregator_image_id_bytes": "[200, 155, 105, 236, 200, 48, 124, 101, 178, 175, 101, 213, 67, 76, 52, 119, 110, 9, 50, 215, 92, 126, 5, 172, 211, 193, 88, 83, 150, 62, 51, 74]",
-  "risc0_root_aggregator_image_id": "0x3452ff90f5fa471705fd6a213d7cf126c372658ef759271ce687ef1161cceb8a",
-  "sp1_chunk_aggregator_vk_hash": "0x006b4421a6fed44853b9c3ec3c82612827e04fba80d6b8606edae2a4523d9e1e",
-  "sp1_chunk_aggregator_vk_hash_words": "[899813587, 1068831252, 2000190855, 1210454658, 1057127892, 56287617, 1572193608, 1379769886]",
-  "sp1_root_aggregator_vk_hash": "0x004b2cdc6c24f614ac3a66886a6bd96e0b2a6e0e1151b6251c8ba0ec4e8f19d1"
+  "risc0_chunk_aggregator_image_id": "0xde7a67940edb53d41e9a93c4db855d163f95bebef2323e91120879196b3ab842",
+  "risc0_chunk_aggregator_image_id_bytes": "[222, 122, 103, 148, 14, 219, 83, 212, 30, 154, 147, 196, 219, 133, 93, 22, 63, 149, 190, 190, 242, 50, 62, 145, 18, 8, 121, 25, 107, 58, 184, 66]",
+  "risc0_root_aggregator_image_id": "0x850737352f63a706cd79b3f128ff7f466e607bbacd7dd94bc4a7e76db6160068",
+  "sp1_chunk_aggregator_vk_hash": "0x007c0478c16fc706b0c430fd80c49a0b916b1a30ba76a75eeec1bd1248ab65f2",
+  "sp1_chunk_aggregator_vk_hash_words": "[1040333920, 1542570412, 411443120, 206151865, 190370181, 1775934843, 1568897572, 1219192306]",
+  "sp1_root_aggregator_vk_hash": "0x00c262f809acf5799f2a158bad858de8a19b3e756f46df818ff8139789147938"
 }

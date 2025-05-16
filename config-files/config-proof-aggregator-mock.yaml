@@ -1,9 +1,10 @@
-eth_rpc_url: http://localhost:8545
-eth_ws_url: ws://localhost:8545
+aligned_service_manager_address: "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
+proof_aggregation_service_address: "0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f"
+eth_rpc_url: "http://localhost:8545"
+eth_ws_url: "ws://localhost:8545"
 max_proofs_in_queue: 1000
-proof_aggregation_service_address: 0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f
-aligned_service_manager_address: 0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8
 last_aggregated_block_filepath: config-files/proof-aggregator.last_aggregated_block.json
+
 ecdsa:
-  private_key_store_path: config-files/anvil.proof-aggregator.ecdsa.key.json
-  private_key_store_password: ''
+  private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"
+  private_key_store_password: ""
