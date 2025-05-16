@@ -96,6 +96,7 @@ pub enum SubmitError {
     AddToBatchError,
     InvalidProofInclusionData,
     GetNonceError(String),
+    BatchQueueLimitExceededError,
     GenericError(String),
 }
 
@@ -210,6 +211,10 @@ impl fmt::Display for SubmitError {
             SubmitError::InvalidProofInclusionData => {
                 write!(f, "Batcher responded with invalid batch inclusion data. Can't verify your proof was correctly included in the batch.")
             }
+            SubmitError::BatchQueueLimitExceededError => {
+                write!(f, "Error while adding entry to batch, queue limit exeeded.")
+            }
+
             SubmitError::GetNonceError(e) => write!(f, "Error while getting nonce {}", e),
         }
     }

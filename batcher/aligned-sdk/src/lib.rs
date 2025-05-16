@@ -1,21 +1,14 @@
-pub mod core {
-    pub mod constants;
-    pub mod errors;
-    pub mod types;
-}
+pub mod aggregation_layer;
+pub mod verification_layer;
 
-pub mod communication {
-    pub(crate) mod batch;
-    pub(crate) mod messaging;
-    pub mod protocol;
-    pub mod serialization;
-}
+/// Common types used across the Aggregation Layer and the Verification Layer AVS
+pub mod common;
 
-pub mod eth {
-    pub mod aligned_proof_agg_service;
-    pub mod aligned_service_manager;
-    pub mod batcher_payment_service;
-}
+// Eth and Communication modules should be outside the SDK in the future
+/// Communication module is mostly for internal use
+/// It contains code for communication protocols
+pub mod communication;
+/// Eth module is mostly for internal use
+pub mod eth;
 
-mod beacon;
-pub mod sdk;
+pub(crate) mod beacon;

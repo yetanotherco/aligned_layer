@@ -1,4 +1,4 @@
-use aligned_sdk::core::types::VerificationData;
+use aligned_sdk::common::types::VerificationData;
 
 #[derive(Debug)]
 #[allow(dead_code)]

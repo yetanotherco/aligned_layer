@@ -11,7 +11,7 @@ use crate::{
     },
     backend::s3::get_aligned_batch_from_s3,
 };
-use aligned_sdk::core::types::ProvingSystemId;
+use aligned_sdk::common::types::ProvingSystemId;
 use alloy::{
     primitives::Address,
     providers::{Provider, ProviderBuilder},

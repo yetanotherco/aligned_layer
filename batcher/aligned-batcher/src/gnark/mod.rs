@@ -1,4 +1,4 @@
-use aligned_sdk::core::types::ProvingSystemId;
+use aligned_sdk::common::types::ProvingSystemId;
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C)]

@@ -1,4 +1,4 @@
-use crate::{beacon::BeaconClient, core::types::Network};
+use crate::{beacon::BeaconClient, common::types::Network};
 use ethers::{
     providers::{Http, Middleware, Provider},
     types::{Filter, Log},

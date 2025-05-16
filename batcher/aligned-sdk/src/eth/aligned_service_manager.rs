@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ethers::prelude::*;
 
-use crate::core::errors::VerificationError;
+use crate::common::errors::VerificationError;
 
 abigen!(
     AlignedLayerServiceManagerContract,

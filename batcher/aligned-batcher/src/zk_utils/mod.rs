@@ -1,7 +1,7 @@
 use crate::gnark::verify_gnark;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
-use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
+use aligned_sdk::common::types::{ProvingSystemId, VerificationData};
 use ethers::types::U256;
 use log::{debug, warn};
 
@@ -72,7 +72,7 @@ pub(crate) fn is_verifier_disabled(
 #[cfg(test)]
 mod test {
     use super::is_verifier_disabled;
-    use aligned_sdk::core::types::{ProvingSystemId, VerificationData};
+    use aligned_sdk::common::types::{ProvingSystemId, VerificationData};
     use ethers::types::Address;
 
     fn get_all_verifiers() -> Vec<ProvingSystemId> {

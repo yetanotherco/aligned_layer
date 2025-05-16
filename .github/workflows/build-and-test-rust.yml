@@ -8,7 +8,7 @@ on:
     paths:
       - "batcher/**"
       - "aggregation_mode/**"
-      - ".github/workflows/build-rust.yml"
+      - ".github/workflows/build-and-test-rust.yml"
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.86.0
           components: rustfmt, clippy
           override: true
 

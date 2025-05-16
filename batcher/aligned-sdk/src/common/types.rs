@@ -398,6 +398,7 @@ pub enum SubmitProofResponseMessage {
     AddToBatchError,
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
+    UnderpricedProof,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
