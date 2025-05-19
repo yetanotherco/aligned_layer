@@ -92,19 +92,28 @@ pub async fn wait_until_proof_is_aggregated(
     let mut merkle_path = vec![];
 
     while stream.next().await.is_some() {
-        if let Some(merkle_proof) = aligned_sdk::aggregation_layer::get_merkle_path_for_proof(
+        let proof_status = aligned_sdk::aggregation_layer::check_proof_verification(
+            &verification_data,
             config.network.clone(),
             config.eth_rpc_url.clone(),
             config.beacon_client_url.clone(),
             None,
-            &verification_data,
         )
         .await
-        .expect("Get merkle path for proof")
-        {
-            merkle_path = merkle_proof;
-            break;
-        };
+        .expect("Get merkle path for proof");
+
+        match proof_status {
+            aligned_sdk::aggregation_layer::ProofStatus::Verified {
+                merkle_path: path, ..
+            } => {
+                merkle_path = path;
+                break;
+            }
+            aligned_sdk::aggregation_layer::ProofStatus::Invalid => {
+                panic!("Proof did pass merkle root verification")
+            }
+            aligned_sdk::aggregation_layer::ProofStatus::NotFound => continue,
+        }
     }
 
     merkle_path
