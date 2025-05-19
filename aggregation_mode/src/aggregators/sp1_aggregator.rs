@@ -143,8 +143,17 @@ pub(crate) fn run_root_aggregator(
 
     let (pk, vk) = client.setup(ROOT_PROGRAM_ELF);
 
+    // In mock mode, deferred proof verification must be disabled to avoid recursive proof verification.
+    // This is because chunk proofs are mocked, and enabling verification would cause a panic.
+    // See: https://docs.succinct.xyz/docs/sp1/writing-programs/proof-aggregation#proof-aggregation-in-mock-mode
+    #[cfg(feature = "prove")]
+    let deferred_proof_verification = true;
+    #[cfg(not(feature = "prove"))]
+    let deferred_proof_verification = false;
+
     let proof = client
         .prove(&pk, &stdin)
+        .deferred_proof_verification(deferred_proof_verification)
         .groth16()
         .run()
         .map_err(|e| SP1AggregationError::Prove(e.to_string()))?;
