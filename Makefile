@@ -190,7 +190,6 @@ start_proof_aggregator_gpu: is_aggregator_set reset_last_aggregated_block ## Sta
 start_proof_aggregator_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
 
-
 verify_aggregated_proof_sp1_holesky_stage: 
 	@echo "Verifying SP1 in aggregated proofs on holesky..."
 	@cd batcher/aligned/ && \
@@ -219,8 +218,8 @@ install_aggregation_mode: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator
 
 agg_mode_write_program_ids: ## Write proof aggregator zkvm programs ids 
-	@cd aggregation_mode && \
-	cargo run --release --bin write_program_image_id_vk_hash
+	@cd aggregation_mode && ./scripts/build_programs.sh
+	
 
 _AGGREGATOR_:
 
