@@ -31,8 +31,7 @@ pub enum ProofStatus {
 /// ### Notes
 /// - This functionality is currently in Beta. As a result, we cannot determine with certainty.
 ///   which specific aggregation a proof belongs to. Instead, we check the events from the specified `from_block`.
-/// - The `from_block`  must not be older than 18 days,
-/// as blobs expire after that period and will no longer be retrievable.
+/// - The `from_block`  must not be older than 18 days, as blobs expire after that period and will no longer be retrievable.
 /// - If not provided, it  defaults to fetch logs from [`FROM_BLOCKS_AGO_DEFAULT`]
 ///
 /// ### The verification process includes:
@@ -82,7 +81,7 @@ pub async fn check_proof_verification(
 
         return Ok(ProofStatus::Verified {
             merkle_path: proof.merkle_path,
-            merkle_root: merkle_root,
+            merkle_root,
         });
     }
 
