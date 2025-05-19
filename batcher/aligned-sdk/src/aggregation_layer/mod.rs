@@ -1,15 +1,10 @@
 // Modules
-
 mod helpers;
 mod types;
 
 // Makes only the two types on this use public
 pub use types::{AggregationModeVerificationData, ProofVerificationAggModeError};
 
-use helpers::{fetch_verified_proofs_events, get_blob_data_from_verified_proof_event};
-use types::Hash32;
-
-//
 use crate::{
     common::types::Network, eth::aligned_proof_agg_service::aligned_proof_aggregation_service,
 };
@@ -17,19 +12,30 @@ use ethers::{
     providers::{Http, Provider},
     types::Bytes,
 };
+use helpers::{fetch_verified_proofs_events, get_blob_data_from_verified_proof_event};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+use types::Hash32;
+
+pub enum ProofStatus {
+    Verified {
+        merkle_root: [u8; 32],
+        merkle_path: Vec<[u8; 32]>,
+    },
+    Invalid,
+    NotFound,
+}
 
 /// Given the [`AggregationModeVerificationData`], this function checks whether the proof was included in a
 /// in a recent aggregated proof and verifies the corresponding Merkle root commitment.
 ///
-/// Note: This functionality is currently in Beta. As a result, we cannot determine with certainty
-/// which specific aggregation a proof belongs to. Instead, we check the events from the specified `from_block`.
-///
-/// Note: The `from_block`  must not be older than 18 days,
+/// ### Notes
+/// - This functionality is currently in Beta. As a result, we cannot determine with certainty.
+///   which specific aggregation a proof belongs to. Instead, we check the events from the specified `from_block`.
+/// - The `from_block`  must not be older than 18 days,
 /// as blobs expire after that period and will no longer be retrievable.
-/// If not provided, it  defaults to fetch logs from [`FROM_BLOCKS_AGO_DEFAULT`]
+/// - If not provided, it  defaults to fetch logs from [`FROM_BLOCKS_AGO_DEFAULT`]
 ///
-/// The step-by-step verification process includes:
+/// ### The verification process includes:
 /// 1. Querying the blob versioned hash from the events emitted by the aligned proof aggregation service contract since `from_block`
 /// 2. Retrieving the corresponding beacon block using the block's parent beacon root
 /// 3. Fetching the blobs associated with that slot
@@ -37,116 +43,15 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 /// 5. Decoding the blob to extract the proofs commitments
 /// 6. Checking if the given proof commitment exists within the blob's proofs
 /// 7. Reconstructing the Merkle root and verifying it against the root stored in the contract
-pub async fn is_proof_verified(
-    verification_data: AggregationModeVerificationData,
-    network: Network,
-    eth_rpc_url: String,
-    beacon_client_url: String,
-    from_block: Option<u64>,
-) -> Result<[u8; 32], ProofVerificationAggModeError> {
-    let logs = fetch_verified_proofs_events(network, eth_rpc_url.clone(), from_block).await?;
-
-    for log in logs {
-        let Ok((merkle_root, leaves)) = get_blob_data_from_verified_proof_event(
-            eth_rpc_url.clone(),
-            beacon_client_url.clone(),
-            log,
-        )
-        .await
-        else {
-            continue;
-        };
-
-        let leaves: Vec<Hash32> = leaves.iter().map(|leaf| Hash32(*leaf)).collect();
-        let Some(merkle_tree) = MerkleTree::<Hash32>::build(&leaves) else {
-            continue;
-        };
-
-        if leaves.contains(&Hash32(verification_data.commitment())) {
-            return if merkle_tree.root == merkle_root {
-                Ok(merkle_root)
-            } else {
-                Err(ProofVerificationAggModeError::MerkleTreeProofVerification)
-            };
-        }
-    }
-
-    Err(ProofVerificationAggModeError::ProofNotFoundInLogs)
-}
-
-/// Performs the same verification as [`is_proof_verified`], but instead of verifying locally, it simulates
-/// an on-chain verification by calling the `verifyProofInclusion` function on the `ProofAggregationService` contract.
 ///
-/// This function:
-/// 1. Fetches the aggregated proof blob from the blockchain.
-/// 2. Constructs the corresponding Merkle tree from the proof commitments.
-/// 3. Calls the contract's `verifyProofInclusion` function with:
-///     - The Merkle path corresponding to the given [`AggregationModeVerificationData`].
-///     - The proof commitment, computed from the program ID and public inputs.
-///
-/// This is mainly useful for testing and simulation purposes to ensure that a given proof commitment
-/// would be accepted by the contract on-chain. For typical off-chain verification (e.g., in services or indexers),
-/// prefer using [`is_proof_verified`].
-///
-/// Note: This function does not perform the actual on-chain transaction but simulates the contract call.
-pub async fn is_proof_verified_on_chain(
-    verification_data: AggregationModeVerificationData,
-    network: Network,
-    eth_rpc_url: String,
-    beacon_client_url: String,
-    from_block: Option<u64>,
-) -> Result<bool, ProofVerificationAggModeError> {
-    let Some(merkle_path) = get_merkle_path_for_proof(
-        network.clone(),
-        eth_rpc_url.clone(),
-        beacon_client_url,
-        from_block,
-        &verification_data,
-    )
-    .await?
-    else {
-        return Ok(false);
-    };
-
-    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
-        .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
-    let contract_provider = aligned_proof_aggregation_service(
-        eth_rpc_provider,
-        network.get_aligned_proof_agg_service_address(),
-    )
-    .await
-    .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
-
-    let res = contract_provider
-        .verify_proof_inclusion(
-            merkle_path,
-            verification_data.program_id(),
-            Bytes::from(verification_data.public_inputs().clone()),
-        )
-        .call()
-        .await
-        .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
-
-    Ok(res)
-}
-
-/// Given the [`AggregationModeVerificationData`], this function queries the blockchain logs starting from the
-/// specified `from_block` until it founds the proof.
-///
-/// Once the proof is found:
-/// 1. It retrieves the corresponding proof blob.
-/// 2. Constructs the Merkle tree based on the proof blob.
-/// 3. Returns the Merkle proof needed for verifying the proof.
-///
-/// Note: This function prepares the Merkle path for on-chain verification, and is typically used in combination with
-/// `verifyProofInclusion` to confirm proof validity within the ProofAggregationService contract.
-pub async fn get_merkle_path_for_proof(
-    network: Network,
-    eth_rpc_url: String,
-    beacon_client_url: String,
-    from_block: Option<u64>,
+/// This function is typically used in conjunction with `verifyProofInclusion` for complete on-chain verification.
+pub async fn check_proof_verification(
     verification_data: &AggregationModeVerificationData,
-) -> Result<Option<Vec<[u8; 32]>>, ProofVerificationAggModeError> {
+    network: Network,
+    eth_rpc_url: String,
+    beacon_client_url: String,
+    from_block: Option<u64>,
+) -> Result<ProofStatus, ProofVerificationAggModeError> {
     let logs = fetch_verified_proofs_events(network, eth_rpc_url.clone(), from_block).await?;
     let proof_commitment = verification_data.commitment();
 
@@ -172,11 +77,62 @@ pub async fn get_merkle_path_for_proof(
 
         let result = proof.verify::<Hash32>(&merkle_root, pos, &Hash32(proof_commitment));
         if !result {
-            return Err(ProofVerificationAggModeError::MerkleTreeProofVerification);
+            return Ok(ProofStatus::Invalid);
         }
 
-        return Ok(Some(proof.merkle_path));
+        return Ok(ProofStatus::Verified {
+            merkle_path: proof.merkle_path,
+            merkle_root: merkle_root,
+        });
     }
 
-    Ok(None)
+    Ok(ProofStatus::NotFound)
+}
+
+/// Simulates an on-chain verification of the proof by calling the `verifyProofInclusion` function
+/// on the `ProofAggregationService` contract.
+///
+/// This function is intended to complement [`check_proof_verification`], which performs off-chain verification.
+/// After calling `check_proof_verification` to confirm the proof's inclusion and obtain the Merkle path,
+/// this function can be used to simulate the corresponding contract call.
+///
+/// ### How it works:
+/// 1. Uses the provided Merkle path (as returned by [`check_proof_verification`]).
+/// 2. Calls the `verifyProofInclusion` function on the contract with:
+///     - The Merkle path,
+///     - The proof program id.
+///     - The proof public inputs bytes
+///
+/// ### Purpose:
+/// This is mainly useful for **testing or simulation**, to confirm that the on-chain contract would
+/// accept a given proof commitment and Merkle path. It does **not** perform an actual transaction on-chain,
+/// but instead simulates the call via `eth_call`.
+///
+/// For off-chain verification use cases, prefer using [`check_proof_verification`].
+pub async fn is_proof_verified_on_chain(
+    verification_data: AggregationModeVerificationData,
+    merkle_path: Vec<[u8; 32]>,
+    network: Network,
+    eth_rpc_url: String,
+) -> Result<bool, ProofVerificationAggModeError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+    let contract_provider = aligned_proof_aggregation_service(
+        eth_rpc_provider,
+        network.get_aligned_proof_agg_service_address(),
+    )
+    .await
+    .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+
+    let res = contract_provider
+        .verify_proof_inclusion(
+            merkle_path,
+            verification_data.program_id(),
+            Bytes::from(verification_data.public_inputs().clone()),
+        )
+        .call()
+        .await
+        .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
+
+    Ok(res)
 }
