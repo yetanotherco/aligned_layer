@@ -821,8 +821,8 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            match aggregation_layer::is_proof_verified(
-                proof_data,
+            let proof_status = match aggregation_layer::check_proof_verification(
+                &proof_data,
                 args.network.into(),
                 args.eth_rpc_url,
                 args.beacon_client_url,
@@ -830,13 +830,25 @@ async fn main() -> Result<(), AlignedError> {
             )
             .await
             {
-                Ok(res) => {
-                    info!(
-                        "Your proof has been verified in the aggregated proof with merkle root 0x{}",
-                        hex::encode(res)
-                    );
+                Ok(res) => res,
+                Err(e) => {
+                    error!("Error while trying to verify proof {:?}", e);
+                    return Ok(());
                 }
-                Err(e) => error!("Error while trying to verify proof {:?}", e),
+            };
+
+            match proof_status {
+                aggregation_layer::ProofStatus::Verified { merkle_root, .. } => {
+                    info!("Your proof has been verified in the aggregated proof with merkle root 0x{}", hex::encode(merkle_root));
+                }
+                aggregation_layer::ProofStatus::Invalid => {
+                    error!(
+                        "Your proof was found in the blob but the Merkle Root verification failed."
+                    )
+                }
+                aggregation_layer::ProofStatus::NotFound => {
+                    error!("Your proof wasn't found in the logs. Try specifying an earlier `from_block` to search further back in history.")
+                }
             }
 
             return Ok(());
