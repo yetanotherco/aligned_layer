@@ -137,7 +137,7 @@ pub(crate) fn run_root_aggregator(
 
     // write input data
     let input = risc0_aggregation_program::RootAggregatorInput {
-        proofs_and_leaves_commitment: proofs_and_leaves_commitment,
+        proofs_and_leaves_commitment,
     };
     env_builder
         .write(&input)

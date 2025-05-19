@@ -2,7 +2,7 @@ use alloy::hex::hex;
 use proof_aggregator::aggregators::{risc0_aggregator, sp1_aggregator};
 use serde_json::json;
 use sp1_sdk::HashableKey;
-use std::{env, fs, path::Path};
+use std::{fs, path::Path};
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 
