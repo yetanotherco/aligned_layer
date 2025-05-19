@@ -73,7 +73,7 @@ pub async fn start_l2(config: Config) {
         info!("Proof submitted");
 
         // 5. Wait until proof is aggregated
-        info!("Waiting until is proof is aggregated...");
+        info!("Waiting until proof is aggregated...");
         let merkle_path = wait_until_proof_is_aggregated(&config, &proof, &vk).await;
         info!("Proof has been aggregated on aligned, about to send update to chain...");
 
