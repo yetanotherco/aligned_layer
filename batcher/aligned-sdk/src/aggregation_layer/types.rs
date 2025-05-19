@@ -98,13 +98,11 @@ impl IsMerkleTreeBackend for Hash32 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ProofVerificationAggModeError {
     ProvingSystemNotSupportedInAggMode,
     EthereumProviderError(String),
     BeaconClient(BeaconClientError),
-    ProofNotFoundInLogs,
     EventDecoding,
     MerkleTreeConstruction,
-    MerkleTreeProofVerification,
 }
