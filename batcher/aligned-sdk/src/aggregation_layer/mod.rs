@@ -63,13 +63,15 @@ pub async fn check_proof_verification(
         .await?;
 
         let leaves: Vec<Hash32> = leaves.iter().map(|leaf| Hash32(*leaf)).collect();
-        let Some(merkle_tree) = MerkleTree::<Hash32>::build(&leaves) else {
-            continue;
-        };
 
         let Some(pos) = leaves.iter().position(|p| p.0 == proof_commitment) else {
             continue;
         };
+
+        let Some(merkle_tree) = MerkleTree::<Hash32>::build(&leaves) else {
+            continue;
+        };
+
         let Some(proof) = merkle_tree.get_proof_by_pos(pos) else {
             continue;
         };
