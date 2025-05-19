@@ -56,17 +56,10 @@ impl ZKVMEngine {
     /// - The aggregated [`AlignedProof`], representing the combined proof
     /// - The Merkle root computed within the ZKVM, exposed as a public input
     ///
-    /// This function performs proof aggregation and ensures the resulting Merkle root
-    /// can be independently verified by external systems.
-    ///
-    /// If the number of proofs exceeds [`MAX_PROOFS_PER_AGGREGATION`], it first aggregates
-    /// them in chunks of [`MAX_PROOFS_PER_AGGREGATION`], and then aggregates those intermediate results into
-    /// the final proof.
-    ///
-    /// Note: Intermediate proof commitments are not computed using the Keccak hash of the
-    /// verification key and public inputs. Instead, the raw bytes of the public input—
-    /// which represent the chunk's merkle root are used directly. This is to ensure
-    /// the final Merkle root matches the leaf hashes published on the blob.
+    /// This function performs multi-level proof aggregation. It splits the input proofs into chunks of
+    /// [`MAX_PROOFS_PER_AGGREGATION`] and uses the `chunk_aggregator` to aggregate each chunk.
+    /// Then, the `root_aggregator` takes the resulting chunk proofs and their corresponding leaves commitments
+    /// to produce the final aggregated proof.
     pub fn aggregate_proofs(
         &self,
         proofs: Vec<AlignedProof>,
@@ -84,15 +77,14 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                info!("Total proofs to aggregate {}", proofs.len());
                 let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
-                let mut agg_proofs: Vec<(SP1ProofWithPubValuesAndElf, Vec<[u8; 32]>)> = vec![];
-
                 info!(
-                    "Proofs length is higher than {}, aggregation will be performed in {} chunks",
-                    MAX_PROOFS_PER_AGGREGATION,
+                    "Total proofs to aggregate {}. They aggregation will be perform in {} chunks",
+                    proofs.len(),
                     chunks.len()
                 );
+
+                let mut agg_proofs: Vec<(SP1ProofWithPubValuesAndElf, Vec<[u8; 32]>)> = vec![];
                 for (i, chunk) in chunks.enumerate() {
                     let leaves_commitment =
                         chunk.iter().map(|e| e.hash_vk_and_pub_inputs()).collect();
@@ -126,15 +118,14 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                info!("Total proofs to aggregate {}", proofs.len());
                 let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
-                let mut agg_proofs: Vec<(Risc0ProofReceiptAndImageId, Vec<[u8; 32]>)> = vec![];
-
                 info!(
-                    "Proofs length is higher than {}, aggregation will be performed in {} chunks",
-                    MAX_PROOFS_PER_AGGREGATION,
+                    "Total proofs to aggregate {}. They aggregation will be perform in {} chunks",
+                    proofs.len(),
                     chunks.len()
                 );
+
+                let mut agg_proofs: Vec<(Risc0ProofReceiptAndImageId, Vec<[u8; 32]>)> = vec![];
                 for (i, chunk) in chunks.enumerate() {
                     let leaves_commitment = chunk
                         .iter()
