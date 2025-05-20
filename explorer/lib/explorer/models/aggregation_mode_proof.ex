@@ -58,4 +58,16 @@ defmodule AggregationModeProof do
 
     Explorer.Repo.all(query)
   end
+
+  def get_newest_proof_by_hash(hash) do
+    query =
+      from(proof in AggregationModeProof,
+        limit: 1,
+        order_by: [desc: proof.inserted_at],
+        where: proof.proof_hash == ^hash,
+        select: proof
+      )
+
+    Explorer.Repo.one(query)
+  end
 end
