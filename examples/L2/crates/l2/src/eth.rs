@@ -5,7 +5,7 @@ use alloy::{
     rpc::types::TransactionReceipt, signers::local::LocalSigner, sol,
 };
 
-use crate::Config;
+use crate::config::Config;
 
 sol!(
     #[sol(rpc)]

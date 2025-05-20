@@ -11,7 +11,7 @@ use alloy::{
 use futures_util::StreamExt;
 use sp1_sdk::{HashableKey, SP1VerifyingKey};
 
-use crate::Config;
+use crate::config::Config;
 
 pub async fn send_proof_to_be_verified_on_aligned(
     config: &Config,

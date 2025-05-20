@@ -2,7 +2,7 @@ use std::env;
 
 use aligned_sdk::common::types::Network;
 use dotenv::dotenv;
-use l2_example::{start_l2, Config};
+use l2_example::{config::Config, l2::start_l2};
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
