@@ -3,20 +3,16 @@
 SHELL := /bin/bash
 OS := $(shell uname -s)
 
-NETWORK=devnet # devnet | holesky-stage | holesky
-ifeq ($(NETWORK)), devnet)
+NETWORK ?= devnet # devnet | holesky-stage | holesky
+ifeq ($(NETWORK),holesky)
+	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
+	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+else ifeq ($(ENVIRONMENT), holesky-stage)
+	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
+	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+else
 	RPC_URL ?= http://localhost:8545
-	BEACON_URL ?= http://localhost:58001
-endif
-
-ifeq ($(NETWORK), holesky)
-	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
-	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
-endif
-
-ifeq ($(NETWORK), holesky-stage)
-	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
-	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+	BEACON_URL ?= http://localhost:58801
 endif
 
 CONFIG_FILE?=config-files/config.yaml
