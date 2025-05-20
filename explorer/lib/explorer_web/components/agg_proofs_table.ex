@@ -44,6 +44,17 @@ defmodule ExplorerWeb.AggProofsTable do
       <:col :let={proof} label="Number of proofs">
         <%= proof.number_of_proofs |> Helpers.format_number() %>
       </:col>
+
+      <:col :let={proof} label="Aggregator">
+        <%= case proof.aggregator do %>
+          <% :sp1 -> %>
+            SP1
+          <% :risc0 -> %>
+            RISC0
+          <% _ -> %>
+            Unknown
+        <% end %>
+      </:col>
     </.table>
     """
   end

@@ -39,6 +39,21 @@ defmodule ExplorerWeb.Home.Index do
 
     operator_latest_release = ReleasesHelper.get_latest_release()
 
+    # Only show aggregated proof stat for testnet
+    aggregated_proof_stat =
+      if !ExplorerWeb.Helpers.is_mainnet() do
+        [
+          %{
+            title: "Aggregated proofs",
+            value: aggregated_proofs,
+            tooltip_text: nil,
+            link: "/aggregated_proofs"
+          }
+        ]
+      else
+        []
+      end
+
     [
       %{
         title: "Proofs verified",
@@ -59,36 +74,33 @@ defmodule ExplorerWeb.Home.Index do
             _ -> nil
           end,
         link: nil
-      },
-      %{
-        title: "Aggregated proofs",
-        value: aggregated_proofs,
-        tooltip_text: nil,
-        link: "/aggregated_proofs"
-      },
-      %{
-        title: "AVG proof cost",
-        value: "#{avg_fee_per_proof_usd} USD",
-        tooltip_text: "~= #{avg_fee_per_proof_eth} ETH",
-        link: nil
-      },
-      %{
-        title: "Operators",
-        value: operators_registered,
-        tooltip_text: "Current version #{operator_latest_release}",
-        link: "/operators"
-      },
-      %{
-        title: "Total restaked",
-        value: "#{restaked_amount_usd_shorthand} USD",
-        # Using HTML.raw to break paragraph line with <br>
-        tooltip_text:
-          Phoenix.HTML.raw(
-            "= #{Helpers.format_number(restaked_amount_usd)} USD<br>~= #{restaked_amount_eth} ETH"
-          ),
-        link: "/restaked"
       }
-    ]
+    ] ++
+      aggregated_proof_stat ++
+      [
+        %{
+          title: "AVG proof cost",
+          value: "#{avg_fee_per_proof_usd} USD",
+          tooltip_text: "~= #{avg_fee_per_proof_eth} ETH",
+          link: nil
+        },
+        %{
+          title: "Operators",
+          value: operators_registered,
+          tooltip_text: "Current version #{operator_latest_release}",
+          link: "/operators"
+        },
+        %{
+          title: "Total restaked",
+          value: "#{restaked_amount_usd_shorthand} USD",
+          # Using HTML.raw to break paragraph line with <br>
+          tooltip_text:
+            Phoenix.HTML.raw(
+              "= #{Helpers.format_number(restaked_amount_usd)} USD<br>~= #{restaked_amount_eth} ETH"
+            ),
+          link: "/restaked"
+        }
+      ]
   end
 
   def get_cost_per_proof_chart_data(amount) do

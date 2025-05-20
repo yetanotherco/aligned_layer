@@ -10,17 +10,17 @@ use futures_util::future::Ready;
 use futures_util::stream::{SplitSink, TryFilter};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
+use crate::common::types::{BatchInclusionData, SubmitProofMessage};
 use crate::communication::serialization::{cbor_deserialize, cbor_serialize};
-use crate::core::types::{BatchInclusionData, SubmitProofMessage};
 use crate::{
-    communication::batch::process_batcher_response,
-    core::{
+    common::{
         errors::SubmitError,
         types::{
             AlignedVerificationData, ClientMessage, NoncedVerificationData,
             SubmitProofResponseMessage, VerificationData, VerificationDataCommitment,
         },
     },
+    communication::batch::process_batcher_response,
 };
 
 pub type ResponseStream = TryFilter<
@@ -264,6 +264,10 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
                 e
             );
             Err(SubmitError::GenericError(e))
+        }
+        Ok(SubmitProofResponseMessage::UnderpricedProof) => {
+            error!("Batcher responded with error: queue limit has been exceeded. Funds have not been spent.");
+            Err(SubmitError::BatchQueueLimitExceededError)
         }
         Err(e) => {
             error!(

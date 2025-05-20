@@ -8,7 +8,7 @@ export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.15.2
-EIGEN_SDK_GO_VERSION_DEVNET=v0.1.13
+EIGEN_SDK_GO_VERSION_DEVNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
 
@@ -73,11 +73,17 @@ install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
 install_eigenlayer_cli_devnet: ## Install Eigenlayer CLI v0.11.3 (Devnet compatible)
-	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.11.3
+	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.13.0
+
+anvil_deploy_all_contracts: anvil_deploy_eigen_contracts anvil_deploy_risc0_contracts anvil_deploy_sp1_contracts anvil_deploy_aligned_contracts
 
 anvil_deploy_eigen_contracts:
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
+
+anvil_deploy_risc0_contracts:
+	@echo "Deploying RISC0 Contracts..."
+	. contracts/scripts/anvil/deploy_risc0_contracts.sh
 
 anvil_deploy_sp1_contracts:
 	@echo "Deploying SP1 Contracts..."
@@ -155,11 +161,66 @@ anvil_start_with_more_prefunded_accounts:
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
 
 __AGGREGATION_MODE__: ## ____
-start_proof_aggregator_local: ## Start the proof aggregator locally using Mock Verifier Contract
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release -- config-files/config-proof-aggregator-mock.yaml
 
-start_proof_aggregator_local_with_proving: ## Start the proof aggregator locally using SP1 Verifier Contract
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove -- config-files/config-proof-aggregator.yaml
+is_aggregator_set:
+	@if [ -z "$(AGGREGATOR)" ]; then \
+		echo "Error: AGGREGATOR is not set. Please provide arg AGGREGATOR='sp1' or 'risc0'."; \
+		exit 1; \
+	fi
+
+reset_last_aggregated_block:
+	@echo "Resetting last aggregated block..."
+	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
+
+start_proof_aggregator_dev: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with mock proofs (DEV mode)
+	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator -- config-files/config-proof-aggregator-mock.yaml
+
+start_proof_aggregator: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated
+	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove --bin proof_aggregator -- config-files/config-proof-aggregator.yaml
+
+start_proof_aggregator_dev_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with mock proofs (DEV mode) in ethereum package
+	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator -- config-files/config-proof-aggregator-mock-ethereum-package.yaml
+
+start_proof_aggregator_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
+	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
+
+start_proof_aggregator_gpu: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving + GPU acceleration (CUDA)
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator.yaml
+
+start_proof_aggregator_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
+
+verify_aggregated_proof_sp1_holesky_stage: 
+	@echo "Verifying SP1 in aggregated proofs on holesky..."
+	@cd batcher/aligned/ && \
+	cargo run verify-agg-proof \
+		--network holesky-stage \
+		--from-block $(FROM_BLOCK) \
+		--proving_system SP1 \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.pub \
+		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.vk \
+		--beacon_url $(BEACON_URL) \
+		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+
+verify_aggregated_proof_risc0_holesky_stage: 
+	@echo "Verifying RISC0 in aggregated proofs on holesky..."
+	@cd batcher/aligned/ && \
+	cargo run verify-agg-proof \
+		--network holesky-stage \
+		--from-block $(FROM_BLOCK) \
+		--proving_system Risc0 \
+		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--beacon_url $(BEACON_URL) \
+		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+
+install_aggregation_mode: ## Install the aggregation mode with proving enabled
+	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator
+
+agg_mode_write_program_ids: ## Write proof aggregator zkvm programs ids 
+	@cd aggregation_mode && \
+	cargo run --release --bin write_program_image_id_vk_hash
+	
 
 _AGGREGATOR_:
 
@@ -297,7 +358,7 @@ operator_remove_from_whitelist:
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"
-	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
+	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.WETH' contracts/script/output/devnet/eigenlayer_deployment_output.json))
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
@@ -527,6 +588,11 @@ batcher_send_burst_groth16: batcher/target/release/aligned
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
+batcher_send_proof_with_random_address:
+	@cd batcher/aligned/ && ./send_proof_with_random_address.sh
+
+batcher_send_burst_with_random_address:
+	@cd batcher/aligned/ && ./send_burst_with_random_address.sh
 
 __TASK_SENDER__:
 BURST_TIME_SECS ?= 3
@@ -704,12 +770,16 @@ deploy_proof_aggregator:
 	@echo "Deploying ProofAggregator contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
 
+upgrade_proof_aggregator:
+	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
+
 build_aligned_contracts:
-	@cd contracts/src/core && forge build
+	@cd contracts/src/core && forge build --via-ir
 
 show_aligned_error_codes:
 	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors  
 	@echo "\nBatcherPaymentService errors:"
 	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
 
@@ -1259,6 +1329,7 @@ ethereum_package_inspect: ## Prints detailed information about the net
 
 ethereum_package_rm: ## Stops and removes the ethereum_package environment and used resources
 	kurtosis enclave rm aligned -f
+	kurtosis engine stop
 
 batcher_start_ethereum_package: user_fund_payment_service
 	@echo "Starting Batcher..."
@@ -1269,11 +1340,11 @@ aggregator_start_ethereum_package:
 	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
 
 operator_start_ethereum_package:
-	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	$(MAKE) operator_start ENVIRONMENT=devnet OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
 
 operator_register_start_ethereum_package:
-	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
-	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	$(MAKE) operator_start ENVIRONMENT=devnet OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
 
 
 install_spamoor: ## Instal spamoor to spam transactions

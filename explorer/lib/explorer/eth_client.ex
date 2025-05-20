@@ -6,6 +6,10 @@ defmodule Explorer.EthClient do
     eth_send("eth_getBlockByNumber", [block_number, false])
   end
 
+  def get_transaction_by_hash(tx_hash) do
+    eth_send("eth_getTransactionByHash", [tx_hash])
+  end
+
   defp eth_send(method, params, id \\ 1) do
     headers = [{"Content-Type", "application/json"}]
     body = Jason.encode!(%{jsonrpc: "2.0", method: method, params: params, id: id})
@@ -15,9 +19,14 @@ defmodule Explorer.EthClient do
     case response do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         case Jason.decode(body) do
-          {:ok, %{error: error} = _} -> {:error, error.message}
-          {:ok, body} -> {:ok, Map.get(body, "result")}
-          {:error, _} -> {:error, :invalid_json}
+          {:ok, %{"error" => %{"message" => message}}} ->
+            {:error, message}
+
+          {:ok, body} ->
+            {:ok, Map.get(body, "result")}
+
+          {:error, _} ->
+            {:error, :invalid_json}
         end
 
       {:ok, %Finch.Response{status: status}} ->

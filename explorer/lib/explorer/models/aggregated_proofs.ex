@@ -12,6 +12,7 @@ defmodule AggregatedProofs do
     field(:block_timestamp, :utc_datetime)
     field(:tx_hash, :string)
     field(:number_of_proofs, :integer)
+    field(:aggregator, Ecto.Enum, values: [:sp1, :risc0])
 
     has_many(:proofs_agg_mode, AggregationModeProof,
       foreign_key: :agg_proof_id,
@@ -33,7 +34,8 @@ defmodule AggregatedProofs do
       :block_number,
       :block_timestamp,
       :tx_hash,
-      :number_of_proofs
+      :number_of_proofs,
+      :aggregator
     ])
     |> validate_required([
       :merkle_root,

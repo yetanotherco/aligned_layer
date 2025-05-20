@@ -1,0 +1,12 @@
+[Unit]
+Description=AggregationMode Timer
+Requires=aggregation_mode.service
+
+[Timer]
+Unit=aggregation_mode.service
+AccuracySec=1s
+# Run at 15:00 UTC (12:00 UTC-3) every day
+OnCalendar=15:00
+
+[Install]
+WantedBy=timers.target

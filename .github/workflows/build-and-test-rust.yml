@@ -8,7 +8,7 @@ on:
     paths:
       - "batcher/**"
       - "aggregation_mode/**"
-      - ".github/workflows/build-rust.yml"
+      - ".github/workflows/build-and-test-rust.yml"
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.86.0
           components: rustfmt, clippy
           override: true
 
@@ -30,6 +30,12 @@ jobs:
           curl -L https://sp1.succinct.xyz | bash
           source /home/runner/.bashrc
            ~/.sp1/bin/sp1up
+
+      - name: Install risc0 toolchain
+        run: |
+          curl -L https://risczero.com/install | bash
+          source ~/.bashrc
+          ~/.risc0/bin/rzup install
 
       - name: Cache Rust dependencies
         uses: actions/cache@v3
@@ -70,7 +76,8 @@ jobs:
       - name: Run Clippy on AggregationMode
         run: |
           cd aggregation_mode
-          cargo clippy --all -- -D warnings
+          # We need to skip the build as clippy does not support the riscv32im-risc0-zkvm-elf target
+          RISC0_SKIP_BUILD=1 cargo clippy --all -- -D warnings
 
   test:
     runs-on: aligned-runner
@@ -88,6 +95,12 @@ jobs:
           curl -L https://sp1.succinct.xyz | bash
           source /home/runner/.bashrc
            ~/.sp1/bin/sp1up
+
+      - name: Install risc0 toolchain
+        run: |
+          curl -L https://risczero.com/install | bash
+          source ~/.bashrc
+          ~/.risc0/bin/rzup install
 
       - name: Cache Rust dependencies
         uses: actions/cache@v3

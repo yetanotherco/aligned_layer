@@ -20,12 +20,12 @@ enum BeaconAPIResponse {
     Error { code: u64, message: String },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BeaconClientError {
     Url(url::ParseError),
-    ReqwestError(reqwest::Error),
+    ReqwestError(String),
     APIError { code: u64, message: String },
-    Deserialization(serde_json::Error),
+    Deserialization(String),
 }
 
 #[derive(Deserialize, Debug)]
@@ -84,8 +84,8 @@ impl BeaconClient {
             ))
             .await?;
 
-        let res =
-            Vec::<BeaconBlock>::deserialize(data).map_err(BeaconClientError::Deserialization)?;
+        let res = Vec::<BeaconBlock>::deserialize(data)
+            .map_err(|e| BeaconClientError::Deserialization(e.to_string()))?;
 
         let block = res
             .into_iter()
@@ -99,7 +99,8 @@ impl BeaconClient {
             .beacon_get(&format!("/eth/v1/beacon/blob_sidecars/{}", slot))
             .await?;
 
-        Vec::<BlobData>::deserialize(data).map_err(BeaconClientError::Deserialization)
+        Vec::<BlobData>::deserialize(data)
+            .map_err(|e| BeaconClientError::Deserialization(e.to_string()))
     }
 
     pub async fn get_blob_by_versioned_hash(
@@ -133,8 +134,14 @@ impl BeaconClient {
             .header("content-type", "application/json")
             .header("accept", "application/json");
 
-        let res = req.send().await.map_err(BeaconClientError::ReqwestError)?;
-        let beacon_response = res.json().await.map_err(BeaconClientError::ReqwestError)?;
+        let res = req
+            .send()
+            .await
+            .map_err(|e| BeaconClientError::ReqwestError(e.to_string()))?;
+        let beacon_response = res
+            .json()
+            .await
+            .map_err(|e| BeaconClientError::ReqwestError(e.to_string()))?;
 
         match beacon_response {
             BeaconAPIResponse::Success { data } => Ok(data),

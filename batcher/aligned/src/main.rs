@@ -5,20 +5,22 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::communication::serialization::cbor_deserialize;
-use aligned_sdk::core::types::FeeEstimationType;
-use aligned_sdk::core::{
+use aligned_sdk::aggregation_layer;
+use aligned_sdk::aggregation_layer::AggregationModeVerificationData;
+use aligned_sdk::common::types::FeeEstimationType;
+use aligned_sdk::common::{
     errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
-use aligned_sdk::sdk::aggregation::is_proof_verified_in_aggregation_mode;
-use aligned_sdk::sdk::aggregation::AggregationModeVerificationData;
-use aligned_sdk::sdk::estimate_fee;
-use aligned_sdk::sdk::get_chain_id;
-use aligned_sdk::sdk::get_nonce_from_batcher;
-use aligned_sdk::sdk::get_nonce_from_ethereum;
-use aligned_sdk::sdk::{deposit_to_aligned, get_balance_in_aligned};
-use aligned_sdk::sdk::{get_vk_commitment, is_proof_verified, save_response, submit_multiple};
+
+use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::verification_layer;
+use aligned_sdk::verification_layer::estimate_fee;
+use aligned_sdk::verification_layer::get_chain_id;
+use aligned_sdk::verification_layer::get_nonce_from_batcher;
+use aligned_sdk::verification_layer::get_nonce_from_ethereum;
+use aligned_sdk::verification_layer::{deposit_to_aligned, get_balance_in_aligned};
+use aligned_sdk::verification_layer::{get_vk_commitment, save_response, submit_multiple};
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
@@ -325,8 +327,12 @@ pub struct VerifyProofInAggModeArgs {
     proving_system: ProvingSystemArg,
     #[arg(name = "Public input file name", long = "public_input")]
     pub_input_file_name: Option<PathBuf>,
-    #[arg(name = "Verification key hash", long = "vk", required = true)]
-    verification_key_hash: PathBuf,
+    #[arg(
+        name = "Verification key hash",
+        long = "program-id-file",
+        required = true
+    )]
+    program_id_file: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -538,23 +544,23 @@ async fn main() -> Result<(), AlignedError> {
                     get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
                         .await
                         .map_err(|e| match e {
-                            aligned_sdk::core::errors::GetNonceError::EthRpcError(e) => {
+                            aligned_sdk::common::errors::GetNonceError::EthRpcError(e) => {
                                 SubmitError::GetNonceError(e)
                             }
-                            aligned_sdk::core::errors::GetNonceError::ConnectionFailed(e) => {
+                            aligned_sdk::common::errors::GetNonceError::ConnectionFailed(e) => {
                                 SubmitError::GenericError(e)
                             }
-                            aligned_sdk::core::errors::GetNonceError::InvalidRequest(e) => {
+                            aligned_sdk::common::errors::GetNonceError::InvalidRequest(e) => {
                                 SubmitError::GenericError(e)
                             }
-                            aligned_sdk::core::errors::GetNonceError::SerializationError(e) => {
+                            aligned_sdk::common::errors::GetNonceError::SerializationError(e) => {
                                 SubmitError::GenericError(e)
                             }
-                            aligned_sdk::core::errors::GetNonceError::ProtocolMismatch {
+                            aligned_sdk::common::errors::GetNonceError::ProtocolMismatch {
                                 current,
                                 expected,
                             } => SubmitError::ProtocolVersionMismatch { current, expected },
-                            aligned_sdk::core::errors::GetNonceError::UnexpectedResponse(e) => {
+                            aligned_sdk::common::errors::GetNonceError::UnexpectedResponse(e) => {
                                 SubmitError::UnexpectedBatcherResponse(e)
                             }
                         })?
@@ -635,7 +641,7 @@ async fn main() -> Result<(), AlignedError> {
                 cbor_deserialize(reader).map_err(SubmitError::SerializationError)?;
 
             info!("Verifying response data matches sent proof data...");
-            let response = is_proof_verified(
+            let response = verification_layer::is_proof_verified(
                 &aligned_verification_data,
                 verify_inclusion_args.network.into(),
                 &verify_inclusion_args.eth_rpc_url,
@@ -790,28 +796,33 @@ async fn main() -> Result<(), AlignedError> {
             return Ok(());
         }
         AlignedCommands::VerifyProofInAggMode(args) => {
+            let program_id_key = read_file(args.program_id_file)?
+                .try_into()
+                .expect("Invalid hexadecimal encoded vk hash");
+
+            let Some(pub_inputs_file_name) = args.pub_input_file_name else {
+                error!("Public input file not provided");
+                return Ok(());
+            };
+            let public_inputs = read_file(pub_inputs_file_name)?;
+
             let proof_data = match args.proving_system {
-                ProvingSystemArg::SP1 => {
-                    let vk = read_file(args.verification_key_hash)?
-                        .try_into()
-                        .expect("Invalid hexadecimal encoded vk hash");
-
-                    let Some(pub_inputs_file_name) = args.pub_input_file_name else {
-                        error!("Public input file not provided");
-                        return Ok(());
-                    };
-                    let public_inputs = read_file(pub_inputs_file_name)?;
-
-                    AggregationModeVerificationData::SP1 { vk, public_inputs }
-                }
+                ProvingSystemArg::SP1 => AggregationModeVerificationData::SP1 {
+                    vk: program_id_key,
+                    public_inputs,
+                },
+                ProvingSystemArg::Risc0 => AggregationModeVerificationData::Risc0 {
+                    image_id: program_id_key,
+                    public_inputs,
+                },
                 _ => {
                     error!("Proving system not supported in aggregation mode");
                     return Ok(());
                 }
             };
 
-            match is_proof_verified_in_aggregation_mode(
-                proof_data,
+            let proof_status = match aggregation_layer::check_proof_verification(
+                &proof_data,
                 args.network.into(),
                 args.eth_rpc_url,
                 args.beacon_client_url,
@@ -819,13 +830,25 @@ async fn main() -> Result<(), AlignedError> {
             )
             .await
             {
-                Ok(res) => {
-                    info!(
-                        "Your proof has been verified in the aggregated proof with merkle root 0x{}",
-                        hex::encode(res)
-                    );
+                Ok(res) => res,
+                Err(e) => {
+                    error!("Error while trying to verify proof {:?}", e);
+                    return Ok(());
                 }
-                Err(e) => error!("Error while trying to verify proof {:?}", e),
+            };
+
+            match proof_status {
+                aggregation_layer::ProofStatus::Verified { merkle_root, .. } => {
+                    info!("Your proof has been verified in the aggregated proof with merkle root 0x{}", hex::encode(merkle_root));
+                }
+                aggregation_layer::ProofStatus::Invalid => {
+                    error!(
+                        "Your proof was found in the blob but the Merkle Root verification failed."
+                    )
+                }
+                aggregation_layer::ProofStatus::NotFound => {
+                    error!("Your proof wasn't found in the logs. Try specifying an earlier `from_block` to search further back in history.")
+                }
             }
 
             return Ok(());

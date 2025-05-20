@@ -2,7 +2,7 @@ use futures_util::{stream::SplitStream, StreamExt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-use crate::core::{errors::SubmitError, types::SubmitProofResponseMessage};
+use crate::common::{errors::SubmitError, types::SubmitProofResponseMessage};
 
 use super::serialization::cbor_deserialize;
 

@@ -10,6 +10,7 @@ sha2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "sha2-v
 sha3 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "sha3-v0.10.8-patch-v1" }
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.117"
+lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
 
 [lib]
 path = "./src/lib.rs"
