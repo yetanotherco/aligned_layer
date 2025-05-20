@@ -25,7 +25,7 @@ pub enum ProofStatus {
     NotFound,
 }
 
-/// Given the [`AggregationModeVerificationData`], this function checks whether the proof was included in a
+/// Given the [`AggregationModeVerificationData`], this function checks whether the proof was included
 /// in a recent aggregated proof and verifies the corresponding Merkle root commitment.
 ///
 /// ### Notes
