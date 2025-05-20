@@ -106,12 +106,12 @@ pub async fn get_blob_data_from_verified_proof_event(
 
     let blob_bytes =
         hex::decode(blob_data.blob.replace("0x", "")).expect("A valid hex encoded data");
-    let proof_commitments = decoded_blob(blob_bytes);
+    let proof_commitments = decoded_blob(&blob_bytes);
 
     Ok((merkle_root, proof_commitments))
 }
 
-fn decoded_blob(blob_data: Vec<u8>) -> Vec<[u8; 32]> {
+fn decoded_blob(blob_data: &[u8]) -> Vec<[u8; 32]> {
     let mut proof_hashes = vec![];
 
     let mut current_hash = [0u8; 32];
