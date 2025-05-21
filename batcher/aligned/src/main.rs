@@ -5,22 +5,22 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::aggregation_layer::is_proof_verified_in_aggregation_mode;
+use aligned_sdk::aggregation_layer;
 use aligned_sdk::aggregation_layer::AggregationModeVerificationData;
 use aligned_sdk::common::types::FeeEstimationType;
 use aligned_sdk::common::{
     errors::{AlignedError, FeeEstimateError, SubmitError},
     types::{AlignedVerificationData, Network, ProvingSystemId, VerificationData},
 };
+
 use aligned_sdk::communication::serialization::cbor_deserialize;
+use aligned_sdk::verification_layer;
 use aligned_sdk::verification_layer::estimate_fee;
 use aligned_sdk::verification_layer::get_chain_id;
 use aligned_sdk::verification_layer::get_nonce_from_batcher;
 use aligned_sdk::verification_layer::get_nonce_from_ethereum;
 use aligned_sdk::verification_layer::{deposit_to_aligned, get_balance_in_aligned};
-use aligned_sdk::verification_layer::{
-    get_vk_commitment, is_proof_verified, save_response, submit_multiple,
-};
+use aligned_sdk::verification_layer::{get_vk_commitment, save_response, submit_multiple};
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
@@ -641,7 +641,7 @@ async fn main() -> Result<(), AlignedError> {
                 cbor_deserialize(reader).map_err(SubmitError::SerializationError)?;
 
             info!("Verifying response data matches sent proof data...");
-            let response = is_proof_verified(
+            let response = verification_layer::is_proof_verified(
                 &aligned_verification_data,
                 verify_inclusion_args.network.into(),
                 &verify_inclusion_args.eth_rpc_url,
@@ -821,8 +821,8 @@ async fn main() -> Result<(), AlignedError> {
                 }
             };
 
-            match is_proof_verified_in_aggregation_mode(
-                proof_data,
+            let proof_status = match aggregation_layer::check_proof_verification(
+                &proof_data,
                 args.network.into(),
                 args.eth_rpc_url,
                 args.beacon_client_url,
@@ -830,13 +830,25 @@ async fn main() -> Result<(), AlignedError> {
             )
             .await
             {
-                Ok(res) => {
-                    info!(
-                        "Your proof has been verified in the aggregated proof with merkle root 0x{}",
-                        hex::encode(res)
-                    );
+                Ok(res) => res,
+                Err(e) => {
+                    error!("Error while trying to verify proof {:?}", e);
+                    return Ok(());
                 }
-                Err(e) => error!("Error while trying to verify proof {:?}", e),
+            };
+
+            match proof_status {
+                aggregation_layer::ProofStatus::Verified { merkle_root, .. } => {
+                    info!("Your proof has been verified in the aggregated proof with merkle root 0x{}", hex::encode(merkle_root));
+                }
+                aggregation_layer::ProofStatus::Invalid => {
+                    error!(
+                        "Your proof was found in the blob but the Merkle Root verification failed."
+                    )
+                }
+                aggregation_layer::ProofStatus::NotFound => {
+                    error!("Your proof wasn't found in the logs. Try specifying an earlier `from_block` to search further back in history.")
+                }
             }
 
             return Ok(());

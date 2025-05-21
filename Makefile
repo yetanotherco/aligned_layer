@@ -203,7 +203,7 @@ start_proof_aggregator_gpu_ethereum_package: is_aggregator_set reset_last_aggreg
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
 
 verify_aggregated_proof_sp1: 
-	@echo "Verifying SP1 in aggregated proofs on holesky..."
+	@echo "Verifying SP1 in aggregated proofs on $(NETWORK)..."
 	@cd batcher/aligned/ && \
 	cargo run verify-agg-proof \
 		--network $(NETWORK) \
@@ -215,7 +215,7 @@ verify_aggregated_proof_sp1:
 		--rpc_url $(RPC_URL)
 
 verify_aggregated_proof_risc0: 
-	@echo "Verifying RISC0 in aggregated proofs on holesky..."
+	@echo "Verifying RISC0 in aggregated proofs on $(NETWORK)..."
 	@cd batcher/aligned/ && \
 	cargo run verify-agg-proof \
 		--network $(NETWORK) \
@@ -232,6 +232,7 @@ install_aggregation_mode: ## Install the aggregation mode with proving enabled
 agg_mode_write_program_ids: ## Write proof aggregator zkvm programs ids 
 	@cd aggregation_mode && \
 	cargo run --release --bin write_program_image_id_vk_hash
+	
 
 _AGGREGATOR_:
 
