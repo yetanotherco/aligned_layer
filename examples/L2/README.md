@@ -1,23 +1,17 @@
 # Integrating your application with Aligned Aggregation Mode
 
-This guide demonstrates how to build a minimal L2 application that integrates with Aligned Aggregation Mode. The L2 is private, that is: it does not post state diffs or any data to Ethereum, only commitments. This way, the prover has to prove that:
+This guide demonstrates how to build a toy L2 application that integrates with Aligned Aggregation Mode. The L2 does not post state diffs or any data to Ethereum, only commitments. The prover has to prove that:
 
 1. The state database used in the proof must match the commitment stored in the on-chain contract. This is validated by computing the commitment of the received data in the zkvm and then exposing it as a public input.
 2. The users performing the transfers have enough balance
 
 After processing the transfers, the vm computes the commitment of the post state, which is exposed as a public input. The smart contract then updates the on-chain state root. If a user later wants to retrieve their state, the application must return it along with a Merkle proof, so they can verify it against the contract’s state root.
 
-## Further improvements
-
-This is a very basic and minimal L2 design and can be extended. For example:
-
--   Block Support: Add support for batching transactions into blocks and publishing those blocks.
--   Soft Finality: Use the Verification Layer or Fast Mode for faster confirmation of L2 blocks.
--   Hard Finality: Use Aggregation Mode to finalize state transitions with high security.
+Notice a lot of checks that a real L2 should have are missing, since the focus are on the integration of Aligned.
 
 ### How it works: Step by Step
 
-1. Load or initialize the database state.
+1. Load or initialize the state.
 2. Load user transfers.
 3. Run the zkvm + transfers to perform.
 4. Generate and submit the proof to Aligned.
