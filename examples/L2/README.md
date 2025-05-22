@@ -99,3 +99,20 @@ make run_l2
 ```
 
 You should see a transaction receipt in the console and the stateRoot updated on-chain. You can run this process repeatedly, but make sure to not delete the db file, or the application will not be able to prove valid state transitions.
+
+### Run it on a local devnet
+
+You can also run this example on a local devnet. To get started, navigate to the root of the Aligned repository and run:
+
+```shell
+make ethereum_package_start
+```
+
+The remaining steps are the same as for other networks, except you'll be using the `devnet` environment. Specifically, generate the `.env` files for `devnet` using:
+
+```shell
+make gen_env_contract_devnet
+make gen_env_l2_devnet
+```
+
+Finally, make sure to fund your wallet on Aligned using `NETWORK=devnet`.
