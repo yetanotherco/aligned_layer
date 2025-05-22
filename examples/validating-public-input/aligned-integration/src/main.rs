@@ -4,10 +4,10 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use aligned_sdk::core::errors::SubmitError;
-use aligned_sdk::core::types::Network;
-use aligned_sdk::core::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{get_nonce_from_ethereum, submit_and_wait_verification};
+use aligned_sdk::common::errors::SubmitError;
+use aligned_sdk::common::types::Network;
+use aligned_sdk::common::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
+use aligned_sdk::verification_layer::{get_nonce_from_ethereum, submit_and_wait_verification};
 use clap::Parser;
 use clap::ValueEnum;
 use env_logger::Env;

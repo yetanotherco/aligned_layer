@@ -7,6 +7,7 @@ import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPS
 import {IAlignedProofAggregationService} from "./IAlignedProofAggregationService.sol";
 import {ISP1Verifier} from "@sp1-contracts/ISP1Verifier.sol";
 import {IRiscZeroVerifier} from "@risc0-contracts/IRiscZeroVerifier.sol";
+import {MerkleProof} from "../../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 
 contract AlignedProofAggregationService is
     IAlignedProofAggregationService,
@@ -97,6 +98,31 @@ contract AlignedProofAggregationService is
 
         aggregatedProofs[merkleRoot] = true;
         emit AggregatedProofVerified(merkleRoot, blobVersionedHash);
+    }
+
+    /// @notice Verifies the inclusion of proof in an aggregated proof via Merkle tree proof.
+    ///
+    /// @dev
+    /// - The `programId` parameter represents the unique identifier for the vm program:
+    ///   - In RISC Zero, this corresponds to the `image_id`.
+    ///   - In SP1, this corresponds to the `vk` (verification key) hash.
+    /// - The proof commitment is derived by hashing together the `programId` and the `publicInputs`.
+    /// - The `merklePath` is then used to compute the Merkle root from this commitment.
+    /// - The function returns `true` if this Merkle root is known to correspond to a valid aggregated proof.
+    ///
+    /// @param merklePath The Merkle proof (sibling hashes) needed to reconstruct the Merkle root.
+    /// @param programId The identifier for the ZK program (image_id in RISC0 or vk hash in SP1).
+    /// @param publicInputs The public inputs bytes of the proof.
+    ///
+    /// @return bool Returns true if the computed Merkle root is a recognized valid aggregated proof.
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
+        public
+        view
+        returns (bool)
+    {
+        bytes32 proofCommitment = keccak256(abi.encodePacked(programId, publicInputs));
+        bytes32 merkleRoot = MerkleProof.processProofCalldata(merklePath, proofCommitment);
+        return aggregatedProofs[merkleRoot];
     }
 
     function _isSP1VerificationEnabled() internal view returns (bool) {

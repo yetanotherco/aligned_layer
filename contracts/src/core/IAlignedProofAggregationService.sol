@@ -29,6 +29,11 @@ interface IAlignedProofAggregationService {
     function verifyRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes)
         external;
 
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
+        external
+        view
+        returns (bool);
+
     /// @notice Sets the address of the Risc0 verifier contract
     /// @param _risc0VerifierAddress The new address for the Risc0 verifier contract
     function setRisc0VerifierAddress(address _risc0VerifierAddress) external;

@@ -10,17 +10,17 @@ use futures_util::future::Ready;
 use futures_util::stream::{SplitSink, TryFilter};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
+use crate::common::types::{BatchInclusionData, SubmitProofMessage};
 use crate::communication::serialization::{cbor_deserialize, cbor_serialize};
-use crate::core::types::{BatchInclusionData, SubmitProofMessage};
 use crate::{
-    communication::batch::process_batcher_response,
-    core::{
+    common::{
         errors::SubmitError,
         types::{
             AlignedVerificationData, ClientMessage, NoncedVerificationData,
             SubmitProofResponseMessage, VerificationData, VerificationDataCommitment,
         },
     },
+    communication::batch::process_batcher_response,
 };
 
 pub type ResponseStream = TryFilter<
