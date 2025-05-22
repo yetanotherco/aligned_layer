@@ -19,7 +19,7 @@ This is a very basic and minimal L2 design and can be extended. For example:
 
 1. Load or initialize the database state.
 2. Load user transfers.
-3. Run the zkvm with db + transfers to perform.
+3. Run the zkvm + transfers to perform.
 4. Generate and submit the proof to Aligned.
 5. Wait for the proof to be aggregated.
 6. Call the smart contract function `updateStateTransition`, which:
