@@ -1,4 +1,4 @@
-.PHONY: 
+.PHONY: gen_devnet_owner_wallet gen_env_l2_holesky gen_env_l2_devnet run_l2 generate_program_id gen_env_contract_holesky gen_env_contract_devnet deploy_contract clean_db
 
 SHELL := /bin/bash
 
@@ -34,3 +34,6 @@ gen_env_contract_devnet:
 
 deploy_contract:
 	@. ./contracts/.env && . ./contracts/scripts/deploy.sh
+
+clean_db:
+	rm -f examples/l2/crates/l2/db
