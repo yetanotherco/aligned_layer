@@ -3,6 +3,7 @@
 SHELL := /bin/bash
 
 gen_devnet_owner_wallet:
+	rm -f ./contract-owner.keystore.json
 	cast wallet import -k . contract-owner.keystore.json --private-key 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a --unsafe-password "<!w5Y%In94Vw"
 	@echo "Funding on Aligned" 
 	cd ../../batcher/aligned/ && \
