@@ -105,7 +105,12 @@ You should see a transaction receipt in the console and the stateRoot updated on
 You can also run this example on a local devnet. To get started, navigate to the root of the Aligned repository and run:
 
 ```shell
+# This will start the local net
 make ethereum_package_start
+# Start the batcher
+make batcher_start_ethereum_package
+# Send proofs to be able to build batches
+make batcher_send_burst_groth16
 ```
 
 The remaining steps are the same as for other networks, except you'll be using the `devnet` environment. Specifically, generate the `.env` files for `devnet` using:
@@ -115,4 +120,21 @@ make gen_env_contract_devnet
 make gen_env_l2_devnet
 ```
 
-Finally, make sure to fund your wallet on Aligned using `NETWORK=devnet`.
+By default and to make things simpler, the `.env` will be generated using a dev rich wallet. You can of course, creaste your own wallet by following the steps on `1.`. Since the L2 requires a keystore, you'll need to generate it via:
+
+```shell
+# This will generate the keystore and fund it on aligned
+make gen_devnet_owner_wallet
+```
+
+Finally, generate the program id with: `make generate_program_id`, copy the address to the generated `.env` and deploy the contract:
+
+```shell
+make deploy_contract
+```
+
+Pass the output address in the `.env` and run the l2:
+
+```shell
+make run_l2
+```
