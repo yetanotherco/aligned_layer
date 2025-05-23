@@ -40,6 +40,6 @@
 [submodule "contracts/eigenlayer_contracts/eigenlayer-contracts"]
 	path = contracts/eigenlayer_contracts/eigenlayer-contracts
 	url = https://github.com/Layr-Labs/eigenlayer-contracts.git
-[submodule "examples/L2/contracts/lib/forge-std"]
-	path = examples/L2/contracts/lib/forge-std
+[submodule "examples/l2/contracts/lib/forge-std"]
+	path = examples/l2/contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
