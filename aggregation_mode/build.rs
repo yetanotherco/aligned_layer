@@ -7,8 +7,8 @@ fn main() {
         sp1_build::BuildArgs {
             output_directory: Some("./aggregation_programs/sp1/elf".to_string()),
             binaries: vec![
+                "sp1_user_proofs_aggregator_program".into(),
                 "sp1_chunk_aggregator_program".into(),
-                "sp1_root_aggregator_program".into(),
             ],
             // We use Docker to generate a reproducible ELF that will be identical across all platforms
             // (https://docs.succinct.xyz/docs/sp1/writing-programs/compiling#production-builds)

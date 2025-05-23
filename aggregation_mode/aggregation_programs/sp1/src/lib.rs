@@ -107,11 +107,11 @@ impl IsMerkleTreeBackend for Hash32 {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ChunkAggregatorInput {
+pub struct UserProofsAggregatorInput {
     pub proofs_vk_and_pub_inputs: Vec<SP1VkAndPubInputs>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct RootAggregatorInput {
+pub struct ChunkAggregatorInput {
     pub proofs_and_leaves_commitment: Vec<(SP1VkAndPubInputs, Vec<[u8; 32]>)>,
 }

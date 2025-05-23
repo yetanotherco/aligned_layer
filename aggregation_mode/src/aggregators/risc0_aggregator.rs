@@ -28,12 +28,12 @@ pub enum AlignedRisc0VerificationError {
     UnsupportedProof,
 }
 
-/// Byte representation of the chunk aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
-pub const RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
+/// Byte representation of the user proofs aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
+pub const RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
     let mut res = [0u8; 32];
     let mut i = 0;
     while i < 8 {
-        let bytes = RISC0_CHUNK_AGGREGATOR_PROGRAM_ID[i].to_le_bytes();
+        let bytes = RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID[i].to_le_bytes();
         res[i * 4] = bytes[0];
         res[i * 4 + 1] = bytes[1];
         res[i * 4 + 2] = bytes[2];
@@ -43,12 +43,12 @@ pub const RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
     res
 };
 
-/// Byte representation of the root aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
-pub const RISC0_ROOT_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
+/// Byte representation of the chunk aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
+pub const RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
     let mut res = [0u8; 32];
     let mut i = 0;
     while i < 8 {
-        let bytes = RISC0_ROOT_AGGREGATOR_PROGRAM_ID[i].to_le_bytes();
+        let bytes = RISC0_CHUNK_AGGREGATOR_PROGRAM_ID[i].to_le_bytes();
         res[i * 4] = bytes[0];
         res[i * 4 + 1] = bytes[1];
         res[i * 4 + 2] = bytes[2];
@@ -67,7 +67,7 @@ impl Risc0ProofReceiptAndImageId {
     }
 }
 
-pub(crate) fn run_chunk_aggregator(
+pub(crate) fn run_user_proofs_aggregator(
     proofs: &[Risc0ProofReceiptAndImageId],
 ) -> Result<Risc0ProofReceiptAndImageId, Risc0AggregationError> {
     let mut env_builder = ExecutorEnv::builder();
@@ -83,7 +83,7 @@ pub(crate) fn run_chunk_aggregator(
     }
 
     // write input data
-    let input = risc0_aggregation_program::ChunkAggregatorInput {
+    let input = risc0_aggregation_program::UserProofsAggregatorInput {
         proofs_image_id_and_pub_inputs,
     };
     env_builder
@@ -99,25 +99,25 @@ pub(crate) fn run_chunk_aggregator(
     let receipt = prover
         .prove_with_opts(
             env,
-            RISC0_CHUNK_AGGREGATOR_PROGRAM_ELF,
+            RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ELF,
             &ProverOpts::composite(),
         )
         .map_err(|e| Risc0AggregationError::Prove(e.to_string()))?
         .receipt;
 
     receipt
-        .verify(RISC0_CHUNK_AGGREGATOR_PROGRAM_ID)
+        .verify(RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID)
         .map_err(|e| Risc0AggregationError::Verification(e.to_string()))?;
 
     let proof = Risc0ProofReceiptAndImageId {
-        image_id: RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES,
+        image_id: RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID_BYTES,
         receipt,
     };
 
     Ok(proof)
 }
 
-pub(crate) fn run_root_aggregator(
+pub(crate) fn run_chunk_aggregator(
     proofs: &[(Risc0ProofReceiptAndImageId, Vec<[u8; 32]>)],
 ) -> Result<Risc0ProofReceiptAndImageId, Risc0AggregationError> {
     let mut env_builder = ExecutorEnv::builder();
@@ -136,7 +136,7 @@ pub(crate) fn run_root_aggregator(
     }
 
     // write input data
-    let input = risc0_aggregation_program::RootAggregatorInput {
+    let input = risc0_aggregation_program::ChunkAggregatorInput {
         proofs_and_leaves_commitment,
     };
     env_builder
@@ -152,18 +152,18 @@ pub(crate) fn run_root_aggregator(
     let receipt = prover
         .prove_with_opts(
             env,
-            RISC0_ROOT_AGGREGATOR_PROGRAM_ELF,
+            RISC0_CHUNK_AGGREGATOR_PROGRAM_ELF,
             &ProverOpts::groth16(),
         )
         .map_err(|e| Risc0AggregationError::Prove(e.to_string()))?
         .receipt;
 
     receipt
-        .verify(RISC0_ROOT_AGGREGATOR_PROGRAM_ID)
+        .verify(RISC0_CHUNK_AGGREGATOR_PROGRAM_ID)
         .map_err(|e| Risc0AggregationError::Verification(e.to_string()))?;
 
     let proof = Risc0ProofReceiptAndImageId {
-        image_id: RISC0_ROOT_AGGREGATOR_PROGRAM_ID_BYTES,
+        image_id: RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES,
         receipt,
     };
 

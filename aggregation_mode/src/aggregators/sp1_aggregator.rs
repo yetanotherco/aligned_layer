@@ -7,11 +7,11 @@ use sp1_sdk::{
     SP1VerifyingKey,
 };
 
-const ROOT_PROGRAM_ELF: &[u8] =
-    include_bytes!("../../aggregation_programs/sp1/elf/sp1_root_aggregator_program");
-
 const CHUNK_PROGRAM_ELF: &[u8] =
     include_bytes!("../../aggregation_programs/sp1/elf/sp1_chunk_aggregator_program");
+
+const USER_PROOFS_PROGRAM_ELF: &[u8] =
+    include_bytes!("../../aggregation_programs/sp1/elf/sp1_user_proofs_aggregator_program");
 
 static SP1_PROVER_CLIENT: LazyLock<EnvProver> = LazyLock::new(ProverClient::from_env);
 
@@ -41,12 +41,12 @@ pub enum SP1AggregationError {
     UnsupportedProof,
 }
 
-pub(crate) fn run_chunk_aggregator(
+pub(crate) fn run_user_proofs_aggregator(
     proofs: &[SP1ProofWithPubValuesAndElf],
 ) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
     let mut stdin = SP1Stdin::new();
 
-    let mut program_input = sp1_aggregation_program::ChunkAggregatorInput {
+    let mut program_input = sp1_aggregation_program::UserProofsAggregatorInput {
         proofs_vk_and_pub_inputs: vec![],
     };
 
@@ -80,7 +80,7 @@ pub(crate) fn run_chunk_aggregator(
     #[cfg(not(feature = "prove"))]
     let client = ProverClient::builder().mock().build();
 
-    let (pk, vk) = client.setup(CHUNK_PROGRAM_ELF);
+    let (pk, vk) = client.setup(USER_PROOFS_PROGRAM_ELF);
 
     let proof = client
         .prove(&pk, &stdin)
@@ -95,18 +95,18 @@ pub(crate) fn run_chunk_aggregator(
 
     let proof_and_elf = SP1ProofWithPubValuesAndElf {
         proof_with_pub_values: proof,
-        elf: CHUNK_PROGRAM_ELF.to_vec(),
+        elf: USER_PROOFS_PROGRAM_ELF.to_vec(),
     };
 
     Ok(proof_and_elf)
 }
 
-pub(crate) fn run_root_aggregator(
+pub(crate) fn run_chunk_aggregator(
     proofs: &[(SP1ProofWithPubValuesAndElf, Vec<[u8; 32]>)],
 ) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
     let mut stdin = SP1Stdin::new();
 
-    let mut program_input = sp1_aggregation_program::RootAggregatorInput {
+    let mut program_input = sp1_aggregation_program::ChunkAggregatorInput {
         proofs_and_leaves_commitment: vec![],
     };
 
@@ -141,7 +141,7 @@ pub(crate) fn run_root_aggregator(
     #[cfg(not(feature = "prove"))]
     let client = ProverClient::builder().mock().build();
 
-    let (pk, vk) = client.setup(ROOT_PROGRAM_ELF);
+    let (pk, vk) = client.setup(CHUNK_PROGRAM_ELF);
 
     #[cfg(feature = "prove")]
     let proof = client
@@ -167,7 +167,7 @@ pub(crate) fn run_root_aggregator(
 
     let proof_and_elf = SP1ProofWithPubValuesAndElf {
         proof_with_pub_values: proof,
-        elf: ROOT_PROGRAM_ELF.to_vec(),
+        elf: CHUNK_PROGRAM_ELF.to_vec(),
     };
 
     Ok(proof_and_elf)

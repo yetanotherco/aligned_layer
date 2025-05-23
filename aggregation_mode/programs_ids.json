@@ -1,8 +1,8 @@
 {
-  "risc0_chunk_aggregator_image_id": "0xde7a67940edb53d41e9a93c4db855d163f95bebef2323e91120879196b3ab842",
-  "risc0_chunk_aggregator_image_id_bytes": "[222, 122, 103, 148, 14, 219, 83, 212, 30, 154, 147, 196, 219, 133, 93, 22, 63, 149, 190, 190, 242, 50, 62, 145, 18, 8, 121, 25, 107, 58, 184, 66]",
-  "risc0_root_aggregator_image_id": "0x850737352f63a706cd79b3f128ff7f466e607bbacd7dd94bc4a7e76db6160068",
-  "sp1_chunk_aggregator_vk_hash": "0x007c0478c16fc706b0c430fd80c49a0b916b1a30ba76a75eeec1bd1248ab65f2",
-  "sp1_chunk_aggregator_vk_hash_words": "[1040333920, 1542570412, 411443120, 206151865, 190370181, 1775934843, 1568897572, 1219192306]",
-  "sp1_root_aggregator_vk_hash": "0x00c262f809acf5799f2a158bad858de8a19b3e756f46df818ff8139789147938"
+  "risc0_chunk_aggregator_image_id": "0xcee9c4f2e4758970c20676cc7bfd23a1640f18b8b025ed05be7330c9472aa65a",
+  "risc0_user_proofs_aggregator_image_id": "0xcee9c4f2e4758970c20676cc7bfd23a1640f18b8b025ed05be7330c9472aa65a",
+  "risc0_user_proofs_aggregator_image_id_bytes": "[83, 145, 39, 254, 127, 217, 146, 127, 63, 217, 69, 190, 11, 204, 170, 138, 215, 35, 175, 246, 209, 154, 52, 243, 85, 37, 177, 147, 22, 153, 155, 156]",
+  "sp1_chunk_aggregator_vk_hash": "0x0073c64593b6224bb8059787baa93b3aa491a308e9f126788b547ca02d3d599e",
+  "sp1_user_proofs_aggregator_vk_hash": "0x0051a5d3f4410c847ed205f8d41cf9222dcf1d54a747675d3bc200b37155253a",
+  "sp1_user_proofs_aggregator_vk_hash_words": "[684911098, 272834847, 1514192666, 1104122402, 1853418149, 488480116, 2005139814, 1901405498]"
 }

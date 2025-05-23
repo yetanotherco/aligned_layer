@@ -88,7 +88,7 @@ impl ZKVMEngine {
                 for (i, chunk) in chunks.enumerate() {
                     let leaves_commitment =
                         chunk.iter().map(|e| e.hash_vk_and_pub_inputs()).collect();
-                    let agg_proof = sp1_aggregator::run_chunk_aggregator(chunk)
+                    let agg_proof = sp1_aggregator::run_user_proofs_aggregator(chunk)
                         .map_err(ProofAggregationError::SP1Aggregation)?;
                     agg_proofs.push((agg_proof, leaves_commitment));
 
@@ -96,7 +96,7 @@ impl ZKVMEngine {
                 }
 
                 info!("All chunks have been aggregated, performing last aggregation...");
-                let mut agg_proof = sp1_aggregator::run_root_aggregator(&agg_proofs)
+                let mut agg_proof = sp1_aggregator::run_chunk_aggregator(&agg_proofs)
                     .map_err(ProofAggregationError::SP1Aggregation)?;
 
                 let merkle_root: [u8; 32] = agg_proof
@@ -131,7 +131,7 @@ impl ZKVMEngine {
                         .iter()
                         .map(|e| e.hash_image_id_and_public_inputs())
                         .collect();
-                    let agg_proof = risc0_aggregator::run_chunk_aggregator(chunk)
+                    let agg_proof = risc0_aggregator::run_user_proofs_aggregator(chunk)
                         .map_err(ProofAggregationError::Risc0Aggregation)?;
                     agg_proofs.push((agg_proof, leaves_commitment));
 
@@ -139,7 +139,7 @@ impl ZKVMEngine {
                 }
 
                 info!("All chunks have been aggregated, performing last aggregation...");
-                let agg_proof = risc0_aggregator::run_root_aggregator(&agg_proofs)
+                let agg_proof = risc0_aggregator::run_chunk_aggregator(&agg_proofs)
                     .map_err(ProofAggregationError::Risc0Aggregation)?;
 
                 // Note: journal.decode() won't work here as risc0 deserializer works under u32 words
