@@ -6,8 +6,8 @@
     "alignedAggregatorAddressPrivateKey": "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
   },
   "programs_id": {
-    "sp1AggregationProgramVKHash": "0x00c262f809acf5799f2a158bad858de8a19b3e756f46df818ff8139789147938",
-    "risc0AggregationProgramImageId": "0x850737352f63a706cd79b3f128ff7f466e607bbacd7dd94bc4a7e76db6160068"
+    "sp1AggregationProgramVKHash": "0x0073c64593b6224bb8059787baa93b3aa491a308e9f126788b547ca02d3d599e",
+    "risc0AggregationProgramImageId": "0xcee9c4f2e4758970c20676cc7bfd23a1640f18b8b025ed05be7330c9472aa65a"
   },
   "permissions": {
     "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
