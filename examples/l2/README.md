@@ -9,7 +9,7 @@ After processing the transfers, the vm computes the commitment of the post state
 
 Notice a lot of checks that a real L2 should have are missing, since the focus are on the integration of Aligned.
 
-### How it works: Step by Step
+## How it works: Step by Step
 
 1. Load or initialize the state.
 2. Load user transfers.
@@ -54,22 +54,24 @@ This same wallet is used to send the proof via aligned, so you'll also need to f
 
 #### 2. Deploy the contract
 
-Generate the base `.env`. For `Holesky` you can run:
+- Generate the base `.env`. For `Holesky` you can run:
 
 ```shell
 make gen_env_contract_holesky
 ```
 
-And then in `contracts/.env` you have to complete the missing variables:
+- Get the program ID of the l2 program you are proving:
 
--   `INITIAL_STATE_ROOT`: you can leave it as it is unless you change the initial state in `crates/l2/db.rs`
--   `PROGRAM_ID`: you need to ensure it matches the one on your machine:
-    1. Run `make generate_program_id` to generate it.
-    2. Check `crates/l2/programs_ids.json` for the ID.
--   `OWNER_ADDRESS`: you have to provide the address of the wallet created in step `1.`.
--   `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
+```shell
+make generate_program_id
+```
 
-Once you have completed the `.env`, you can deploy the contract:
+- Complete the following fields `contracts/.env` file:
+  - ```PROGRAM_ID=``` (use the previously generated ID, you can re check with a ```sh cat ./crates/l2/programs_ids.json``` )
+  - `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
+  - `OWNER_ADDRESS`: you have to provide the address of the wallet created in step `1.`.
+
+- Deploy the contracts with:
 
 ```shell
 make deploy_contract
@@ -79,28 +81,32 @@ Save the output contract address.
 
 #### 3. Run L2 program
 
-Generate the base `.env`. For `Holesky` you can run:
+- Generate the base `.env`. For `Holesky` you can run:
 
 ```shell
 make gen_env_l2_holesky
 ```
 
-And complete the variables:
+- Complete the missing fields on the ```sh .env```:
 
--   `BEACON_CLIENT_URL`: A beacon client url, public node usually don't work as they don't support the endpoints to retrieve blob data
--   `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
--   `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
--   `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
+  - `BEACON_CLIENT_URL`: A beacon client url, public node usually don't work as they don't support the endpoints to retrieve blob data
+  - `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
+  - `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
+  - `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
 
-Finally, run the L2:
+- If you have run the program before, and want to start from scratch, run:
+
+```make clean_db```
+
+- Run the L2:
 
 ```shell
 make run_l2
 ```
 
-You should see a transaction receipt in the console and the stateRoot updated on-chain. You can run this process repeatedly, but make sure to not delete the db file, or the application will not be able to prove valid state transitions.
+You should see a transaction receipt in the console and after the stateRoot updated on-chain.
 
-### Run it on a local devnet
+### Running it on a local network
 
 You can also run this example on a local devnet. To get started, navigate to the root of the Aligned repository and run:
 
