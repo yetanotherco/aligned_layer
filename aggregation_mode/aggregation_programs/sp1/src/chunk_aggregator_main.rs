@@ -7,7 +7,7 @@ use sp1_aggregation_program::{ChunkAggregatorInput, Hash32};
 
 // Generated with `make agg_mode_write_program_ids` and copied from program_ids.json
 pub const USER_PROOFS_AGGREGATOR_PROGRAM_VK_HASH: [u32; 8] = [
-    1040333920, 1542570412, 411443120, 206151865, 190370181, 1775934843, 1568897572, 1219192306,
+    684911098, 272834847, 1514192666, 1104122402, 1853418149, 488480116, 2005139814, 1901405498,
 ];
 
 pub fn main() {
