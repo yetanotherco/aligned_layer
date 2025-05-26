@@ -79,7 +79,7 @@ impl ZKVMEngine {
 
                 let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
                 info!(
-                    "Total proofs to aggregate {}. They aggregation will be perform in {} chunks",
+                    "Total proofs to aggregate {}. They aggregation will be performed in {} chunks",
                     proofs.len(),
                     chunks.len()
                 );
@@ -120,7 +120,7 @@ impl ZKVMEngine {
 
                 let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
                 info!(
-                    "Total proofs to aggregate {}. They aggregation will be perform in {} chunks",
+                    "Total proofs to aggregate {}. They aggregation will be performed in {} chunks",
                     proofs.len(),
                     chunks.len()
                 );
