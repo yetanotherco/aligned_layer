@@ -6,4 +6,5 @@ pub struct Config {
     pub private_key_store_path: String,
     pub private_key_store_password: String,
     pub state_transition_contract_address: String,
+    pub db_path: Option<String>,
 }

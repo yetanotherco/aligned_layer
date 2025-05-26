@@ -1,14 +1,8 @@
 use aligned_sdk::{
+    aggregation_layer::ProofStatus,
     common::types::{AlignedVerificationData, Signer, VerificationData, Wallet},
     verification_layer::{estimate_fee, get_chain_id},
 };
-use alloy::{
-    eips::BlockNumberOrTag,
-    primitives::Address,
-    providers::{Provider, ProviderBuilder, WsConnect},
-    rpc::types::Filter,
-};
-use futures_util::StreamExt;
 use sp1_sdk::{HashableKey, SP1VerifyingKey};
 
 use crate::config::Config;
@@ -63,58 +57,45 @@ pub async fn send_proof_to_be_verified_on_aligned(
     .expect("Proof to be sent")
 }
 
-pub async fn wait_until_proof_is_aggregated(
+pub async fn check_proof_proof_aggregation_status(
     config: &Config,
     proof: &sp1_sdk::SP1ProofWithPublicValues,
     vk: &SP1VerifyingKey,
-) -> Vec<[u8; 32]> {
-    let ws_rpc_url = &config.ws_eth_rpc_url;
-    let ws = WsConnect::new(ws_rpc_url);
-    let provider = ProviderBuilder::new().on_ws(ws).await.unwrap();
-
-    let aligned_proof_agg_address =
-        Address::from(config.network.get_aligned_proof_agg_service_address().0);
-
-    let filter = Filter::new()
-        .address(aligned_proof_agg_address)
-        .event("AggregatedProofVerified(bytes32,bytes32)")
-        .from_block(BlockNumberOrTag::Latest);
-
-    // Subscribe to logs.
-    let sub = provider.subscribe_logs(&filter).await.unwrap();
-    let mut stream = sub.into_stream();
-
+) -> ProofStatus {
     let verification_data = aligned_sdk::aggregation_layer::AggregationModeVerificationData::SP1 {
         vk: vk.hash_bytes(),
         public_inputs: proof.public_values.to_vec(),
     };
 
-    let mut merkle_path = vec![];
+    let proof_status = aligned_sdk::aggregation_layer::check_proof_verification(
+        &verification_data,
+        config.network.clone(),
+        config.eth_rpc_url.clone(),
+        config.beacon_client_url.clone(),
+        // By default it looks back 24 hours
+        None,
+    )
+    .await
+    .expect("Get merkle path for proof");
 
-    while stream.next().await.is_some() {
-        let proof_status = aligned_sdk::aggregation_layer::check_proof_verification(
-            &verification_data,
-            config.network.clone(),
-            config.eth_rpc_url.clone(),
-            config.beacon_client_url.clone(),
-            None,
-        )
-        .await
-        .expect("Get merkle path for proof");
+    proof_status
 
-        match proof_status {
-            aligned_sdk::aggregation_layer::ProofStatus::Verified {
-                merkle_path: path, ..
-            } => {
-                merkle_path = path;
-                break;
-            }
-            aligned_sdk::aggregation_layer::ProofStatus::Invalid => {
-                panic!("Proof did pass merkle root verification")
-            }
-            aligned_sdk::aggregation_layer::ProofStatus::NotFound => continue,
-        }
-    }
-
-    merkle_path
+    // match proof_status {
+    //     aligned_sdk::aggregation_layer::ProofStatus::Verified {
+    //         merkle_root,
+    //         merkle_path,
+    //     } => {
+    //         info!(
+    //             "Proof aggregated in aggregation with merkle root {:?}",
+    //             hex::encode(merkle_root)
+    //         );
+    //         merkle_path
+    //     }
+    //     aligned_sdk::aggregation_layer::ProofStatus::Invalid => {
+    //         panic!("Proof did pass merkle root verification");
+    //     }
+    //     aligned_sdk::aggregation_layer::ProofStatus::NotFound => {
+    //         panic!("Proof not found in the last 24 hours logs");
+    //     }
+    // }
 }

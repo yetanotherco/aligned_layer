@@ -1,5 +1,5 @@
 [package]
-name = "l2_example"
+name = "l2"
 version = "0.1.0"
 edition = "2021"
 
@@ -20,10 +20,6 @@ futures-util = "0.3"
 tokio = "1.44"
 alloy = { version = "0.14", features = ["full", "signer-keystore", "providers"] }
 dotenv = "0.15"
-
-[[bin]]
-name = "main"
-path = "./src/main.rs"
 
 [[bin]]
 name = "write_program_id"

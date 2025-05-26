@@ -3839,7 +3839,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "l2_example"
+name = "l2"
 version = "0.1.0"
 dependencies = [
  "aligned-sdk",
@@ -3859,6 +3859,21 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "types",
+]
+
+[[package]]
+name = "l2_cmd"
+version = "0.1.0"
+dependencies = [
+ "aligned-sdk",
+ "bincode",
+ "dotenv",
+ "l2",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

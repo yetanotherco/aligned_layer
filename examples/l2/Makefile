@@ -2,6 +2,8 @@
 
 SHELL := /bin/bash
 
+
+__CONFIG__:
 gen_devnet_owner_wallet:
 	rm -f ./contract-owner.keystore.json
 	cast wallet import -k . contract-owner.keystore.json --private-key 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a --unsafe-password "<!w5Y%In94Vw"
@@ -19,9 +21,6 @@ gen_env_l2_holesky:
 gen_env_l2_devnet:
 	@cp .env.devnet .env
 
-run_l2:
-	@cd crates/l2 && cargo run --release --bin main
-
 generate_program_id:
 	@cd crates/l2 && cargo run --release --bin write_program_id
 	@cat ./crates/l2/programs_ids.json
@@ -37,3 +36,10 @@ deploy_contract:
 
 clean_db:
 	rm -f examples/l2/crates/l2/db
+
+__L2_PROGRAM__:
+update_state_transition:
+	@cd cmd && cargo run --release --bin update_state_transition
+
+verify_state_transition_on_chain:
+	@cd cmd && cargo run --release --bin verify_state_transition_on_chain

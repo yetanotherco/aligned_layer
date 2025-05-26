@@ -2,14 +2,9 @@ use std::env;
 
 use aligned_sdk::common::types::Network;
 use dotenv::dotenv;
-use l2_example::{config::Config, l2::start_l2};
-use tracing_subscriber::FmtSubscriber;
+use l2::config::Config;
 
-#[tokio::main]
-async fn main() {
-    let subscriber = FmtSubscriber::builder().finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-
+pub fn load_config() -> Config {
     dotenv().ok();
 
     let network = match env::var("NETWORK").expect("NETWORK not set").as_str() {
@@ -30,7 +25,8 @@ async fn main() {
             .expect("PRIVATE_KEY_STORE_PASSWORD not set"),
         state_transition_contract_address: env::var("STATE_TRANSITION_CONTRACT_ADDRESS")
             .expect("STATE_TRANSITION_CONTRACT_ADDRESS not set"),
+        db_path: Some("./db".to_string()),
     };
 
-    start_l2(config).await;
+    config
 }

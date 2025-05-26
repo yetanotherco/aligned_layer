@@ -1,3 +1,4 @@
+use sp1_sdk::{Prover, SP1VerifyingKey};
 use types::Transfer;
 
 use crate::db::DB;
@@ -25,4 +26,10 @@ pub fn prove_state_transition(
         .expect("Prover to run well");
 
     (proof, vk)
+}
+
+pub fn vk_from_elf(elf: &[u8]) -> SP1VerifyingKey {
+    let prover = sp1_sdk::ProverClient::builder().cpu().build();
+    let (_pk, vk) = prover.setup(elf);
+    vk
 }
