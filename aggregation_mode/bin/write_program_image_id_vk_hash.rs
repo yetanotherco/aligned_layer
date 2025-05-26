@@ -32,7 +32,7 @@ fn main() {
     let sp1_user_proofs_aggregator_vk_hash_hex = hex::encode(sp1_user_proofs_aggregator_vk_hash);
     let sp1_chunk_aggregator_vk_hash_hex = hex::encode(sp1_chunk_aggregator_vk_hash);
     let risc0_user_proofs_aggregator_image_id_hex =
-        hex::encode(risc0_chunk_aggregator_image_id_bytes);
+        hex::encode(risc0_user_proofs_aggregator_image_id_bytes);
     let risc0_chunk_aggregator_imaged_id_hex = hex::encode(risc0_chunk_aggregator_image_id_bytes);
 
     let dest_path = Path::new("programs_ids.json");
