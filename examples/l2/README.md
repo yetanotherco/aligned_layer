@@ -9,29 +9,37 @@ After processing the transfers, the vm computes the commitment of the post state
 
 Notice a lot of checks that a real L2 should have are missing, since the focus are on the integration of Aligned.
 
-## How it works: Step by Step
+## L2 workflow overview
 
-This L2 works in two steps. First we need perform the user transfers and prove that state transition inside the zkvm and send it to aligned verification layer (a.k.a fast mode). Then, once our proof has been aggregated by aligned (this happens every 24hs) we need to run the on chain verifier to update the state transition on chain for which we need to retrieve the merkle path for the proof.
+This Layer 2 (L2) system operates in two main steps:
 
-### Step 1
+-   Off-chain execution and proof generation + verification with Aligned Verification Layer (a.k.a Fast Mode).
+-   On-chain state update via proof verification with Aligned aggregation mode.
 
-1. Load or initialize the state.
-2. Load user transfers.
-3. Run the zkvm + transfers to perform.
-4. Generate and submit the proof to Aligned.
-5. Store proof binary on disk to be later retrieved by the on chain verifier.
+In Step 1, we execute user transfers and generate a zkVM-based proof of the state transition, which is submitted to Aligned’s verification layer.
 
-### Step 2
+In Step 2, once the proof is aggregated (every 24 hours), it is verified on-chain to update the global state.
 
-6. Load the proof binary.
-7. Call the smart contract function `updateStateTransition`, which:
-    1. Calls `verifyProofInclusion` in the `AlignedProofAggregationService`, which:
-        - Computes the proof commitment with the provided `public_inputs` and `program_id`
-        - Computes the Merkle Root, using the provided Merkle Proof.
-        - Checks the root exists in the aggregation root.
-    2. Verifies that the initial_state_root public input matches the on-chain state.
-    3. If successful, updates the state root with the post_state_root public input.
-8. If the contract call succeeds, updates the local database.
+### Step 1: Off-Chain Execution & Proof Generation
+
+1. Initialize State: Load or initialize the current system state.
+2. Load Transfers: Retrieve or receive the user transfer data for this batch.
+3. Execute in zkVM: Run the zkVM with the loaded transfers to compute the new state.
+4. Generate Proof: Produce a zk-proof for the executed state transition committing the commitment of the received + the commitment of the new state.
+5. Submit Proof to Aligned: Send the proof to Aligned Verification Layer
+6. Save the binary proof locally for later on-chain verification.
+
+### Step 2: On-Chain State Update
+
+7. Load the proof binary: Retrieve the saved proof binary from disk.
+8. Update On-Chain State: Call the smart contract method `updateStateTransition`, which:
+
+    - Internally calls `verifyProofInclusion` on AlignedProofAggregationService which:
+        1. Computes the proof commitment from the proof `public_inputs` and `program_id`.
+        2. Uses the Merkle proof to reconstruct and validate the Merkle root.
+        3. Confirms whether there exists and aggregated proof with that root.
+    - Validates that the `initial_state_root` proof public input matches the on-chain state.
+    - If valid, updates the on-chain state root to the `post_state_root`.
 
 ### Usage
 
@@ -40,6 +48,8 @@ This L2 works in two steps. First we need perform the user transfers and prove t
 1. [Rust](https://www.rust-lang.org/tools/install): we have tested in v1.85.1
 2. [Foundry](https://book.getfoundry.sh/getting-started/installation)
 3. [Docker](https://docs.docker.com/engine/): for SP1 prover
+
+## Setup Holeksy
 
 #### 1. Create keystore
 
@@ -88,7 +98,7 @@ make deploy_contract
 
 Save the output contract address.
 
-#### 3. Run L2 program
+### 3. Setup the L2
 
 -   Generate the base `.env`. For `Holesky` you can run:
 
@@ -107,21 +117,9 @@ make gen_env_l2_holesky
 
 `make clean_db`
 
--   Perform the L2 account updates and prove them in the zkvm:
+Finally [run the l2](#run-the-l2).
 
-```shell
-make update_state_transition
-```
-
--   Update state transition on chain, you should run this after your proof has been aggregated by aligned (this process happens every 24hs):
-
-```shell
-make verify_state_transition_on_chain
-```
-
-You should see a transaction receipt in the console and after the stateRoot updated on-chain.
-
-### Running it on a local network
+## Setup Localnet
 
 You can also run this example on a local devnet. To get started, navigate to the root of the Aligned repository and run:
 
@@ -130,8 +128,6 @@ You can also run this example on a local devnet. To get started, navigate to the
 make ethereum_package_start
 # Start the batcher
 make batcher_start_ethereum_package
-# Send proofs to be able to build batches
-make batcher_send_burst_groth16
 ```
 
 The remaining steps are the same as for other networks, except you'll be using the `devnet` environment. Specifically, generate the `.env` files for `devnet` using:
@@ -148,14 +144,32 @@ By default and to make things simpler, the `.env` will be generated using a dev 
 make gen_devnet_owner_wallet
 ```
 
-Finally, generate the program id with: `make generate_program_id`, copy the address to the generated `.env` and deploy the contract:
+Finally, generate the program id with:
+
+````shell
+make generate_program_id
+```
+
+Copy the address to the generated `.env` and deploy the contract:
 
 ```shell
 make deploy_contract
-```
+````
 
-Pass the output address in the `.env` and run the l2:
+Pass the output address in the `.env` and [run the l2](#run-the-l2).
+
+## Running the L2
+
+-   Perform the L2 account updates and prove them in the zkvm:
 
 ```shell
-make run_l2
+make update_state_transition
 ```
+
+-   Update state transition on chain, you should run this after your proof has been aggregated by aligned (this process happens every 24hs):
+
+```shell
+make verify_state_transition_on_chain
+```
+
+You should see a transaction receipt in the console and after the stateRoot updated on-chain.
