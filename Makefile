@@ -192,7 +192,7 @@ start_proof_aggregator_gpu_ethereum_package: is_aggregator_set reset_last_aggreg
 
 verify_aggregated_proof_sp1_holesky_stage: 
 	@echo "Verifying SP1 in aggregated proofs on holesky..."
-	@cd batcher/aligned/ && \
+	@cd crates/cli/ && \
 	cargo run verify-agg-proof \
 		--network holesky-stage \
 		--from-block $(FROM_BLOCK) \
@@ -204,7 +204,7 @@ verify_aggregated_proof_sp1_holesky_stage:
 
 verify_aggregated_proof_risc0_holesky_stage: 
 	@echo "Verifying RISC0 in aggregated proofs on holesky..."
-	@cd batcher/aligned/ && \
+	@cd crates/cli/ && \
 	cargo run verify-agg-proof \
 		--network holesky-stage \
 		--from-block $(FROM_BLOCK) \
@@ -424,40 +424,40 @@ BURST_SIZE ?= 5
 user_fund_payment_service:
 	@. ./scripts/user_fund_payment_service_devnet.sh
 
-./batcher/aligned-batcher/.env:
-	@echo "To start the Batcher ./batcher/aligned-batcher/.env needs to be manually set"; false;
+./crates/batcher/.env:
+	@echo "To start the Batcher ./crates/batcher/.env needs to be manually set"; false;
 
-batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
+batcher_start: ./crates/batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
+	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env
 
 batcher_start_local: user_fund_payment_service
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env.dev
 
 batcher_start_local_no_fund:
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env.dev
 
 install_batcher:
-	@cargo install --path batcher/aligned-batcher
+	@cargo install --path crates/batcher
 
 install_aligned:
-	@./batcher/aligned/install_aligned.sh
+	@./crates/cli/install_aligned.sh
 
 uninstall_aligned:
 	@rm -rf ~/.aligned && echo "Aligned uninstalled"
 
 install_aligned_compiling:
-	@cargo install --path batcher/aligned
+	@cargo install --path crates/cli
 
 build_batcher_client:
-	@cd batcher/aligned && cargo b --release
+	@cd crates/cli && cargo b --release
 
-batcher/target/release/aligned:
-	@cd batcher/aligned && cargo b --release
+crates/target/release/aligned:
+	@cd crates/cli && cargo b --release
 
 
 RPC_URL=http://localhost:8545
@@ -465,7 +465,7 @@ NETWORK=devnet # devnet | holesky-stage | holesky
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
@@ -475,7 +475,7 @@ batcher_send_sp1_task:
 
 batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
@@ -486,11 +486,11 @@ batcher_send_sp1_burst:
 
 batcher_send_infinite_sp1:
 	@echo "Sending infinite SP1 fibonacci task to Batcher..."
-	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
+	@./crates/cli/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
 
 batcher_send_risc0_task:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
@@ -501,7 +501,7 @@ batcher_send_risc0_task:
 
 batcher_send_risc0_task_no_pub_input:
 	@echo "Sending Risc0 no pub input task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_0.proof \
         --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id_2_0.bin \
@@ -511,7 +511,7 @@ batcher_send_risc0_task_no_pub_input:
 
 batcher_send_risc0_burst:
 	@echo "Sending Risc0 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
@@ -521,9 +521,9 @@ batcher_send_risc0_burst:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bn254_task: batcher/target/release/aligned
+batcher_send_plonk_bn254_task: crates/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
@@ -532,9 +532,9 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bn254_burst: batcher/target/release/aligned
+batcher_send_plonk_bn254_burst: crates/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
@@ -544,9 +544,9 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--repetitions $(BURST_SIZE) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
+batcher_send_plonk_bls12_381_task: crates/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
 		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
@@ -555,9 +555,9 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
+batcher_send_plonk_bls12_381_burst: crates/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
 		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
@@ -567,9 +567,9 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_groth16_bn254_task: batcher/target/release/aligned
+batcher_send_groth16_bn254_task: crates/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
 		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
 		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
@@ -578,59 +578,59 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
+batcher_send_infinite_groth16: crates/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
-	@./batcher/aligned/send_infinite_tasks.sh 4
+	@./crates/cli/send_infinite_tasks.sh 4
 
-batcher_send_burst_groth16: batcher/target/release/aligned
+batcher_send_burst_groth16: crates/target/release/aligned
 	@echo "Sending a burst of tasks to Batcher..."
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
-	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
+	@./crates/cli/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
 batcher_send_proof_with_random_address:
-	@cd batcher/aligned/ && ./send_proof_with_random_address.sh
+	@cd crates/cli/ && ./send_proof_with_random_address.sh
 
 batcher_send_burst_with_random_address:
-	@cd batcher/aligned/ && ./send_burst_with_random_address.sh
+	@cd crates/cli/ && ./send_burst_with_random_address.sh
 
 __TASK_SENDER__:
 BURST_TIME_SECS ?= 3
 
 task_sender_generate_groth16_proofs:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- generate-proofs \
 	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type groth16 \
 	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
 
 # ===== DEVNET =====
 task_sender_fund_wallets_devnet:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- generate-and-fund-wallets \
 	--eth-rpc-url http://localhost:8545 \
 	--network devnet \
 	--amount-to-deposit 1 \
 	--amount-to-deposit-to-aligned 0.9999 \
-	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+	--private-keys-filepath $(CURDIR)/crates/task-sender/wallets/devnet
 
 task_sender_send_infinite_proofs_devnet:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url http://localhost:8545 \
 	--network devnet \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+	--private-keys-filepath $(CURDIR)/crates/task-sender/wallets/devnet
 
 task_sender_test_connections_devnet:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- test-connections \
 	--num-senders $(NUM_SENDERS) \
 	--network devnet
 
 # ===== HOLESKY-STAGE =====
 task_sender_generate_and_fund_wallets_holesky_stage:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- generate-and-fund-wallets \
 	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
 	--network holesky-stage \
@@ -638,31 +638,31 @@ task_sender_generate_and_fund_wallets_holesky_stage:
 	--number-wallets $(NUM_WALLETS) \
 	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
 	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
-	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+	--private-keys-filepath $(CURDIR)/crates/task-sender/wallets/holesky-stage
 
 task_sender_send_infinite_proofs_holesky_stage:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
 	--network holesky-stage \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+	--private-keys-filepath $(CURDIR)/crates/task-sender/wallets/holesky-stage
 
 task_sender_test_connections_holesky_stage:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- test-connections \
 	--num-senders $(NUM_SENDERS) \
 	--network holesky-stage
 
 __UTILS__:
 aligned_get_user_balance_devnet:
-	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+	@cd crates/cli/ && cargo run --release -- get-user-balance \
 		--user_addr $(USER_ADDR) \
 		--network devnet
 
 aligned_get_user_balance_holesky:
-	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+	@cd crates/cli/ && cargo run --release -- get-user-balance \
 		--rpc_url https://ethereum-holesky-rpc.publicnode.com \
 		--network holesky \
 		--user_addr $(USER_ADDR)
@@ -1334,7 +1334,7 @@ ethereum_package_rm: ## Stops and removes the ethereum_package environment and u
 batcher_start_ethereum_package: user_fund_payment_service
 	@echo "Starting Batcher..."
 	@$(MAKE) run_storage &
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
+	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./crates/batcher/.env.dev
 
 aggregator_start_ethereum_package:
 	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
