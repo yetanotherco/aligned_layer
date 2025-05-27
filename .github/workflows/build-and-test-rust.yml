@@ -48,19 +48,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-rust-
 
-      - name: Check formatting of Batcher
+      - name: Check formatting
         run: |
-          cd batcher
+          cd crates
           cargo fmt --all -- --check
 
-      - name: Run Clippy on Batcher
+      - name: Run Clippy
         run: |
-          cd batcher
+          cd crates
           cargo clippy --all -- -D warnings
 
       - name: Build Batcher
         run: |
-          cd batcher
+          cd crates
           cargo build --all
 
       - name: Check formatting of AggregationMode
