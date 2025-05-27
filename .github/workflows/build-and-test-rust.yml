@@ -115,7 +115,7 @@ jobs:
 
       - name: Run Batcher tests
         run: |
-          cd batcher
+          cd crates
           cargo test --all
 
       - name: Run AggregationMode tests
