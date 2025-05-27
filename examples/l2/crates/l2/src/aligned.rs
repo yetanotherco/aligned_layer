@@ -79,23 +79,4 @@ pub async fn check_proof_proof_aggregation_status(
     .expect("Get merkle path for proof");
 
     proof_status
-
-    // match proof_status {
-    //     aligned_sdk::aggregation_layer::ProofStatus::Verified {
-    //         merkle_root,
-    //         merkle_path,
-    //     } => {
-    //         info!(
-    //             "Proof aggregated in aggregation with merkle root {:?}",
-    //             hex::encode(merkle_root)
-    //         );
-    //         merkle_path
-    //     }
-    //     aligned_sdk::aggregation_layer::ProofStatus::Invalid => {
-    //         panic!("Proof did pass merkle root verification");
-    //     }
-    //     aligned_sdk::aggregation_layer::ProofStatus::NotFound => {
-    //         panic!("Proof not found in the last 24 hours logs");
-    //     }
-    // }
 }

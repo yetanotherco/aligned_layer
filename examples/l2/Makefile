@@ -39,7 +39,7 @@ clean_db:
 
 __L2_PROGRAM__:
 update_state_transition:
-	@cd cmd && cargo run --release --bin update_state_transition
+	@. ./.env && cd cmd && cargo run --release --bin update_state_transition
 
 verify_state_transition_on_chain:
-	@cd cmd && cargo run --release --bin verify_state_transition_on_chain
+	@. ./.env && cd cmd && cargo run --release --bin verify_state_transition_on_chain

@@ -11,19 +11,27 @@ Notice a lot of checks that a real L2 should have are missing, since the focus a
 
 ## How it works: Step by Step
 
+This L2 works in two steps. First we need perform the user transfers and prove that state transition inside the zkvm and send it to aligned verification layer (a.k.a fast mode). Then, once our proof has been aggregated by aligned (this happens every 24hs) we need to run the on chain verifier to update the state transition on chain for which we need to retrieve the merkle path for the proof.
+
+### Step 1
+
 1. Load or initialize the state.
 2. Load user transfers.
 3. Run the zkvm + transfers to perform.
 4. Generate and submit the proof to Aligned.
-5. Wait for the proof to be aggregated.
-6. Call the smart contract function `updateStateTransition`, which:
+5. Store proof binary on disk to be later retrieved by the on chain verifier.
+
+### Step 2
+
+6. Load the proof binary.
+7. Call the smart contract function `updateStateTransition`, which:
     1. Calls `verifyProofInclusion` in the `AlignedProofAggregationService`, which:
         - Computes the proof commitment with the provided `public_inputs` and `program_id`
         - Computes the Merkle Root, using the provided Merkle Proof.
         - Checks the root exists in the aggregation root.
     2. Verifies that the initial_state_root public input matches the on-chain state.
     3. If successful, updates the state root with the post_state_root public input.
-7. If the contract call succeeds, updates the local database.
+8. If the contract call succeeds, updates the local database.
 
 ### Usage
 
@@ -54,24 +62,25 @@ This same wallet is used to send the proof via aligned, so you'll also need to f
 
 #### 2. Deploy the contract
 
-- Generate the base `.env`. For `Holesky` you can run:
+-   Generate the base `.env`. For `Holesky` you can run:
 
 ```shell
 make gen_env_contract_holesky
 ```
 
-- Get the program ID of the l2 program you are proving:
+-   Get the program ID of the l2 program you are proving:
 
 ```shell
 make generate_program_id
 ```
 
-- Complete the following fields `contracts/.env` file:
-  - ```PROGRAM_ID=``` (use the previously generated ID, you can re check with a ```sh cat ./crates/l2/programs_ids.json``` )
-  - `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
-  - `OWNER_ADDRESS`: you have to provide the address of the wallet created in step `1.`.
+-   Complete the following fields `contracts/.env` file:
 
-- Deploy the contracts with:
+    -   `PROGRAM_ID=` (use the previously generated ID, you can re check with a `sh cat ./crates/l2/programs_ids.json` )
+    -   `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
+    -   `OWNER_ADDRESS`: you have to provide the address of the wallet created in step `1.`.
+
+-   Deploy the contracts with:
 
 ```shell
 make deploy_contract
@@ -81,27 +90,33 @@ Save the output contract address.
 
 #### 3. Run L2 program
 
-- Generate the base `.env`. For `Holesky` you can run:
+-   Generate the base `.env`. For `Holesky` you can run:
 
 ```shell
 make gen_env_l2_holesky
 ```
 
-- Complete the missing fields on the ```sh .env```:
+-   Complete the missing fields on the `sh .env`:
 
-  - `BEACON_CLIENT_URL`: A beacon client url, public node usually don't work as they don't support the endpoints to retrieve blob data
-  - `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
-  - `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
-  - `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
+    -   `BEACON_CLIENT_URL`: A beacon client url, public node usually don't work as they don't support the endpoints to retrieve blob data
+    -   `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
+    -   `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
+    -   `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
 
-- If you have run the program before, and want to start from scratch, run:
+-   If you have run the program before, and want to start from scratch, run:
 
-```make clean_db```
+`make clean_db`
 
-- Run the L2:
+-   Perform the L2 account updates and prove them in the zkvm:
 
 ```shell
-make run_l2
+make update_state_transition
+```
+
+-   Update state transition on chain, you should run this after your proof has been aggregated by aligned (this process happens every 24hs):
+
+```shell
+make verify_state_transition_on_chain
 ```
 
 You should see a transaction receipt in the console and after the stateRoot updated on-chain.
