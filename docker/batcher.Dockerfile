@@ -2,46 +2,46 @@ FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS base
 
 COPY go.mod .
 COPY go.sum .
-COPY batcher/aligned-batcher/gnark/verifier.go /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
+COPY crates/batcher/gnark/verifier.go /aligned_layer/crates/batcher/gnark/verifier.go
 
 RUN apt update -y && apt install -y gcc
-RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/batcher/aligned-batcher/gnark/verifier.go
+RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/crates/batcher/gnark/verifier.go
 
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 FROM chef AS planner
 
-COPY batcher/aligned-batcher/Cargo.toml /aligned_layer/batcher/aligned-batcher/Cargo.toml
-COPY batcher/aligned-batcher/src/main.rs /aligned_layer/batcher/aligned-batcher/src/main.rs
-WORKDIR /aligned_layer/batcher/aligned-batcher/
-RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned-batcher/recipe.json
+COPY crates/batcher/Cargo.toml /aligned_layer/crates/batcher/Cargo.toml
+COPY crates/batcher/src/main.rs /aligned_layer/crates/batcher/src/main.rs
+WORKDIR /aligned_layer/crates/batcher/
+RUN cargo chef prepare --recipe-path /aligned_layer/crates/batcher/recipe.json
 
-COPY batcher/aligned/Cargo.toml /aligned_layer/batcher/aligned/Cargo.toml
-COPY batcher/aligned/src/main.rs /aligned_layer/batcher/aligned/src/main.rs
-WORKDIR /aligned_layer/batcher/aligned/
-RUN cargo chef prepare --recipe-path /aligned_layer/batcher/aligned/recipe.json
+COPY crates/cli/Cargo.toml /aligned_layer/crates/cli/Cargo.toml
+COPY crates/cli/src/main.rs /aligned_layer/crates/cli/src/main.rs
+WORKDIR /aligned_layer/crates/cli/
+RUN cargo chef prepare --recipe-path /aligned_layer/crates/cli/recipe.json
 
 FROM chef AS chef_builder
-COPY batcher/aligned-sdk/ /aligned_layer/batcher/aligned-sdk/
+COPY crates/sdk/ /aligned_layer/crates/sdk/
 
-COPY --from=planner /aligned_layer/batcher/aligned-batcher/recipe.json /aligned_layer/batcher/aligned-batcher/recipe.json
-WORKDIR /aligned_layer/batcher/aligned-batcher
-RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned-batcher/recipe.json
+COPY --from=planner /aligned_layer/crates/batcher/recipe.json /aligned_layer/crates/batcher/recipe.json
+WORKDIR /aligned_layer/crates/batcher
+RUN cargo chef cook --release --recipe-path /aligned_layer/crates/batcher/recipe.json
 
-COPY --from=planner /aligned_layer/batcher/aligned/recipe.json /aligned_layer/batcher/aligned/recipe.json
-WORKDIR /aligned_layer/batcher/aligned/
-RUN cargo chef cook --release --recipe-path /aligned_layer/batcher/aligned/recipe.json
+COPY --from=planner /aligned_layer/crates/cli/recipe.json /aligned_layer/crates/cli/recipe.json
+WORKDIR /aligned_layer/crates/cli/
+RUN cargo chef cook --release --recipe-path /aligned_layer/crates/cli/recipe.json
 
 FROM base AS builder
 COPY . /aligned_layer/
 
-COPY --from=chef_builder /aligned_layer/batcher/aligned-batcher/target/ /aligned_layer/batcher/aligned-batcher/target/
-WORKDIR /aligned_layer/batcher/aligned-batcher/
-RUN cargo build --manifest-path /aligned_layer/batcher/aligned-batcher/Cargo.toml --release
+COPY --from=chef_builder /aligned_layer/crates/batcher/target/ /aligned_layer/crates/batcher/target/
+WORKDIR /aligned_layer/crates/batcher/
+RUN cargo build --manifest-path /aligned_layer/crates/batcher/Cargo.toml --release
 
-COPY --from=chef_builder /aligned_layer/batcher/aligned/target/ /aligned_layer/batcher/aligned/target/
-WORKDIR /aligned_layer/batcher/aligned/
-RUN cargo build --manifest-path /aligned_layer/batcher/aligned/Cargo.toml --release
+COPY --from=chef_builder /aligned_layer/crates/cli/target/ /aligned_layer/crates/cli/target/
+WORKDIR /aligned_layer/crates/cli/
+RUN cargo build --manifest-path /aligned_layer/crates/cli/Cargo.toml --release
 
 COPY scripts/test_files/gnark_groth16_bn254_infinite_script/ /aligned_layer/scripts/test_files/gnark_groth16_bn254_infinite_script/
 WORKDIR /aligned_layer
@@ -52,8 +52,8 @@ RUN rm -rf operator/
 FROM debian:bookworm-slim AS final
 
 COPY --from=builder /aligned_layer /aligned_layer
-COPY --from=builder /aligned_layer/batcher/target/release/aligned-batcher /usr/local/bin/
-COPY --from=builder /aligned_layer/batcher/target/release/aligned /usr/local/bin/
+COPY --from=builder /aligned_layer/crates/target/release/aligned-batcher /usr/local/bin/
+COPY --from=builder /aligned_layer/crates/target/release/aligned /usr/local/bin/
 COPY --from=builder /aligned_layer/gnark_groth16_bn254_infinite_script /usr/local/bin
 COPY ./contracts/script ./contracts/script
 COPY ../scripts/test_files/ ./scripts/test_files

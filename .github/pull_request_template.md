@@ -27,5 +27,5 @@ Please delete options that are not relevant.
 - [ ] Has a known issue
   - [Link to the open issue addressing it]() 
 - [ ] If your PR changes the Operator compatibility (Ex: Upgrade prover versions)
-  - [ ] This PR adds compatibility for operator for both versions and do not change batcher/docs/examples
+  - [ ] This PR adds compatibility for operator for both versions and do not change crates/docs/examples
   - [ ] This PR updates batcher and docs/examples to the newer version. This requires the operator are already updated to be compatible

@@ -26,7 +26,7 @@ impl SP1VkAndPubInputs {
 // All 3 implementations should match
 // The definition on aggregator/mod.rs supports taking proofs from both Risc0 and SP1,
 // Additionally, a version that takes the leaves as already hashed data is defined on:
-// - batcher/aligned-sdk/src/sdk/aggregation.rs
+// - crates/sdk/src/aggregation_layer/types.rs
 // This one is used in the SDK since
 // the user may not have access to the proofs that they didn't submit
 impl IsMerkleTreeBackend for SP1VkAndPubInputs {

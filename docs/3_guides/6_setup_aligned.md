@@ -126,7 +126,7 @@ make batcher_start_local
 
 This starts a [localstack](https://www.localstack.cloud/) to act as a replacement for S3.
 
-If you want to use the batcher under a real `S3` connection you'll need to specify the environment variables under `batcher/aligned-batcher/.env` and then run:
+If you want to use the batcher under a real `S3` connection you'll need to specify the environment variables under `crates/batcher/.env` and then run:
 
 ```bash
 make batcher_start

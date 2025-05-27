@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/{{ ansible_user }}/repos/batcher/aligned_layer/batcher
+WorkingDirectory=/home/{{ ansible_user }}/repos/batcher/aligned_layer/crates
 ExecStart=/home/{{ ansible_user }}/.cargo/bin/aligned-batcher --config /home/{{ ansible_user }}/config/config-batcher.yaml --env-file /home/{{ ansible_user }}/config/.env.batcher
 Restart=always
 RestartSec=1
