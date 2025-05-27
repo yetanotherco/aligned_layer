@@ -16,5 +16,5 @@ async fn main() {
 
     let proof_bytes = std::fs::read("./proof.bin").unwrap();
     let proof = bincode::deserialize(&proof_bytes).unwrap();
-    l2.verify_state_transition(proof).await;
+    l2.update_state_on_chain(proof).await;
 }

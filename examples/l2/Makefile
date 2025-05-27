@@ -38,8 +38,8 @@ clean_db:
 	rm -f examples/l2/crates/l2/db
 
 __L2_PROGRAM__:
-update_state_transition:
-	@. ./.env && cd cmd && cargo run --release --bin update_state_transition
+prove_state_transition:
+	@. ./.env && cd cmd && cargo run --release --bin prove_state_transition
 
-verify_state_transition_on_chain:
-	@. ./.env && cd cmd && cargo run --release --bin verify_state_transition_on_chain
+update_state_on_chain:
+	@. ./.env && cd cmd && cargo run --release --bin update_state_on_chain

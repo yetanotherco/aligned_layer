@@ -14,7 +14,7 @@ async fn main() {
     let config = load_config();
     let mut l2 = L2::new(config);
 
-    let proof = l2.update_state_transition().await;
+    let proof = l2.prove_state_transition_and_send_proof_to_aligned().await;
     info!("Serializing and saving proof on disk to be verified later on chain");
 
     let proof_bytes = bincode::serialize(&proof).unwrap();

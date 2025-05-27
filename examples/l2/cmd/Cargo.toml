@@ -19,9 +19,9 @@ name = "l2_cmd"
 path = "./lib.rs"
 
 [[bin]]
-name = "update_state_transition"
-path = "./update_state_transition.rs"
+name = "prove_state_transition"
+path = "./prove_state_transition.rs"
 
 [[bin]]
-name = "verify_state_transition_on_chain"
-path = "./verify_state_transition_on_chain.rs"
+name = "update_state_on_chain"
+path = "./update_state_on_chain.rs"

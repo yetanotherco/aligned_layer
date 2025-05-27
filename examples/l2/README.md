@@ -20,7 +20,7 @@ In Step 1, we execute user transfers and generate a zkVM-based proof of the stat
 
 In Step 2, once the proof is aggregated (every 24 hours), it is verified on-chain to update the global state.
 
-### Step 1: Off-Chain Execution & Proof Generation
+### Step 1: Off-Chain Execution + Proof Generation
 
 1. Initialize State: Load or initialize the current system state.
 2. Load Transfers: Retrieve or receive the user transfer data for this batch.
@@ -29,7 +29,7 @@ In Step 2, once the proof is aggregated (every 24 hours), it is verified on-chai
 5. Submit Proof to Aligned: Send the proof to Aligned Verification Layer
 6. Save the binary proof locally for later on-chain verification.
 
-### Step 2: On-Chain State Update
+### Step 2: Proof Verification + On-Chain State Update
 
 7. Load the proof binary: Retrieve the saved proof binary from disk.
 8. Update On-Chain State: Call the smart contract method `updateStateTransition`, which:
@@ -163,13 +163,13 @@ Pass the output address in the `.env` and [run the l2](#run-the-l2).
 -   Perform the L2 account updates and prove them in the zkvm:
 
 ```shell
-make update_state_transition
+make prove_state_transition
 ```
 
 -   Update state transition on chain, you should run this after your proof has been aggregated by aligned (this process happens every 24hs):
 
 ```shell
-make verify_state_transition_on_chain
+make update_state_on_chain
 ```
 
 You should see a transaction receipt in the console and after the stateRoot updated on-chain.

@@ -24,7 +24,9 @@ impl L2 {
         }
     }
 
-    pub async fn update_state_transition(&mut self) -> SP1ProofWithPublicValues {
+    pub async fn prove_state_transition_and_send_proof_to_aligned(
+        &mut self,
+    ) -> SP1ProofWithPublicValues {
         // 1. Create random transfers
         let transfers = generate_random_transfers(&self.db, 10);
 
@@ -79,7 +81,7 @@ impl L2 {
         proof
     }
 
-    pub async fn verify_state_transition(&mut self, proof: SP1ProofWithPublicValues) {
+    pub async fn update_state_on_chain(&mut self, proof: SP1ProofWithPublicValues) {
         let vk = prover::vk_from_elf(PROGRAM_ELF);
         // 5. Check if proof has been aggregated
         info!("Checking if proof has been aggregated in the last 24 hours...");
