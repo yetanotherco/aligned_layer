@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aligned-sdk = { path = "../../../batcher/aligned-sdk" }
+aligned-sdk = { path = "../../../batcher/sdk" }
 tokio = { version = "1.37.0", features = [
     "io-std",
     "time",

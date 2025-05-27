@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "v4.1.7" }
-aligned-sdk = { path = "../../../../batcher/aligned-sdk" }
+aligned-sdk = { path = "../../../../batcher/sdk" }
 ethers = { version = "2.0", features = ["ws", "rustls"] }
 
 rpassword = "7.3.1"
