@@ -163,7 +163,7 @@ make generate_program_id
 make deploy_contract
 ```
 
-- Set the output address of the contract in the `.env`
+- Set the output address of the contract in `.env`
 
 - [run the l2](#running-the-l2)
 
