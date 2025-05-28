@@ -108,9 +108,9 @@ do
   submit=$(aligned submit \
     --proving_system Groth16Bn254 \
     --repetitions $REPETITIONS \
-    --proof "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.proof" \
-    --public_input "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.pub" \
-    --vk "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16.vk" \
+    --proof "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.proof" \
+    --public_input "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.pub" \
+    --vk "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.vk" \
     --private_key $PRIVATE_KEY \
     --rpc_url $RPC_URL \
     --network $NETWORK \

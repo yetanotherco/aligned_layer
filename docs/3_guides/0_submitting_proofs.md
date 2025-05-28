@@ -10,8 +10,8 @@ You can check your submitted proofs on [Mainnet Explorer](https://explorer.align
 
 The following is the list of the verifiers currently supported by Aligned:
 
-- :white_check_mark: gnark - Groth16 (with BN254)
-- :white_check_mark: gnark - Plonk (with BN254 and BLS12-381)
+- :white_check_mark: gnark - Groth16 (with BN254) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
+- :white_check_mark: gnark - Plonk (with BN254 and BLS12-381) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
 - :white_check_mark: SP1 [(v4.1.7)](https://github.com/succinctlabs/sp1/releases/tag/v4.1.7)
 - :white_check_mark: Risc0 [(v2.0.0)](https://github.com/risc0/risc0/releases/tag/v2.0.0)
 
@@ -223,9 +223,9 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system GnarkPlonkBn254 \
---proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
---public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
---vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+--proof ./scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
+--public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
+--vk ./scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -235,9 +235,9 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system GnarkPlonkBls12_381 \
---proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
---public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
---vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+--proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
+--public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
+--vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -247,9 +247,9 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system Groth16Bn254 \
---proof ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
---public_input ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
---vk ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
+--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
+--public_input ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
+--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com

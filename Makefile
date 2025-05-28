@@ -525,9 +525,9 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -536,9 +536,9 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--repetitions $(BURST_SIZE) \
@@ -548,9 +548,9 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
-		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -559,9 +559,9 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
-		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions 15 \
 		--rpc_url $(RPC_URL) \
@@ -571,9 +571,9 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
-		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
-		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16.pub \
-		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -670,19 +670,19 @@ aligned_get_user_balance_holesky:
 __GENERATE_PROOFS__:
  # TODO add a default proving system
 
-generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
+generate_gnark_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
 	@echo "Running gnark_plonk_bls12_381 script..."
 	@go run scripts/test_files/gnark_plonk_bls12_381_script/main.go
 
-generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_plonk_bn254 script..."
 	@go run scripts/test_files/gnark_plonk_bn254_script/main.go
 
-generate_groth16_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_groth16_bn254_proof: ## Run the gnark_groth16_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
 	@go run scripts/test_files/gnark_groth16_bn254_script/main.go
 
-generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_groth16_bn254_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254_ineq script..."
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
@@ -1045,9 +1045,9 @@ docker_batcher_send_plonk_bn254_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system GnarkPlonkBn254 \
-              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
+              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
               --repetitions $(DOCKER_BURST_SIZE) \
@@ -1058,9 +1058,9 @@ docker_batcher_send_plonk_bls12_381_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system GnarkPlonkBls12_381 \
-              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
+              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --repetitions $(DOCKER_BURST_SIZE) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -1071,9 +1071,9 @@ docker_batcher_send_groth16_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
             --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
 			--proving_system Groth16Bn254 \
-			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
-			--public_input ./scripts/test_files/gnark_groth16_bn254_script/groth16.pub \
-			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
+			--public_input ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
+			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
 			--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
 			--repetitions $(DOCKER_BURST_SIZE) \
 			--rpc_url $(DOCKER_RPC_URL) \
@@ -1100,9 +1100,9 @@ docker_batcher_send_infinite_groth16:
 	              --rpc_url $(DOCKER_RPC_URL) \
 	              --repetitions $(DOCKER_BURST_SIZE) \
 	              --proving_system Groth16Bn254 \
-	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.proof \
-	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
-	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
+	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16_0_12_0.proof \
+	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16_0_12_0.pub \
+	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16_0_12_0.vk \
 	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
 				  --max_fee 0.1ether
 	    sleep $${timer}; \
