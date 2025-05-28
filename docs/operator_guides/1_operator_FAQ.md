@@ -43,13 +43,24 @@ You can check the latest version available on the [releases' page](https://githu
 
 You can get the registered version of your operator by running the following command:
 
-```bash
-curl https://holesky.tracker.alignedlayer.com/versions/<operator_address>
-```
+- Mainnet:
+
+    ```bash
+    curl https://mainnet.telemetry.alignedlayer.com/versions/<operator_address>
+    ```
+
+- Holesky:
+
+    ```bash
+    curl https://holesky.telemetry.alignedlayer.com/versions/<operator_address>
+    ```
 
 Replace `<operator_address>` with your operator address.
 
-In future releases, the explorer will show the operator version and the latest available version.
+Also, you can check the operator version in the Explorer:
+
+- [Mainnet Operators Explorer](https://explorer.alignedlayer.com/operators)
+- [Holesky Operators Explorer](https://holesky.explorer.alignedlayer.com/operators)
 
 ### How do I check the operator version locally?
 
@@ -67,12 +78,23 @@ This will show the version of the operator you have built in your filesystem.
 
 You can get the ID of the operator by running the following command:
 
-```bash
-cast call \
-	--rpc-url https://ethereum-holesky-rpc.publicnode.com \
-	0xD0A725d82649f9e4155D7A60B638Fe33b3F25e3b \
-	"getOperatorId(address operator)(bytes32)" <operator_address>
-```
+- Mainnet: 
+
+    ```bash
+    cast call \
+        --rpc-url https://ethereum-rpc.publicnode.com \
+        0x3CcfB7e6e8fe2A8d941a8Ce4C69A944a770E8228 \
+        "getOperatorId(address operator)(bytes32)" <operator_address>
+    ```
+
+- Holesky
+
+    ```bash
+    cast call \
+        --rpc-url https://ethereum-holesky-rpc.publicnode.com \
+        0xD0A725d82649f9e4155D7A60B638Fe33b3F25e3b \
+        "getOperatorId(address operator)(bytes32)" <operator_address>
+    ```
 
 > Note: You need to have installed [Foundry](https://book.getfoundry.sh/)
 

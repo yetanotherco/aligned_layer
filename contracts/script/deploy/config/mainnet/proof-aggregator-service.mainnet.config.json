@@ -1,0 +1,14 @@
+{
+  "address": {
+    "sp1VerifierAddress": "0x397A5f7f3dBd538f23DE225B51f532c34448dA9B",
+    "risc0VerifierAddress": "0x8EaB2D97Dfce405A1692a21b3ff3A172d593D319",
+    "alignedAggregatorAddress": "<aligned_aggregator_address>"
+  },
+  "programs_id": {
+    "sp1AggregationProgramVKHash": "0x008ad92d4c564c912ad93d8660bf67a8d2e9088aa942da4e605a5e8c4383c384",
+    "risc0AggregationProgramImageId": "0x8bb4145379d717fd7e3921751a2060246445ef290cdad782884180861cf0a3e8"
+  },
+  "permissions": {
+    "owner": "<owner_address>"
+  }
+}

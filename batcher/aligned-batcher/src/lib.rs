@@ -23,7 +23,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use aligned_sdk::core::constants::{
+use aligned_sdk::common::constants::{
     ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, BATCHER_SUBMISSION_BASE_GAS_COST,
     BUMP_BACKOFF_FACTOR, BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY,
     CBOR_ARRAY_MAX_OVERHEAD, CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF,
@@ -31,7 +31,7 @@ use aligned_sdk::core::constants::{
     ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
-use aligned_sdk::core::types::{
+use aligned_sdk::common::types::{
     ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason,
     ProvingSystemId, SubmitProofMessage, SubmitProofResponseMessage, VerificationCommitmentBatch,
     VerificationData, VerificationDataCommitment,
@@ -210,7 +210,7 @@ impl Batcher {
         .expect("Failed to get fallback Service Manager contract");
 
         let mut user_states = HashMap::new();
-        let mut batch_state = BatchState::new();
+        let mut batch_state = BatchState::new(config.batcher.max_queue_size);
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
                 non_paying_config.address);
@@ -228,7 +228,8 @@ impl Batcher {
                 non_paying_user_state,
             );
 
-            batch_state = BatchState::new_with_user_states(user_states);
+            batch_state =
+                BatchState::new_with_user_states(user_states, config.batcher.max_queue_size);
             Some(non_paying_config)
         } else {
             None
@@ -563,60 +564,33 @@ impl Batcher {
         // *        Perform validations over the message        *
         // * ---------------------------------------------------*
 
-        // This check does not save against "Holesky" and "HoleskyStage", since both are chain_id 17000
-        let msg_chain_id = client_msg.verification_data.chain_id;
-        if msg_chain_id != self.chain_id {
-            warn!("Received message with incorrect chain id: {msg_chain_id}");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidChainId,
-            )
-            .await;
-            self.metrics.user_error(&["invalid_chain_id", ""]);
+        // All check functions sends the error to the metrics server and logs it
+        // if they return false
+
+        if !self.msg_chain_id_is_valid(&client_msg, &ws_conn_sink).await {
             return Ok(());
         }
 
-        // This checks saves against "Holesky" and "HoleskyStage", since each one has a different payment service address
-        let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
-        if msg_payment_service_addr != self.payment_service.address() {
-            warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidPaymentServiceAddress(
-                    msg_payment_service_addr,
-                    self.payment_service.address(),
-                ),
-            )
-            .await;
-            self.metrics
-                .user_error(&["invalid_payment_service_address", ""]);
+        if !self
+            .msg_batcher_payment_addr_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        {
             return Ok(());
         }
 
-        info!("Verifying message signature...");
-        let Ok(addr) = client_msg.verify_signature() else {
-            error!("Signature verification error");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidSignature,
-            )
-            .await;
-            self.metrics.user_error(&["invalid_signature", ""]);
+        if !self
+            .msg_proof_size_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        {
+            return Ok(());
+        }
+
+        let Some(addr) = self
+            .msg_signature_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        else {
             return Ok(());
         };
-        info!("Message signature verified");
-
-        let proof_size = client_msg.verification_data.verification_data.proof.len();
-        if proof_size > self.max_proof_size {
-            error!("Proof size exceeds the maximum allowed size.");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::ProofTooLarge,
-            )
-            .await;
-            self.metrics.user_error(&["proof_too_large", ""]);
-            return Ok(());
-        }
 
         let nonced_verification_data = client_msg.verification_data.clone();
 
@@ -661,6 +635,7 @@ impl Batcher {
         }
 
         if self.is_nonpaying(&addr) {
+            // TODO: Non paying msg and paying should share some logic
             return self
                 .handle_nonpaying_msg(ws_conn_sink.clone(), &client_msg)
                 .await;
@@ -671,17 +646,11 @@ impl Batcher {
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
         // It is safe to do just do this here.
-        if self.user_balance_is_unlocked(&addr).await {
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(addr),
-            )
-            .await;
-            self.metrics.user_error(&["insufficient_balance", ""]);
+        if !self.msg_user_balance_is_locked(&addr, &ws_conn_sink).await {
             return Ok(());
         }
 
-        // We aquire the lock first only to query if the user is already present and the lock is dropped.
+        // We acquire the lock first only to query if the user is already present and the lock is dropped.
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
 
@@ -734,7 +703,7 @@ impl Batcher {
         // This is needed because we need to query the user state to make validations and
         // finally add the proof to the batch queue.
 
-        let batch_state_lock = self.batch_state.lock().await;
+        let mut batch_state_lock = self.batch_state.lock().await;
 
         let msg_max_fee = nonced_verification_data.max_fee;
         let Some(user_last_max_fee_limit) =
@@ -814,6 +783,8 @@ impl Batcher {
             return Ok(());
         }
 
+        // We check this after replacement logic because if user wants to replace a proof, their
+        // new_max_fee must be greater or equal than old_max_fee
         if msg_max_fee > user_last_max_fee_limit {
             std::mem::drop(batch_state_lock);
             warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
@@ -824,6 +795,67 @@ impl Batcher {
             .await;
             self.metrics.user_error(&["invalid_max_fee", ""]);
             return Ok(());
+        }
+
+        // * ---------------------------------------------------------------------*
+        // *        Perform validation over batcher queue                         *
+        // * ---------------------------------------------------------------------*
+
+        if batch_state_lock.is_queue_full() {
+            debug!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
+
+            // This cannot panic, if the batch queue is full it has at least one item
+            let (lowest_priority_entry, _) = batch_state_lock
+                .batch_queue
+                .peek()
+                .expect("Batch queue was expected to be full, but somehow no item was inside");
+
+            let lowest_fee_in_queue = lowest_priority_entry.nonced_verification_data.max_fee;
+
+            let new_proof_fee = nonced_verification_data.max_fee;
+
+            // We will keep the proof with the highest fee
+            // Note: we previously checked that if it's a new proof from the same user the fee is the same or lower
+            // So this will never eject a proof of the same user with a lower nonce
+            // which is the expected behaviour
+            if new_proof_fee > lowest_fee_in_queue {
+                // This cannot panic, if the batch queue is full it has at least one item
+                let (removed_entry, _) = batch_state_lock
+                    .batch_queue
+                    .pop()
+                    .expect("Batch queue was expected to be full, but somehow no item was inside");
+
+                info!(
+                    "Incoming proof (nonce: {}, fee: {}) has higher fee. Replacing lowest fee proof from sender {} with nonce {}.",
+                    nonced_verification_data.nonce,
+                    nonced_verification_data.max_fee,
+                    removed_entry.sender,
+                    removed_entry.nonced_verification_data.nonce
+                );
+
+                batch_state_lock.update_user_state_on_entry_removal(&removed_entry);
+
+                if let Some(removed_entry_ws) = removed_entry.messaging_sink {
+                    send_message(
+                        removed_entry_ws,
+                        SubmitProofResponseMessage::UnderpricedProof,
+                    )
+                    .await;
+                };
+            } else {
+                info!(
+                    "Incoming proof (nonce: {}, fee: {}) has lower priority than all entries in the full queue. Rejecting submission.",
+                    nonced_verification_data.nonce,
+                    nonced_verification_data.max_fee
+                );
+                std::mem::drop(batch_state_lock);
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::UnderpricedProof,
+                )
+                .await;
+                return Ok(());
+            }
         }
 
         // * ---------------------------------------------------------------------*
@@ -1759,6 +1791,16 @@ impl Batcher {
 
         let batch_state_lock = self.batch_state.lock().await;
 
+        if batch_state_lock.is_queue_full() {
+            error!("Can't add new entry, the batcher queue is full");
+            send_message(
+                ws_sink.clone(),
+                SubmitProofResponseMessage::UnderpricedProof,
+            )
+            .await;
+            return Ok(());
+        }
+
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
             client_msg.verification_data.nonce,
@@ -1893,5 +1935,136 @@ impl Batcher {
     fn constant_gas_cost(&self) -> u128 {
         (self.aggregator_fee_percentage_multiplier * self.aggregator_gas_cost) / PERCENTAGE_DIVIDER
             + BATCHER_SUBMISSION_BASE_GAS_COST
+    }
+
+    /// Checks if the message signature is valid
+    /// and returns the address if its.
+    /// If not, returns false, logs the error,
+    /// and sends it to the metrics server
+    async fn msg_signature_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> Option<Address> {
+        let Ok(addr) = client_msg.verify_signature() else {
+            error!("Signature verification error");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidSignature,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_signature", ""]);
+            return None;
+        };
+
+        Some(addr)
+    }
+
+    /// Checks if the proof size + pub inputs is valid (not exceeding max_proof_size)
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if the size is too large
+    async fn msg_proof_size_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let verification_data = match cbor_serialize(&client_msg.verification_data) {
+            Ok(data) => data,
+            // This should never happened, the user sent all his data serialized
+            Err(_) => {
+                error!("Proof serialization error");
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::Error("Proof serialization error".to_string()),
+                )
+                .await;
+                self.metrics.user_error(&["proof_serialization_error", ""]);
+                return false;
+            }
+        };
+
+        if verification_data.len() > self.max_proof_size {
+            error!("Proof size exceeds the maximum allowed size.");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::ProofTooLarge,
+            )
+            .await;
+            self.metrics.user_error(&["proof_too_large", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    /// Checks if the chain id matches the one in the config
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if it doesn't matches
+    async fn msg_chain_id_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let msg_chain_id = client_msg.verification_data.chain_id;
+        if msg_chain_id != self.chain_id {
+            warn!("Received message with incorrect chain id: {msg_chain_id}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidChainId,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_chain_id", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    /// Checks if the message has a valid payment service address
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if it doesn't match
+    async fn msg_batcher_payment_addr_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
+        if msg_payment_service_addr != self.payment_service.address() {
+            warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidPaymentServiceAddress(
+                    msg_payment_service_addr,
+                    self.payment_service.address(),
+                ),
+            )
+            .await;
+            self.metrics
+                .user_error(&["invalid_payment_service_address", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    /// Checks if the user's balance is unlocked
+    /// Returns false if balance is unlocked, logs the error,
+    /// and sends it to the metrics server
+    async fn msg_user_balance_is_locked(
+        &self,
+        addr: &Address,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        if self.user_balance_is_unlocked(addr).await {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InsufficientBalance(*addr),
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
+            return false;
+        }
+
+        true
     }
 }

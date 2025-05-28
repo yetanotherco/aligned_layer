@@ -7,7 +7,8 @@ on:
     branches: ["*"]
     paths:
       - "batcher/**"
-      - ".github/workflows/build-rust.yml"
+      - "aggregation_mode/**"
+      - ".github/workflows/build-and-test-rust.yml"
 
 jobs:
   build:
@@ -19,9 +20,23 @@ jobs:
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.86.0
           components: rustfmt, clippy
           override: true
+
+      # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
+      - name: Install sp1 toolchain
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          source /home/runner/.bashrc
+           ~/.sp1/bin/sp1up
+
+      - name: Install risc0 toolchain
+        run: |
+          curl -L https://risczero.com/install | bash
+          source ~/.bashrc
+          ~/.risc0/bin/rzup install
+
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:
@@ -32,18 +47,37 @@ jobs:
           key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
-      - name: Check formatting of Rust projects
+
+      - name: Check formatting of Batcher
         run: |
           cd batcher
           cargo fmt --all -- --check
-      - name: Run Clippy
+
+      - name: Run Clippy on Batcher
         run: |
           cd batcher
           cargo clippy --all -- -D warnings
-      - name: Build Rust projects
+
+      - name: Build Batcher
         run: |
           cd batcher
           cargo build --all
+
+      - name: Check formatting of AggregationMode
+        run: |
+          cd aggregation_mode
+          cargo fmt --all -- --check
+
+      - name: Build AggregationMode # We build before clippy to generate the ELF
+        run: |
+          cd aggregation_mode
+          cargo build --all
+
+      - name: Run Clippy on AggregationMode
+        run: |
+          cd aggregation_mode
+          # We need to skip the build as clippy does not support the riscv32im-risc0-zkvm-elf target
+          RISC0_SKIP_BUILD=1 cargo clippy --all -- -D warnings
 
   test:
     runs-on: aligned-runner
@@ -51,8 +85,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
+
+      # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
+      - name: Install sp1 toolchain
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          source /home/runner/.bashrc
+           ~/.sp1/bin/sp1up
+
+      - name: Install risc0 toolchain
+        run: |
+          curl -L https://risczero.com/install | bash
+          source ~/.bashrc
+          ~/.risc0/bin/rzup install
+
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:
@@ -63,7 +112,13 @@ jobs:
           key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
-      - name: Run tests
+
+      - name: Run Batcher tests
         run: |
           cd batcher
+          cargo test --all
+
+      - name: Run AggregationMode tests
+        run: |
+          cd aggregation_mode
           cargo test --all

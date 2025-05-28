@@ -46,6 +46,7 @@ pub struct BatcherConfigFromYaml {
     pub max_proof_size: usize,
     pub max_batch_byte_size: usize,
     pub max_batch_proof_qty: usize,
+    pub max_queue_size: usize,
     pub pre_verification_is_enabled: bool,
     pub metrics_port: u16,
     pub telemetry_ip_port_address: String,
@@ -92,9 +93,9 @@ impl ContractDeploymentOutput {
 }
 
 fn default_aggregator_fee_percentage_multiplier() -> u128 {
-    aligned_sdk::core::constants::DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER
+    aligned_sdk::common::constants::DEFAULT_AGGREGATOR_FEE_PERCENTAGE_MULTIPLIER
 }
 
 fn default_aggregator_gas_cost() -> u128 {
-    aligned_sdk::core::constants::DEFAULT_AGGREGATOR_GAS_COST
+    aligned_sdk::common::constants::DEFAULT_AGGREGATOR_GAS_COST
 }

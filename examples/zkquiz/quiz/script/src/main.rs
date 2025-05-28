@@ -1,9 +1,9 @@
 use std::io;
 use std::str::FromStr;
 
-use aligned_sdk::core::types::{AlignedVerificationData, FeeEstimationType, Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
-use aligned_sdk::sdk::{get_nonce_from_ethereum, submit_and_wait_verification};
+use aligned_sdk::common::types::{AlignedVerificationData, FeeEstimationType, Network, ProvingSystemId, VerificationData};
+use aligned_sdk::verification_layer::{deposit_to_aligned, estimate_fee};
+use aligned_sdk::verification_layer::{get_nonce_from_ethereum, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;

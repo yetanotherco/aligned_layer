@@ -1,5 +1,7 @@
-use aligned_sdk::core::types::{Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{deposit_to_aligned, get_nonce_from_batcher, submit_multiple};
+use aligned_sdk::common::types::{Network, ProvingSystemId, VerificationData};
+use aligned_sdk::verification_layer::{
+    deposit_to_aligned, get_nonce_from_batcher, submit_multiple,
+};
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use k256::ecdsa::SigningKey;

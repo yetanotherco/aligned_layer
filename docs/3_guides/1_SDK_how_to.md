@@ -12,7 +12,7 @@ To use this SDK in your Rust project, add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.15.1" }
+aligned-sdk = { git = "https://github.com/yetanotherco/aligned_layer", tag="v0.15.2" }
 ```
 
 To find the latest release tag go to [releases](https://github.com/yetanotherco/aligned_layer/releases) and copy the
@@ -23,8 +23,8 @@ version of the release that has the `latest` badge.
 To get the SDK up and running in your project, you must first import it
 
 ```rust
-use aligned_sdk::core::types::{PriceEstimate, AlignedVerificationData, Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{estimate_fee, submit_and_wait, get_nonce_from_ethereum};
+use aligned_sdk::common::types::{PriceEstimate, AlignedVerificationData, Network, ProvingSystemId, VerificationData};
+use aligned_sdk::verification_layer::{estimate_fee, submit_and_wait, get_nonce_from_ethereum};
 ```
 
 And then you can do a simple call of, for example, `get_nonce_from_ethereum`

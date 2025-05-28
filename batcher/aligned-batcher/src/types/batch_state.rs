@@ -10,22 +10,28 @@ use log::debug;
 pub(crate) struct BatchState {
     pub(crate) batch_queue: BatchQueue,
     pub(crate) user_states: HashMap<Address, UserState>,
+    pub(crate) max_size: usize,
 }
 
 impl BatchState {
     // CONSTRUCTORS:
 
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(max_size: usize) -> Self {
         Self {
             batch_queue: BatchQueue::new(),
             user_states: HashMap::new(),
+            max_size,
         }
     }
 
-    pub(crate) fn new_with_user_states(user_states: HashMap<Address, UserState>) -> Self {
+    pub(crate) fn new_with_user_states(
+        user_states: HashMap<Address, UserState>,
+        max_size: usize,
+    ) -> Self {
         Self {
             batch_queue: BatchQueue::new(),
             user_states,
+            max_size,
         }
     }
 
@@ -213,5 +219,40 @@ impl BatchState {
                 && entry.nonced_verification_data.nonce < nonce
                 && entry.nonced_verification_data.max_fee < replacement_max_fee
         })
+    }
+
+    /// Updates or removes a user's state when their latest proof entry is removed from the batch queue.
+    ///
+    /// If the user has no other proofs remaining in the queue, their state is removed entirely.
+    /// Otherwise, the user's state is updated to reflect the next most recent entry in the queue.
+    ///
+    /// Note: The given `removed_entry` must be the most recent (latest or highest nonce) entry for the user in the queue.
+    pub(crate) fn update_user_state_on_entry_removal(&mut self, removed_entry: &BatchQueueEntry) {
+        let addr = removed_entry.sender;
+
+        let new_last_max_fee_limit = match self
+            .batch_queue
+            .iter()
+            .filter(|(e, _)| e.sender == addr)
+            .next_back()
+        {
+            Some((last_entry, _)) => last_entry.nonced_verification_data.max_fee,
+            None => {
+                self.user_states.remove(&addr);
+                return;
+            }
+        };
+
+        if let Entry::Occupied(mut user_state) = self.user_states.entry(addr) {
+            user_state.get_mut().proofs_in_batch -= 1;
+            user_state.get_mut().nonce -= U256::one();
+            user_state.get_mut().total_fees_in_queue -=
+                removed_entry.nonced_verification_data.max_fee;
+            user_state.get_mut().last_max_fee_limit = new_last_max_fee_limit;
+        }
+    }
+
+    pub(crate) fn is_queue_full(&self) -> bool {
+        self.batch_queue.len() >= self.max_size
     }
 }
