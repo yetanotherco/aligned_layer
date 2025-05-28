@@ -179,7 +179,9 @@ make prove_state_transition
 ```
 
 - Wait 24 hs for the proof to be aggregated, or if running locally, run the aggregator with either:
-    ```make start_proof_aggregator_ethereum_package AGGREGATOR=sp1``` or 
+
+    ```make start_proof_aggregator_ethereum_package AGGREGATOR=sp1``` 
+or 
     ```make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=sp1```
 
 -   Update state transition on chain:
