@@ -121,7 +121,9 @@ Finally [run the l2](#run-the-l2).
 
 ## Setup Localnet
 
-You can also run this example on a local devnet. To get started, navigate to the root of the Aligned repository and run:
+You can also run this example on a local devnet. To get started, navigate to the root of the Aligned repository
+
+- Start Ethereum package and the Batcher
 
 ```shell
 # This will start the local net
@@ -130,33 +132,35 @@ make ethereum_package_start
 make batcher_start_ethereum_package
 ```
 
-The remaining steps are the same as for other networks, except you'll be using the `devnet` environment. Specifically, generate the `.env` files for `devnet` using:
+- Generate the env files for contracts
 
 ```shell
 make gen_env_contract_devnet
 make gen_env_l2_devnet
 ```
 
-By default and to make things simpler, the `.env` will be generated using a dev rich wallet. You can of course, creaste your own wallet by following the steps on `1.`. Since the L2 requires a keystore, you'll need to generate it via:
+- Generate a pre funded wallet (or create one as specified in the previous readme)
 
 ```shell
 # This will generate the keystore and fund it on aligned
 make gen_devnet_owner_wallet
 ```
 
-Finally, generate the program id with:
+- Generate the program ID of the program that is going to be proven:
 
 ```shell
 make generate_program_id
 ```
 
-Copy the address to the generated `.env` and deploy the contract:
+- Set the ID on ```contracts/.env```. This will be used to accept only proofs of the desired L2 program
+
+- Deploy the contract
 
 ```shell
 make deploy_contract
 ```
 
-Pass the output address in the `.env` and [run the l2](#run-the-l2).
+- Pass the output address in the `.env` and [run the l2](#run-the-l2).
 
 ## Running the L2
 
