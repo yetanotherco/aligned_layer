@@ -35,7 +35,7 @@ deploy_contract:
 	@. ./contracts/.env && . ./contracts/scripts/deploy.sh
 
 clean_db:
-	rm -f examples/l2/crates/l2/db
+	@rm -f cmd/db
 
 __L2_PROGRAM__:
 prove_state_transition:
