@@ -120,7 +120,7 @@ make gen_env_l2_holesky
 
 `make clean_db`
 
-Finally [run the l2](#run-the-l2).
+Finally [run the l2](#running-the-l2).
 
 ## Setup Localnet
 
@@ -163,7 +163,12 @@ make generate_program_id
 make deploy_contract
 ```
 
-- Set the output address of the contract in the `.env` and [run the l2](#run-the-l2).
+- Set the output address of the contract in the `.env`
+
+- [run the l2](#running-the-l2)
+
+
+
 
 ## Running the L2
 
@@ -173,7 +178,11 @@ make deploy_contract
 make prove_state_transition
 ```
 
--   Update state transition on chain, you should run this after your proof has been aggregated by aligned (this process happens every 24hs):
+- Wait 24 hs for the proof to be aggregated, or if running locally, run the aggregator with either:
+    ```make start_proof_aggregator_ethereum_package AGGREGATOR=sp1``` or 
+    ```make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=sp1```
+
+-   Update state transition on chain:
 
 ```shell
 make update_state_on_chain
