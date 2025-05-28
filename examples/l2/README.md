@@ -146,7 +146,7 @@ make gen_devnet_owner_wallet
 
 Finally, generate the program id with:
 
-````shell
+```shell
 make generate_program_id
 ```
 
@@ -154,7 +154,7 @@ Copy the address to the generated `.env` and deploy the contract:
 
 ```shell
 make deploy_contract
-````
+```
 
 Pass the output address in the `.env` and [run the l2](#run-the-l2).
 
