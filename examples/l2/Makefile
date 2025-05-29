@@ -2,7 +2,6 @@
 
 SHELL := /bin/bash
 
-
 __CONFIG__:
 gen_devnet_owner_wallet:
 	rm -f ./contract-owner.keystore.json

@@ -14,7 +14,7 @@ Notice a lot of checks that a real L2 should have are missing, since the focus a
 This Layer 2 (L2) system operates in two main steps:
 
 -   Off-chain execution and proof generation + verification with Aligned Verification Layer (a.k.a Fast Mode).
--   On-chain state update via proof verification with Aligned aggregation mode.
+-   On-chain state update via proof verification with Aligned Aggregation Mode.
 
 In Step 1, we execute user transfers and generate a zkVM-based proof of the state transition, which is submitted to Aligned’s verification layer.
 
@@ -41,9 +41,9 @@ In Step 2, once the proof is aggregated (every 24 hours), it is verified on-chai
     - Validates that the `initial_state_root` proof public input matches the on-chain state.
     - If valid, updates the on-chain state root to the `post_state_root`.
 
-### Usage
+# Usage
 
-#### Requirements
+### Requirements
 
 1. [Rust](https://www.rust-lang.org/tools/install): we have tested in v1.85.1
 2. [Foundry](https://book.getfoundry.sh/getting-started/installation)
@@ -51,10 +51,13 @@ In Step 2, once the proof is aggregated (every 24 hours), it is verified on-chai
 
 Submodules of the repo should be imported by running `make submodules` on the root folder
 
+You can run the example on:
+- [Holesky](#setup-holeksy)
+- [Localnet](#setup-localnet)
 
 ## Setup Holeksy
 
-#### 1. Create keystore
+### 1. Create keystore
 
 You can use cast to create a local keystore. If you already have one you can skip this step.
 
@@ -71,11 +74,11 @@ cast wallet import --interactive <path_to_keystore.json>
 Then you need to obtain some funds to pay for gas and proof verification.
 You can do this by using this [faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
 
-This same wallet is used to send the proof via aligned, so you'll also need to fund it on aligned. Follow this [guide](https://docs.alignedlayer.com/guides/0_submitting_proofs#id-2.-send-funds-to-aligned).
+*This same wallet is used to send the proof via aligned, so you'll also need to fund it on aligned. Follow this [guide](https://docs.alignedlayer.com/guides/0_submitting_proofs#id-2.-send-funds-to-aligned).*
 
-#### 2. Deploy the contract
+### 2. Deploy the contract
 
--   Generate the base `.env`. For `Holesky` you can run:
+-   Generate the base `.env`:
 
 ```shell
 make gen_env_contract_holesky
@@ -89,9 +92,9 @@ make generate_program_id
 
 -   Complete the following fields `contracts/.env` file:
 
-    -   `PROGRAM_ID=` (use the previously generated ID, you can re check with a `sh cat ./crates/l2/programs_ids.json` )
+    -   `PROGRAM_ID=` (use the previously generated ID, you can re check with a `cat ./crates/l2/programs_ids.json` )
     -   `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
-    -   `OWNER_ADDRESS`: you have to provide the address of the wallet created in step `1.`.
+    -   `OWNER_ADDRESS`: you have to provide the *address of the wallet created in step `1.`*.
 
 -   Deploy the contracts with:
 
@@ -99,26 +102,27 @@ make generate_program_id
 make deploy_contract
 ```
 
-Save the output contract address.
+*Save the output contract address.*
 
 ### 3. Setup the L2
 
--   Generate the base `.env`. For `Holesky` you can run:
+-   Generate the base `.env` run:
 
 ```shell
 make gen_env_l2_holesky
 ```
 
--   Complete the missing fields on the `sh .env`:
+-   Complete the missing fields on the `.env`:
 
-    -   `BEACON_CLIENT_URL`: A beacon client url, public node usually don't work as they don't support the endpoints to retrieve blob data
     -   `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
     -   `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
     -   `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
 
--   If you have run the program before, and want to start from scratch, run:
+*If you have run the program before, and want to start from scratch, run:*
 
-`make clean_db`
+```shell
+make clean_db
+```
 
 Finally [run the l2](#running-the-l2).
 
@@ -135,14 +139,14 @@ make ethereum_package_start
 make batcher_start_ethereum_package
 ```
 
-- Generate the env files for contracts
+- Generate the `.env` files for the contracts and L2:
 
 ```shell
 make gen_env_contract_devnet
 make gen_env_l2_devnet
 ```
 
-- Generate a pre funded wallet (or create one as specified in the previous readme)
+- Generate a pre funded wallet (or create one as specified [previously here](#1-create-keystore)):
 
 ```shell
 # This will generate the keystore and fund it on aligned
@@ -155,7 +159,7 @@ make gen_devnet_owner_wallet
 make generate_program_id
 ```
 
-- Set the ID on ```contracts/.env```. This will be used to accept only proofs of the desired L2 program
+- Set the generated program ID on `contracts/.env`.
 
 - Deploy the contract
 
@@ -166,8 +170,6 @@ make deploy_contract
 - Set the output address of the contract in `.env`
 
 - [run the l2](#running-the-l2)
-
-
 
 
 ## Running the L2
@@ -181,7 +183,7 @@ make prove_state_transition
 - Wait 24 hs for the proof to be aggregated, or if running locally, run the aggregator with either:
 
     ```make start_proof_aggregator_ethereum_package AGGREGATOR=sp1``` 
-or 
+or with cuda:
     ```make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=sp1```
 
 -   Update state transition on chain:
