@@ -20,7 +20,7 @@ pub fn main() {
         let vkey = proof.vk;
         let public_values_digest = Sha256::digest(&proof.public_inputs);
 
-        // Ensure the aggregated chunk originates from the L1 aggregation program.
+        // Ensure the aggregated chunk originates from the user proofs aggregation program.
         // This validation step guarantees that the proof was genuinely verified
         // by this program. Without this check, a different program using the
         // same public inputs could bypass verification.
