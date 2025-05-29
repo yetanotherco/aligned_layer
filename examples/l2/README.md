@@ -118,12 +118,6 @@ make gen_env_l2_holesky
     -   `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
     -   `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
 
-*If you have run the program before, and want to start from scratch, run:*
-
-```shell
-make clean_db
-```
-
 Finally [run the l2](#running-the-l2).
 
 ## Setup Localnet
@@ -173,6 +167,12 @@ make deploy_contract
 
 
 ## Running the L2
+
+- Set up the initial State
+
+```shell
+make init_state
+```
 
 -   Perform the L2 account updates and prove them in the zkvm:
 

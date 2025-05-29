@@ -33,7 +33,7 @@ gen_env_contract_devnet:
 deploy_contract:
 	@. ./contracts/.env && . ./contracts/scripts/deploy.sh
 
-clean_db:
+init_state:
 	@rm -f cmd/db
 
 __L2_PROGRAM__:
