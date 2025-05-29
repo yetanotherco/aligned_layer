@@ -55,8 +55,8 @@ impl ZKVMEngine {
     /// - The Merkle root computed within the ZKVM, exposed as a public input
     ///
     /// This function performs multi-level proof aggregation. It splits the input proofs into chunks of
-    /// [`MAX_PROOFS_PER_AGGREGATION`] and uses the `chunk_aggregator` to aggregate each chunk.
-    /// Then, the `root_aggregator` takes the resulting chunk proofs and their corresponding leaves commitments
+    /// `proofs_per_chunk`` and uses the `user_proofs_aggregator` to aggregate the proofs.
+    /// Then, the `chunk_aggregator` takes the resulting proofs and their corresponding leaves commitments
     /// to produce the final aggregated proof.
     pub fn aggregate_proofs(
         &self,
