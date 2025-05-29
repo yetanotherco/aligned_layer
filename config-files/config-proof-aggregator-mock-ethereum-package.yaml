@@ -4,6 +4,7 @@ eth_rpc_url: "http://localhost:8545"
 eth_ws_url: "ws://localhost:8546"
 max_proofs_in_queue: 1000
 last_aggregated_block_filepath: config-files/proof-aggregator.last_aggregated_block.json
+proofs_per_chunk: 512 # Amount of proofs to process per chunk
 
 ecdsa:
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"

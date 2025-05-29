@@ -13,8 +13,6 @@ use sp1_aggregator::{
 };
 use tracing::info;
 
-const MAX_PROOFS_PER_AGGREGATION: usize = 512;
-
 #[derive(Clone, Debug)]
 pub enum ZKVMEngine {
     SP1,
@@ -63,6 +61,7 @@ impl ZKVMEngine {
     pub fn aggregate_proofs(
         &self,
         proofs: Vec<AlignedProof>,
+        proofs_per_chunk: u16,
     ) -> Result<(AlignedProof, [u8; 32]), ProofAggregationError> {
         let res = match self {
             ZKVMEngine::SP1 => {
@@ -77,11 +76,12 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
+                let chunks = proofs.chunks(proofs_per_chunk as usize);
                 info!(
-                    "Total proofs to aggregate {}. They aggregation will be performed in {} chunks",
+                    "Total proofs to aggregate {}. They aggregation will be performed in {} chunks (i.e {} proofs per chunk)",
                     proofs.len(),
-                    chunks.len()
+                    chunks.len(),
+                    proofs_per_chunk,
                 );
 
                 let mut agg_proofs: Vec<(SP1ProofWithPubValuesAndElf, Vec<[u8; 32]>)> = vec![];
@@ -118,11 +118,12 @@ impl ZKVMEngine {
                     })
                     .collect();
 
-                let chunks = proofs.chunks(MAX_PROOFS_PER_AGGREGATION);
+                let chunks = proofs.chunks(proofs_per_chunk as usize);
                 info!(
-                    "Total proofs to aggregate {}. They aggregation will be performed in {} chunks",
+                    "Total proofs to aggregate {}. They aggregation will be performed in {} chunks (i.e {} proofs per chunk)",
                     proofs.len(),
-                    chunks.len()
+                    chunks.len(),
+                    proofs_per_chunk,
                 );
 
                 let mut agg_proofs: Vec<(Risc0ProofReceiptAndImageId, Vec<[u8; 32]>)> = vec![];

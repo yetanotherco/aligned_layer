@@ -42,10 +42,11 @@ pub struct ProofAggregator {
     engine: ZKVMEngine,
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
+    config: Config,
 }
 
 impl ProofAggregator {
-    pub fn new(config: &Config) -> Self {
+    pub fn new(config: Config) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::decrypt_keystore(
             config.ecdsa.private_key_store_path.clone(),
@@ -62,16 +63,17 @@ impl ProofAggregator {
 
         let engine =
             ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
-        let fetcher = ProofsFetcher::new(config);
+        let fetcher = ProofsFetcher::new(&config);
 
         Self {
             engine,
             proof_aggregation_service,
             fetcher,
+            config,
         }
     }
 
-    pub async fn start(&mut self, config: &Config) {
+    pub async fn start(&mut self) {
         info!("Starting proof aggregator service");
 
         info!("About to aggregate and submit proof to be verified on chain");
@@ -79,7 +81,7 @@ impl ProofAggregator {
 
         match res {
             Ok(()) => {
-                config
+                self.config
                     .update_last_aggregated_block(self.fetcher.get_last_aggregated_block())
                     .unwrap();
                 info!("Process finished successfully");
@@ -113,7 +115,7 @@ impl ProofAggregator {
         info!("Starting proof aggregation program...");
         let (aggregated_proof, zkvm_merkle_root) = self
             .engine
-            .aggregate_proofs(proofs)
+            .aggregate_proofs(proofs, self.config.proofs_per_chunk)
             .map_err(AggregatedProofSubmissionError::ZKVMAggregation)?;
         info!("Proof aggregation program finished");
 
