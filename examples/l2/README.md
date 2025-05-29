@@ -49,7 +49,11 @@ In Step 2, once the proof is aggregated (every 24 hours), it is verified on-chai
 2. [Foundry](https://book.getfoundry.sh/getting-started/installation)
 3. [Docker](https://docs.docker.com/engine/): for SP1 prover
 
-Submodules of the repo should be imported by running `make submodules` on the root folder
+Submodules of the repo should be imported by running on the root folder:
+
+```shell
+make submodules
+```
 
 You can run the example on:
 - [Holesky](#setup-holeksy)
