@@ -133,6 +133,12 @@ make ethereum_package_start
 make batcher_start_ethereum_package
 ```
 
+- Navigate back to the example directory:
+
+```shell
+cd examples/l2
+``` 
+
 - Generate the `.env` files for the contracts and L2:
 
 ```shell
