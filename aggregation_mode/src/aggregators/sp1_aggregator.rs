@@ -26,6 +26,12 @@ pub struct SP1ProofWithPubValuesAndElf {
     pub vk: SP1VerifyingKey,
 }
 
+#[derive(Debug)]
+pub enum AlignedSP1VerificationError {
+    Verification(sp1_sdk::SP1VerificationError),
+    UnsupportedProof,
+}
+
 impl SP1ProofWithPubValuesAndElf {
     pub fn new(proof_with_pub_values: SP1ProofWithPublicValues, elf: Vec<u8>) -> Self {
         let vk = vk_from_elf(&elf);
@@ -35,6 +41,35 @@ impl SP1ProofWithPubValuesAndElf {
             elf,
             vk,
         }
+    }
+
+    pub fn new_with_verification(
+        proof_with_pub_values: SP1ProofWithPublicValues,
+        elf: Vec<u8>,
+    ) -> Result<Self, AlignedSP1VerificationError> {
+        let client = &*SP1_PROVER_CLIENT_CPU;
+
+        let (_pk, vk) = client.setup(&sp1_proof_with_pub_values_and_elf.elf);
+
+        // only sp1 compressed proofs are supported for aggregation now
+        match sp1_proof_with_pub_values_and_elf
+            .proof_with_pub_values
+            .proof
+        {
+            sp1_sdk::SP1Proof::Compressed(_) => client
+                .verify(
+                    &sp1_proof_with_pub_values_and_elf.proof_with_pub_values,
+                    &vk,
+                )
+                .map_err(AlignedSP1VerificationError::Verification),
+            _ => Err(AlignedSP1VerificationError::UnsupportedProof),
+        }?;
+
+        Ok(Self {
+            proof_with_pub_values,
+            elf,
+            vk,
+        })
     }
 
     pub fn hash_vk_and_pub_inputs(&self) -> [u8; 32] {
@@ -185,34 +220,6 @@ pub(crate) fn run_chunk_aggregator(
     };
 
     Ok(proof_and_elf)
-}
-
-#[derive(Debug)]
-pub enum AlignedSP1VerificationError {
-    Verification(sp1_sdk::SP1VerificationError),
-    UnsupportedProof,
-}
-
-pub(crate) fn verify(
-    sp1_proof_with_pub_values_and_elf: &SP1ProofWithPubValuesAndElf,
-) -> Result<(), AlignedSP1VerificationError> {
-    let client = &*SP1_PROVER_CLIENT_CPU;
-
-    let (_pk, vk) = client.setup(&sp1_proof_with_pub_values_and_elf.elf);
-
-    // only sp1 compressed proofs are supported for aggregation now
-    match sp1_proof_with_pub_values_and_elf
-        .proof_with_pub_values
-        .proof
-    {
-        sp1_sdk::SP1Proof::Compressed(_) => client
-            .verify(
-                &sp1_proof_with_pub_values_and_elf.proof_with_pub_values,
-                &vk,
-            )
-            .map_err(AlignedSP1VerificationError::Verification),
-        _ => Err(AlignedSP1VerificationError::UnsupportedProof),
-    }
 }
 
 pub fn vk_from_elf(elf: &[u8]) -> SP1VerifyingKey {

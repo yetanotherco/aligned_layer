@@ -219,24 +219,3 @@ impl IsMerkleTreeBackend for AlignedProof {
         hasher.finalize().into()
     }
 }
-
-#[derive(Debug)]
-pub enum AlignedVerificationError {
-    Sp1(AlignedSP1VerificationError),
-    Risc0(AlignedRisc0VerificationError),
-}
-
-impl AlignedProof {
-    pub fn verify(&self) -> Result<(), AlignedVerificationError> {
-        match self {
-            AlignedProof::SP1(proof) => sp1_aggregator::verify(proof).map_err(
-                |arg0: sp1_aggregator::AlignedSP1VerificationError| {
-                    AlignedVerificationError::Sp1(arg0)
-                },
-            ),
-            AlignedProof::Risc0(proof) => {
-                risc0_aggregator::verify(proof).map_err(AlignedVerificationError::Risc0)
-            }
-        }
-    }
-}

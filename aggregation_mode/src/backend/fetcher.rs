@@ -112,38 +112,61 @@ impl ProofsFetcher {
             info!("Data downloaded from S3, number of proofs {}", data.len());
 
             // Filter compatible proofs to be aggregated and push to queue
-            let mut proofs_to_add: Vec<AlignedProof> = match engine {
+            let proofs_to_add: Vec<AlignedProof> = match engine {
                 ZKVMEngine::SP1 => data
-                    .into_iter()
-                    .filter_map(|p| match p.proving_system {
-                        ProvingSystemId::SP1 => {
-                            let elf = p.vm_program_code?;
-                            let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
-                            let sp1_proof =
-                                SP1ProofWithPubValuesAndElf::new(proof_with_pub_values, elf);
+                    .into_par_iter()
+                    .filter_map(|p| {
+                        if p.proving_system != ProvingSystemId::SP1 {
+                            return None;
+                        };
 
-                            Some(AlignedProof::SP1(sp1_proof.into()))
+                        let elf = p.vm_program_code?;
+                        let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
+                        let sp1_proof = if self.pre_verification_enabled {
+                            SP1ProofWithPubValuesAndElf::new_with_verification(
+                                proof_with_pub_values,
+                                elf,
+                            )
+                        } else {
+                            Ok(SP1ProofWithPubValuesAndElf::new(proof_with_pub_values, elf))
+                        };
+
+                        match sp1_proof {
+                            Ok(proof) => Some(AlignedProof::SP1(sp1_proof)),
+                            Err(err) => {
+                                error!("Could not add proof, verification failed: {:?}", err);
+                                None
+                            }
                         }
-
-                        _ => None,
                     })
                     .collect(),
                 ZKVMEngine::RISC0 => data
-                    .into_iter()
-                    .filter_map(|p| match p.proving_system {
-                        ProvingSystemId::Risc0 => {
-                            let mut image_id = [0u8; 32];
-                            image_id.copy_from_slice(p.vm_program_code?.as_slice());
-                            let public_inputs = p.pub_input?;
-                            let inner_receipt: risc0_zkvm::InnerReceipt =
-                                bincode::deserialize(&p.proof).ok()?;
+                    .into_par_iter()
+                    .filter_map(|p| {
+                        if p.proving_system != ProvingSystemId::Risc0 {
+                            return None;
+                        };
 
-                            let receipt = Receipt::new(inner_receipt, public_inputs);
-                            let risc0_proof = Risc0ProofReceiptAndImageId { image_id, receipt };
+                        let mut image_id = [0u8; 32];
+                        image_id.copy_from_slice(p.vm_program_code?.as_slice());
+                        let public_inputs = p.pub_input?;
+                        let inner_receipt: risc0_zkvm::InnerReceipt =
+                            bincode::deserialize(&p.proof).ok()?;
 
-                            Some(AlignedProof::Risc0(risc0_proof.into()))
+                        let receipt = Receipt::new(inner_receipt, public_inputs);
+                        let risc0_proof = if self.pre_verification_enabled {
+                            Risc0ProofReceiptAndImageId::new_with_verification(image_id, receipt)
+                        } else {
+                            Ok(Risc0ProofReceiptAndImageId::new(image_id, receipt))
+                        };
+
+                        match risc0_proof {
+                            Ok(proof) => Some(AlignedProof::Risc0(risc0_proof)),
+                            Err(err) => {
+                                error!("Could not add proof, verification failed: {:?}", err);
+                                None
+                            }
                         }
-                        _ => None,
                     })
                     .collect(),
             };
@@ -153,22 +176,6 @@ impl ProofsFetcher {
                 engine,
                 proofs_to_add.len()
             );
-
-            if self.pre_verification_enabled {
-                // Try to add them to the queue
-                // We do this in parallel, as SP1 can take quite some time in verifying
-                // because of the overhead of setting up the prover
-                proofs_to_add = proofs_to_add
-                    .into_par_iter()
-                    .filter(|proof| match proof.verify() {
-                        Ok(_) => true,
-                        Err(err) => {
-                            error!("Could not add proof, verification failed: {:?}", err);
-                            return false;
-                        }
-                    })
-                    .collect();
-            }
 
             proofs.extend(proofs_to_add);
         }
