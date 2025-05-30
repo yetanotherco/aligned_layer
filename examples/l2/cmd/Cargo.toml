@@ -1,0 +1,27 @@
+[package]
+name = "l2_cmd"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
+bincode = "1.3.3"
+tokio = "1.44"
+dotenv = "0.15"
+l2 = { path = "../crates/l2/" }
+aligned-sdk = { path = "../../../batcher/aligned-sdk" }
+
+[lib]
+name = "l2_cmd"
+path = "./lib.rs"
+
+[[bin]]
+name = "prove_state_transition"
+path = "./prove_state_transition.rs"
+
+[[bin]]
+name = "update_state_on_chain"
+path = "./update_state_on_chain.rs"

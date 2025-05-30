@@ -3,21 +3,6 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt};
 use sha3::{Digest, Keccak256};
 
-/// Byte representation of the aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
-pub const RISC0_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
-    let mut res = [0u8; 32];
-    let mut i = 0;
-    while i < 8 {
-        let bytes = RISC0_AGGREGATOR_PROGRAM_ID[i].to_le_bytes();
-        res[i * 4] = bytes[0];
-        res[i * 4 + 1] = bytes[1];
-        res[i * 4 + 2] = bytes[2];
-        res[i * 4 + 3] = bytes[3];
-        i += 1;
-    }
-    res
-};
-
 pub struct Risc0ProofReceiptAndImageId {
     pub image_id: [u8; 32],
     pub receipt: Receipt,
@@ -29,6 +14,50 @@ impl Risc0ProofReceiptAndImageId {
     }
 }
 
+#[derive(Debug)]
+pub enum Risc0AggregationError {
+    WriteInput(String),
+    BuildExecutor(String),
+    Prove(String),
+    Verification(String),
+}
+
+#[derive(Debug)]
+pub enum AlignedRisc0VerificationError {
+    Verification(String),
+    UnsupportedProof,
+}
+
+/// Byte representation of the user proofs aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
+pub const RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
+    let mut res = [0u8; 32];
+    let mut i = 0;
+    while i < 8 {
+        let bytes = RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID[i].to_le_bytes();
+        res[i * 4] = bytes[0];
+        res[i * 4 + 1] = bytes[1];
+        res[i * 4 + 2] = bytes[2];
+        res[i * 4 + 3] = bytes[3];
+        i += 1;
+    }
+    res
+};
+
+/// Byte representation of the chunk aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
+pub const RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
+    let mut res = [0u8; 32];
+    let mut i = 0;
+    while i < 8 {
+        let bytes = RISC0_CHUNK_AGGREGATOR_PROGRAM_ID[i].to_le_bytes();
+        res[i * 4] = bytes[0];
+        res[i * 4 + 1] = bytes[1];
+        res[i * 4 + 2] = bytes[2];
+        res[i * 4 + 3] = bytes[3];
+        i += 1;
+    }
+    res
+};
+
 impl Risc0ProofReceiptAndImageId {
     pub fn hash_image_id_and_public_inputs(&self) -> [u8; 32] {
         let mut hasher = Keccak256::new();
@@ -38,16 +67,8 @@ impl Risc0ProofReceiptAndImageId {
     }
 }
 
-#[derive(Debug)]
-pub enum Risc0AggregationError {
-    WriteInput(String),
-    BuildExecutor(String),
-    Prove(String),
-    Verification(String),
-}
-
-pub(crate) fn aggregate_proofs(
-    proofs: Vec<Risc0ProofReceiptAndImageId>,
+pub(crate) fn run_user_proofs_aggregator(
+    proofs: &[Risc0ProofReceiptAndImageId],
 ) -> Result<Risc0ProofReceiptAndImageId, Risc0AggregationError> {
     let mut env_builder = ExecutorEnv::builder();
 
@@ -58,11 +79,11 @@ pub(crate) fn aggregate_proofs(
             image_id: proof.image_id,
             public_inputs: proof.receipt.journal.bytes.clone(),
         });
-        env_builder.add_assumption(proof.receipt);
+        env_builder.add_assumption(proof.receipt.clone());
     }
 
     // write input data
-    let input = risc0_aggregation_program::Input {
+    let input = risc0_aggregation_program::UserProofsAggregatorInput {
         proofs_image_id_and_pub_inputs,
     };
     env_builder
@@ -76,26 +97,77 @@ pub(crate) fn aggregate_proofs(
     let prover = default_prover();
 
     let receipt = prover
-        .prove_with_opts(env, RISC0_AGGREGATOR_PROGRAM_ELF, &ProverOpts::groth16())
+        .prove_with_opts(
+            env,
+            RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ELF,
+            &ProverOpts::composite(),
+        )
         .map_err(|e| Risc0AggregationError::Prove(e.to_string()))?
         .receipt;
 
     receipt
-        .verify(RISC0_AGGREGATOR_PROGRAM_ID)
+        .verify(RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID)
         .map_err(|e| Risc0AggregationError::Verification(e.to_string()))?;
 
     let proof = Risc0ProofReceiptAndImageId {
-        image_id: RISC0_AGGREGATOR_PROGRAM_ID_BYTES,
+        image_id: RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID_BYTES,
         receipt,
     };
 
     Ok(proof)
 }
 
-#[derive(Debug)]
-pub enum AlignedRisc0VerificationError {
-    Verification(String),
-    UnsupportedProof,
+pub(crate) fn run_chunk_aggregator(
+    proofs: &[(Risc0ProofReceiptAndImageId, Vec<[u8; 32]>)],
+) -> Result<Risc0ProofReceiptAndImageId, Risc0AggregationError> {
+    let mut env_builder = ExecutorEnv::builder();
+
+    // write assumptions and proof image id + pub inputs
+    let mut proofs_and_leaves_commitment = vec![];
+    for (proof, leaves_commitment) in proofs {
+        proofs_and_leaves_commitment.push((
+            risc0_aggregation_program::Risc0ImageIdAndPubInputs {
+                image_id: proof.image_id,
+                public_inputs: proof.receipt.journal.bytes.clone(),
+            },
+            leaves_commitment.clone(),
+        ));
+        env_builder.add_assumption(proof.receipt.clone());
+    }
+
+    // write input data
+    let input = risc0_aggregation_program::ChunkAggregatorInput {
+        proofs_and_leaves_commitment,
+    };
+    env_builder
+        .write(&input)
+        .map_err(|e| Risc0AggregationError::WriteInput(e.to_string()))?;
+
+    let env = env_builder
+        .build()
+        .map_err(|e| Risc0AggregationError::BuildExecutor(e.to_string()))?;
+
+    let prover = default_prover();
+
+    let receipt = prover
+        .prove_with_opts(
+            env,
+            RISC0_CHUNK_AGGREGATOR_PROGRAM_ELF,
+            &ProverOpts::groth16(),
+        )
+        .map_err(|e| Risc0AggregationError::Prove(e.to_string()))?
+        .receipt;
+
+    receipt
+        .verify(RISC0_CHUNK_AGGREGATOR_PROGRAM_ID)
+        .map_err(|e| Risc0AggregationError::Verification(e.to_string()))?;
+
+    let proof = Risc0ProofReceiptAndImageId {
+        image_id: RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES,
+        receipt,
+    };
+
+    Ok(proof)
 }
 
 pub(crate) fn verify(

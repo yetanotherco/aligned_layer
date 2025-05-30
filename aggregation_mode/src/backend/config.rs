@@ -21,6 +21,7 @@ pub struct Config {
     pub aligned_service_manager_address: String,
     pub last_aggregated_block_filepath: String,
     pub ecdsa: ECDSAConfig,
+    pub proofs_per_chunk: u16,
 }
 
 impl Config {

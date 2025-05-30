@@ -1,0 +1,15 @@
+[package]
+name = "types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+primitive-types = { workspace = true }
+lambdaworks-crypto = { workspace = true }
+sha3 = { workspace = true }
+
+
+[profile.release]
+opt-level = 3

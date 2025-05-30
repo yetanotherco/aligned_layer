@@ -153,15 +153,15 @@ Then you must register as an Operator on AlignedLayer. To do this, you must run:
 
 - Mainnet:
 
-```bash
-make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-mainnet.yaml
-```
+    ```bash
+    make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-mainnet.yaml
+    ```
 
 - Holesky:
 
-```bash
-make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-holesky.yaml
-```
+    ```bash
+    make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-holesky.yaml
+    ```
 
 {% hint style="danger" %}
 If you are going to run the server in this machine, 
@@ -172,15 +172,15 @@ delete the operator key
 
 - Mainnet:
 
-```bash
-./operator/build/aligned-operator start --config ./config-files/config-operator-mainnet.yaml
-```
+    ```bash
+    ./operator/build/aligned-operator start --config ./config-files/config-operator-mainnet.yaml
+    ```
 
 - Holesky:
 
-```bash
-./operator/build/aligned-operator start --config ./config-files/config-operator-holesky.yaml
-```
+    ```bash
+    ./operator/build/aligned-operator start --config ./config-files/config-operator-holesky.yaml
+    ```
 
 ### Run Operator using Systemd
 
@@ -242,21 +242,39 @@ Once you are running your operator using systemd, you can get its logs using jou
 journalctl -xfeu aligned-operator.service
 ```
 
+## Operator Metrics
+
+Metrics are exposed by default at `localhost:9092/metrics` in Prometheus format. To change the endpoint, update the following line in the configuration file:
+
+```yaml
+metrics_ip_port_address: localhost:9092
+```
+
+Example of exposed metrics:
+
+```yaml
+# HELP aligned_operator_responses_count Number of proof verified by the operator and sent to the Aligned Service Manager
+# TYPE aligned_operator_responses_count counter
+aligned_operator_responses_count x
+```
+
+You can scrape these metrics using Prometheus and visualize them in Grafana or configure alerts based on the data.
+
 ## Unregistering the operator
 
 To unregister the Aligned operator, run:
 
 - Mainnet:
 
-```bash
-cast send --rpc-url https://ethereum-rpc.publicnode.com --private-key <private_key> 0xA8CC0749b4409c3c47012323E625aEcBA92f64b9 'deregisterOperator(bytes)' 0x00
- ```
+    ```bash
+    cast send --rpc-url https://ethereum-rpc.publicnode.com --private-key <private_key> 0xA8CC0749b4409c3c47012323E625aEcBA92f64b9 'deregisterOperator(bytes)' 0x00
+    ```
 
 - Holesky:
 
-```bash
-cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
- ```
+    ```bash
+    cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
+    ```
 
  `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
 

@@ -218,9 +218,7 @@ install_aggregation_mode: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator
 
 agg_mode_write_program_ids: ## Write proof aggregator zkvm programs ids 
-	@cd aggregation_mode && \
-	cargo run --release --bin write_program_image_id_vk_hash
-	
+	@cd aggregation_mode && ./scripts/build_programs.sh
 
 _AGGREGATOR_:
 

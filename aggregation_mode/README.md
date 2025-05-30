@@ -61,11 +61,22 @@ make start_proof_aggregator_gpu AGGREGATOR="sp1|risc0"
 1. Get latest aggregated proof:
 
 ```shell
-cast call 0xc351628EB244ec633d5f21fBD6621e1a683B1181 "currentAggregatedProofNumber()" --rpc-url http://localhost:8545
+cast logs 0xc351628EB244ec633d5f21fBD6621e1a683B1181 'AggregatedProofVerified(bytes32,bytes32)' --from-block 0 --to-block latest --rpc-url http://localhost:8545
 ```
 
-2. Get aggregated proof info:
+## Compiling programs
+
+Whenever any of the programs change, you must recompile them and update their corresponding program ids in `aggregation_mode/program_ids.json`. To do this, run the following command:
 
 ```shell
-cast call 0xc351628EB244ec633d5f21fBD6621e1a683B1181 "getAggregatedProof(uint64)(uint8,bytes32,bytes32)" <AGG_PROOF_NUMBER>  --rpc-url http://localhost:8545
+make agg_mode_write_program_ids
 ```
+
+We are using docker to produce deterministic builds so that the program ids are the same for all systems.
+
+### Updating the program id in `AlignedProofAggregationService` contract
+
+If the program ids have changed, you will also need to update them in the `AlignedProofAggregationService` contract.
+
+-   Risc0: call `setRisc0AggregatorProgramImageId` method with the value of `risc0_root_aggregator_image_id` from `aggregation_mode/program_ids.json`.
+-   SP1: call: `setSP1AggregatorProgramVKHash` method with the value of `sp1_root_aggregator_vk_hash` from `aggregation_mode/program_ids.json`.
