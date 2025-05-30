@@ -6,7 +6,6 @@ use std::io::Read;
 use std::path::Path;
 use std::{env, fs};
 
-// Hash all inputs
 fn hash_files_and_features<P: AsRef<Path>>(paths: &[P], features: Vec<String>) -> String {
     let mut hasher = Keccak256::new();
     for path in paths {
@@ -61,7 +60,7 @@ fn main() {
                 output_directory: Some("./aggregation_programs/sp1/elf".to_string()),
                 // We use Docker to generate a reproducible ELF that will be identical across all platforms
                 // (https://docs.succinct.xyz/docs/sp1/writing-programs/compiling#production-builds)
-                // docker: true,
+                docker: true,
                 ..Default::default()
             }
         });
@@ -71,7 +70,7 @@ fn main() {
         let docker_options = DockerOptionsBuilder::default().build().unwrap();
         // Reference: https://github.com/risc0/risc0/blob/main/risc0/build/src/config.rs#L73-L90
         let guest_options = GuestOptionsBuilder::default()
-            // .use_docker(docker_options)
+            .use_docker(docker_options)
             .build()
             .unwrap();
         risc0_build::embed_methods_with_options(HashMap::from([(
