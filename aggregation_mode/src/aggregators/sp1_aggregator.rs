@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use alloy::primitives::Keccak256;
 use sp1_aggregation_program::SP1VkAndPubInputs;
 use sp1_sdk::{
-    EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
+    CpuProver, EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
     SP1VerifyingKey,
 };
 
@@ -14,6 +14,11 @@ const USER_PROOFS_PROGRAM_ELF: &[u8] =
     include_bytes!("../../aggregation_programs/sp1/elf/sp1_user_proofs_aggregator_program");
 
 static SP1_PROVER_CLIENT: LazyLock<EnvProver> = LazyLock::new(ProverClient::from_env);
+/// Separate prover instance configured to always use the CPU.
+/// This is used for verification, which is performed in parallel and
+/// cannot be done on the GPU.
+static SP1_PROVER_CLIENT_CPU: LazyLock<CpuProver> =
+    LazyLock::new(|| ProverClient::builder().cpu().build());
 
 pub struct SP1ProofWithPubValuesAndElf {
     pub proof_with_pub_values: SP1ProofWithPublicValues,
@@ -182,7 +187,7 @@ pub enum AlignedSP1VerificationError {
 pub(crate) fn verify(
     sp1_proof_with_pub_values_and_elf: &SP1ProofWithPubValuesAndElf,
 ) -> Result<(), AlignedSP1VerificationError> {
-    let client = &*SP1_PROVER_CLIENT;
+    let client = &*SP1_PROVER_CLIENT_CPU;
 
     let (_pk, vk) = client.setup(&sp1_proof_with_pub_values_and_elf.elf);
 
@@ -202,7 +207,7 @@ pub(crate) fn verify(
 }
 
 pub fn vk_from_elf(elf: &[u8]) -> SP1VerifyingKey {
-    let prover = &*SP1_PROVER_CLIENT;
+    let prover = &*SP1_PROVER_CLIENT_CPU;
     let (_, vk) = prover.setup(elf);
     vk
 }

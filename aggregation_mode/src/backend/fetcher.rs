@@ -16,6 +16,7 @@ use alloy::{
     primitives::Address,
     providers::{Provider, ProviderBuilder},
 };
+use rayon::prelude::*;
 use risc0_zkvm::Receipt;
 use tracing::{error, info};
 
@@ -109,7 +110,7 @@ impl ProofsFetcher {
             info!("Data downloaded from S3, number of proofs {}", data.len());
 
             // Filter compatible proofs to be aggregated and push to queue
-            let proofs_to_add: Vec<AlignedProof> = match engine {
+            let mut proofs_to_add: Vec<AlignedProof> = match engine {
                 ZKVMEngine::SP1 => data
                     .into_iter()
                     .filter_map(|p| match p.proving_system {
@@ -153,15 +154,21 @@ impl ProofsFetcher {
                 proofs_to_add.len()
             );
 
-            // try to add them to the queue
-            for proof in proofs_to_add {
-                if let Err(err) = proof.verify() {
-                    error!("Could not add proof, verification failed: {:?}", err);
-                    continue;
-                };
+            // Try to add them to the queue
+            // We do this in parallel, as SP1 can take quite some time in verifying
+            // because of the overhead of setting up the prover
+            proofs_to_add = proofs_to_add
+                .into_par_iter()
+                .filter(|proof| match proof.verify() {
+                    Ok(_) => true,
+                    Err(err) => {
+                        error!("Could not add proof, verification failed: {:?}", err);
+                        return false;
+                    }
+                })
+                .collect();
 
-                proofs.push(proof);
-            }
+            proofs.extend(proofs_to_add);
         }
 
         Ok(proofs)

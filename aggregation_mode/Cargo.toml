@@ -17,6 +17,7 @@ sha3 = "0.10.8"
 reqwest = { version = "0.12" }
 ciborium = "=0.2.2"
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
+rayon = "1.10.0"
 # Necessary for the VerificationData type
 aligned-sdk = { path = "../batcher/aligned-sdk/" }
 # zkvms

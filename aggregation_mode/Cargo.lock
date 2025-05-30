@@ -6195,6 +6195,7 @@ dependencies = [
  "c-kzg",
  "ciborium",
  "lambdaworks-crypto",
+ "rayon",
  "reqwest 0.12.15",
  "risc0-build",
  "risc0-ethereum-contracts",
