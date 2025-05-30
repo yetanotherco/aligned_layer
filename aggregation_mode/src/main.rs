@@ -20,6 +20,7 @@ async fn main() {
     // ignore spi_cude info logs
     let filter = EnvFilter::new("info,sp1_cuda=warn");
     let subscriber = FmtSubscriber::builder().with_env_filter(filter).finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     // load config
     let config_file_path = read_config_filepath_from_args();
