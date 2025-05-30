@@ -1,7 +1,7 @@
 use std::env;
 
 use proof_aggregator::backend::{config::Config, ProofAggregator};
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 fn read_config_filepath_from_args() -> String {
     let args: Vec<String> = env::args().collect();
@@ -17,8 +17,9 @@ fn read_config_filepath_from_args() -> String {
 
 #[tokio::main]
 async fn main() {
-    let subscriber = FmtSubscriber::builder().finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    // ignore spi_cude info logs
+    let filter = EnvFilter::new("info,sp1_cuda=warn");
+    let subscriber = FmtSubscriber::builder().with_env_filter(filter).finish();
 
     // load config
     let config_file_path = read_config_filepath_from_args();
