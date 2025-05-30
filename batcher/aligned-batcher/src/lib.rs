@@ -594,7 +594,7 @@ impl Batcher {
         };
 
         let mut nonced_verification_data = client_msg.verification_data.clone();
-        let mut signature = client_msg.signature.clone();
+        let mut signature = client_msg.signature;
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
