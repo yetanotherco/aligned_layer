@@ -1,6 +1,6 @@
+use aligned_sdk::common::types::NoncedVerificationData;
 use ethers::types::{Address, Signature};
 use serde::{Deserialize, Serialize};
-use aligned_sdk::common::types::NoncedVerificationData;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NonPayingData {
