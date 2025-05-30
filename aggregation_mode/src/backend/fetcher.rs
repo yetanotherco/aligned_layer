@@ -55,6 +55,7 @@ impl ProofsFetcher {
     pub async fn fetch(
         &mut self,
         engine: ZKVMEngine,
+        limit: u16,
     ) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
         // Get current block
         let current_block = self
@@ -86,12 +87,9 @@ impl ProofsFetcher {
 
         info!("Logs collected {}", logs.len());
 
-        // Update last processed block after collecting logs
-        self.last_aggregated_block = current_block;
-
         let mut proofs = vec![];
 
-        for (batch, _) in logs {
+        for (batch, log) in logs {
             info!(
                 "New batch submitted, about to process. Batch merkle root {}...",
                 batch.batchMerkleRoot
@@ -153,6 +151,18 @@ impl ProofsFetcher {
                 proofs_to_add.len()
             );
 
+            if (proofs.len() + proofs_to_add.len()) > (limit as usize) {
+                let log_block_number = log.block_number.unwrap();
+                info!(
+                    "Limit of {} proofs reached, stopping at block number {}, which is {} from current block",
+                    limit, log_block_number, current_block - log_block_number
+                );
+                // Update last processed block to this log block number
+                // So the next aggregation starts at this block
+                self.last_aggregated_block = log_block_number;
+                return Ok(proofs);
+            }
+
             // try to add them to the queue
             for proof in proofs_to_add {
                 if let Err(err) = proof.verify() {
@@ -163,6 +173,9 @@ impl ProofsFetcher {
                 proofs.push(proof);
             }
         }
+
+        // Update last processed block after collecting logs
+        self.last_aggregated_block = current_block;
 
         Ok(proofs)
     }

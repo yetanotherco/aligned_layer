@@ -97,7 +97,7 @@ impl ProofAggregator {
     ) -> Result<(), AggregatedProofSubmissionError> {
         let proofs = self
             .fetcher
-            .fetch(self.engine.clone())
+            .fetch(self.engine.clone(), self.config.total_proofs_limit)
             .await
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
