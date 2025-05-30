@@ -276,8 +276,8 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             );
             Err(SubmitError::SerializationError(e))
         }
-        Ok(SubmitProofResponseMessage::NonPayingAddressError) => {
-            error!("Batcher responded with non-paying address error. Funds have not been spent.");
+        Ok(SubmitProofResponseMessage::NonPayingNotAllowed) => {
+            error!("Batcher responded with: non-paying not allowed.");
             Err(SubmitError::NonPayingAddressError)
         }
     }

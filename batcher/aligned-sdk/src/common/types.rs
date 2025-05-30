@@ -399,7 +399,7 @@ pub enum SubmitProofResponseMessage {
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
     UnderpricedProof,
-    NonPayingAddressError,
+    NonPayingNotAllowed,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

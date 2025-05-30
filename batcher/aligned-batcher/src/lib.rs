@@ -642,7 +642,7 @@ impl Batcher {
                 error!("Failed to generate non paying data");
                 send_message(
                     ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::NonPayingAddressError,
+                    SubmitProofResponseMessage::NonPayingNotAllowed,
                 )
                 .await;
                 return Ok(());
@@ -1774,7 +1774,7 @@ impl Batcher {
         info!("Handling nonpaying message");
         let Some(non_paying_config) = self.non_paying_config.as_ref() else {
             warn!("There isn't a non-paying configuration loaded. This message will be ignored");
-            return Err(TransactionSendError::NonPayingAddressNotAllowed);
+            return Err(TransactionSendError::NonPayingNotAllowed);
         };
 
         let nonced_verification_data = NoncedVerificationData::new(
@@ -1785,7 +1785,8 @@ impl Batcher {
             self.payment_service.address(),
         );
 
-        let client_msg = SubmitProofMessage::new(
+        // We need to sign a message with the non-paying replacement address
+        let non_paying_replacement_msg = SubmitProofMessage::new(
             client_msg.verification_data.clone(),
             non_paying_config.replacement.clone(),
         )
@@ -1795,7 +1796,7 @@ impl Batcher {
         Ok(NonPayingData {
             address: non_paying_config.replacement.address(),
             nonced_verification_data,
-            signature: client_msg.signature,
+            signature: non_paying_replacement_msg.signature,
         })
     }
 
