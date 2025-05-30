@@ -13,7 +13,9 @@ const CHUNK_PROGRAM_ELF: &[u8] =
 const USER_PROOFS_PROGRAM_ELF: &[u8] =
     include_bytes!("../../aggregation_programs/sp1/elf/sp1_user_proofs_aggregator_program");
 
+#[allow(dead_code)]
 static SP1_PROVER_CLIENT: LazyLock<EnvProver> = LazyLock::new(ProverClient::from_env);
+
 /// Separate prover instance configured to always use the CPU.
 /// This is used for verification, which is performed in parallel and
 /// cannot be done on the GPU.
@@ -49,18 +51,12 @@ impl SP1ProofWithPubValuesAndElf {
     ) -> Result<Self, AlignedSP1VerificationError> {
         let client = &*SP1_PROVER_CLIENT_CPU;
 
-        let (_pk, vk) = client.setup(&sp1_proof_with_pub_values_and_elf.elf);
+        let (_pk, vk) = client.setup(&elf);
 
         // only sp1 compressed proofs are supported for aggregation now
-        match sp1_proof_with_pub_values_and_elf
-            .proof_with_pub_values
-            .proof
-        {
+        match proof_with_pub_values.proof {
             sp1_sdk::SP1Proof::Compressed(_) => client
-                .verify(
-                    &sp1_proof_with_pub_values_and_elf.proof_with_pub_values,
-                    &vk,
-                )
+                .verify(&proof_with_pub_values, &vk)
                 .map_err(AlignedSP1VerificationError::Verification),
             _ => Err(AlignedSP1VerificationError::UnsupportedProof),
         }?;

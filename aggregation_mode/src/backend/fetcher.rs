@@ -132,7 +132,7 @@ impl ProofsFetcher {
                         };
 
                         match sp1_proof {
-                            Ok(proof) => Some(AlignedProof::SP1(sp1_proof)),
+                            Ok(proof) => Some(AlignedProof::SP1(proof.into())),
                             Err(err) => {
                                 error!("Could not add proof, verification failed: {:?}", err);
                                 None
@@ -161,7 +161,7 @@ impl ProofsFetcher {
                         };
 
                         match risc0_proof {
-                            Ok(proof) => Some(AlignedProof::Risc0(risc0_proof)),
+                            Ok(proof) => Some(AlignedProof::Risc0(proof.into())),
                             Err(err) => {
                                 error!("Could not add proof, verification failed: {:?}", err);
                                 None

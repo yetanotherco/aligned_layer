@@ -24,12 +24,11 @@ impl Risc0ProofReceiptAndImageId {
         receipt: Receipt,
     ) -> Result<Self, AlignedRisc0VerificationError> {
         let is_supported_proof =
-            proof.receipt.inner.composite().is_ok() || proof.receipt.inner.succinct().is_ok();
+            receipt.inner.composite().is_ok() || receipt.inner.succinct().is_ok();
 
         if is_supported_proof {
-            proof
-                .receipt
-                .verify(proof.image_id)
+            receipt
+                .verify(image_id)
                 .map_err(|e| AlignedRisc0VerificationError::Verification(e.to_string()))?;
         } else {
             return Err(AlignedRisc0VerificationError::UnsupportedProof);

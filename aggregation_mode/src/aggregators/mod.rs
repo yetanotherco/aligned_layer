@@ -4,13 +4,9 @@ pub mod sp1_aggregator;
 use std::fmt::Display;
 
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
-use risc0_aggregator::{
-    AlignedRisc0VerificationError, Risc0AggregationError, Risc0ProofReceiptAndImageId,
-};
+use risc0_aggregator::{Risc0AggregationError, Risc0ProofReceiptAndImageId};
 use sha3::{Digest, Keccak256};
-use sp1_aggregator::{
-    AlignedSP1VerificationError, SP1AggregationError, SP1ProofWithPubValuesAndElf,
-};
+use sp1_aggregator::{SP1AggregationError, SP1ProofWithPubValuesAndElf};
 use tracing::info;
 
 #[derive(Clone, Debug)]
