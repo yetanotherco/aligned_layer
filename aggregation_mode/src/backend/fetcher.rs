@@ -30,6 +30,7 @@ pub struct ProofsFetcher {
     rpc_provider: RPCProvider,
     aligned_service_manager: AlignedLayerServiceManagerContract,
     last_aggregated_block: u64,
+    pre_verification_enabled: bool,
 }
 
 impl ProofsFetcher {
@@ -48,6 +49,7 @@ impl ProofsFetcher {
             rpc_provider,
             aligned_service_manager,
             last_aggregated_block,
+            pre_verification_enabled: config.pre_verification_enabled,
         }
     }
 
@@ -154,19 +156,21 @@ impl ProofsFetcher {
                 proofs_to_add.len()
             );
 
-            // Try to add them to the queue
-            // We do this in parallel, as SP1 can take quite some time in verifying
-            // because of the overhead of setting up the prover
-            proofs_to_add = proofs_to_add
-                .into_par_iter()
-                .filter(|proof| match proof.verify() {
-                    Ok(_) => true,
-                    Err(err) => {
-                        error!("Could not add proof, verification failed: {:?}", err);
-                        return false;
-                    }
-                })
-                .collect();
+            if self.pre_verification_enabled {
+                // Try to add them to the queue
+                // We do this in parallel, as SP1 can take quite some time in verifying
+                // because of the overhead of setting up the prover
+                proofs_to_add = proofs_to_add
+                    .into_par_iter()
+                    .filter(|proof| match proof.verify() {
+                        Ok(_) => true,
+                        Err(err) => {
+                            error!("Could not add proof, verification failed: {:?}", err);
+                            return false;
+                        }
+                    })
+                    .collect();
+            }
 
             proofs.extend(proofs_to_add);
         }
