@@ -35,7 +35,16 @@ impl SP1ProofWithPubValuesAndElf {
     }
 
     pub fn vk(&self) -> SP1VerifyingKey {
-        vk_from_elf(&self.elf)
+        // it is safe to unwrap here as we only support compressed proofs for sp1
+        let vk = self
+            .proof_with_pub_values
+            .proof
+            .try_as_compressed_ref()
+            .unwrap()
+            .vk
+            .clone();
+
+        SP1VerifyingKey { vk }
     }
 }
 
