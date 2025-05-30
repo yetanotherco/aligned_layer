@@ -53,7 +53,7 @@ use types::errors::{BatcherError, TransactionSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::telemetry::sender::TelemetrySender;
-use crate::types::non_paying::NonPayingData;
+use crate::types::non_paying::NonPayingReplacementData;
 
 mod config;
 mod connection;
@@ -1770,7 +1770,7 @@ impl Batcher {
     async fn generate_non_paying_data(
         &self,
         client_msg: &SubmitProofMessage,
-    ) -> Result<NonPayingData, TransactionSendError> {
+    ) -> Result<NonPayingReplacementData, TransactionSendError> {
         info!("Handling nonpaying message");
         let Some(non_paying_config) = self.non_paying_config.as_ref() else {
             warn!("There isn't a non-paying configuration loaded. This message will be ignored");
@@ -1793,7 +1793,7 @@ impl Batcher {
         .await;
 
         info!("Non-paying verification data message handled");
-        Ok(NonPayingData {
+        Ok(NonPayingReplacementData {
             address: non_paying_config.replacement.address(),
             nonced_verification_data,
             signature: non_paying_replacement_msg.signature,
