@@ -119,10 +119,8 @@ impl ProofsFetcher {
                         ProvingSystemId::SP1 => {
                             let elf = p.vm_program_code?;
                             let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
-                            let sp1_proof = SP1ProofWithPubValuesAndElf {
-                                proof_with_pub_values,
-                                elf,
-                            };
+                            let sp1_proof =
+                                SP1ProofWithPubValuesAndElf::new(proof_with_pub_values, elf);
 
                             Some(AlignedProof::SP1(sp1_proof.into()))
                         }

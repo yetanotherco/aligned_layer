@@ -23,28 +23,26 @@ static SP1_PROVER_CLIENT_CPU: LazyLock<CpuProver> =
 pub struct SP1ProofWithPubValuesAndElf {
     pub proof_with_pub_values: SP1ProofWithPublicValues,
     pub elf: Vec<u8>,
+    pub vk: SP1VerifyingKey,
 }
 
 impl SP1ProofWithPubValuesAndElf {
+    pub fn new(proof_with_pub_values: SP1ProofWithPublicValues, elf: Vec<u8>) -> Self {
+        let vk = vk_from_elf(&elf);
+
+        Self {
+            proof_with_pub_values,
+            elf,
+            vk,
+        }
+    }
+
     pub fn hash_vk_and_pub_inputs(&self) -> [u8; 32] {
         let mut hasher = Keccak256::new();
-        let vk_bytes = &self.vk().hash_bytes();
+        let vk_bytes = &self.vk.hash_bytes();
         hasher.update(vk_bytes);
         hasher.update(self.proof_with_pub_values.public_values.as_slice());
         hasher.finalize().into()
-    }
-
-    pub fn vk(&self) -> SP1VerifyingKey {
-        // it is safe to unwrap here as we only support compressed proofs for sp1
-        let vk = self
-            .proof_with_pub_values
-            .proof
-            .try_as_compressed_ref()
-            .unwrap()
-            .vk
-            .clone();
-
-        SP1VerifyingKey { vk }
     }
 }
 
@@ -70,7 +68,7 @@ pub(crate) fn run_user_proofs_aggregator(
             .proofs_vk_and_pub_inputs
             .push(SP1VkAndPubInputs {
                 public_inputs: proof.proof_with_pub_values.public_values.to_vec(),
-                vk: proof.vk().hash_u32(),
+                vk: proof.vk.hash_u32(),
             });
     }
 
@@ -78,7 +76,7 @@ pub(crate) fn run_user_proofs_aggregator(
 
     // write proofs
     for input_proof in proofs.iter() {
-        let vk = input_proof.vk().vk;
+        let vk = input_proof.vk.vk.clone();
         // we only support sp1 Compressed proofs for now
         let sp1_sdk::SP1Proof::Compressed(proof) = input_proof.proof_with_pub_values.proof.clone()
         else {
@@ -110,6 +108,7 @@ pub(crate) fn run_user_proofs_aggregator(
     let proof_and_elf = SP1ProofWithPubValuesAndElf {
         proof_with_pub_values: proof,
         elf: USER_PROOFS_PROGRAM_ELF.to_vec(),
+        vk,
     };
 
     Ok(proof_and_elf)
@@ -129,7 +128,7 @@ pub(crate) fn run_chunk_aggregator(
         program_input.proofs_and_leaves_commitment.push((
             SP1VkAndPubInputs {
                 public_inputs: proof.proof_with_pub_values.public_values.to_vec(),
-                vk: proof.vk().hash_u32(),
+                vk: proof.vk.hash_u32(),
             },
             leaves_commitment.clone(),
         ));
@@ -139,7 +138,7 @@ pub(crate) fn run_chunk_aggregator(
 
     // write proofs
     for (input_proof, _) in proofs.iter() {
-        let vk = input_proof.vk().vk;
+        let vk = input_proof.vk.vk.clone();
         // we only support sp1 Compressed proofs for now
         let sp1_sdk::SP1Proof::Compressed(proof) = input_proof.proof_with_pub_values.proof.clone()
         else {
@@ -182,6 +181,7 @@ pub(crate) fn run_chunk_aggregator(
     let proof_and_elf = SP1ProofWithPubValuesAndElf {
         proof_with_pub_values: proof,
         elf: CHUNK_PROGRAM_ELF.to_vec(),
+        vk,
     };
 
     Ok(proof_and_elf)
