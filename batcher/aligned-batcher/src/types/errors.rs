@@ -11,6 +11,7 @@ pub enum TransactionSendError {
     BatchAlreadySubmitted,
     InsufficientFunds,
     OnlyBatcherAllowed,
+    NonPayingAddressNotAllowed,
     Generic(String),
 }
 
@@ -169,6 +170,9 @@ impl fmt::Display for TransactionSendError {
             }
             TransactionSendError::Generic(e) => {
                 write!(f, "Generic error: {}", e)
+            }
+            TransactionSendError::NonPayingAddressNotAllowed => {
+                write!(f, "Non-paying address not allowed")
             }
         }
     }

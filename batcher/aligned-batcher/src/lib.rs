@@ -53,6 +53,7 @@ use types::errors::{BatcherError, TransactionSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::telemetry::sender::TelemetrySender;
+use crate::types::non_paying::NonPayingData;
 
 mod config;
 mod connection;
@@ -585,14 +586,15 @@ impl Batcher {
             return Ok(());
         }
 
-        let Some(addr) = self
+        let Some(mut addr) = self
             .msg_signature_is_valid(&client_msg, &ws_conn_sink)
             .await
         else {
             return Ok(());
         };
 
-        let nonced_verification_data = client_msg.verification_data.clone();
+        let mut nonced_verification_data = client_msg.verification_data.clone();
+        let mut signature = client_msg.signature.clone();
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
@@ -635,13 +637,22 @@ impl Batcher {
         }
 
         if self.is_nonpaying(&addr) {
-            // TODO: Non paying msg and paying should share some logic
-            return self
-                .handle_nonpaying_msg(ws_conn_sink.clone(), &client_msg)
+            info!("Generating non-paying data");
+            let Ok(non_paying_data) = self.generate_non_paying_data(&client_msg).await else {
+                error!("Failed to generate non paying data");
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::NonPayingAddressError,
+                )
                 .await;
+                return Ok(());
+            };
+            addr = non_paying_data.address;
+            nonced_verification_data = non_paying_data.nonced_verification_data;
+            signature = non_paying_data.signature;
         }
 
-        info!("Handling paying message");
+        info!("Handling message");
 
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
@@ -867,7 +878,7 @@ impl Batcher {
                 batch_state_lock,
                 nonced_verification_data,
                 ws_conn_sink.clone(),
-                client_msg.signature,
+                signature,
                 addr,
             )
             .await
@@ -1756,83 +1767,36 @@ impl Batcher {
     }
 
     /// Only relevant for testing and for users to easily use Aligned in testnet.
-    async fn handle_nonpaying_msg(
+    async fn generate_non_paying_data(
         &self,
-        ws_sink: WsMessageSink,
         client_msg: &SubmitProofMessage,
-    ) -> Result<(), Error> {
+    ) -> Result<NonPayingData, TransactionSendError> {
         info!("Handling nonpaying message");
         let Some(non_paying_config) = self.non_paying_config.as_ref() else {
             warn!("There isn't a non-paying configuration loaded. This message will be ignored");
-            send_message(ws_sink.clone(), SubmitProofResponseMessage::InvalidNonce).await;
-            return Ok(());
+            return Err(TransactionSendError::NonPayingAddressNotAllowed);
         };
-
-        let replacement_addr = non_paying_config.replacement.address();
-        let Some(replacement_user_balance) = self.get_user_balance(&replacement_addr).await else {
-            error!("Could not get balance for non-paying address {replacement_addr:?}");
-            send_message(
-                ws_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(replacement_addr),
-            )
-            .await;
-            return Ok(());
-        };
-
-        if replacement_user_balance == U256::from(0) {
-            error!("Insufficient funds for non-paying address {replacement_addr:?}");
-            send_message(
-                ws_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(replacement_addr),
-            )
-            .await;
-            return Ok(());
-        }
-
-        let batch_state_lock = self.batch_state.lock().await;
-
-        if batch_state_lock.is_queue_full() {
-            error!("Can't add new entry, the batcher queue is full");
-            send_message(
-                ws_sink.clone(),
-                SubmitProofResponseMessage::UnderpricedProof,
-            )
-            .await;
-            return Ok(());
-        }
 
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
             client_msg.verification_data.nonce,
-            DEFAULT_MAX_FEE_PER_PROOF.into(), // 2_000 gas per proof * 100 gwei gas price (upper bound)
+            (DEFAULT_MAX_FEE_PER_PROOF * 100).into(), // 2_000 gas per proof * 100 gwei gas price (upper bound) * 100 to make sure it is enough
             self.chain_id,
             self.payment_service.address(),
         );
 
         let client_msg = SubmitProofMessage::new(
-            nonced_verification_data.clone(),
+            client_msg.verification_data.clone(),
             non_paying_config.replacement.clone(),
         )
         .await;
 
-        let signature = client_msg.signature;
-        if let Err(e) = self
-            .add_to_batch(
-                batch_state_lock,
-                nonced_verification_data,
-                ws_sink.clone(),
-                signature,
-                replacement_addr,
-            )
-            .await
-        {
-            info!("Error while adding nonpaying address entry to batch: {e:?}");
-            send_message(ws_sink, SubmitProofResponseMessage::AddToBatchError).await;
-            return Ok(());
-        };
-
         info!("Non-paying verification data message handled");
-        Ok(())
+        Ok(NonPayingData {
+            address: non_paying_config.replacement.address(),
+            nonced_verification_data,
+            signature: client_msg.signature,
+        })
     }
 
     /// Gets the balance of user with address `addr` from Ethereum.

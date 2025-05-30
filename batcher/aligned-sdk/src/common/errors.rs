@@ -97,6 +97,7 @@ pub enum SubmitError {
     InvalidProofInclusionData,
     GetNonceError(String),
     BatchQueueLimitExceededError,
+    NonPayingAddressError,
     GenericError(String),
 }
 
@@ -216,6 +217,7 @@ impl fmt::Display for SubmitError {
             }
 
             SubmitError::GetNonceError(e) => write!(f, "Error while getting nonce {}", e),
+            SubmitError::NonPayingAddressError => write!(f, "Non-paying address error"),
         }
     }
 }
