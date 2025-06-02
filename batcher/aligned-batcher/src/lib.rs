@@ -53,7 +53,6 @@ use types::errors::{BatcherError, TransactionSendError};
 
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::telemetry::sender::TelemetrySender;
-use crate::types::non_paying::NonPayingReplacementData;
 
 mod config;
 mod connection;
@@ -575,20 +574,20 @@ impl Batcher {
         };
 
         let addr;
-        let signature;
+        let signature = client_msg.signature;
         let nonced_verification_data;
 
         if self.has_to_pay(&addr_in_msg) {
             addr = addr_in_msg;
-            signature = client_msg.signature;
             nonced_verification_data = client_msg.verification_data.clone();
         } else {
             info!("Generating non-paying data");
-            let non_paying_data = self.generate_non_paying_data(&client_msg).await;
             // If the user is not required to pay, substitute their address with a pre-funded Aligned address
-            addr = non_paying_data.address;
-            signature = non_paying_data.signature;
-            nonced_verification_data = non_paying_data.nonced_verification_data;
+            addr = self.non_paying_config.as_ref().unwrap().replacement.address();
+            // Substitute the max_fee to a high enough value to cover the gas cost of the proof
+            let mut aux_verification_data = client_msg.verification_data.clone();
+            aux_verification_data.max_fee = (DEFAULT_MAX_FEE_PER_PROOF * 100).into(); // 2_000 gas per proof * 100 gwei gas price (upper bound) * 100 to make sure it is enough
+            nonced_verification_data = aux_verification_data
         }
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
@@ -1737,36 +1736,6 @@ impl Batcher {
     fn get_nonpaying_replacement_addr(&self) -> Option<Address> {
         let non_paying_conf = self.non_paying_config.as_ref()?;
         Some(non_paying_conf.replacement.address())
-    }
-
-    /// Only relevant for testing and for users to easily use Aligned in testnet.
-    async fn generate_non_paying_data(
-        &self,
-        client_msg: &SubmitProofMessage,
-    ) -> NonPayingReplacementData {
-        // This unwrap is safe because we check if the non-paying config is set before calling this function.
-        let non_paying_config = self.non_paying_config.as_ref().unwrap();
-
-        let nonced_verification_data = NoncedVerificationData::new(
-            client_msg.verification_data.verification_data.clone(),
-            client_msg.verification_data.nonce,
-            (DEFAULT_MAX_FEE_PER_PROOF * 100).into(), // 2_000 gas per proof * 100 gwei gas price (upper bound) * 100 to make sure it is enough
-            self.chain_id,
-            self.payment_service.address(),
-        );
-
-        // We need to sign a message with the non-paying replacement address
-        let non_paying_replacement_msg = SubmitProofMessage::new(
-            client_msg.verification_data.clone(),
-            non_paying_config.replacement.clone(),
-        )
-        .await;
-
-        NonPayingReplacementData {
-            address: non_paying_config.replacement.address(),
-            nonced_verification_data,
-            signature: non_paying_replacement_msg.signature,
-        }
     }
 
     /// Gets the balance of user with address `addr` from Ethereum.
