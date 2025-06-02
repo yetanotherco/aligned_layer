@@ -41,7 +41,7 @@ use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
 use ethers::prelude::{Middleware, Provider};
 use ethers::types::{Address, Signature, TransactionReceipt, U256};
-use futures_util::{future, SinkExt, StreamExt, TryStreamExt};
+use futures_util::{future, join, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
@@ -351,10 +351,19 @@ impl Batcher {
 
         let last_seen_block = Mutex::<u64>::new(0);
 
-        while let Some(block) = tokio::select! {
-            block = stream.next() => block,
-            block = stream_fallback.next() => block,
-        } {
+        loop {
+            // Wait for both responses
+            let (block_main, block_fallback) = join!(stream.next(), stream_fallback.next());
+
+            let block = if let Some(block) = block_main {
+                block
+            } else if let Some(block) = block_fallback {
+                block
+            } else {
+                // Both rpc failed to respond, break and try to reconnect
+                break;
+            };
+
             let batcher = self.clone();
             let block_number = block.number.unwrap_or_default();
             let block_number = u64::try_from(block_number).unwrap_or_default();
@@ -371,7 +380,7 @@ impl Batcher {
             tokio::spawn(async move {
                 if let Err(e) = batcher.handle_new_block(block_number).await {
                     error!("Error when handling new block: {:?}", e);
-                };
+                }
             });
         }
         error!("Failed to fetch blocks");
