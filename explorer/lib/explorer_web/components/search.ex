@@ -11,13 +11,17 @@ defmodule SearchComponent do
     |> case do
       {:ok, hash} ->
         cond do
-          # See if the hash belongs to a proof
+          # See if the hash belongs to a proof in a batch
+          # If so, redirect to search to show all the batches where this proofs exists
           Proofs.get_number_of_batches_containing_proof(hash) > 0 ->
+            {:noreply, push_navigate(socket, to: ~p"/search?q=#{hash}")}
+
+          # See if the hash belongs to the root of a batch
+          Batches.get_batch(%{merkle_root: hash}) != nil ->
             {:noreply, push_navigate(socket, to: ~p"/batches/#{hash}")}
 
           # See if the hash belongs to an aggregated proof merkle root
           (proof = AggregatedProofs.get_newest_aggregated_proof_by_merkle_root(hash)) != nil ->
-            Logger.debug(proof)
             {:noreply, push_navigate(socket, to: ~p"/aggregated_proofs/#{proof.id}")}
 
           # Finally, see if the hash belongs to a proof of an aggregated proof
