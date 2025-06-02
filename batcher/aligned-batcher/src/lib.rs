@@ -1088,17 +1088,6 @@ impl Batcher {
 
         info!("Current batch queue length: {}", queue_len);
 
-        let mut proof_submitter_addr = proof_submitter_addr;
-
-        // If the proof submitter is the nonpaying one, we should update the state
-        // of the replacement address.
-        proof_submitter_addr = if self.has_to_pay(&proof_submitter_addr) {
-            self.get_nonpaying_replacement_addr()
-                .unwrap_or(proof_submitter_addr)
-        } else {
-            proof_submitter_addr
-        };
-
         let Some(user_proof_count) = batch_state_lock
             .get_user_proof_count(&proof_submitter_addr)
             .await
