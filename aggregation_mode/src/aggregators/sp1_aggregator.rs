@@ -2,8 +2,10 @@ use std::sync::LazyLock;
 
 use alloy::primitives::Keccak256;
 use sp1_aggregation_program::SP1VkAndPubInputs;
+#[cfg(feature = "prove")]
+use sp1_sdk::EnvProver;
 use sp1_sdk::{
-    CpuProver, EnvProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
+    CpuProver, HashableKey, Prover, ProverClient, SP1ProofWithPublicValues, SP1Stdin,
     SP1VerifyingKey,
 };
 
