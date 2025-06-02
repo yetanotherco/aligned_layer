@@ -583,7 +583,12 @@ impl Batcher {
         } else {
             info!("Generating non-paying data");
             // If the user is not required to pay, substitute their address with a pre-funded Aligned address
-            addr = self.non_paying_config.as_ref().unwrap().replacement.address();
+            addr = self
+                .non_paying_config
+                .as_ref()
+                .unwrap()
+                .replacement
+                .address();
             // Substitute the max_fee to a high enough value to cover the gas cost of the proof
             let mut aux_verification_data = client_msg.verification_data.clone();
             aux_verification_data.max_fee = (DEFAULT_MAX_FEE_PER_PROOF * 100).into(); // 2_000 gas per proof * 100 gwei gas price (upper bound) * 100 to make sure it is enough
