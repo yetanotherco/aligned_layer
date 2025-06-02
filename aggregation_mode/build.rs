@@ -26,9 +26,13 @@ fn hash_files_and_features<P: AsRef<Path>>(paths: &[P], features: Vec<String>) -
 fn main() {
     let programs = [
         "build.rs",
+        "aggregation_programs/Cargo.toml",
+        "aggregation_programs/Cargo.lock",
+        "aggregation_programs/sp1/Cargo.toml",
+        "aggregation_programs/sp1/src/lib.rs",
         "aggregation_programs/sp1/src/user_proofs_aggregator_main.rs",
         "aggregation_programs/sp1/src/chunk_aggregator_main.rs",
-        "aggregation_programs/sp1/src/lib.rs",
+        "aggregation_programs/risc0/Cargo.toml",
         "aggregation_programs/risc0/src/user_proofs_aggregator_main.rs",
         "aggregation_programs/risc0/src/chunk_aggregator_main.rs",
         "aggregation_programs/risc0/src/lib.rs",
@@ -38,14 +42,16 @@ fn main() {
         println!("cargo:rerun-if-changed={}", file);
     }
 
-    // Collect and sort features for stable hashing
-    let mut features: Vec<String> = env::vars()
-        .filter(|(k, _)| k.starts_with("CARGO_FEATURE_"))
+    // Get all the env vars from rust (RUSTC, CARGO_FEATURES, etc) 
+    // But filter those that don't affect the build of the program
+    let mut flags: Vec<String> = env::vars()
+        .filter(|(k, _)| k != "AGGREGATOR" || k != "RISC0_DEV_MODE" || k != "SP1_PROVER")
         .map(|(k, v)| format!("{k}={v}"))
         .collect();
-    features.sort(); // Ensure deterministic hash regardless of env var order
+    // Sort them to make it deterministic in spite of the order.
+    flags.sort();
 
-    let hash = hash_files_and_features(&programs, features);
+    let hash = hash_files_and_features(&programs, flags);
     let hash_file = Path::new("target/programs_hash.txt");
 
     let needs_build = if let Ok(prev) = fs::read_to_string(hash_file) {
