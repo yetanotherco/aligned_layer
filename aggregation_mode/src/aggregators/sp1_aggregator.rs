@@ -13,7 +13,7 @@ const CHUNK_PROGRAM_ELF: &[u8] =
 const USER_PROOFS_PROGRAM_ELF: &[u8] =
     include_bytes!("../../aggregation_programs/sp1/elf/sp1_user_proofs_aggregator_program");
 
-#[allow(dead_code)]
+#[cfg(feature = "prove")]
 static SP1_PROVER_CLIENT: LazyLock<EnvProver> = LazyLock::new(ProverClient::from_env);
 
 /// Separate prover instance configured to always use the CPU.
