@@ -497,27 +497,9 @@ impl Batcher {
 
     async fn handle_get_nonce_for_address_msg(
         self: Arc<Self>,
-        mut address: Address,
+        address: Address,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
-        if self.is_nonpaying(&address) {
-            info!("Handling nonpaying message");
-            let Some(non_paying_config) = self.non_paying_config.as_ref() else {
-                warn!(
-                    "There isn't a non-paying configuration loaded. This message will be ignored"
-                );
-                send_message(
-                    ws_conn_sink.clone(),
-                    GetNonceResponseMessage::InvalidRequest(
-                        "There isn't a non-paying configuration loaded.".to_string(),
-                    ),
-                )
-                .await;
-                return Ok(());
-            };
-            let replacement_addr = non_paying_config.replacement.address();
-            address = replacement_addr;
-        }
 
         let cached_user_nonce = {
             let batch_state_lock = self.batch_state.lock().await;
@@ -593,8 +575,19 @@ impl Batcher {
             return Ok(());
         };
 
-        let mut nonced_verification_data = client_msg.verification_data.clone();
-        let mut signature = client_msg.signature;
+        let nonced_verification_data;
+        let signature;
+
+        if self.has_to_pay(&addr) {
+            nonced_verification_data = client_msg.verification_data.clone();
+            signature = client_msg.signature;
+        } else {
+            info!("Generating non-paying data");
+            let non_paying_data = self.generate_non_paying_data(&client_msg).await;
+            addr = non_paying_data.address;
+            nonced_verification_data = non_paying_data.nonced_verification_data;
+            signature = non_paying_data.signature; 
+        }
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
@@ -634,14 +627,6 @@ impl Batcher {
                 ]);
                 return Ok(());
             }
-        }
-
-        if self.is_nonpaying(&addr) && self.non_paying_config.is_some() {
-            info!("Generating non-paying data");
-            let non_paying_data = self.generate_non_paying_data(&client_msg).await;
-            addr = non_paying_data.address;
-            nonced_verification_data = non_paying_data.nonced_verification_data;
-            signature = non_paying_data.signature;
         }
 
         info!("Handling message");
@@ -1107,7 +1092,7 @@ impl Batcher {
 
         // If the proof submitter is the nonpaying one, we should update the state
         // of the replacement address.
-        proof_submitter_addr = if self.is_nonpaying(&proof_submitter_addr) {
+        proof_submitter_addr = if self.has_to_pay(&proof_submitter_addr) {
             self.get_nonpaying_replacement_addr()
                 .unwrap_or(proof_submitter_addr)
         } else {
@@ -1746,11 +1731,12 @@ impl Batcher {
         0.0
     }
 
-    /// Only relevant for testing and for users to easily use Aligned
-    fn is_nonpaying(&self, addr: &Address) -> bool {
+    /// An address has to pay if it's on mainnet or is not the special designated address on testnet
+    fn has_to_pay(&self, addr: &Address) -> bool {
+        self.non_paying_config.is_none() ||
         self.non_paying_config
             .as_ref()
-            .is_some_and(|non_paying_config| non_paying_config.address == *addr)
+            .is_some_and(|non_paying_config| non_paying_config.address != *addr)
     }
 
     fn get_nonpaying_replacement_addr(&self) -> Option<Address> {
