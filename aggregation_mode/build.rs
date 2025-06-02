@@ -42,7 +42,7 @@ fn main() {
         println!("cargo:rerun-if-changed={}", file);
     }
 
-    // Get all the env vars from rust (RUSTC, CARGO_FEATURES, etc) 
+    // Get all the env vars from rust (RUSTC, CARGO_FEATURES, etc)
     // But filter those that don't affect the build of the program
     let mut flags: Vec<String> = env::vars()
         .filter(|(k, _)| k != "AGGREGATOR" || k != "RISC0_DEV_MODE" || k != "SP1_PROVER")
