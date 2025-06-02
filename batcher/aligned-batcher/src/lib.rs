@@ -567,25 +567,28 @@ impl Batcher {
             return Ok(());
         }
 
-        let Some(mut addr) = self
+        let Some(addr_in_msg) = self
             .msg_signature_is_valid(&client_msg, &ws_conn_sink)
             .await
         else {
             return Ok(());
         };
 
-        let nonced_verification_data;
+        let addr;
         let signature;
+        let nonced_verification_data;
 
-        if self.has_to_pay(&addr) {
-            nonced_verification_data = client_msg.verification_data.clone();
+        if self.has_to_pay(&addr_in_msg) {
+            addr = addr_in_msg;
             signature = client_msg.signature;
+            nonced_verification_data = client_msg.verification_data.clone();
         } else {
             info!("Generating non-paying data");
             let non_paying_data = self.generate_non_paying_data(&client_msg).await;
+            // If the user is not required to pay, substitute their address with a pre-funded Aligned address
             addr = non_paying_data.address;
-            nonced_verification_data = non_paying_data.nonced_verification_data;
             signature = non_paying_data.signature;
+            nonced_verification_data = non_paying_data.nonced_verification_data;
         }
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
@@ -729,7 +732,7 @@ impl Batcher {
             return Ok(());
         }
 
-        if self.has_to_pay(&addr) {
+        if self.has_to_pay(&addr_in_msg) {
             let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
 
             let Some(expected_nonce) = cached_user_nonce else {
