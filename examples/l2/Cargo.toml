@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = ["./cmd/", "crates/l2", "crates/types"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+primitive-types = { version = "0.12.0", features = ["serde"] }
+lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
+sha3 = "0.10.8"
+types = { path = "crates/types" }
+
+[profile.release]
+opt-level = 3

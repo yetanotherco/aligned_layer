@@ -1,4 +1,8 @@
 {
-  "risc0_image_id": "0x8bb4145379d717fd7e3921751a2060246445ef290cdad782884180861cf0a3e8",
-  "sp1_vk_hash": "0x008ad92d4c564c912ad93d8660bf67a8d2e9088aa942da4e605a5e8c4383c384"
+  "risc0_chunk_aggregator_image_id": "0xcee9c4f2e4758970c20676cc7bfd23a1640f18b8b025ed05be7330c9472aa65a",
+  "risc0_user_proofs_aggregator_image_id": "0x539127fe7fd9927f3fd945be0bccaa8ad723aff6d19a34f35525b19316999b9c",
+  "risc0_user_proofs_aggregator_image_id_bytes": "[83, 145, 39, 254, 127, 217, 146, 127, 63, 217, 69, 190, 11, 204, 170, 138, 215, 35, 175, 246, 209, 154, 52, 243, 85, 37, 177, 147, 22, 153, 155, 156]",
+  "sp1_chunk_aggregator_vk_hash": "0x00e521a7191836533f4d3761a080c9d69283dbcde2143ffc3a054fd63fbd71de",
+  "sp1_user_proofs_aggregator_vk_hash": "0x0051a5d3f4410c847ed205f8d41cf9222dcf1d54a747675d3bc200b37155253a",
+  "sp1_user_proofs_aggregator_vk_hash_words": "[684911098, 272834847, 1514192666, 1104122402, 1853418149, 488480116, 2005139814, 1901405498]"
 }

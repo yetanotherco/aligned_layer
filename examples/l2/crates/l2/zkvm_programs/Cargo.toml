@@ -1,0 +1,11 @@
+[workspace]
+name = "zkvm_state_transition_programs"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+members = ["sp1"]
+
+[workspace.dependencies]
+types = { path = "../../types"}
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }

@@ -16,5 +16,9 @@ lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", r
 path = "./src/lib.rs"
 
 [[bin]]
-name = "risc0_aggregator_program"
-path = "./src/main.rs"
+name = "risc0_user_proofs_aggregator_program"
+path = "./src/user_proofs_aggregator_main.rs"
+
+[[bin]]
+name = "risc0_chunk_aggregator_program"
+path = "./src/chunk_aggregator_main.rs"
