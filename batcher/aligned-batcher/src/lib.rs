@@ -636,17 +636,9 @@ impl Batcher {
             }
         }
 
-        if self.is_nonpaying(&addr) {
+        if self.is_nonpaying(&addr) && self.non_paying_config.is_some() {
             info!("Generating non-paying data");
-            let Ok(non_paying_data) = self.generate_non_paying_data(&client_msg).await else {
-                error!("Failed to generate non paying data");
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::NonPayingNotAllowed,
-                )
-                .await;
-                return Ok(());
-            };
+            let non_paying_data = self.generate_non_paying_data(&client_msg).await;
             addr = non_paying_data.address;
             nonced_verification_data = non_paying_data.nonced_verification_data;
             signature = non_paying_data.signature;
@@ -1770,12 +1762,9 @@ impl Batcher {
     async fn generate_non_paying_data(
         &self,
         client_msg: &SubmitProofMessage,
-    ) -> Result<NonPayingReplacementData, TransactionSendError> {
-        info!("Handling nonpaying message");
-        let Some(non_paying_config) = self.non_paying_config.as_ref() else {
-            warn!("There isn't a non-paying configuration loaded. This message will be ignored");
-            return Err(TransactionSendError::NonPayingNotAllowed);
-        };
+    ) -> NonPayingReplacementData {
+        // This unwrap is safe because we check if the non-paying config is set before calling this function.
+        let non_paying_config = self.non_paying_config.as_ref().unwrap();
 
         let nonced_verification_data = NoncedVerificationData::new(
             client_msg.verification_data.verification_data.clone(),
@@ -1792,12 +1781,11 @@ impl Batcher {
         )
         .await;
 
-        info!("Non-paying verification data message handled");
-        Ok(NonPayingReplacementData {
+        NonPayingReplacementData {
             address: non_paying_config.replacement.address(),
             nonced_verification_data,
             signature: non_paying_replacement_msg.signature,
-        })
+        }
     }
 
     /// Gets the balance of user with address `addr` from Ethereum.
