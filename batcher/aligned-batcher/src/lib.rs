@@ -500,7 +500,6 @@ impl Batcher {
         address: Address,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
-
         let cached_user_nonce = {
             let batch_state_lock = self.batch_state.lock().await;
             batch_state_lock.get_user_nonce(&address).await
@@ -586,7 +585,7 @@ impl Batcher {
             let non_paying_data = self.generate_non_paying_data(&client_msg).await;
             addr = non_paying_data.address;
             nonced_verification_data = non_paying_data.nonced_verification_data;
-            signature = non_paying_data.signature; 
+            signature = non_paying_data.signature;
         }
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
@@ -756,7 +755,7 @@ impl Batcher {
                 self.metrics.user_error(&["invalid_nonce", ""]);
                 return Ok(());
             }
-    
+
             // In this case, the message might be a replacement one. If it is valid,
             // we replace the old entry with the new from the replacement message.
             if expected_nonce > msg_nonce {
@@ -769,7 +768,7 @@ impl Batcher {
                     addr,
                 )
                 .await;
-    
+
                 return Ok(());
             }
         }
@@ -1725,10 +1724,11 @@ impl Batcher {
 
     /// An address has to pay if it's on mainnet or is not the special designated address on testnet
     fn has_to_pay(&self, addr: &Address) -> bool {
-        self.non_paying_config.is_none() ||
-        self.non_paying_config
-            .as_ref()
-            .is_some_and(|non_paying_config| non_paying_config.address != *addr)
+        self.non_paying_config.is_none()
+            || self
+                .non_paying_config
+                .as_ref()
+                .is_some_and(|non_paying_config| non_paying_config.address != *addr)
     }
 
     fn get_nonpaying_replacement_addr(&self) -> Option<Address> {
