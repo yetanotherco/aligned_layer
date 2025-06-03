@@ -5,6 +5,14 @@ eth_ws_url: "ws://localhost:8546"
 max_proofs_in_queue: 1000
 last_aggregated_block_filepath: config-files/proof-aggregator.last_aggregated_block.json
 proofs_per_chunk: 512 # Amount of proofs to process per chunk
+# This number comes from the blob data limit
+# Since each blob has a capacity of (4096 * 32) = 131.072 bytes
+# But to not surpass the field modulus we pad with a 0xo byte so we have (4096 * 31) = 126.976 bytes
+# of usable data
+# Since each proof commitments takes 32 bytes hash
+# We can aggregate as much proofs as 126.976 / 32 = 3968 per blob
+total_proofs_limit: 3968
+
 
 ecdsa:
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"

@@ -499,7 +499,8 @@ impl Batcher {
         mut address: Address,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
-        if self.is_nonpaying(&address) {
+        // If the address is not paying, we will return the nonce of the aligned_payment_address
+        if !self.has_to_pay(&address) {
             info!("Handling nonpaying message");
             let Some(non_paying_config) = self.non_paying_config.as_ref() else {
                 warn!(
@@ -551,6 +552,15 @@ impl Batcher {
         Ok(())
     }
 
+    /// Returns the Aligned-funded address that will be used to pay for proofs when users don't need to pay themselves.
+    /// This function assumes that the non-paying configuration is set.
+    fn aligned_payment_address(&self) -> Address {
+        self.non_paying_config
+            .as_ref()
+            .map(|config| config.replacement.address())
+            .unwrap()
+    }
+
     async fn handle_submit_proof_msg(
         self: Arc<Self>,
         client_msg: Box<SubmitProofMessage>,
@@ -585,14 +595,29 @@ impl Batcher {
             return Ok(());
         }
 
-        let Some(addr) = self
+        let Some(addr_in_msg) = self
             .msg_signature_is_valid(&client_msg, &ws_conn_sink)
             .await
         else {
             return Ok(());
         };
 
-        let nonced_verification_data = client_msg.verification_data.clone();
+        let addr;
+        let signature = client_msg.signature;
+        let nonced_verification_data;
+
+        if self.has_to_pay(&addr_in_msg) {
+            addr = addr_in_msg;
+            nonced_verification_data = client_msg.verification_data.clone();
+        } else {
+            info!("Generating non-paying data");
+            // If the user is not required to pay, substitute their address with a pre-funded Aligned address
+            addr = self.aligned_payment_address();
+            // Substitute the max_fee to a high enough value to cover the gas cost of the proof
+            let mut aux_verification_data = client_msg.verification_data.clone();
+            aux_verification_data.max_fee = (DEFAULT_MAX_FEE_PER_PROOF * 100).into(); // 2_000 gas per proof * 100 gwei gas price (upper bound) * 100 to make sure it is enough
+            nonced_verification_data = aux_verification_data
+        }
 
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
@@ -634,14 +659,7 @@ impl Batcher {
             }
         }
 
-        if self.is_nonpaying(&addr) {
-            // TODO: Non paying msg and paying should share some logic
-            return self
-                .handle_nonpaying_msg(ws_conn_sink.clone(), &client_msg)
-                .await;
-        }
-
-        info!("Handling paying message");
+        info!("Handling message");
 
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
@@ -743,6 +761,7 @@ impl Batcher {
         }
 
         let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
+
         let Some(expected_nonce) = cached_user_nonce else {
             error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
             std::mem::drop(batch_state_lock);
@@ -867,7 +886,7 @@ impl Batcher {
                 batch_state_lock,
                 nonced_verification_data,
                 ws_conn_sink.clone(),
-                client_msg.signature,
+                signature,
                 addr,
             )
             .await
@@ -1099,17 +1118,6 @@ impl Batcher {
             .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
 
         info!("Current batch queue length: {}", queue_len);
-
-        let mut proof_submitter_addr = proof_submitter_addr;
-
-        // If the proof submitter is the nonpaying one, we should update the state
-        // of the replacement address.
-        proof_submitter_addr = if self.is_nonpaying(&proof_submitter_addr) {
-            self.get_nonpaying_replacement_addr()
-                .unwrap_or(proof_submitter_addr)
-        } else {
-            proof_submitter_addr
-        };
 
         let Some(user_proof_count) = batch_state_lock
             .get_user_proof_count(&proof_submitter_addr)
@@ -1743,96 +1751,18 @@ impl Batcher {
         0.0
     }
 
-    /// Only relevant for testing and for users to easily use Aligned
-    fn is_nonpaying(&self, addr: &Address) -> bool {
-        self.non_paying_config
-            .as_ref()
-            .is_some_and(|non_paying_config| non_paying_config.address == *addr)
+    /// An address has to pay if it's on mainnet or is not the special designated address on testnet
+    fn has_to_pay(&self, addr: &Address) -> bool {
+        self.non_paying_config.is_none()
+            || self
+                .non_paying_config
+                .as_ref()
+                .is_some_and(|non_paying_config| non_paying_config.address != *addr)
     }
 
     fn get_nonpaying_replacement_addr(&self) -> Option<Address> {
         let non_paying_conf = self.non_paying_config.as_ref()?;
         Some(non_paying_conf.replacement.address())
-    }
-
-    /// Only relevant for testing and for users to easily use Aligned in testnet.
-    async fn handle_nonpaying_msg(
-        &self,
-        ws_sink: WsMessageSink,
-        client_msg: &SubmitProofMessage,
-    ) -> Result<(), Error> {
-        info!("Handling nonpaying message");
-        let Some(non_paying_config) = self.non_paying_config.as_ref() else {
-            warn!("There isn't a non-paying configuration loaded. This message will be ignored");
-            send_message(ws_sink.clone(), SubmitProofResponseMessage::InvalidNonce).await;
-            return Ok(());
-        };
-
-        let replacement_addr = non_paying_config.replacement.address();
-        let Some(replacement_user_balance) = self.get_user_balance(&replacement_addr).await else {
-            error!("Could not get balance for non-paying address {replacement_addr:?}");
-            send_message(
-                ws_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(replacement_addr),
-            )
-            .await;
-            return Ok(());
-        };
-
-        if replacement_user_balance == U256::from(0) {
-            error!("Insufficient funds for non-paying address {replacement_addr:?}");
-            send_message(
-                ws_sink.clone(),
-                SubmitProofResponseMessage::InsufficientBalance(replacement_addr),
-            )
-            .await;
-            return Ok(());
-        }
-
-        let batch_state_lock = self.batch_state.lock().await;
-
-        if batch_state_lock.is_queue_full() {
-            error!("Can't add new entry, the batcher queue is full");
-            send_message(
-                ws_sink.clone(),
-                SubmitProofResponseMessage::UnderpricedProof,
-            )
-            .await;
-            return Ok(());
-        }
-
-        let nonced_verification_data = NoncedVerificationData::new(
-            client_msg.verification_data.verification_data.clone(),
-            client_msg.verification_data.nonce,
-            DEFAULT_MAX_FEE_PER_PROOF.into(), // 2_000 gas per proof * 100 gwei gas price (upper bound)
-            self.chain_id,
-            self.payment_service.address(),
-        );
-
-        let client_msg = SubmitProofMessage::new(
-            nonced_verification_data.clone(),
-            non_paying_config.replacement.clone(),
-        )
-        .await;
-
-        let signature = client_msg.signature;
-        if let Err(e) = self
-            .add_to_batch(
-                batch_state_lock,
-                nonced_verification_data,
-                ws_sink.clone(),
-                signature,
-                replacement_addr,
-            )
-            .await
-        {
-            info!("Error while adding nonpaying address entry to batch: {e:?}");
-            send_message(ws_sink, SubmitProofResponseMessage::AddToBatchError).await;
-            return Ok(());
-        };
-
-        info!("Non-paying verification data message handled");
-        Ok(())
     }
 
     /// Gets the balance of user with address `addr` from Ethereum.

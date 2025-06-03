@@ -22,6 +22,7 @@ pub struct Config {
     pub last_aggregated_block_filepath: String,
     pub ecdsa: ECDSAConfig,
     pub proofs_per_chunk: u16,
+    pub total_proofs_limit: u16,
 }
 
 impl Config {
