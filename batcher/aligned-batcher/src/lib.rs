@@ -339,7 +339,7 @@ impl Batcher {
             ));
         }
 
-        // Tru to connect to one stream (main or fallback)
+        // Try to connect to one stream (main or fallback)
         let mut stream = match &eth_ws_provider {
             Some(provider) => match provider.subscribe_blocks().await {
                 Ok(s) => Some(s),
