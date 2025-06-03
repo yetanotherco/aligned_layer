@@ -173,7 +173,7 @@ reset_last_aggregated_block:
 	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
 
 
-### Dev targets with no real proving
+### All Dev proof aggregator receipts with no real proving
 ./aggregation_mode/target/release/proof_aggregator_dev:
 		AGGREGATOR=$(AGGREGATOR) cargo build --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_dev
 
