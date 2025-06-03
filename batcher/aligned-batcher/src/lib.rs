@@ -511,7 +511,7 @@ impl Batcher {
                         "There isn't a non-paying configuration loaded.".to_string(),
                     ),
                 )
-                    .await;
+                .await;
                 return Ok(());
             };
             let replacement_addr = non_paying_config.replacement.address();
