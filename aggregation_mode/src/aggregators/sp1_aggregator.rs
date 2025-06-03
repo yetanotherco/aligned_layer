@@ -37,17 +37,8 @@ pub enum AlignedSP1VerificationError {
 }
 
 impl SP1ProofWithPubValuesAndElf {
-    pub fn new(proof_with_pub_values: SP1ProofWithPublicValues, elf: Vec<u8>) -> Self {
-        let vk = vk_from_elf(&elf);
-
-        Self {
-            proof_with_pub_values,
-            elf,
-            vk,
-        }
-    }
-
-    pub fn new_with_verification(
+    /// Constructs a new instance of the struct by verifying a given SP1 proof with its public values.
+    pub fn new(
         proof_with_pub_values: SP1ProofWithPublicValues,
         elf: Vec<u8>,
     ) -> Result<Self, AlignedSP1VerificationError> {

@@ -15,11 +15,8 @@ pub enum AlignedRisc0VerificationError {
 }
 
 impl Risc0ProofReceiptAndImageId {
-    pub fn new(image_id: [u8; 32], receipt: Receipt) -> Self {
-        Self { image_id, receipt }
-    }
-
-    pub fn new_with_verification(
+    /// Constructs a new instance of the struct, verifying the provided receipt against the given image ID.
+    pub fn new(
         image_id: [u8; 32],
         receipt: Receipt,
     ) -> Result<Self, AlignedRisc0VerificationError> {
