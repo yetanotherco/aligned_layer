@@ -118,10 +118,8 @@ impl ProofsFetcher {
 
                         let elf = p.vm_program_code?;
                         let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
-                        let sp1_proof = SP1ProofWithPubValuesAndElf::new_with_verification(
-                            proof_with_pub_values,
-                            elf,
-                        );
+                        let sp1_proof =
+                            SP1ProofWithPubValuesAndElf::new(proof_with_pub_values, elf);
 
                         match sp1_proof {
                             Ok(proof) => Some(AlignedProof::SP1(proof.into())),
@@ -146,8 +144,7 @@ impl ProofsFetcher {
                             bincode::deserialize(&p.proof).ok()?;
 
                         let receipt = Receipt::new(inner_receipt, public_inputs);
-                        let risc0_proof =
-                            Risc0ProofReceiptAndImageId::new_with_verification(image_id, receipt);
+                        let risc0_proof = Risc0ProofReceiptAndImageId::new(image_id, receipt);
 
                         match risc0_proof {
                             Ok(proof) => Some(AlignedProof::Risc0(proof.into())),
