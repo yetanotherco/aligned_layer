@@ -496,9 +496,28 @@ impl Batcher {
 
     async fn handle_get_nonce_for_address_msg(
         self: Arc<Self>,
-        address: Address,
+        mut address: Address,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
+        if !self.has_to_pay(&address) {
+            info!("Handling nonpaying message");
+            let Some(non_paying_config) = self.non_paying_config.as_ref() else {
+                warn!(
+                    "There isn't a non-paying configuration loaded. This message will be ignored"
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    GetNonceResponseMessage::InvalidRequest(
+                        "There isn't a non-paying configuration loaded.".to_string(),
+                    ),
+                )
+                    .await;
+                return Ok(());
+            };
+            let replacement_addr = non_paying_config.replacement.address();
+            address = replacement_addr;
+        }
+
         let cached_user_nonce = {
             let batch_state_lock = self.batch_state.lock().await;
             batch_state_lock.get_user_nonce(&address).await
@@ -740,48 +759,46 @@ impl Batcher {
             return Ok(());
         }
 
-        if self.has_to_pay(&addr_in_msg) {
-            let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
+        let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
 
-            let Some(expected_nonce) = cached_user_nonce else {
-                error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
-                std::mem::drop(batch_state_lock);
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::AddToBatchError,
-                )
-                .await;
-                self.metrics.user_error(&["batcher_state_error", ""]);
-                return Ok(());
-            };
+        let Some(expected_nonce) = cached_user_nonce else {
+            error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
+            self.metrics.user_error(&["batcher_state_error", ""]);
+            return Ok(());
+        };
 
-            if expected_nonce < msg_nonce {
-                std::mem::drop(batch_state_lock);
-                warn!("Invalid nonce for address {addr}, expected nonce: {expected_nonce:?}, received nonce: {msg_nonce:?}");
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidNonce,
-                )
-                .await;
-                self.metrics.user_error(&["invalid_nonce", ""]);
-                return Ok(());
-            }
+        if expected_nonce < msg_nonce {
+            std::mem::drop(batch_state_lock);
+            warn!("Invalid nonce for address {addr}, expected nonce: {expected_nonce:?}, received nonce: {msg_nonce:?}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidNonce,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
+            return Ok(());
+        }
 
-            // In this case, the message might be a replacement one. If it is valid,
-            // we replace the old entry with the new from the replacement message.
-            if expected_nonce > msg_nonce {
-                info!("Possible replacement message received: Expected nonce {expected_nonce:?} - message nonce: {msg_nonce:?}");
-                self.handle_replacement_message(
-                    batch_state_lock,
-                    nonced_verification_data,
-                    ws_conn_sink.clone(),
-                    client_msg.signature,
-                    addr,
-                )
-                .await;
+        // In this case, the message might be a replacement one. If it is valid,
+        // we replace the old entry with the new from the replacement message.
+        if expected_nonce > msg_nonce {
+            info!("Possible replacement message received: Expected nonce {expected_nonce:?} - message nonce: {msg_nonce:?}");
+            self.handle_replacement_message(
+                batch_state_lock,
+                nonced_verification_data,
+                ws_conn_sink.clone(),
+                client_msg.signature,
+                addr,
+            )
+            .await;
 
-                return Ok(());
-            }
+            return Ok(());
         }
 
         // We check this after replacement logic because if user wants to replace a proof, their
