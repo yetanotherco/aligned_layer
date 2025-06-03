@@ -188,11 +188,11 @@ start_proof_aggregator_dev_ethereum_package: is_aggregator_set reset_last_aggreg
 start_proof_aggregator_ethereum_package: ./aggregation_mode/target/release/proof_aggregator is_aggregator_set ## Starts proof aggregator with proving activated in ethereum package
 	AGGREGATOR=$(AGGREGATOR) ./aggregation_mode/target/release/proof_aggregator config-files/config-proof-aggregator-ethereum-package.yaml
 
-start_proof_aggregator_gpu: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving + GPU acceleration (CUDA)
-	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator.yaml
+start_proof_aggregator_gpu: ./aggregation_mode/target/release/proof_aggregator is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving + GPU acceleration (CUDA)
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda ./aggregation_mode/target/release/proof_aggregator config-files/config-proof-aggregator.yaml
 
-start_proof_aggregator_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
-	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
+start_proof_aggregator_gpu_ethereum_package: ./aggregation_mode/target/release/proof_aggregator is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda ./aggregation_mode/target/release/proof_aggregator config-files/config-proof-aggregator-ethereum-package.yaml
 
 verify_aggregated_proof_sp1_holesky_stage: 
 	@echo "Verifying SP1 in aggregated proofs on holesky..."
