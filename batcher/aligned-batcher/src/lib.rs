@@ -499,6 +499,7 @@ impl Batcher {
         mut address: Address,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
+        // If the address is not paying, we will return the nonce of the aligned_payment_address
         if !self.has_to_pay(&address) {
             info!("Handling nonpaying message");
             let Some(non_paying_config) = self.non_paying_config.as_ref() else {
