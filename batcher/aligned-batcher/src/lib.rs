@@ -415,7 +415,7 @@ impl Batcher {
                 }
             });
         }
-        error!("Failed to fetch blocks");
+        error!("Both main and fallback Ethereum WS clients subscriptions have disconnected, will try to reconnect...");
 
         Err(RetryError::Transient(
             BatcherError::EthereumSubscriptionError("Could not get new blocks".to_string()),

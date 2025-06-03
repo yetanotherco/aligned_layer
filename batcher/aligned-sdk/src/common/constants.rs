@@ -41,7 +41,7 @@ pub const DEFAULT_MAX_FEE_BATCH_SIZE: usize = 10;
 pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
 pub const ETHEREUM_CALL_MAX_RETRIES: usize = 5;
 pub const ETHEREUM_CALL_BACKOFF_FACTOR: f32 = 2.0;
-pub const ETHEREUM_CALL_MAX_RETRY_DELAY: u64 = 3600; // seconds
+pub const ETHEREUM_CALL_MAX_RETRY_DELAY: u64 = 60; // seconds
 
 /// Ethereum transaction retry constants
 pub const BUMP_MIN_RETRY_DELAY: u64 = 500; // milliseconds
