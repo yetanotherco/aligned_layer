@@ -23,6 +23,7 @@ pub struct Config {
     pub ecdsa: ECDSAConfig,
     pub proofs_per_chunk: u16,
     pub pre_verification_enabled: bool,
+    pub total_proofs_limit: u16,
 }
 
 impl Config {
