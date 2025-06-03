@@ -322,38 +322,70 @@ impl Batcher {
     pub async fn listen_new_blocks_retryable(
         self: Arc<Self>,
     ) -> Result<(), RetryError<BatcherError>> {
-        let eth_ws_provider = Provider::connect(&self.eth_ws_url).await.map_err(|e| {
-            warn!("Failed to instantiate Ethereum websocket provider");
-            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-        })?;
+        // Try to connect at least to one of the nodes (main or fallback)
+        let eth_ws_provider = Provider::connect(&self.eth_ws_url).await.ok();
+        let eth_ws_provider_fallback = Provider::connect(&self.eth_ws_url_fallback).await.ok();
+        if eth_ws_provider.is_none() {
+            warn!("Failed to instantiate Ethereum main websocket provider");
+        }
+        if eth_ws_provider_fallback.is_none() {
+            warn!("Failed to instantiate fallback Ethereum websocket provider");
+        }
+        if eth_ws_provider.is_none() && eth_ws_provider_fallback.is_none() {
+            return Err(RetryError::Transient(
+                BatcherError::EthereumSubscriptionError(
+                    "Both Ethereum websocket providers failed to connect".to_string(),
+                ),
+            ));
+        }
 
-        let eth_ws_provider_fallback =
-            Provider::connect(&self.eth_ws_url_fallback)
-                .await
-                .map_err(|e| {
-                    warn!("Failed to instantiate fallback Ethereum websocket provider");
-                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-                })?;
-
-        let mut stream = eth_ws_provider.subscribe_blocks().await.map_err(|e| {
-            warn!("Error subscribing to blocks.");
-            RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-        })?;
-
-        let mut stream_fallback =
-            eth_ws_provider_fallback
-                .subscribe_blocks()
-                .await
-                .map_err(|e| {
-                    warn!("Error subscribing to blocks.");
-                    RetryError::Transient(BatcherError::EthereumSubscriptionError(e.to_string()))
-                })?;
+        // Tru to connect to one stream (main or fallback)
+        let mut stream = match &eth_ws_provider {
+            Some(provider) => match provider.subscribe_blocks().await {
+                Ok(s) => Some(s),
+                Err(e) => {
+                    warn!("Error subscribing to blocks on primary provider: {:?}", e);
+                    None
+                }
+            },
+            None => None,
+        };
+        let mut stream_fallback = match &eth_ws_provider_fallback {
+            Some(provider) => match provider.subscribe_blocks().await {
+                Ok(s) => Some(s),
+                Err(e) => {
+                    warn!("Error subscribing to blocks on fallback provider: {:?}", e);
+                    None
+                }
+            },
+            None => None,
+        };
+        if stream.is_none() && stream_fallback.is_none() {
+            return Err(RetryError::Transient(
+                BatcherError::EthereumSubscriptionError(
+                    "Both Ethereum block subscriptions failed".to_string(),
+                ),
+            ));
+        }
 
         let last_seen_block = Mutex::<u64>::new(0);
 
         loop {
             // Wait for both responses
-            let (block_main, block_fallback) = join!(stream.next(), stream_fallback.next());
+            let (block_main, block_fallback) = join!(
+                async {
+                    match stream.as_mut() {
+                        Some(s) => s.next().await,
+                        None => None,
+                    }
+                },
+                async {
+                    match stream_fallback.as_mut() {
+                        Some(s) => s.next().await,
+                        None => None,
+                    }
+                }
+            );
 
             let block = if let Some(block) = block_main {
                 block
