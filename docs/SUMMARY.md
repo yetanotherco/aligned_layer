@@ -20,7 +20,7 @@
     * [Aggregator](./2_architecture/components/5_aggregator.md)
     * [Explorer](./2_architecture/components/6_explorer.md)
 * [Aggregation mode](2_architecture/2_aggregation_mode.md)
-    * [Aggregation mode Deep Dive](2_architecture/agg_mode_components/1_deep_dive.md.md)
+    * [Deep Dive](2_architecture/agg_mode_components/1_deep_dive.md)
 
 ## Guides
 
