@@ -183,7 +183,7 @@ start_proof_aggregator_dev_ethereum_package: is_aggregator_set reset_last_aggreg
 	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 ./aggregation_mode/target/release/proof_aggregator_dev config-files/config-proof-aggregator-mock-ethereum-package.yaml
 
 ### All CPU proof aggregator receipts
-./aggregation_mode/target/release/proof_aggregator_cpu: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_programs/risc0/src/*) $(wildcard ./aggregation_programs/sp1/src/*)
+./aggregation_mode/target/release/proof_aggregator_cpu: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_mode/aggregation_programs/risc0/src/*) $(wildcard ./aggregation_mode/aggregation_programs/sp1/src/*)
 	AGGREGATOR=$(AGGREGATOR) cargo build --features prove --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_cpu
 
 start_proof_aggregator: ./aggregation_mode/target/release/proof_aggregator_cpu is_aggregator_set ## Starts proof aggregator with proving activated
