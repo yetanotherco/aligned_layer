@@ -193,7 +193,7 @@ start_proof_aggregator_ethereum_package: ./aggregation_mode/target/release/proof
 	AGGREGATOR=$(AGGREGATOR) ./aggregation_mode/target/release/proof_aggregator_cpu config-files/config-proof-aggregator-ethereum-package.yaml
 
 ### All GPU proof aggregator receipts
-./aggregation_mode/target/release/proof_aggregator_gpu: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_programs/risc0/src/*) $(wildcard ./aggregation_programs/sp1/src/*)
+./aggregation_mode/target/release/proof_aggregator_gpu: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_mode/aggregation_programs/risc0/src/*) $(wildcard ./aggregation_mode/aggregation_programs/sp1/src/*)
 	AGGREGATOR=$(AGGREGATOR) cargo build --features "prove,gpu" --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_gpu 
 
 start_proof_aggregator_gpu: ./aggregation_mode/target/release/proof_aggregator_gpu is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving + GPU acceleration (CUDA)
