@@ -127,7 +127,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 				auxSub, errMain = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 				if errMain == nil {
 					sub = auxSub // update the subscription only if it was successful
-					s.logger.Info("Resubscribed to fallback new task subscription")
+					s.logger.Info("Main connection resubscribed to new task subscription")
 				}
 			case err := <-subFallback.Err():
 				s.logger.Warn("Error in new task subscription of fallback connection", "err", err)
@@ -154,7 +154,6 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 	sub, errMain := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 	if errMain != nil {
 		s.logger.Error(fmt.Sprintf("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries), "err", fmt.Sprintf("%v", errMain))
-		//return err
 	}
 
 	subFallback, errFallback := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
