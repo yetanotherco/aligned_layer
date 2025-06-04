@@ -174,7 +174,7 @@ reset_last_aggregated_block:
 
 
 ### All Dev proof aggregator receipts with no real proving
-./aggregation_mode/target/release/proof_aggregator_dev:
+./aggregation_mode/target/release/proof_aggregator_dev: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_programs/risc0/src/*) $(wildcard ./aggregation_programs/sp1/src/*)
 		AGGREGATOR=$(AGGREGATOR) cargo build --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_dev
 
 
