@@ -172,11 +172,9 @@ reset_last_aggregated_block:
 	@echo "Resetting last aggregated block..."
 	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
 
-
 ### All Dev proof aggregator receipts with no real proving
 ./aggregation_mode/target/release/proof_aggregator_dev: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_programs/risc0/src/*) $(wildcard ./aggregation_programs/sp1/src/*)
 		AGGREGATOR=$(AGGREGATOR) cargo build --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_dev
-
 
 start_proof_aggregator_dev: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_dev ## Starts proof aggregator with mock proofs (DEV mode)
 	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 ./aggregation_mode/target/release/proof_aggregator_dev config-files/config-proof-aggregator-mock.yaml
@@ -185,19 +183,16 @@ start_proof_aggregator_dev_ethereum_package: is_aggregator_set reset_last_aggreg
 	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 ./aggregation_mode/target/release/proof_aggregator_dev config-files/config-proof-aggregator-mock-ethereum-package.yaml
 
 ### All CPU proof aggregator receipts
-
 ./aggregation_mode/target/release/proof_aggregator_cpu: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_programs/risc0/src/*) $(wildcard ./aggregation_programs/sp1/src/*)
 	AGGREGATOR=$(AGGREGATOR) cargo build --features prove --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_cpu
 
 start_proof_aggregator: ./aggregation_mode/target/release/proof_aggregator_cpu is_aggregator_set ## Starts proof aggregator with proving activated
-	AGGREGATOR=$(AGGREGATOR) ./aggregation_mode/target/release/proof_aggregator config-files/config-proof-aggregator.yaml
+	AGGREGATOR=$(AGGREGATOR) ./aggregation_mode/target/release/proof_aggregator_cpu config-files/config-proof-aggregator.yaml
 
-
-start_proof_aggregator_ethereum_package: ./aggregation_mode/target/release/proof_aggregator is_aggregator_set ## Starts proof aggregator with proving activated in ethereum package
-	AGGREGATOR=$(AGGREGATOR) ./aggregation_mode/target/release/proof_aggregator config-files/config-proof-aggregator-ethereum-package.yaml
+start_proof_aggregator_ethereum_package: ./aggregation_mode/target/release/proof_aggregator_cpu is_aggregator_set ## Starts proof aggregator with proving activated in ethereum package
+	AGGREGATOR=$(AGGREGATOR) ./aggregation_mode/target/release/proof_aggregator_cpu config-files/config-proof-aggregator-ethereum-package.yaml
 
 ### All GPU proof aggregator receipts
-
 ./aggregation_mode/target/release/proof_aggregator_gpu: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_programs/risc0/src/*) $(wildcard ./aggregation_programs/sp1/src/*)
 	AGGREGATOR=$(AGGREGATOR) cargo build --features "prove,gpu" --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_gpu 
 
@@ -206,7 +201,6 @@ start_proof_aggregator_gpu: ./aggregation_mode/target/release/proof_aggregator_g
 
 start_proof_aggregator_gpu_ethereum_package: ./aggregation_mode/target/release/proof_aggregator_gpu is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda ./aggregation_mode/target/release/proof_aggregator_gpu config-files/config-proof-aggregator-ethereum-package.yaml
-
 
 verify_aggregated_proof_sp1_holesky_stage: 
 	@echo "Verifying SP1 in aggregated proofs on holesky..."
