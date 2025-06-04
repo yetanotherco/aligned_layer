@@ -1,55 +1,119 @@
-## Aggregation Mode deep dive
+# Aggregation Mode Deep Dive
 
-The aggregation mode runs every 24hs and it consists of the following:
+The **Aggregation Mode** runs every 24 hours and performs the following steps:
 
-1. Fetching the proofs from the Verification Layer: queries the batches from the `VerificationLayer` (a.k.a FastMode), starting from the last processed block in the previous iteration.
-2. Filtering the proofs by the supported verifiers and proof types.
-3. Aggregating the proofs in the zkvm.
-4. Constructing the blob with the proofs commitments.
-5. Sending the final aggregated proof to be verified on the `AlignedProofAggregationService` contract along with the blob.
+1. **Fetch Proofs from the Verification Layer**  
+   Queries `NewBatchV3` events from the `AlignedLayerServiceManager` and downloads the batches from `S3`, starting from the last processed block of the previous run.
 
-### Aggregators and supported proof types
+2. **Filter Proofs**  
+   Filters proofs by supported verifiers and proof types.
 
-Every 24hs, we run two aggregators:
+3. **Aggregate Proofs in the zkVM**  
+   Selected proofs are aggregated using a zkVM.
 
--   Risc0: aggregates Risc0 proofs of type `Composite` and `Succinct`
--   SP1 aggregates SP1 proofs of type `Compressed`.
+4. **Construct the Blob**  
+   A blob is built containing the commitments of the aggregated proofs.
 
-### Multilayer aggregation
+5. **Send Aggregated Proof**  
+   The final aggregated proof and its blob are sent to the `AlignedProofAggregationService` contract for verification.
 
-To be able to aggregate more proofs, we have to split the aggregation in various chunks so that the vm does not run out of memory. For this, we perform the aggregation in two steps or two programs:
+## Aggregators and Supported Proof Types
 
-1. First we run the user proofs aggregator: takes `n` proofs binaries and generates an aggregated proof that commits the merkle root composed of the proofs that it aggregated. This is run as much times as chunks needed.
-2. After all user proofs have been aggregated. The `chunk_aggregator` takes all the aggregated chunks and aggregates them into what becomes the final proof. This program takes the chunked proofs + the proofs each chunked proof took. Then at the moment of verifying each chunked proof we also verify that the merkle root it has committed matches the one we reconstruct to make sure the inputs are correct. It is necessary to receive the proofs as the final step of the program consists of constructing the merkle root composed of all the user proofs and commit it as a public input. This merkle root is the one stored in the contract and users use to verify their proof has been aggregated.
+Two separate aggregators are run every 24 hours:
 
-**_You might wonder, why is this necessary?_**
+-   **Risc0**: Aggregates proofs of types `Composite` and `Succinct`.
+-   **SP1**: Aggregates `Compressed` proofs.
 
-The problem is that the zkvms don't perform the recursion taking into account the memory allocation, so we have to apply this limits on the number of proofs to aggregate to able to scale the proof aggregation further.
+## Multilayer Aggregation
 
-### Verification
+To scale aggregation without exhausting zkVM memory, aggregation is split in two programs:
 
-Once the proof is aggregated it is sent to verify on Ethereum to the `AlignedProofAggregationService` contract. Depending of the proving system used in the aggregation it will call:
+1. **User Proof Aggregator**  
+   Processes batches of `n` user proofs. Each run creates an aggregated proof that commits to a Merkle root of the user proofs inputs. This step is repeated for as many chunks as needed. Usually each chunks contains `256` proofs but it can be lowered based on the machine specs.
 
--   `verifySP1`
--   `verifyRisc0`
+2. **Chunk Aggregator**  
+   Aggregates all chunk-level proofs into a single final proof. It receives:
 
-This function take the proof public inputs + the proof binary. Then the program id is hardcoded on the contract to make sure only trusted programs can run. In our case, the proof `chunk_aggregator` program.
+    - The chunked proofs
+    - The original proofs commitments included each chunk received
 
-If the verification goes alright, then a new aggregated proof is added to the `aggregatedProofs` map in the contract storage.
+    During verification, it checks that each chunk’s committed Merkle root matches the reconstructed root to ensure input correctness. The final Merkle root—representing all user proofs—is then committed as a public input.
 
-A proof can be verified on-chain by passing the proof bytes + program id and the merkle proof. Then you would compute the merkle root and verify it exists on the `ProofAggregationServiceContract`. This can be done calling `verifyProofInclusion` in the `ProofAggregationServiceContract`.
+## Verification
 
-### Data availability
+Once aggregated, the proof is sent to Ethereum and verified via the `AlignedProofAggregationService` contract. Depending on the proving system, the contract invokes:
 
-When sending the proof to Ethereum, we attach a blob with the commitments of all the proofs that were aggregated. This is available in Ethereum for 18 days. This blob is where user would read the proofs that have been aggregated in the final aggregated proof and obtain the merkle proof for their proof to prove that their proof was verified.
+-   `verifySP1` for SP1 proofs
+-   `verifyRisc0` for Risc0 proofs
 
-Currently the blob capacity is at `FIELD_ELEMENTS_PER_BLOB` \* `BYTES_PER_FIELD_ELEMENT` = `4096 * 32` = `131.072` where `FIELD_ELEMENTS_PER_BLOB` = `4096` and `BYTES_PER_FIELD_ELEMENT` = `32`. But in KZG the bytes are divided in 32 bytes and encoded to a bls12_381 point which has a modulus that takes a bit less than `2^256` (`2^255` to be exact). This means that the 32 bytes can't suprass the `BLS_MODULUS`. The common way to bypass this is to pad with a `0x0` byte at the start. This way, we are left with only `31` usable bytes, so the blob capacity is actually: `4096 * 31` = `126.976`.
+Each function receives:
 
-Since each proof commitment takes 32 bytes, for each blob we can post as much proofs as: `126.976 / 32` = `3968`.
+-   The public inputs
+-   The proof binary
 
-Currently this is Aligned Proof Aggregation main bottleneck when it comes to scaling, we can aggregate as much `3968` per run. The way to bypass this is to:
+The program ID is hardcoded in the contract to ensure only trusted aggregation programs (`chunk_aggregator`) are accepted.
 
-1. Add logic to send more than one blob per transaction: we can send as much as 6 blob per transaction, so `23.808` in total, more than we can process.
-2. Run the aggregator more frequently.
+If verification succeeds, the new proof is added to the `aggregatedProofs` map in contract storage.
 
-Note: We are not using implementing any proof of equivalence protocol to prove that the blob data points to the one used in the prover.
+### Proof Inclusion Verification
+
+To verify a user’s proof on-chain, the following must be provided:
+
+-   The proof bytes
+-   The proof public inputs
+-   The program ID
+-   A Merkle proof
+
+The Merkle root is computed and checked for existence in the contract using the `verifyProofInclusion` function of the `ProofAggregationServiceContract`, which:
+
+1. Computes the merkle root
+2. Returns `true` or `false` depending if there exists an `aggregatedProof` with the computed root.
+
+## Data Availability
+
+When submitting the aggregated proof to Ethereum, we include a **blob** that contains the commitments of all the individual proofs that were aggregated. This blob serves two main purposes:
+
+-   It makes the proof commitments publicly available for **18 days**.
+-   It allows users to:
+    -   Inspect which proofs were aggregated
+    -   Get a Merkle proof to verify that their proof is included in the aggregated proof
+
+### Blob capacity
+
+Each blob can hold:
+
+-   `FIELD_ELEMENTS_PER_BLOB = 4096`
+-   `BYTES_PER_FIELD_ELEMENT = 32`
+
+Which results in a total theoretical capacity of:
+
+`FIELD_ELEMENTS_PER_BLOB * BYTES_PER_FIELD_ELEMENT` = `4096 * 32` = `131.072 bytes`
+
+However, this full capacity can't be used due to how KZG bytes to elliptic curve points are encoded. Specifically:
+
+-   Ethereum uses the BLS12-381 curve, whose scalar field modulus is slightly less than `2^256`, in fact, it's closer to `2^255`.
+-   That means the 32-byte field elements can't represent arbitrary 256-bit values.
+-   To stay within the field modulus, we **pad the value with a leading `0x00` byte**, ensuring it's below the modulus.
+-   This reduces the usable payload to **31 bytes per field element**.
+
+So the _actual usable capacity_ per blob becomes:
+
+`4096 * 31` = `126.976 bytes`
+
+### Current Bottleneck
+
+Since each proof commitment is exactly **32 bytes**, the maximum number of proof commitments that can fit in a single blob is:
+
+`126.976 / 32` = `3968 proofs`
+
+This is the **current upper limit** on how many proofs we can include in a single aggregation run.
+
+## Scaling Beyond Current Limits
+
+To increase throughput we can:
+
+1. **Send Multiple Blobs per Transaction**  
+   Up to **6 blobs** can be included per transaction, supporting up to **23,808 proofs per run**, which is more than we can aggregate in one day.
+
+2. **Run Aggregation More Frequently**  
+   Reducing the interval between aggregation runs can also increase throughput.
