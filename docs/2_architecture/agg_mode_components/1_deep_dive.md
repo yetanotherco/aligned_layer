@@ -12,7 +12,7 @@ The **Aggregation Mode** runs every 24 hours and performs the following steps:
    Selected proofs are aggregated using a zkVM.
 
 4. **Construct the Blob**  
-   A blob is built containing the commitments of the aggregated proofs.
+   A blob is built containing the [commitments](#proof-commitment) of the aggregated proofs.
 
 5. **Send Aggregated Proof**  
    The final aggregated proof and its blob are sent to the `AlignedProofAggregationService` contract for verification.
@@ -23,6 +23,15 @@ Two separate aggregators are run every 24 hours:
 
 -   **Risc0**: Aggregates proofs of types `Composite` and `Succinct`.
 -   **SP1**: Aggregates `Compressed` proofs.
+
+## Proof Commitment
+
+The **proof commitment** is a hash that uniquely identifies a proof. It is defined as the keccack of the proof public inputs + program ID:
+
+-   **For SP1**:  
+    The commitment is computed as: `keccak(proof_public_inputs_bytes || vk_hash_bytes)`
+-   **For Risc0**:  
+    The commitment is computed as: `keccack(receipt_public_inputs_bytes || image_id_bytes)`
 
 ## Multilayer Aggregation
 
@@ -35,9 +44,9 @@ To scale aggregation without exhausting zkVM memory, aggregation is split in two
    Aggregates all chunk-level proofs into a single final proof. It receives:
 
     - The chunked proofs
-    - The original proofs commitments included each chunk received
+    - The original [proofs commitments](#proof-commitment) included each chunk received
 
-    During verification, it checks that each chunk’s committed Merkle root matches the reconstructed root to ensure input correctness. The final Merkle root—representing all user proofs—is then committed as a public input.
+    During verification, it checks that each chunk’s committed Merkle root matches the reconstructed root to ensure input correctness. The final Merkle root, representing all user [proofs commitments](#proof-commitment), is then committed as a public input.
 
 ## Verification
 
@@ -71,9 +80,9 @@ The Merkle root is computed and checked for existence in the contract using the 
 
 ## Data Availability
 
-When submitting the aggregated proof to Ethereum, we include a **blob** that contains the commitments of all the individual proofs that were aggregated. This blob serves two main purposes:
+When submitting the aggregated proof to Ethereum, we include a **blob** that contains the [commitments](#proof-commitment) of all the individual proofs that were aggregated. This blob serves two main purposes:
 
--   It makes the proof commitments publicly available for **18 days**.
+-   It makes the [proof commitments](#proof-commitment) publicly available for **18 days**.
 -   It allows users to:
     -   Inspect which proofs were aggregated
     -   Get a Merkle proof to verify that their proof is included in the aggregated proof
@@ -102,7 +111,7 @@ So the _actual usable capacity_ per blob becomes:
 
 ### Current Bottleneck
 
-Since each proof commitment is exactly **32 bytes**, the maximum number of proof commitments that can fit in a single blob is:
+Since each [proof commitment](#proof-commitment) is exactly **32 bytes**, the maximum number of proof commitments that can fit in a single blob is:
 
 `126.976 / 32` = `3968 proofs`
 
