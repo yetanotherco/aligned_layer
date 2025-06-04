@@ -23,8 +23,8 @@ bls:
 operator:
   aggregator_rpc_server_ip_port_address: localhost:8090
   operator_tracker_ip_port_address: http://localhost:4001
-  address: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
-  earnings_receiver_address: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+  address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+  earnings_receiver_address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
   delegation_approver_address: '0x0000000000000000000000000000000000000000'
   staker_opt_out_window_blocks: 0
   metadata_url: 'https://yetanotherco.github.io/operator_metadata/metadata.json'
