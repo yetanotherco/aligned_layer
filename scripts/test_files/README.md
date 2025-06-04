@@ -6,7 +6,9 @@ Note: You have to be in the root of the project
 
 ## Generate SP1 Proof
 
-[//]: # (TODO)
+```bash
+make generate_sp1_fibonacci_proof
+```
 
 ## Generate Risc0 Proof
 

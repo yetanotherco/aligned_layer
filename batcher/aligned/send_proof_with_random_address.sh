@@ -32,8 +32,8 @@ echo "Batcher in $NETWORK and endpoint at $RPC_URL"
 if [[ $PROOF_TYPE == "sp1" ]]; then
     aligned submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
         --random_address \
         --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \

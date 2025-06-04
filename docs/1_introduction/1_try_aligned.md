@@ -31,8 +31,8 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batche
 rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system SP1 \
---proof ~/.aligned/test_files/sp1_fibonacci_4_1_3.proof \
---vm_program ~/.aligned/test_files/sp1_fibonacci_4_1_3.elf \
+--proof ~/.aligned/test_files/sp1_fibonacci_5_0_0.proof \
+--vm_program ~/.aligned/test_files/sp1_fibonacci_5_0_0.elf \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
