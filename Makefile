@@ -173,7 +173,7 @@ reset_last_aggregated_block:
 	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
 
 ### All Dev proof aggregator receipts with no real proving
-./aggregation_mode/target/release/proof_aggregator_dev: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_programs/risc0/src/*) $(wildcard ./aggregation_programs/sp1/src/*)
+./aggregation_mode/target/release/proof_aggregator_dev: $(wildcard ./aggregation_mode/src/*) $(wildcard ./aggregation_mode/aggregation_programs/risc0/src/*) $(wildcard ./aggregation_mode/aggregation_programs/sp1/src/*)
 		AGGREGATOR=$(AGGREGATOR) cargo build --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_dev
 
 start_proof_aggregator_dev: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_dev ## Starts proof aggregator with mock proofs (DEV mode)
