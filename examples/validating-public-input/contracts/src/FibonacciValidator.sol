@@ -6,7 +6,7 @@ contract FibonacciValidator {
     address public paymentServiceAddr;
 
     bytes32 public fibonacciProgramIdCommitmentSp1 =
-        0x588277d2461159223e7a688895a8e8529ce33f54730d1528c960d3c67e468520;
+        0x68a415f41d405c3d08a6095b69482e15591de0791f56709e028b6e9b2ad03a15;
     
     bytes32 public fibonacciProgramIdCommitmentRisc0 =
         0x52075f80c0b914b6cb8d86a2827b30b1252b58f2aa0173b993188650a538d5c5;

@@ -1,4 +1,4 @@
-use sp1_sdk::{ProverClient, SP1Stdin};
+use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
 pub const FIBONACCI_ELF: &[u8] = include_bytes!("../../sp1_fibonacci.elf");
@@ -20,7 +20,7 @@ fn main() {
 
     // // Generate the proof
     let proof = client
-        .prove(&pk, stdin)
+        .prove(&pk, &stdin)
         .compressed()
         .run()
         .expect("failed to generate proof");
@@ -29,6 +29,9 @@ fn main() {
     // Verify the proof.
     client.verify(&proof, &vk).expect("failed to verify proof");
     println!("Successfully verified proof!");
+
+    // Print ELF
+    println!("{}", hex::encode(vk.hash_bytes()));
 
     proof
         .save("../sp1_fibonacci.proof")
