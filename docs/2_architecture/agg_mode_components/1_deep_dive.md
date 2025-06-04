@@ -1,6 +1,6 @@
 # Aggregation Mode Deep Dive
 
-The **Aggregation Mode** runs every 24 hours and performs the following steps:
+The Aggregation Mode runs **once every 24 hours** and performs the following steps:
 
 1. **Fetch Proofs from the Verification Layer**  
    Queries `NewBatchV3` events from the `AlignedLayerServiceManager` and downloads the batches from `S3`, starting from the last processed block of the previous run.
@@ -22,7 +22,7 @@ The **Aggregation Mode** runs every 24 hours and performs the following steps:
 Two separate aggregators are run every 24 hours:
 
 -   **Risc0**: Aggregates proofs of types `Composite` and `Succinct`.
--   **SP1**: Aggregates `Compressed` proofs.
+-   **SP1**: Aggregates proofs of type `Compressed`.
 
 ## Proof Commitment
 
