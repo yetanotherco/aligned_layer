@@ -17,6 +17,55 @@
 
 -   The total number of proofs (3968) is the **maximum that can be aggregated in a single run**, limited by blob capacity.
 -   Increasing the **proofs per chunk** generally improves performance, but requires **more powerful hardware** to avoid out of memory.
+-   In this benches the Aligned infrastructure was setup locally in the same machine using `ethereum-package`.
+
+## Reproduce it
+
+The step by step to run the benchmarks:
+
+1. Deploy aligned infrastructure locally with `ethereum-package`.
+2. Fund a wallet on aligned, for example with rich account number 7:
+
+```shell
+cargo run --release -- deposit-to-batcher \
+    --network devnet \
+    --private_key 0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356 \
+    --amount 1ether
+```
+
+3. Send `3968` fibonacci proofs for `Risc0` and `Sp1`:
+
+```shell
+cd batcher/aligned
+
+## Send SP1 Proofs
+cargo run --release -- submit \
+    --proving_system SP1 \
+    --proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+    --vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+    --repetitions 1000 \
+    --private_key 0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356 \
+    --instant_fee_estimate \
+    --network devnet \
+    --random_address
+
+## Send Risc0 Proofs
+ cargo run --release -- submit \
+    --proving_system Risc0 \
+    --proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \       -
+    --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+    --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+    --repetitions 3968 \
+    --private_key 0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356
+```
+
+4. Modify the `proofs_per_chunk` in `config-files/config-proof-aggregator-ethereum-package.yaml` to `128`.
+5. Run the aggregator with time:
+
+```shell
+time make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=sp1
+time make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=risc0
+```
 
 ---
 
