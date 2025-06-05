@@ -10,7 +10,6 @@ generate_sp1_fibonacci_proof:
 		cargo run --release && \
 		echo "Fibonacci proof, pub input and image ID generated in sp1 folder"
 
-
 submit_fibonacci_sp1_proof_devnet:
 	@cd aligned-integration && \
 	RUST_LOG=info cargo run --release -- --proving-system "SP1" --network "devnet" --rpc-url "http://localhost:8545"
@@ -44,3 +43,7 @@ deploy_fibonacci_validator:
 
 deploy_fibonacci_validator_devnet:
 	@. ./contracts/.env.devnet && . ./contracts/deploy.sh
+
+get_program_id_commitment:
+	@echo "Proof commitment for $(DATA_FILE_NAME) is:"
+	@jq '.program_id_commitment' ./aligned-integration/batch_inclusion_data/$(DATA_FILE_NAME)
