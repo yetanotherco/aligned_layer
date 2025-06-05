@@ -5,7 +5,7 @@ name = "quiz-program"
 edition = "2021"
 
 [dependencies]
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "v4.1.7" }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "v5.0.0" }
 tiny-keccak = { git = "https://github.com/sp1-patches/tiny-keccak", branch = "patch-v2.0.2", features = [
     "sha3",
 ] }
