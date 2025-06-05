@@ -92,7 +92,7 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 	o.Logger.Infof("Verifying batch merkle tree...")
 	merkle_root_check, err := merkle_tree.VerifyMerkleTreeBatch(batchBytes, expectedMerkleRoot)
 	if err != nil || !merkle_root_check {
-		return nil, fmt.Errorf("Error while verifying merkle tree batch")
+		return nil, fmt.Errorf("error while verifying merkle tree batch")
 	}
 	o.Logger.Infof("Batch merkle tree verified")
 

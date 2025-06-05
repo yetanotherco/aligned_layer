@@ -72,10 +72,10 @@ func (r *AvsReader) IsOperatorRegistered(address ethcommon.Address) (bool, error
 }
 
 func (r *AvsReader) DisabledVerifiers() (*big.Int, error) {
-	num, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.DisabledVerifiers(&bind.CallOpts{})
+	num, err := r.AvsContractBindings.ServiceManager.DisabledVerifiers(&bind.CallOpts{})
 	if err != nil {
 		// Retry with fallback client
-		num, err = r.AvsContractBindings.ServiceManagerFallback.ContractAlignedLayerServiceManagerCaller.DisabledVerifiers(&bind.CallOpts{})
+		num, err = r.AvsContractBindings.ServiceManagerFallback.DisabledVerifiers(&bind.CallOpts{})
 		if err != nil {
 			r.logger.Error("Failed to fetch DisabledVerifiers", "err", err)
 		}
@@ -102,7 +102,7 @@ func (r *AvsReader) GetNotRespondedTasksFrom(fromBlock uint64) ([]servicemanager
 		// now check if its finalized or not before appending
 		batchIdentifier := append(task.BatchMerkleRoot[:], task.SenderAddress[:]...)
 		batchIdentifierHash := *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-		state, err := r.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(nil, batchIdentifierHash)
+		state, err := r.AvsContractBindings.ServiceManager.BatchesState(nil, batchIdentifierHash)
 
 		if err != nil {
 			return nil, err
