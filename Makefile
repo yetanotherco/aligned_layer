@@ -3,6 +3,18 @@
 SHELL := /bin/bash
 OS := $(shell uname -s)
 
+NETWORK ?= devnet # devnet | holesky-stage | holesky
+ifeq ($(NETWORK),holesky)
+	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
+	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+else ifeq ($(ENVIRONMENT), holesky-stage)
+	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
+	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+else
+	RPC_URL ?= http://localhost:8545
+	BEACON_URL ?= http://localhost:58801
+endif
+
 CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
@@ -190,29 +202,29 @@ start_proof_aggregator_gpu: is_aggregator_set reset_last_aggregated_block ## Sta
 start_proof_aggregator_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
 
-verify_aggregated_proof_sp1_holesky_stage: 
-	@echo "Verifying SP1 in aggregated proofs on holesky..."
+verify_aggregated_proof_sp1: 
+	@echo "Verifying SP1 in aggregated proofs on $(NETWORK)..."
 	@cd batcher/aligned/ && \
 	cargo run verify-agg-proof \
-		--network holesky-stage \
+		--network $(NETWORK) \
 		--from-block $(FROM_BLOCK) \
 		--proving_system SP1 \
 		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
 		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
 		--beacon_url $(BEACON_URL) \
-		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+		--rpc_url $(RPC_URL)
 
-verify_aggregated_proof_risc0_holesky_stage: 
-	@echo "Verifying RISC0 in aggregated proofs on holesky..."
+verify_aggregated_proof_risc0: 
+	@echo "Verifying RISC0 in aggregated proofs on $(NETWORK)..."
 	@cd batcher/aligned/ && \
 	cargo run verify-agg-proof \
-		--network holesky-stage \
+		--network $(NETWORK) \
 		--from-block $(FROM_BLOCK) \
 		--proving_system Risc0 \
 		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
 		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 		--beacon_url $(BEACON_URL) \
-		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+		--rpc_url $(RPC_URL)
 
 install_aggregation_mode: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator
@@ -456,10 +468,6 @@ build_batcher_client:
 
 batcher/target/release/aligned:
 	@cd batcher/aligned && cargo b --release
-
-
-RPC_URL=http://localhost:8545
-NETWORK=devnet # devnet | holesky-stage | holesky
 
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."

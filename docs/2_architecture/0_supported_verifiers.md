@@ -6,7 +6,7 @@ The following is the list of the verifiers currently supported by Aligned:
 
 - :white_check_mark: gnark - Groth16 (with BN254) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
-- :white_check_mark: SP1 [(v4.1.3)](https://github.com/succinctlabs/sp1/releases/tag/v4.1.3)
+- :white_check_mark: SP1 [(v5.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v5.0.0)
 - :white_check_mark: Risc0 [(v2.0.0)](https://github.com/risc0/risc0/releases/tag/v2.0.0)
 - 🏗️ Circom
 - 🏗️ Lambdaworks
