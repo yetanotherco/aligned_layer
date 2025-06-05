@@ -7,7 +7,7 @@ NETWORK ?= devnet # devnet | holesky-stage | holesky
 ifeq ($(NETWORK),holesky)
 	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
 	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
-else ifeq ($(ENVIRONMENT), holesky-stage)
+else ifeq ($(NETWORK), holesky-stage)
 	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
 	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
 else
@@ -67,9 +67,11 @@ else
 endif
 
 help:
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {if ($$1 ~ /^__/) printf "\033[33m%-50s\033[0m %s\n", $$1, $$2; else printf "\033[36m%-50s\033[0m %s\n", $$1, $$2}'
 
-submodules:
+__DEPENDENCIES__: ## ____
+
+submodules: ## Initialize and update git submodules
 	git submodule update --init --recursive
 	@echo "Updated submodules"
 
@@ -84,48 +86,58 @@ go_deps:
 install_foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
-install_eigenlayer_cli_devnet: ## Install Eigenlayer CLI v0.11.3 (Devnet compatible)
+install_eigenlayer_cli: ## Install Eigenlayer CLI v0.13.0
 	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.13.0
+
+__UTILS__: ## ____
+
+bindings: ## Generate Go bindings for contracts
+	cd contracts && ./generate-go-bindings.sh
+
+lint_contracts: ## Lint Solidity contracts
+	@cd contracts && npm run lint:sol
+
+__CONTRACTS_DEPLOYMENT_ANVIL__: ## ____
 
 anvil_deploy_all_contracts: anvil_deploy_eigen_contracts anvil_deploy_risc0_contracts anvil_deploy_sp1_contracts anvil_deploy_aligned_contracts
 
-anvil_deploy_eigen_contracts:
+anvil_deploy_eigen_contracts: ## Deploy EigenLayer Contracts on ANVIL
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
-anvil_deploy_risc0_contracts:
+anvil_deploy_risc0_contracts: ## Deploy RISC0 Contracts used by Aggregation Mode on ANVIL
 	@echo "Deploying RISC0 Contracts..."
 	. contracts/scripts/anvil/deploy_risc0_contracts.sh
 
-anvil_deploy_sp1_contracts:
+anvil_deploy_sp1_contracts: ## Deploy SP1 Contracts used by Aggregation Mode on ANVIL
 	@echo "Deploying SP1 Contracts..."
 	. contracts/scripts/anvil/deploy_sp1_contracts.sh
 
-anvil_deploy_aligned_contracts:
+anvil_deploy_aligned_contracts: ## Deploy Aligned Contracts (Verification Layer and Aggregation Mode) on ANVIL
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
 
-anvil_upgrade_aligned_contracts:
+anvil_upgrade_aligned_contracts: ## Upgrade Aligned Contracts (Verification Layer and Aggregation Mode) on ANVIL
 	@echo "Upgrading Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_aligned_contracts.sh
 
-anvil_upgrade_batcher_payment_service:
+anvil_upgrade_batcher_payment_service: ## Upgrade BatcherPaymentService contract on ANVIL
 	@echo "Upgrading BatcherPayments contract..."
 	. contracts/scripts/anvil/upgrade_batcher_payment_service.sh
 
-anvil_upgrade_registry_coordinator:
+anvil_upgrade_registry_coordinator: ## Upgrade Registry Coordinator Contracts on ANVIL
 	@echo "Upgrading Registry Coordinator Contracts..."
 	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
 
-anvil_upgrade_bls_apk_registry:
+anvil_upgrade_bls_apk_registry: ## Upgrade Bls Apk Registry Contract on ANVIL
 	@echo "Upgrading Bls Apk Registry Contract..."
 	. contracts/scripts/anvil/upgrade_bls_apk_registry.sh
 
-anvil_upgrade_stake_registry:
+anvil_upgrade_stake_registry: ## Upgrade Stake Registry Contract on ANVIL
 	@echo "Upgrading Stake Registry Contract..."
 	. contracts/scripts/anvil/upgrade_stake_registry.sh
 
-anvil_upgrade_index_registry:
+anvil_upgrade_index_registry: ## Upgrade Index Registry Contracts on ANVIL
 	@echo "Upgrading Index Registry Contracts..."
 	. contracts/scripts/anvil/upgrade_index_registry.sh
 
@@ -133,27 +145,29 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
-pause_all_aligned_service_manager:
+__CONTRACTS_MANAGEMENT__: ## ____
+
+pause_all_aligned_service_manager: ## Pause all Aligned Service Manager contracts
 	@echo "Pausing all contracts..."
 	. contracts/scripts/pause_aligned_service_manager.sh all
 
-unpause_all_aligned_service_manager:
+unpause_all_aligned_service_manager: ## Unpause all Aligned Service Manager contracts
 	@echo "Pausing all contracts..."
 	. contracts/scripts/unpause_aligned_service_manager.sh all
 
-get_paused_state_aligned_service_manager:
+get_paused_state_aligned_service_manager: ## Get paused state of Aligned Service Manager contracts
 	@echo "Getting paused state of Aligned Service Manager contract..."
 	. contracts/scripts/get_paused_state_aligned_service_manager.sh
 
-pause_batcher_payment_service:
+pause_batcher_payment_service: ## Pause BatcherPaymentService contract
 	@echo "Pausing BatcherPayments contract..."
 	. contracts/scripts/pause_batcher_payment_service.sh
 
-unpause_batcher_payment_service:
+unpause_batcher_payment_service: ## Unpause BatcherPaymentService contract
 	@echo "Unpausing BatcherPayments contract..."
 	. contracts/scripts/unpause_batcher_payment_service.sh
 
-get_paused_state_batcher_payments_service:
+get_paused_state_batcher_payments_service: ## Get paused state of BatcherPaymentService contract
 	@echo "Getting paused state of Batcher Payments Service contract..."
 	. contracts/scripts/get_paused_state_batcher_payments_service.sh
 	
@@ -161,10 +175,44 @@ anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
 
-lint_contracts:
-	@cd contracts && npm run lint:sol
+# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
+verifier_enable_devnet: ## Enable a verifier on devnet
+	@echo "Enabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
 
-anvil_start:
+verifier_disable_devnet: ## Disable a verifier on devnet
+	@echo "Disabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
+verifier_enable: ## Enable a verifier
+	@echo "Enabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable: ## Disable a verifier
+	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
+strategies_get_weight: ## Get the weight of a strategy
+	@echo "Getting weight of strategy: $(STRATEGY_INDEX)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_strategy_weight.sh $(STRATEGY_INDEX)
+
+strategies_update_weight: ## TODO
+	@echo "Updating strategy weights: "
+	@echo "STRATEGY_INDICES: $(STRATEGY_INDICES)"
+	@echo "NEW_MULTIPLIERS: $(NEW_MULTIPLIERS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/update_strategy_weight.sh $(STRATEGY_INDICES) $(NEW_MULTIPLIERS)
+
+strategies_remove: ## TODO
+	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
+
+strategies_get_addresses: ## TODO
+	@echo "Getting strategy addresses"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_restakeable_strategies.sh
+
+__ANVIL__: ## ____
+
+anvil_start: ## Start Anvil with pre-deployed state
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
@@ -232,14 +280,14 @@ install_aggregation_mode: ## Install the aggregation mode with proving enabled
 agg_mode_write_program_ids: ## Write proof aggregator zkvm programs ids 
 	@cd aggregation_mode && ./scripts/build_programs.sh
 
-_AGGREGATOR_:
+__AGGREGATOR__: ## ____
 
-build_aggregator:
+aggregator_build: ## Build the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
 	$(GET_SDK_VERSION)
 	@echo "Building aggregator"
 	@go build -o ./build/aligned-aggregator ./aggregator/cmd/main.go
 
-aggregator_start:
+aggregator_start: ## Start the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 	$(GET_SDK_VERSION)
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
@@ -253,9 +301,9 @@ test_go_retries:
 	@cd core/ && \
 	go test -v -timeout 15m
 
-__OPERATOR__:
+__OPERATOR__: ## ____
 
-operator_start:
+operator_start: ## Start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 	$(GET_SDK_VERSION)
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
@@ -277,11 +325,11 @@ operator_set_eigen_sdk_go_version_error:
 	@echo "Error setting Eigen SDK version, missing ENVIRONMENT. Possible values for ENVIRONMENT=<devnet|testnet|mainnet>"
 	exit 1
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer ## Register the operator in EigenLayer and AlignedLayer. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 
-operator_register_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start
+operator_full_registration_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start ## Register the operator in EigenLayer and AlignedLayer, then start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 
-build_operator: deps
+operator_build: deps ## Build the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
 	$(GET_SDK_VERSION)
 	$(BUILD_OPERATOR)
 
@@ -295,7 +343,7 @@ build_operator_linux:
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(OPERATOR_FFIS)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
-update_operator:
+operator_update: ## Update the Operator to the latest version and build it. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
 	$(GET_SDK_VERSION)
 	@echo "Updating Operator..."
 	@./scripts/fetch_latest_release.sh
@@ -316,12 +364,8 @@ operator_marshall_unmarshall_fuzz_linux:
 	@cd operator/pkg && \
 	go test -fuzz=FuzzMarshalUnmarshal
 
-bindings:
-	cd contracts && ./generate-go-bindings.sh
-
 test:
 	go test ./... -timeout 15m
-
 
 get_delegation_manager_address:
 	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
@@ -374,7 +418,6 @@ operator_deposit_into_mock_strategy:
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 100000000000000000
 
-
 AMOUNT ?= 1000
 
 operator_deposit_into_strategy:
@@ -391,43 +434,7 @@ operator_register_with_aligned_layer:
 
 operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
 
-
-# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
-verifier_enable_devnet:
-	@echo "Enabling verifier with id: $(VERIFIER_ID)"
-	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
-
-verifier_disable_devnet:
-	@echo "Disabling verifier with id: $(VERIFIER_ID)"
-	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
-
-verifier_enable:
-	@echo "Enabling verifier with ID: $(VERIFIER_ID)"
-	@. contracts/scripts/.env && . contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
-
-verifier_disable:
-	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
-	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
-
-strategies_get_weight:
-	@echo "Getting weight of strategy: $(STRATEGY_INDEX)"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_strategy_weight.sh $(STRATEGY_INDEX)
-
-strategies_update_weight:
-	@echo "Updating strategy weights: "
-	@echo "STRATEGY_INDICES: $(STRATEGY_INDICES)"
-	@echo "NEW_MULTIPLIERS: $(NEW_MULTIPLIERS)"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/update_strategy_weight.sh $(STRATEGY_INDICES) $(NEW_MULTIPLIERS)
-
-strategies_remove:
-	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
-
-strategies_get_addresses:
-	@echo "Getting strategy addresses"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_restakeable_strategies.sh
-
-__BATCHER__:
+__BATCHER__: ## ____
 
 BURST_SIZE ?= 5
 
@@ -454,23 +461,24 @@ batcher_start_local_no_fund:
 install_batcher:
 	@cargo install --path batcher/aligned-batcher
 
-install_aligned:
+__ALIGNED_CLI__: ## ____
+
+aligned_install: ## Install latest version of Aligned CLI
 	@./batcher/aligned/install_aligned.sh
 
-uninstall_aligned:
+aligned_uninstall: ## Uninstall Aligned CLI
 	@rm -rf ~/.aligned && echo "Aligned uninstalled"
 
-install_aligned_compiling:
+aligned_install_compiling: ## Install Aligned CLI by compiling from source
 	@cargo install --path batcher/aligned
-
-build_batcher_client:
-	@cd batcher/aligned && cargo b --release
 
 batcher/target/release/aligned:
 	@cd batcher/aligned && cargo b --release
 
-batcher_send_sp1_task:
-	@echo "Sending SP1 fibonacci task to Batcher..."
+__TASK_SENDER__: ## ____
+
+batcher_send_sp1_task: ## Send a SP1 fibonacci proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending SP1 fibonacci proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
@@ -479,8 +487,8 @@ batcher_send_sp1_task:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_sp1_burst:
-	@echo "Sending SP1 fibonacci task to Batcher..."
+batcher_send_sp1_burst: ## Send a burst of SP1 fibonacci proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending SP1 fibonacci proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
@@ -490,12 +498,12 @@ batcher_send_sp1_burst:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_infinite_sp1:
-	@echo "Sending infinite SP1 fibonacci task to Batcher..."
+batcher_send_infinite_sp1: ## Send burst of SP1 fibonacci proofs to Batcher every certain time
+	@echo "Sending infinite SP1 fibonacci proofs to Batcher..."
 	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
 
-batcher_send_risc0_task:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
+batcher_send_risc0_task: ## Send a Risc0 fibonacci proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
@@ -505,8 +513,8 @@ batcher_send_risc0_task:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_risc0_task_no_pub_input:
-	@echo "Sending Risc0 no pub input task to Batcher..."
+batcher_send_risc0_task_no_pub_input: ## Send a Risc0 proof without public input to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Risc0 no pub input proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_0.proof \
@@ -515,8 +523,8 @@ batcher_send_risc0_task_no_pub_input:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_risc0_burst:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
+batcher_send_risc0_burst: ## Send a burst of Risc0 fibonacci proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
@@ -527,8 +535,8 @@ batcher_send_risc0_burst:
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bn254_task: batcher/target/release/aligned
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+batcher_send_plonk_bn254_task: batcher/target/release/aligned ## Send a Groth16Bn254 1!=0 proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Groth16Bn254 1!=0 proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
@@ -538,8 +546,8 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bn254_burst: batcher/target/release/aligned
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+batcher_send_plonk_bn254_burst: batcher/target/release/aligned ## Send a burst of Groth16Bn254 1!=0 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Groth16Bn254 1!=0 proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
 		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
@@ -551,7 +559,7 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 		--network $(NETWORK)
 
 batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
-	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	@echo "Sending Groth16 BLS12-381 1!=0 proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
@@ -562,7 +570,7 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 		--network $(NETWORK)
 
 batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
-	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+	@echo "Sending Groth16 BLS12-381 1!=0 proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
 		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
@@ -574,7 +582,7 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 		--network $(NETWORK)
 
 batcher_send_groth16_bn254_task: batcher/target/release/aligned
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+	@echo "Sending Groth16Bn254 1!=0 proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
 		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
@@ -590,7 +598,7 @@ batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a differen
 	@./batcher/aligned/send_infinite_tasks.sh 4
 
 batcher_send_burst_groth16: batcher/target/release/aligned
-	@echo "Sending a burst of tasks to Batcher..."
+	@echo "Sending a burst of proofs to Batcher..."
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
@@ -723,7 +731,7 @@ run_storage: ## Run storage using storage-docker-compose.yaml
 __DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
+	@. co	ntracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
