@@ -1,7 +1,9 @@
 name: golangci-lint
 on:
   push:
-    branches: ["*"]
+    branches:
+      - testnet
+      - staging
   pull_request:
     paths:
       - 'operator/**'

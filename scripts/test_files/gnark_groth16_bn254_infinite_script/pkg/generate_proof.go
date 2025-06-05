@@ -71,9 +71,24 @@ func GenerateIneqProof(x int, outputDir string) {
 	if err != nil {
 		panic(err)
 	}
-	defer proofFile.Close()
-	defer vkFile.Close()
-	defer witnessFile.Close()
+	defer func(proofFile *os.File) {
+		err := proofFile.Close()
+		if err != nil {
+			log.Fatal("could not close proof file:", err)
+		}
+	}(proofFile)
+	defer func(vkFile *os.File) {
+		err := vkFile.Close()
+		if err != nil {
+			log.Fatal("could not close verification key file:", err)
+		}
+	}(vkFile)
+	defer func(witnessFile *os.File) {
+		err := witnessFile.Close()
+		if err != nil {
+			log.Fatal("could not close witness file:", err)
+		}
+	}(witnessFile)
 
 	_, err = proof.WriteTo(proofFile)
 	if err != nil {
