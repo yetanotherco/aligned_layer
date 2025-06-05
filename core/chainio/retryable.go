@@ -168,7 +168,7 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 		Responded             bool
 		RespondToTaskFeeLimit *big.Int
 	}, error) {
-		return s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
+		return s.AvsContractBindings.ServiceManager.BatchesState(opts, arg0)
 	}
 
 	return retry.RetryWithData(batchState_func, config)
