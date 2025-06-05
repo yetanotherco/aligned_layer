@@ -49,9 +49,9 @@ func main() {
 	//	r1cs := ccs.(*cs.SparseR1CS)
 	// as srs is not used in the setup, we can remove it
 	//	srs, err := test.NewKZGSRS(r1cs)
-	if err != nil {
-		panic("KZG setup error")
-	}
+	//if err != nil {
+	//	panic("KZG setup error")
+	//}
 
 	// no need to use srs in the setup
 	pk, vk, _ := groth16.Setup(ccs)
