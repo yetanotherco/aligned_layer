@@ -29,7 +29,7 @@ Two separate aggregators are run every 24 hours:
 
 ## Proof Commitment
 
-The **proof commitment** is a hash that uniquely identifies a proof. It is defined as the keccack of the proof public inputs + program ID:
+The **proof commitment** is a hash that uniquely identifies a proof. It is defined as the keccak of the proof public inputs + program ID:
 
 -   **For SP1**:  
     The commitment is computed as: `keccak(proof_public_inputs_bytes || vk_hash_bytes)`
@@ -92,7 +92,7 @@ When submitting the aggregated proof to Ethereum, we include a **blob** that con
 
 ### Blob capacity
 
-Each blob can hold:
+As dictated in the [eip-4844](https://eips.ethereum.org/EIPS/eip-4844) Each blob can hold:
 
 -   `FIELD_ELEMENTS_PER_BLOB = 4096`
 -   `BYTES_PER_FIELD_ELEMENT = 32`
@@ -128,4 +128,4 @@ To increase throughput we can:
    Up to **6 blobs** can be included per transaction, supporting up to **23,808 proofs per run**, which is more than we can aggregate in one day.
 
 2. **Run Aggregation More Frequently**  
-   Reducing the interval between aggregation runs can also increase throughput.
+   Reducing the interval between aggregation runs.
