@@ -13,6 +13,11 @@
 -   **Proofs per Chunk**: 128
 -   **Total Chunks**: 32
 
+### Notes
+
+-   The total number of proofs (3968) is the **maximum that can be aggregated in a single run**, limited by blob capacity.
+-   Increasing the **proofs per chunk** generally improves performance, but requires **more powerful hardware** to avoid out of memory.
+
 ---
 
 ## RISC Zero (Risc0)
