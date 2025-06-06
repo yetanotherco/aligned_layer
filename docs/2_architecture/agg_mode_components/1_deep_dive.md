@@ -41,7 +41,7 @@ The **proof commitment** is a hash that uniquely identifies a proof. It is defin
 To scale aggregation without exhausting zkVM memory, aggregation is split in two programs:
 
 1. **User Proof Aggregator**  
-   Processes batches of `n` user proofs. Each run creates an aggregated proof that commits to a Merkle root of the user proofs inputs. This step is repeated for as many chunks as needed. Usually each chunks contains `256` proofs but it can be lowered based on the machine specs.
+   Processes chunks of `n` user proofs. Each run creates an aggregated proof that commits to a Merkle root of the user proofs inputs. This step is repeated for as many chunks as needed. Usually each chunks contains `256` proofs but it can be lowered based on the machine specs.
 
 2. **Chunk Aggregator**  
    Aggregates all chunk-level proofs into a single final proof. It receives:
