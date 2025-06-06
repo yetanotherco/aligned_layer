@@ -44,7 +44,17 @@ prove = []
 gpu = ["risc0-zkvm/cuda"]
 
 [[bin]]
-name = "proof_aggregator"
+name = "proof_aggregator_cpu"
+path = "./src/main.rs"
+required-features = ["prove"]
+
+[[bin]]
+name = "proof_aggregator_gpu"
+path = "./src/main.rs"
+required-features = ["prove", "gpu"]
+
+[[bin]]
+name = "proof_aggregator_dev"
 path = "./src/main.rs"
 
 [[bin]]
