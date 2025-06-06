@@ -52,10 +52,22 @@ defmodule AggregationModeProof do
   def get_all_proof_hashes(id) do
     query =
       from(proof in AggregationModeProof,
-        where: proof.agg_proof_id == ^id,
-        select: proof.proof_hash
+        select: proof.proof_hash,
+        where: proof.agg_proof_id == ^id
       )
 
     Explorer.Repo.all(query)
+  end
+
+  def get_newest_proof_by_hash(hash) do
+    query =
+      from(proof in AggregationModeProof,
+        select: proof,
+        where: proof.proof_hash == ^hash,
+        order_by: [desc: proof.inserted_at],
+        limit: 1
+      )
+
+    Explorer.Repo.one(query)
   end
 end

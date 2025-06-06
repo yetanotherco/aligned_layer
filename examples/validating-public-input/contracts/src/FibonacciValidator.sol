@@ -5,9 +5,8 @@ contract FibonacciValidator {
     address public alignedServiceManager;
     address public paymentServiceAddr;
 
-    bytes32 public fibonacciProgramIdCommitmentSp1 =
-        0x588277d2461159223e7a688895a8e8529ce33f54730d1528c960d3c67e468520;
-    
+    bytes32 public fibonacciProgramIdCommitmentSp1 = 0xc91d23fc3b1d24ecb241fbd501162734584f7c9f15ee5c95c712419206797a61;
+
     bytes32 public fibonacciProgramIdCommitmentRisc0 =
         0x52075f80c0b914b6cb8d86a2827b30b1252b58f2aa0173b993188650a538d5c5;
 
@@ -19,7 +18,6 @@ contract FibonacciValidator {
         alignedServiceManager = _alignedServiceManager;
         paymentServiceAddr = _paymentServiceAddr;
     }
-
 
     function verifyBatchInclusion(
         bytes32 proofCommitment,
@@ -49,51 +47,40 @@ contract FibonacciValidator {
             "Fibonacci numbers don't match with public input"
         );
 
-        (
-            bool callWasSuccessful,
-            bytes memory proofIsIncluded
-        ) = alignedServiceManager.staticcall(
-                abi.encodeWithSignature(
-                    "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address)",
-                    proofCommitment,
-                    pubInputCommitment,
-                    programIdCommitment,
-                    proofGeneratorAddr,
-                    batchMerkleRoot,
-                    merkleProof,
-                    verificationDataBatchIndex,
-                    paymentServiceAddr
-                )
-            );
+        (bool callWasSuccessful, bytes memory proofIsIncluded) = alignedServiceManager.staticcall(
+            abi.encodeWithSignature(
+                "verifyBatchInclusion(bytes32,bytes32,bytes32,bytes20,bytes32,bytes,uint256,address)",
+                proofCommitment,
+                pubInputCommitment,
+                programIdCommitment,
+                proofGeneratorAddr,
+                batchMerkleRoot,
+                merkleProof,
+                verificationDataBatchIndex,
+                paymentServiceAddr
+            )
+        );
 
         require(callWasSuccessful, "static_call failed");
 
-        (uint32 n ,uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(pubInputBytes);
+        (uint32 n, uint32 fibN, uint32 fibNPlusOne) = bytesToTwoUint32(pubInputBytes);
 
         emit FibonacciNumbers(n, fibN, fibNPlusOne);
 
         return abi.decode(proofIsIncluded, (bool));
     }
 
-    function bytesToTwoUint32(
-        bytes memory data
-    ) public pure returns (uint32, uint32, uint32) {
+    function bytesToTwoUint32(bytes memory data) public pure returns (uint32, uint32, uint32) {
         require(data.length >= 8, "Input bytes must be at least 8 bytes long");
 
-        uint32 first = uint32(uint8(data[0])) |
-            (uint32(uint8(data[1])) << 8) |
-            (uint32(uint8(data[2])) << 16) |
-            (uint32(uint8(data[3])) << 24);
+        uint32 first = uint32(uint8(data[0])) | (uint32(uint8(data[1])) << 8) | (uint32(uint8(data[2])) << 16)
+            | (uint32(uint8(data[3])) << 24);
 
-        uint32 second = uint32(uint8(data[4])) |
-            (uint32(uint8(data[5])) << 8) |
-            (uint32(uint8(data[6])) << 16) |
-            (uint32(uint8(data[7])) << 24);
-        
-        uint32 third = uint32(uint8(data[8])) |
-            (uint32(uint8(data[9])) << 8) |
-            (uint32(uint8(data[10])) << 16) |
-            (uint32(uint8(data[11])) << 24);
+        uint32 second = uint32(uint8(data[4])) | (uint32(uint8(data[5])) << 8) | (uint32(uint8(data[6])) << 16)
+            | (uint32(uint8(data[7])) << 24);
+
+        uint32 third = uint32(uint8(data[8])) | (uint32(uint8(data[9])) << 8) | (uint32(uint8(data[10])) << 16)
+            | (uint32(uint8(data[11])) << 24);
 
         return (first, second, third);
     }

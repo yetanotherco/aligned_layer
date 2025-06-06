@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/consensys/gnark"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
@@ -34,6 +36,7 @@ func (circuit *CubicCircuit) Define(api frontend.API) error {
 func main() {
 
 	outputDir := "scripts/test_files/gnark_groth16_bn254_script/"
+	var gnarkVersion = strings.ReplaceAll(gnark.Version.String(), ".", "_")
 
 	var circuit CubicCircuit
 	// use r1cs.NewBuilder instead of scs.NewBuilder
@@ -46,9 +49,9 @@ func main() {
 	//	r1cs := ccs.(*cs.SparseR1CS)
 	// as srs is not used in the setup, we can remove it
 	//	srs, err := test.NewKZGSRS(r1cs)
-	if err != nil {
-		panic("KZG setup error")
-	}
+	//if err != nil {
+	//	panic("KZG setup error")
+	//}
 
 	// no need to use srs in the setup
 	pk, vk, _ := groth16.Setup(ccs)
@@ -79,21 +82,36 @@ func main() {
 	}
 
 	// Open files for writing the proof, the verification key and the public witness
-	proofFile, err := os.Create(outputDir + "groth16.proof")
+	proofFile, err := os.Create(outputDir + "groth16_" + gnarkVersion + ".proof")
 	if err != nil {
 		panic(err)
 	}
-	vkFile, err := os.Create(outputDir + "groth16.vk")
+	vkFile, err := os.Create(outputDir + "groth16_" + gnarkVersion + ".vk")
 	if err != nil {
 		panic(err)
 	}
-	witnessFile, err := os.Create(outputDir + "groth16.pub")
+	witnessFile, err := os.Create(outputDir + "groth16_" + gnarkVersion + ".pub")
 	if err != nil {
 		panic(err)
 	}
-	defer proofFile.Close()
-	defer vkFile.Close()
-	defer witnessFile.Close()
+	defer func(proofFile *os.File) {
+		err := proofFile.Close()
+		if err != nil {
+			log.Fatal("could not close proof file:", err)
+		}
+	}(proofFile)
+	defer func(vkFile *os.File) {
+		err := vkFile.Close()
+		if err != nil {
+			log.Fatal("could not close verification key file:", err)
+		}
+	}(vkFile)
+	defer func(witnessFile *os.File) {
+		err := witnessFile.Close()
+		if err != nil {
+			log.Fatal("could not close witness file:", err)
+		}
+	}(witnessFile)
 
 	_, err = proof.WriteTo(proofFile)
 	if err != nil {
@@ -108,7 +126,7 @@ func main() {
 		panic("could not serialize proof into file")
 	}
 
-	fmt.Println("Proof written into groth16_cubic_circuit.proof")
-	fmt.Println("Verification key written into groth16_verification_key")
-	fmt.Println("Public witness written into witness.pub")
+	fmt.Println("Proof written into " + outputDir + "groth16_" + gnarkVersion + ".proof")
+	fmt.Println("Verification key written into " + outputDir + "groth16_" + gnarkVersion + ".vk")
+	fmt.Println("Public witness written into " + outputDir + "groth16_" + gnarkVersion + ".pub")
 }

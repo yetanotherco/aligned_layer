@@ -22,7 +22,7 @@ func VerifyMerkleTreeBatch(batchBuffer []byte, merkleRootBuffer [32]byte) (isVer
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			err = fmt.Errorf("Panic was caught while verifying merkle tree batch: %s", rec)
+			err = fmt.Errorf("panic was caught while verifying merkle tree batch: %s", rec)
 		}
 	}()
 
@@ -32,7 +32,7 @@ func VerifyMerkleTreeBatch(batchBuffer []byte, merkleRootBuffer [32]byte) (isVer
 	r := (C.int32_t)(C.verify_merkle_tree_batch_ffi(batchPtr, (C.uint)(len(batchBuffer)), merkleRootPtr))
 
 	if r == -1 {
-		err = fmt.Errorf("Panic happened on FFI while verifying merkle tree batch")
+		err = fmt.Errorf("panic happened on FFI while verifying merkle tree batch")
 		return isVerified, err
 	}
 

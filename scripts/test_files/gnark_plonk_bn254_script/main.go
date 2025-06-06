@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/consensys/gnark"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/plonk"
@@ -34,6 +36,7 @@ func (circuit *CubicCircuit) Define(api frontend.API) error {
 func main() {
 
 	outputDir := "scripts/test_files/gnark_plonk_bn254_script/"
+	var gnarkVersion = strings.ReplaceAll(gnark.Version.String(), ".", "_")
 
 	var circuit CubicCircuit
 	// use scs.NewBuilder instead of r1cs.NewBuilder (groth16)
@@ -81,21 +84,36 @@ func main() {
 	}
 
 	// Open files for writing the proof, the verification key and the public witness
-	proofFile, err := os.Create(outputDir + "plonk.proof")
+	proofFile, err := os.Create(outputDir + "plonk_" + gnarkVersion + ".proof")
 	if err != nil {
 		panic(err)
 	}
-	vkFile, err := os.Create(outputDir + "plonk.vk")
+	vkFile, err := os.Create(outputDir + "plonk_" + gnarkVersion + ".vk")
 	if err != nil {
 		panic(err)
 	}
-	witnessFile, err := os.Create(outputDir + "plonk_pub_input.pub")
+	witnessFile, err := os.Create(outputDir + "plonk_pub_input_" + gnarkVersion + ".pub")
 	if err != nil {
 		panic(err)
 	}
-	defer proofFile.Close()
-	defer vkFile.Close()
-	defer witnessFile.Close()
+	defer func(proofFile *os.File) {
+		err := proofFile.Close()
+		if err != nil {
+			log.Fatal("could not close proof file:", err)
+		}
+	}(proofFile)
+	defer func(vkFile *os.File) {
+		err := vkFile.Close()
+		if err != nil {
+			log.Fatal("could not close verification key file:", err)
+		}
+	}(vkFile)
+	defer func(witnessFile *os.File) {
+		err := witnessFile.Close()
+		if err != nil {
+			log.Fatal("could not close witness file:", err)
+		}
+	}(witnessFile)
 
 	_, err = proof.WriteTo(proofFile)
 	if err != nil {
@@ -110,7 +128,7 @@ func main() {
 		panic("could not serialize proof into file")
 	}
 
-	fmt.Println("Proof written into plonk_cubic_circuit.proof")
-	fmt.Println("Verification key written into plonk_verification_key")
-	fmt.Println("Public witness written into witness.pub")
+	fmt.Println("Proof written into " + outputDir + "plonk_" + gnarkVersion + ".proof")
+	fmt.Println("Verification key written into " + outputDir + "plonk_" + gnarkVersion + ".vk")
+	fmt.Println("Public witness written into " + outputDir + "plonk_pub_input_" + gnarkVersion + ".pub")
 }

@@ -32,8 +32,8 @@ echo "Batcher in $NETWORK and endpoint at $RPC_URL"
 if [[ $PROOF_TYPE == "sp1" ]]; then
     aligned submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
         --random_address \
         --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
@@ -42,9 +42,9 @@ if [[ $PROOF_TYPE == "sp1" ]]; then
 elif [[ $PROOF_TYPE == "groth16" ]]; then
     aligned submit \
 		--proving_system Groth16Bn254 \
-		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
-		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16.pub \
-		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
         --random_address \
         --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
@@ -53,9 +53,9 @@ elif [[ $PROOF_TYPE == "groth16" ]]; then
 elif [[ $PROOF_TYPE == "plonk" ]]; then
     aligned submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
 		--random_address \
         --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \

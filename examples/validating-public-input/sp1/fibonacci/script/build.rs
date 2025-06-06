@@ -6,8 +6,8 @@ fn main() {
 
     let args = BuildArgs {
         docker: true,
-        output_directory: "../".to_string(),
-        elf_name: "./fibonacci/sp1_fibonacci.elf".to_string(),
+        output_directory: Some("../".to_string()),
+        elf_name: Some("sp1_fibonacci.elf".to_string()),
         ..Default::default()
     };
     build_program_with_args("../program", args);

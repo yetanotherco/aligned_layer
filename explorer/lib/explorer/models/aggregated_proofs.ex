@@ -67,13 +67,25 @@ defmodule AggregatedProofs do
     Explorer.Repo.get_by(AggregatedProofs, id: id)
   end
 
+  def get_newest_aggregated_proof_by_merkle_root(merkle_root) do
+    query =
+      from(proof in AggregatedProofs,
+        select: proof,
+        where: proof.merkle_root == ^merkle_root,
+        order_by: [desc: proof.block_number],
+        limit: 1
+      )
+
+    Explorer.Repo.one(query)
+  end
+
   def get_paginated_proofs(%{page: page, page_size: size}) do
     query =
       from(proof in AggregatedProofs,
+        select: proof,
         order_by: [desc: proof.block_number],
         limit: ^size,
-        offset: ^((page - 1) * size),
-        select: proof
+        offset: ^((page - 1) * size)
       )
 
     Explorer.Repo.all(query)

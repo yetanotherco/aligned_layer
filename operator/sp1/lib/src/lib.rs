@@ -55,8 +55,8 @@ pub extern "C" fn verify_sp1_proof_ffi(
 mod tests {
     use super::*;
 
-    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof");
-    const ELF: &[u8] = include_bytes!("../../../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf");
+    const PROOF: &[u8] = include_bytes!("../../../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof");
+    const ELF: &[u8] = include_bytes!("../../../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf");
 
     #[test]
     fn verify_sp1_proof_with_elf_works() {

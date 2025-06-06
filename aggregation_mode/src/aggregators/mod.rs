@@ -4,13 +4,9 @@ pub mod sp1_aggregator;
 use std::fmt::Display;
 
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
-use risc0_aggregator::{
-    AlignedRisc0VerificationError, Risc0AggregationError, Risc0ProofReceiptAndImageId,
-};
+use risc0_aggregator::{Risc0AggregationError, Risc0ProofReceiptAndImageId};
 use sha3::{Digest, Keccak256};
-use sp1_aggregator::{
-    AlignedSP1VerificationError, SP1AggregationError, SP1ProofWithPubValuesAndElf,
-};
+use sp1_aggregator::{SP1AggregationError, SP1ProofWithPubValuesAndElf};
 use tracing::info;
 
 #[derive(Clone, Debug)]
@@ -217,26 +213,5 @@ impl IsMerkleTreeBackend for AlignedProof {
             hasher.update(child_1);
         }
         hasher.finalize().into()
-    }
-}
-
-#[derive(Debug)]
-pub enum AlignedVerificationError {
-    Sp1(AlignedSP1VerificationError),
-    Risc0(AlignedRisc0VerificationError),
-}
-
-impl AlignedProof {
-    pub fn verify(&self) -> Result<(), AlignedVerificationError> {
-        match self {
-            AlignedProof::SP1(proof) => sp1_aggregator::verify(proof).map_err(
-                |arg0: sp1_aggregator::AlignedSP1VerificationError| {
-                    AlignedVerificationError::Sp1(arg0)
-                },
-            ),
-            AlignedProof::Risc0(proof) => {
-                risc0_aggregator::verify(proof).map_err(AlignedVerificationError::Risc0)
-            }
-        }
     }
 }

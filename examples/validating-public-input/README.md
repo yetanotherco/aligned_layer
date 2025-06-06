@@ -15,8 +15,6 @@ This example is designed to do either with SP1 or risc0 proofs these are the com
 
 2. `make submit_fibonacci_risc0_proof_devnet`
 
-> The batch needs at least two proofs to be sealed, in another terminal run `make batcher_send_risc0_task` to actually submit the batch to aligned.
-
 The command will log the file where all the aligned verification data was saved like so:
 
 ```
@@ -65,8 +63,6 @@ transactionHash         <TX_HASH>
 
 2. `make submit_fibonacci_sp1_proof_devnet`
 
-> The batch needs at least two proofs to be selaed, in another terminal run `make batcher_send_sp1_task` to actually submit the batch to aligned.
-
 The command will log the file where all the aligned verification data was saved like so:
 
 ```
@@ -86,6 +82,7 @@ Contract Address: 0x90d6A3E189C70E1Cce16c29151077cB9Badb2448
 Block: 2963688
 Paid: 0.000727925005095475 ETH (727925 gas * 1.000000007 gwei)
 ```
+
 > [NOTE]  
 > The `Contract Address` listed above corresponds to a current valid deployment of the examples contract on the `holesky` testnet.
 
@@ -104,3 +101,11 @@ status                  1 (success)
 transactionHash         <TX_HASH>
 ...
 ```
+
+5. If the process fails, it could be due to mismatched commitments when verifying. Ensure that the contract commitments are updated to match the values returned in the batcher's response under `aligned_verification_data`. For example, if the SP1 or Risc0 version has changed, you'll need to update the `programIdCommitment`. To regenerate the commitment, run:
+
+```shell
+make get_program_id_commitment DATA_FILE_NAME=<DATA_FILE_NAME>
+```
+
+And update the field `fibonacciProgramIdCommitmentSp1` or `fibonacciProgramIdCommitmentRisc0` in the contract with the new value.

@@ -16,6 +16,7 @@ use alloy::{
     primitives::Address,
     providers::{Provider, ProviderBuilder},
 };
+use rayon::prelude::*;
 use risc0_zkvm::Receipt;
 use tracing::{error, info};
 
@@ -109,38 +110,49 @@ impl ProofsFetcher {
             // Filter compatible proofs to be aggregated and push to queue
             let proofs_to_add: Vec<AlignedProof> = match engine {
                 ZKVMEngine::SP1 => data
-                    .into_iter()
-                    .filter_map(|p| match p.proving_system {
-                        ProvingSystemId::SP1 => {
-                            let elf = p.vm_program_code?;
-                            let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
-                            let sp1_proof = SP1ProofWithPubValuesAndElf {
-                                proof_with_pub_values,
-                                elf,
-                            };
+                    .into_par_iter()
+                    .filter_map(|p| {
+                        if p.proving_system != ProvingSystemId::SP1 {
+                            return None;
+                        };
 
-                            Some(AlignedProof::SP1(sp1_proof.into()))
+                        let elf = p.vm_program_code?;
+                        let proof_with_pub_values = bincode::deserialize(&p.proof).ok()?;
+                        let sp1_proof =
+                            SP1ProofWithPubValuesAndElf::new(proof_with_pub_values, elf);
+
+                        match sp1_proof {
+                            Ok(proof) => Some(AlignedProof::SP1(proof.into())),
+                            Err(err) => {
+                                error!("Could not add proof, verification failed: {:?}", err);
+                                None
+                            }
                         }
-
-                        _ => None,
                     })
                     .collect(),
                 ZKVMEngine::RISC0 => data
-                    .into_iter()
-                    .filter_map(|p| match p.proving_system {
-                        ProvingSystemId::Risc0 => {
-                            let mut image_id = [0u8; 32];
-                            image_id.copy_from_slice(p.vm_program_code?.as_slice());
-                            let public_inputs = p.pub_input?;
-                            let inner_receipt: risc0_zkvm::InnerReceipt =
-                                bincode::deserialize(&p.proof).ok()?;
+                    .into_par_iter()
+                    .filter_map(|p| {
+                        if p.proving_system != ProvingSystemId::Risc0 {
+                            return None;
+                        };
 
-                            let receipt = Receipt::new(inner_receipt, public_inputs);
-                            let risc0_proof = Risc0ProofReceiptAndImageId { image_id, receipt };
+                        let mut image_id = [0u8; 32];
+                        image_id.copy_from_slice(p.vm_program_code?.as_slice());
+                        let public_inputs = p.pub_input?;
+                        let inner_receipt: risc0_zkvm::InnerReceipt =
+                            bincode::deserialize(&p.proof).ok()?;
 
-                            Some(AlignedProof::Risc0(risc0_proof.into()))
+                        let receipt = Receipt::new(inner_receipt, public_inputs);
+                        let risc0_proof = Risc0ProofReceiptAndImageId::new(image_id, receipt);
+
+                        match risc0_proof {
+                            Ok(proof) => Some(AlignedProof::Risc0(proof.into())),
+                            Err(err) => {
+                                error!("Could not add proof, verification failed: {:?}", err);
+                                None
+                            }
                         }
-                        _ => None,
                     })
                     .collect(),
             };
@@ -163,15 +175,7 @@ impl ProofsFetcher {
                 return Ok(proofs);
             }
 
-            // try to add them to the queue
-            for proof in proofs_to_add {
-                if let Err(err) = proof.verify() {
-                    error!("Could not add proof, verification failed: {:?}", err);
-                    continue;
-                };
-
-                proofs.push(proof);
-            }
+            proofs.extend(proofs_to_add);
         }
 
         // Update last processed block after collecting logs
