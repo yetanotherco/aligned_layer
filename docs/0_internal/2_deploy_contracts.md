@@ -17,7 +17,7 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 - Install foundry
 
     ```shell
-    make install_foundry
+    make foundry_install
     foundryup -i nightly-a428ba6ad8856611339a6319290aade3347d25d9
     ```
   

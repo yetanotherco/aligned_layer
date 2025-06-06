@@ -132,11 +132,3 @@ Also, you must re-generate the Go smart contract bindings:
 ```bash
 make bindings
 ```
-
-### Deployment
-
-And finally you must rebuild go binaries, for Operator and Aggregator:
-
-```bash
-make build_binaries
-```

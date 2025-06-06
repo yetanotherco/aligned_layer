@@ -38,11 +38,11 @@ ifeq ($(OS),Linux)
 endif
 
 ifeq ($(OS),Linux)
-	BUILD_OPERATOR = $(MAKE) build_operator_linux 
+	BUILD_OPERATOR = $(MAKE) operator_build_linux
 endif
 
 ifeq ($(OS),Darwin)
-	BUILD_OPERATOR = $(MAKE) build_operator_macos
+	BUILD_OPERATOR = $(MAKE) operator_build_macos
 endif
 
 ifeq ($(ENVIRONMENT), devnet)
@@ -83,10 +83,10 @@ go_deps:
 	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
 	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
 
-install_foundry:
+foundry_install:
 	curl -L https://foundry.paradigm.xyz | bash
 
-install_eigenlayer_cli: ## Install Eigenlayer CLI v0.13.0
+eigenlayer_cli_install: ## Install Eigenlayer CLI v0.13.0
 	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.13.0
 
 __UTILS__: ## ____
@@ -96,6 +96,15 @@ bindings: ## Generate Go bindings for contracts
 
 lint_contracts: ## Lint Solidity contracts
 	@cd contracts && npm run lint:sol
+
+build_aligned_contracts: ## Build AlignedLayer contracts
+	@cd contracts/src/core && forge build --via-ir
+
+show_aligned_error_codes: ## Show AlignedLayer error codes
+	@echo "\nAlignedLayerServiceManager errors:"
+	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@echo "\nBatcherPaymentService errors:"
+	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
 
 __CONTRACTS_DEPLOYMENT_ANVIL__: ## ____
 
@@ -232,22 +241,22 @@ reset_last_aggregated_block:
 	@echo "Resetting last aggregated block..."
 	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
 
-start_proof_aggregator_dev: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with mock proofs (DEV mode)
+proof_aggregator_start_dev: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with mock proofs (DEV mode). Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator -- config-files/config-proof-aggregator-mock.yaml
 
-start_proof_aggregator: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated
+proof_aggregator_start: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated. Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove --bin proof_aggregator -- config-files/config-proof-aggregator.yaml
 
-start_proof_aggregator_dev_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with mock proofs (DEV mode) in ethereum package
+proof_aggregator_start_dev_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with mock proofs (DEV mode) in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator -- config-files/config-proof-aggregator-mock-ethereum-package.yaml
 
-start_proof_aggregator_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
+proof_aggregator_start_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
 
-start_proof_aggregator_gpu: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving + GPU acceleration (CUDA)
+proof_aggregator_start_gpu: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving + GPU acceleration (CUDA). Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator.yaml
 
-start_proof_aggregator_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
+proof_aggregator_start_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
 
 verify_aggregated_proof_sp1: 
@@ -274,24 +283,27 @@ verify_aggregated_proof_risc0:
 		--beacon_url $(BEACON_URL) \
 		--rpc_url $(RPC_URL)
 
-install_aggregation_mode: ## Install the aggregation mode with proving enabled
-	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator
+proof_aggregator_install: ## Install the aggregation mode with proving enabled
+	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator --locked
 
-agg_mode_write_program_ids: ## Write proof aggregator zkvm programs ids 
+proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
 	@cd aggregation_mode && ./scripts/build_programs.sh
 
 __AGGREGATOR__: ## ____
+
+aggregator_start: ## Start the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, AGG_CONFIG_FILE
+	$(GET_SDK_VERSION)
+	@echo "Starting Aggregator..."
+	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
+	2>&1 | zap-pretty
+
+aggregator_start_ethereum_package: ## Start the Aggregator with Ethereum package config. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, AGG_CONFIG_FILE
+	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
 
 aggregator_build: ## Build the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
 	$(GET_SDK_VERSION)
 	@echo "Building aggregator"
 	@go build -o ./build/aligned-aggregator ./aggregator/cmd/main.go
-
-aggregator_start: ## Start the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
-	$(GET_SDK_VERSION)
-	@echo "Starting Aggregator..."
-	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
-	2>&1 | zap-pretty
 
 aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
@@ -308,6 +320,9 @@ operator_start: ## Start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|m
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
+
+operator_start_ethereum_package: ## Start the Operator with Ethereum package config
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
 
 operator_set_eigen_sdk_go_version_testnet:
 	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_TESTNET)"
@@ -329,16 +344,21 @@ operator_full_registration: operator_get_eth operator_register_with_eigen_layer 
 
 operator_full_registration_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start ## Register the operator in EigenLayer and AlignedLayer, then start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 
+operator_full_registration_and_start_ethereum_package: ## Register the operator in EigenLayer and AlignedLayer, then start the Operator with Ethereum package config
+	$(MAKE) operator_full_registration CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
+
 operator_build: deps ## Build the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
 	$(GET_SDK_VERSION)
 	$(BUILD_OPERATOR)
 
-build_operator_macos:
+operator_build_macos:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
-build_operator_linux:
+operator_build_linux:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(OPERATOR_FFIS)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
@@ -432,8 +452,6 @@ operator_register_with_aligned_layer:
 	@go run operator/cmd/main.go register \
 		--config $(CONFIG_FILE)
 
-operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
-
 __BATCHER__: ## ____
 
 BURST_SIZE ?= 5
@@ -448,18 +466,29 @@ batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
 
-batcher_start_local: user_fund_payment_service
+batcher_start_local: user_fund_payment_service ## Start the Batcher locally. It runs LocalStack as S3 service.
 	@echo "Starting Batcher..."
-	@$(MAKE) run_storage &
+	@$(MAKE) storage_start &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
 
 batcher_start_local_no_fund:
 	@echo "Starting Batcher..."
-	@$(MAKE) run_storage &
+	@$(MAKE) storage_start &
 	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
 
-install_batcher:
+batcher_start_ethereum_package: user_fund_payment_service ## Start the Batcher with Ethereum package config. It runs LocalStack as S3 service.
+	@echo "Starting Batcher..."
+	@$(MAKE) storage_start &
+	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
+
+
+batcher_install: ## Install latest version of Batcher
 	@cargo install --path batcher/aligned-batcher
+
+__STORAGE__: ## ____
+storage_start: ## Run S3-storage using storage-docker-compose.yaml
+	@echo "Running storage..."
+	@docker compose -f storage-docker-compose.yaml up
 
 __ALIGNED_CLI__: ## ____
 
@@ -472,10 +501,10 @@ aligned_uninstall: ## Uninstall Aligned CLI
 aligned_install_compiling: ## Install Aligned CLI by compiling from source
 	@cargo install --path batcher/aligned
 
+__SEND_PROOFS__: ## ____
+
 batcher/target/release/aligned:
 	@cd batcher/aligned && cargo b --release
-
-__TASK_SENDER__: ## ____
 
 batcher_send_sp1_task: ## Send a SP1 fibonacci proof to Batcher. Parameters: RPC_URL, NETWORK
 	@echo "Sending SP1 fibonacci proof to Batcher..."
@@ -493,12 +522,12 @@ batcher_send_sp1_burst: ## Send a burst of SP1 fibonacci proofs to Batcher. Para
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
-		--repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_infinite_sp1: ## Send burst of SP1 fibonacci proofs to Batcher every certain time
+batcher_send_sp1_infinite: ## Send burst of SP1 fibonacci proofs to Batcher every certain time
 	@echo "Sending infinite SP1 fibonacci proofs to Batcher..."
 	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
 
@@ -530,8 +559,8 @@ batcher_send_risc0_burst: ## Send a burst of Risc0 fibonacci proofs to Batcher. 
 		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
         --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
         --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
-        --repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+        --repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
@@ -554,11 +583,11 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned ## Send a burst o
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
 		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
+batcher_send_plonk_bls12_381_task: batcher/target/release/aligned ## Send a Groth16 BLS12-381 1!=0 proof to Batcher. Parameters: RPC_URL, NETWORK
 	@echo "Sending Groth16 BLS12-381 1!=0 proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
@@ -569,7 +598,7 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
+batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned ## Send a burst of Groth16 BLS12-381 1!=0 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
 	@echo "Sending Groth16 BLS12-381 1!=0 proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
@@ -577,11 +606,11 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--repetitions 15 \
+		--repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_groth16_bn254_task: batcher/target/release/aligned
+batcher_send_groth16_bn254_task: batcher/target/release/aligned ## Send a Groth16Bn254 1!=0 proof to Batcher. Parameters: RPC_URL, NETWORK
 	@echo "Sending Groth16Bn254 1!=0 proof to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
@@ -592,20 +621,28 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
-	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
-	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
-	@./batcher/aligned/send_infinite_tasks.sh 4
+batcher_send_groth16_bn254_burst: batcher/target/release/aligned ## Send a burst of Groth16Bn254 1!=0 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Groth16Bn254 1!=0 proof to Batcher..."
+	@cd batcher/aligned/ && cargo run --release -- submit \
+		--proving_system Groth16Bn254 \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
 
-batcher_send_burst_groth16: batcher/target/release/aligned
+## TODO: send_burst_tasks.sh and send_infinite_tasks.sh does a similar thing. We could delete one
+batcher_send_groth16_bn254_infinite: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds. Parameters: BURST_SIZE, START_COUNTER
 	@echo "Sending a burst of proofs to Batcher..."
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
-batcher_send_proof_with_random_address:
+batcher_send_proof_with_random_address: ## Send a proof with a random address to Batcher. Parameters: RPC_URL, NETWORK, PROOF_TYPE, REPETITIONS
 	@cd batcher/aligned/ && ./send_proof_with_random_address.sh
 
-batcher_send_burst_with_random_address:
+batcher_send_burst_with_random_address: ## Send a burst of proofs with random addresses to Batcher. Parameters: RPC_URL, NETWORK, PROOF_TYPE, REPETITIONS
 	@cd batcher/aligned/ && ./send_burst_with_random_address.sh
 
 __TASK_SENDER__:
@@ -681,17 +718,17 @@ aligned_get_user_balance_holesky:
 		--network holesky \
 		--user_addr $(USER_ADDR)
 
-__GENERATE_PROOFS__:
+__GENERATE_PROOFS__: ## ____
 generate_sp1_fibonacci_proof: ## Run the SP1 Fibonacci proof generator script
 	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
-generate_risc_zero_fibonacci_proof:
+generate_risc_zero_fibonacci_proof: ## Run the Risc0 Fibonacci proof generator script
 	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
 	RUST_LOG=info cargo run --release && \
 	echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
 
-generate_risc_zero_empty_journal_proof:
+generate_risc_zero_empty_journal_proof: ## Run the Risc0 Fibonacci proof generator script with empty journal
 	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
 	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
 
@@ -711,24 +748,8 @@ generate_gnark_groth16_bn254_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254_ineq script..."
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
-__METRICS__:
-# Prometheus and Grafana
-metrics_remove_containers:
-	@docker stop prometheus grafana
-	@docker rm prometheus grafana
-metrics_clean_db: metrics_remove_containers
-	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
 
-run_metrics: ## Run metrics using metrics-docker-compose.yaml
-	@echo "Running metrics..."
-	@docker compose -f metrics-docker-compose.yaml up
-
-__STORAGE__:
-run_storage: ## Run storage using storage-docker-compose.yaml
-	@echo "Running storage..."
-	@docker compose -f storage-docker-compose.yaml up
-
-__DEPLOYMENT__: ## ____
+__CONTRACTS_DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
 	@. co	ntracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
@@ -791,31 +812,13 @@ upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters
 	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_batcher_payment_service.sh
 
-deploy_proof_aggregator:
+deploy_proof_aggregator: ## Deploy ProofAggregator contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Deploying ProofAggregator contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
 
-upgrade_proof_aggregator:
+upgrade_proof_aggregator: ## Upgrade ProofAggregator contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
-
-build_aligned_contracts:
-	@cd contracts/src/core && forge build --via-ir
-
-show_aligned_error_codes:
-	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors  
-	@echo "\nBatcherPaymentService errors:"
-	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
-
-__BUILD__:
-build_binaries:
-	@echo "Building aggregator..."
-	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
-	@echo "Aggregator built into /aggregator/build/aligned-aggregator"
-	@echo "Building aligned layer operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
-	@echo "Aligned layer operator built into /operator/build/aligned-operator"
 
 __SP1_FFI__: ##
 build_sp1_macos:
@@ -882,7 +885,7 @@ test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
 
-__BUILD_ALL_FFI__:
+__FFI__: ## ____
 
 build_all_ffi: ## Build all FFIs
 	$(BUILD_ALL_FFI)
@@ -902,25 +905,19 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_merkle_tree_linux
 	@echo "All Linux FFIs built successfully."
 
-__EXPLORER__:
+__EXPLORER__: ## ____
 
-run_explorer_without_docker_db: explorer_ecto_setup_db
+explorer_start: explorer_start_db explorer_ecto_setup_db ## Start the Explorer with the database
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
 		mix setup && \
 		./start.sh
 
-run_explorer: explorer_run_db explorer_ecto_setup_db
-	@cd explorer/ && \
-		pnpm install --prefix assets && \
-		mix setup && \
-		./start.sh
-
-explorer_build_db:
+explorer_build_db: ## Build the Explorer database image
 	@cd explorer && \
 		docker build -t explorer-postgres-image .
 
-explorer_run_db: explorer_remove_db_container
+explorer_start_db: explorer_remove_db_container
 	@cd explorer && \
 		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
 
@@ -933,16 +930,16 @@ explorer_remove_db_container:
 		docker stop explorer-postgres-container || true  && \
 		docker rm explorer-postgres-container || true
 
-explorer_clean_db: explorer_remove_db_container
+explorer_clean_db: explorer_remove_db_container ## Remove the Explorer database container and volume
 	@cd explorer && \
 		docker volume rm explorer-postgres-data || true
 
-explorer_dump_db:
+explorer_dump_db: ## Dump the Explorer database to a file
 	@cd explorer && \
 		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /explorer"
 
-explorer_recover_db: explorer_run_db
+explorer_recover_db: explorer_start_db ## Recover the Explorer database from a dump file
 	@read -p $$'\e[32mEnter the dump file to recover (e.g., dump.20230607_123456.sql): \e[0m' DUMP_FILE && \
 	cd explorer && \
 	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
@@ -1192,44 +1189,54 @@ docker_logs_operator:
 docker_logs_batcher:
 	docker compose -f docker-compose.yaml logs batcher -f
 
-__TELEMETRY__:
-# Collector, Jaeger and Elixir API
-telemetry_full_start: telemetry_compile_bls_verifier open_telemetry_start telemetry_start
+__TELEMETRY__: ## ____
+# TODO maybe add a target to run both metrics and telemetry
 
-# Collector and Jaeger
-open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
+metrics_start: ## Run metrics (prometheus, grafana) using metrics-docker-compose.yaml
+	@echo "Running metrics..."
+	@docker compose -f metrics-docker-compose.yaml up
+
+metrics_remove_containers: ## Remove Prometheus and Grafana containers
+	@docker stop prometheus grafana
+	@docker rm prometheus grafana
+
+metrics_clean_db: metrics_remove_containers ## Remove Prometheus and Grafana volumes
+	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
+
+telemetry_start_all: telemetry_compile_bls_verifier open_telemetry_start telemetry_start ## Run all telemetry services (open telemetry, telemetry API)
+
+open_telemetry_start: ## Run open telemetry services (otel collector, jaeger, cassandra) using telemetry-docker-compose.yaml
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
 
-open_telemetry_prod_start: ## Run open telemetry services with Cassandra using telemetry-prod-docker-compose.yaml
+open_telemetry_prod_start: # TODO check if we are using this target
 	@echo "Running telemetry for Prod..."
 	@docker compose -f telemetry-prod-docker-compose.yaml up -d
 
-# Elixir API
-telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
+telemetry_start: telemetry_start_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
 	 	./start.sh
 
-telemetry_ecto_migrate: ##
+telemetry_ecto_migrate: ## Run Ecto migrations for Telemetry API
 		@cd telemetry_api && \
 			./ecto_setup_db.sh
 
-telemetry_build_db:
+telemetry_build_db: ## Build the Telemetry database image
 	@cd telemetry_api && \
 		docker build -t telemetry-postgres-image .
 
-telemetry_run_db: telemetry_build_db telemetry_remove_db_container
+telemetry_start_db: telemetry_build_db telemetry_remove_db_container ## Run the Telemetry database container
 	@cd telemetry_api && \
 		docker run -d --name telemetry-postgres-container -p 5434:5432 -v telemetry-postgres-data:/var/lib/postgresql/data telemetry-postgres-image
 
-telemetry_remove_db_container:
+telemetry_remove_db_container: ## Remove the Telemetry database container
 	@docker stop telemetry-postgres-container || true  && \
 	    docker rm telemetry-postgres-container || true
 
-telemetry_clean_db: telemetry_remove_db_container
+telemetry_clean_db: telemetry_remove_db_container ## Remove the Telemetry database container and volume
 	@docker volume rm telemetry-postgres-data || true
 
-telemetry_dump_db:
+telemetry_dump_db: ## Dump the Telemetry database to a file
 	@cd telemetry_api && \
 		docker exec -t telemetry-postgres-container pg_dumpall -c -U telemetry_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /telemetry_api"
@@ -1238,11 +1245,11 @@ telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
 
-telemetry_compile_bls_verifier:
+telemetry_compile_bls_verifier: ## Compile the BLS verifier for Telemetry API
 	@cd telemetry_api/priv && \
 	go build ../bls_verifier/bls_verify.go
 
-setup_local_aligned_all:
+setup_local_aligned_all: # TODO check if we are using this target
 	tmux kill-session -t aligned_layer || true
 	tmux new-session -d -s aligned_layer
 
@@ -1253,16 +1260,16 @@ setup_local_aligned_all:
 	tmux send-keys -t aligned_layer:aggregator 'make aggregator_start' C-m
 
 	tmux new-window -t aligned_layer -n operator
-	tmux send-keys -t aligned_layer:operator 'sleep 5 && make operator_register_and_start' C-m
+	tmux send-keys -t aligned_layer:operator 'sleep 5 && make operator_full_registration_and_start' C-m
 
 	tmux new-window -t aligned_layer -n batcher
 	tmux send-keys -t aligned_layer:batcher 'sleep 60 && make batcher_start_local' C-m
 
 	tmux new-window -t aligned_layer -n explorer
-	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make run_explorer' C-m
+	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make explorer_start' C-m
 
 	tmux new-window -t aligned_layer -n telemetry
-	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m
+	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_start_db && make open_telemetry_start && make telemetry_start' C-m
 
 __ANSIBLE__: ## ____
 
@@ -1313,16 +1320,16 @@ ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
 		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
 		-e "bls_keystore_path=$(BLS_KEYSTORE)"
 
-ansible_explorer_deploy:
+ansible_explorer_deploy: ## Deploy the Explorer. Parameters: INVENTORY
 	@ansible-playbook infra/ansible/playbooks/explorer.yaml \
 		-i $(INVENTORY)
 
-ansible_telemetry_create_env:
+ansible_telemetry_create_env: ## Create empty variables files for the Telemetry deploy
 	@cp -n infra/ansible/playbooks/ini/config-telemetry.ini.example infra/ansible/playbooks/ini/config-telemetry.ini
 	@echo "Config files for Telemetry created in infra/ansible/playbooks/ini"
 	@echo "Please complete the values and run make ansible_telemetry_deploy"
 
-ansible_telemetry_deploy:
+ansible_telemetry_deploy: ## Deploy the Telemetry. Parameters: INVENTORY
 	@ansible-playbook infra/ansible/playbooks/telemetry.yaml \
 		-i $(INVENTORY)
 
@@ -1338,23 +1345,11 @@ ethereum_package_rm: ## Stops and removes the ethereum_package environment and u
 	kurtosis enclave rm aligned -f
 	kurtosis engine stop
 
-batcher_start_ethereum_package: user_fund_payment_service
-	@echo "Starting Batcher..."
-	@$(MAKE) run_storage &
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
-
-aggregator_start_ethereum_package:
-	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
-
-operator_start_ethereum_package:
-	$(MAKE) operator_start ENVIRONMENT=devnet OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
-
-operator_register_start_ethereum_package:
-	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
-	$(MAKE) operator_start ENVIRONMENT=devnet OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
 
 
-install_spamoor: ## Instal spamoor to spam transactions
+
+
+spamoor_install: ## Instal spamoor to spam transactions
 	@echo "Installing spamoor..."
 	@git clone https://github.com/ethpandaops/spamoor.git
 	@cd spamoor && make
@@ -1381,7 +1376,7 @@ spamoor_send_transactions: ## Sends normal transactions and also replacement tra
 		--refill-amount 5 --refill-balance 2 --tipfee $(TIP_FEE) --basefee 100  \
 		2>&1 | grep -v 'checked child wallets (no funding needed)'
 
-__NODE_EXPORTER_: ##__
+__NODE_EXPORTER_:
 
 install_node_exporter:
 	@./scripts/install_node_exporter.sh

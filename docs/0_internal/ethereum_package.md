@@ -40,7 +40,7 @@ make aggregator_start_ethereum_package
 To start an operator run:
 
 ```bash
-make operator_register_start_ethereum_package
+make operator_full_registration_and_start_ethereum_package
 ```
 
 If you want to deploy more operators, you must duplicate the config-operator-1-ethereum-package.yaml and change the private and bls keys and the address.
@@ -48,13 +48,13 @@ If you want to deploy more operators, you must duplicate the config-operator-1-e
 To start Telemetry and the Explorer, run the usual commands:
 
 ```bash
-make telemetry_full_start
-make run_explorer
+make telemetry_start_all
+make explorer_start
 ```
 
 To spam transactions install spamoor:
 ```bash
-make install_spamoor
+make spamoor_install
 ```
 
 and run the following make targets:

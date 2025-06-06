@@ -19,7 +19,7 @@ make anvil_start
 3. Start batcher
 
 ```shell
-make start_batcher_local
+make batcher_start_local
 ```
 
 4. Send SP1/Risc0 proofs:
@@ -38,13 +38,13 @@ Notes:
 
 ```shell
 # This will not run a real prover but a mocked one see below to run a real prover
-make start_proof_aggregator_dev AGGREGATOR="sp1|risc0"
+make proof_aggregator_start_dev AGGREGATOR="sp1|risc0"
 ```
 
 or
 
 ```shell
-make start_proof_aggregator AGGREGATOR="sp1|risc0"
+make proof_aggregator_start AGGREGATOR="sp1|risc0"
 ```
 
 Notes:
@@ -53,7 +53,7 @@ Notes:
 -   Proving can be quite slow without GPUs, to activate gpu run:
 
 ```shell
-make start_proof_aggregator_gpu AGGREGATOR="sp1|risc0"
+make proof_aggregator_start_gpu AGGREGATOR="sp1|risc0"
 ```
 
 ### Check the logs
@@ -69,7 +69,7 @@ cast logs 0xc351628EB244ec633d5f21fBD6621e1a683B1181 'AggregatedProofVerified(by
 Whenever any of the programs change, you must recompile them and update their corresponding program ids in `aggregation_mode/program_ids.json`. To do this, run the following command:
 
 ```shell
-make agg_mode_write_program_ids
+make proof_aggregator_write_program_ids
 ```
 
 We are using docker to produce deterministic builds so that the program ids are the same for all systems.

@@ -47,11 +47,7 @@ If EigenLayer contracts change, the anvil state needs to be updated with:
 make anvil_deploy_eigen_contracts
 ```
 
-You will also need to redeploy the MockStrategy & MockERC20 contracts:
-
-```bash
-make anvil_deploy_mock_strategy
-```
+This also deploys an ERC20 token with a strategy that can be used to test the EigenLayer restaking.
 
 ### Aligned Contracts
 
@@ -80,7 +76,7 @@ make aggregator_start ENVIRONMENT=devnet
 or with a custom config:
 
 ```bash
-make aggregator_start ENVIRONMENT=devnet CONFIG_FILE=<path_to_config_file>
+make aggregator_start ENVIRONMENT=devnet AGG_CONFIG_FILE=<path_to_config_file>
 ```
 
 ## Operator
@@ -88,13 +84,13 @@ make aggregator_start ENVIRONMENT=devnet CONFIG_FILE=<path_to_config_file>
 To setup an [Operator](../2_architecture/components/4_operator.md) run:
 
 ```bash
-make operator_register_and_start ENVIRONMENT=devnet
+make operator_full_registration_and_start ENVIRONMENT=devnet
 ```
 
 or with a custom config:
 
 ```bash
-make operator_register_and_start ENVIRONMENT=devnet CONFIG_FILE=<path_to_config_file>
+make operator_full_registration_and_start ENVIRONMENT=devnet CONFIG_FILE=<path_to_config_file>
 ```
 
 Different configs for operators can be found in `config-files/config-operator`.
@@ -161,7 +157,7 @@ Then start the explorer:
 
 ```shell
 make explorer_build_db
-make run_explorer
+make explorer_start
 ```
 
 This will:
@@ -169,12 +165,6 @@ This will:
 - Start a postgres docker container
 - Run ecto setup
 - Start the explorer on http://localhost:4000.
-
-If you want to run the explorer without docker run:
-
-```shell
-make run_explorer_without_docker_db
-```
 
 <details>
 <summary>Clean, dump and recover DB</summary>
@@ -245,7 +235,7 @@ Ensure you have the following installed:
 To run Prometheus and Grafana, run:
 
 ```bash
-make run_metrics
+make metrics_start
 ```
 
 This will start containers for Prometheus and Grafana. You can access Grafana on `http://localhost:3000` with the default credentials `admin:admin`.
@@ -266,12 +256,12 @@ make telemetry_build_db
 Then, to start the service:
 
 ```bash
-make telemetry_full_start
+make telemetry_start_all
 ```
 
 This will:
 
-- Start OpenJaeger container for the traces: available at `http://localhost:16686/`
+- Start OpenTelemetry and Jaeger containers for the traces: available at `http://localhost:16686/`
 - Start telemetry server: available at `http://localhost:4001/`
 
 ---
@@ -295,7 +285,7 @@ make batcher_send_risc0_burst BURST_SIZE=<N>
 Send an infinite stream of groth_16 proofs:
 
 ```shell
-make batcher_send_burst_groth16 BURST_SIZE=2
+make batcher_send_groth16_bn254_infinite BURST_SIZE=2
 ```
 
 Feel free to explore the rest of targets.
