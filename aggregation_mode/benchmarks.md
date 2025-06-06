@@ -4,7 +4,7 @@
 
 -   **GPU**: NVIDIA RTX 3090 (24GB VRAM)
 -   **RAM**: 32GB
--   **CPU**: AMD EPYC 7443 (24-Core)
+-   **CPU**: AMD EPYC 7443 (16-Core)
 -   **Operating System**: Ubuntu
 
 ## Benchmark Setup
@@ -23,11 +23,15 @@
 
 The step by step to run the benchmarks:
 
-1. Deploy aligned infrastructure locally with `ethereum-package`.
+1. Deploy aligned infrastructure locally with `ethereum-package`, see the [guide here](https://github.com/yetanotherco/aligned_layer/blob/testnet/docs/0_internal/ethereum_package.md).
 2. Fund a wallet on aligned, for example with rich account number 7:
+```shell
+# Install aligned cli
+make aligned_install_compiling
+```
 
 ```shell
-cargo run --release -- deposit-to-batcher \
+aligned deposit-to-batcher \
     --network devnet \
     --private_key 0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356 \
     --amount 1ether
@@ -36,25 +40,23 @@ cargo run --release -- deposit-to-batcher \
 3. Send `3968` fibonacci proofs for `Risc0` and `Sp1`:
 
 ```shell
-cd batcher/aligned
-
 ## Send SP1 Proofs
-cargo run --release -- submit \
+aligned submit \
     --proving_system SP1 \
-    --proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
-    --vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
-    --repetitions 1000 \
+    --proof scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+    --vm_program scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+    --repetitions 3968 \
     --private_key 0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356 \
     --instant_fee_estimate \
     --network devnet \
     --random_address
 
 ## Send Risc0 Proofs
- cargo run --release -- submit \
+aligned submit \
     --proving_system Risc0 \
-    --proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \       -
-    --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-    --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+    --proof scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
+    --vm_program scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
+    --public_input scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
     --repetitions 3968 \
     --private_key 0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356
 ```
@@ -77,9 +79,9 @@ time make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=risc0
 
 **Performance Summary:**
 
--   **Verification Time (Start to Aggregation Start)**: **4 minutes 56 seconds**
--   **Aggregation Time (Agg to End)**: **132.93 minutes**
--   **Total Time (Start to End)**: **137.87 minutes**
+-   **Verification Time**: **4 minutes 56 seconds**
+-   **Aggregation Time**: **132.93 minutes**
+-   **Total Time**: **137.87 minutes**
 
 ---
 
@@ -91,9 +93,9 @@ time make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=risc0
 
 **Performance Summary:**
 
--   **Verification Time (Start to Aggregation Start)**: **33 minutes 45 seconds**
--   **Aggregation Time (Agg to End)**: **31 minutes 47 seconds**
--   **Total Time (Start to End)**: **92 minutes**
+-   **Verification Time**: **33 minutes 45 seconds**
+-   **Aggregation Time**: **31 minutes 47 seconds**
+-   **Total Time**: **92 minutes**
 
 ---
 
