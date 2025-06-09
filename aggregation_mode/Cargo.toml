@@ -19,7 +19,7 @@ ciborium = "=0.2.2"
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
 rayon = "1.10.0"
 # Necessary for the VerificationData type
-aligned-sdk = { path = "../batcher/aligned-sdk" }
+aligned-sdk = { path = "../crates/sdk/" }
 # zkvms
 sp1-sdk = "5.0.0"
 sp1_aggregation_program = { path = "./aggregation_programs/sp1" }

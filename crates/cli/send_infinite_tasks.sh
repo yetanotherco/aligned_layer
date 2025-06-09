@@ -26,7 +26,7 @@ do
 
     go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $counter
 
-    cd ./batcher/aligned && cargo run --release -- submit \
+    cd ./crates/cli && cargo run --release -- submit \
     --proving_system Groth16Bn254 \
     --proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16_0_12_0.proof \
     --public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${counter}_groth16_0_12_0.pub \

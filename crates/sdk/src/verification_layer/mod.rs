@@ -178,7 +178,7 @@ pub async fn calculate_fee_per_proof_for_batch_of_size(
 
     // Price of 1 proof in a batch of size `num_proofs_in_batch` i.e. (1 / `num_proofs_in_batch`).
     // The computed price is adjusted with respect to the percentage multiplier from:
-    // https://github.com/yetanotherco/aligned_layer/blob/staging/batcher/aligned-batcher/src/lib.rs#L1401
+    // https://github.com/yetanotherco/aligned_layer/blob/staging/crates/batcher/src/lib.rs#L1401
     let fee_per_proof = (U256::from(estimated_gas_per_proof)
         * gas_price
         * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))

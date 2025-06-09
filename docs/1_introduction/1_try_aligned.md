@@ -14,15 +14,15 @@ We will download a previously generated SP1 proof, send it to Aligned for verifi
 1. Download and install Aligned to send proofs in the testnet:
 
 ```bash
-curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/crates/cli/install_aligned.sh | bash
 ```
 
-2. Run the ```source``` command that should appear in the shell
+2. Run the `source` command that should appear in the shell
 
 3. Download the example SP1 proof file together with the ELF file of the proved program using:
 
 ```bash
-curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/get_proof_test_files.sh | bash
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/crates/cli/get_proof_test_files.sh | bash
 ```
 
 4. Send the proof to be verified in Aligned with
@@ -56,7 +56,7 @@ Use the link in the response to check the status of your transaction in the Alig
 aligned verify-proof-onchain \
 --aligned-verification-data ~/.aligned/aligned_verification_data/*.cbor \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com \
---network holesky 
+--network holesky
 ```
 
 This is reading the result of the proof verification in Ethereum.
@@ -74,9 +74,10 @@ If the proof wasn't verified, you should get this result:
 ```
 
 Aligned works in:
-- macOS Arm64 (M1 or higher)
-- Linux x86 with GLIBC_2.32 or superior (For example, Ubuntu 22.04 or higher)
+
+-   macOS Arm64 (M1 or higher)
+-   Linux x86 with GLIBC_2.32 or superior (For example, Ubuntu 22.04 or higher)
 
 If you don't meet these requirements, you can compile the binaries yourself following the [README](https://github.com/yetanotherco/aligned_layer)
 
-To try Aligned with other proving systems, check [this](../3_guides/0_submitting_proofs.md) guide 
+To try Aligned with other proving systems, check [this](../3_guides/0_submitting_proofs.md) guide

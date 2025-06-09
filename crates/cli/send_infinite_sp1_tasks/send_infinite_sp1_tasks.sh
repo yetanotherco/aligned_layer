@@ -18,7 +18,7 @@ if [ -z "$NETWORK" ]; then
     NETWORK="devnet"
 fi
 
-cd ./batcher/aligned
+cd ./crates/cli
 
 while true
 do

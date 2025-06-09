@@ -7,7 +7,7 @@ cache
 **/build
 **/target
 scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/**
-batcher/aligned/batch_inclusion_responses/*
+crates/cli/batch_inclusion_responses/*
 **/aligned_verification_data
 **/broadcast
 volume

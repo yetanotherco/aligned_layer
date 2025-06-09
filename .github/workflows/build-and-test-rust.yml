@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: ["*"]
     paths:
-      - "batcher/**"
+      - "crates/**"
       - "aggregation_mode/**"
       - ".github/workflows/build-and-test-rust.yml"
 
@@ -43,24 +43,24 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            batcher/target
+            crates/target
           key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
 
-      - name: Check formatting of Batcher
+      - name: Check formatting
         run: |
-          cd batcher
+          cd crates
           cargo fmt --all -- --check
 
-      - name: Run Clippy on Batcher
+      - name: Run Clippy
         run: |
-          cd batcher
+          cd crates
           cargo clippy --all -- -D warnings
 
       - name: Build Batcher
         run: |
-          cd batcher
+          cd crates
           cargo build --all
 
       - name: Check formatting of AggregationMode
@@ -108,14 +108,14 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            batcher/target
+            crates/target
           key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
 
       - name: Run Batcher tests
         run: |
-          cd batcher
+          cd crates
           cargo test --all
 
       - name: Run AggregationMode tests
