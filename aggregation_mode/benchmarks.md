@@ -25,6 +25,7 @@ The step by step to run the benchmarks:
 
 1. Deploy aligned infrastructure locally with `ethereum-package`, see the [guide here](https://github.com/yetanotherco/aligned_layer/blob/testnet/docs/0_internal/ethereum_package.md).
 2. Fund a wallet on aligned, for example with rich account number 7:
+
 ```shell
 # Install aligned cli
 make aligned_install_compiling
@@ -82,6 +83,8 @@ time make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=risc0
 -   **Verification Time**: **4 minutes 56 seconds**
 -   **Aggregation Time**: **132.93 minutes**
 -   **Total Time**: **137.87 minutes**
+-   **Aggregation time per proof**: **2 seconds**
+-   **Total time per proof**: **2,1 seconds**
 
 ---
 
@@ -96,16 +99,20 @@ time make start_proof_aggregator_gpu_ethereum_package AGGREGATOR=risc0
 -   **Verification Time**: **33 minutes 45 seconds**
 -   **Aggregation Time**: **31 minutes 47 seconds**
 -   **Total Time**: **92 minutes**
+-   **Aggregation time per proof**: **0,5 seconds**
+-   **Total time per proof**: **1,4 seconds**
 
 ---
 
 ## Comparison Summary
 
-|                   | Risc0        | SP1           |
-| ----------------- | ------------ | ------------- |
-| Verification Time | 4 min 56 sec | 33 min 45 sec |
-| Aggregation Time  | 132.93 min   | 31 min 47 sec |
-| Total Time        | 137.87 min   | 92 min        |
+|                            | Risc0        | SP1           |
+| -------------------------- | ------------ | ------------- |
+| Verification Time          | 4 min 56 sec | 33 min 45 sec |
+| Aggregation Time           | 132.93 min   | 31 min 47 sec |
+| Total Time                 | 137.87 min   | 92 min        |
+| Aggregation Time per Proof | 2 seconds    | 0,5 seconds   |
+| Total Time per Proof       | 2,1 seconds  | 1,4 seconds   |
 
-> **Note**:  
+> **Note**:
 > SP1 longer verification time is due to the big overhead in setting up the prover client to verify the proof when it is fetched.
