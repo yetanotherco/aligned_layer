@@ -187,6 +187,32 @@ impl ProofAggregator {
             .map_err(AggregatedProofSubmissionError::ReceiptError)
     }
 
+    /// ### Blob capacity
+    ///
+    /// As dictated in [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844), each blob can hold:
+    ///
+    /// - `FIELD_ELEMENTS_PER_BLOB = 4096`
+    /// - `BYTES_PER_FIELD_ELEMENT = 32`
+    ///
+    /// This gives a total theoretical capacity of:
+    ///
+    /// `FIELD_ELEMENTS_PER_BLOB * BYTES_PER_FIELD_ELEMENT = 4096 * 32 = 131072 bytes`
+    ///
+    /// However, this full capacity isn't usable due to the encoding of KZG commitments to elliptic curve points.
+    /// Specifically:
+    ///
+    /// - Ethereum uses the BLS12-381 curve, whose scalar field modulus is slightly less than `2^256`
+    ///   (closer to `2^255`).
+    /// - Therefore, 32-byte field elements can't represent all 256-bit values.
+    /// - To ensure values are within the field modulus, we **pad with a leading `0x00` byte**,
+    ///   effectively capping values below the modulus.
+    /// - This reduces the usable payload to **31 bytes per field element**.
+    ///
+    /// So, the _actual usable capacity_ per blob is:
+    ///
+    /// `4096 * 31 = 126976 bytes`
+    ///
+    /// Meaning that we can send as much as 126976 / 32 = 3968 proofs per blob
     async fn construct_blob(
         &self,
         leaves: Vec<[u8; 32]>,
