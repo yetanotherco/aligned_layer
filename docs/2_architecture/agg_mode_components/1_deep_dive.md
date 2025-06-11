@@ -18,7 +18,7 @@ The Aggregation Mode runs **once every 24 hours** and performs the following ste
    The final aggregated proof and its blob are sent to the `AlignedProofAggregationService` contract for verification.
 
 > [Note]
-> Currently if you want your proof to be verified in the `AggregationMode` you need to submit it via the `VerificationLayer`. As explained above, in the next run the `AggregationMode` will fetch your proof from the `VerificationLayer` batches in spite of its verification status.
+> Currently if you want your proof to be verified in the `AggregationMode` you need to submit it via the `VerificationLayer`. In the future, users will be able to decide if they want to use any of the modes in particular or both of them
 
 ## Aggregators and Supported Proof Types
 
