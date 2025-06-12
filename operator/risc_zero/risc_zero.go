@@ -25,7 +25,7 @@ func VerifyRiscZeroReceipt(innerReceiptBuffer []byte, imageIdBuffer []byte, publ
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			err = fmt.Errorf("Panic was caught while verifying risc0 proof: %s", rec)
+			err = fmt.Errorf("panic was caught while verifying risc0 proof: %s", rec)
 		}
 	}()
 
@@ -42,7 +42,7 @@ func VerifyRiscZeroReceipt(innerReceiptBuffer []byte, imageIdBuffer []byte, publ
 	}
 
 	if r == -1 {
-		err = fmt.Errorf("Panic happened on FFI while verifying risc0 proof")
+		err = fmt.Errorf("panic happened on FFI while verifying risc0 proof")
 		return isVerified, err
 	}
 

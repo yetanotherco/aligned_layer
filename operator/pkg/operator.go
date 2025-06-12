@@ -138,12 +138,12 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasksV2() (chan error, error) {
-	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2)
+func (o *Operator) SubscribeToNewTasksV2(errorPairChan chan chainio.ErrorPair) *chainio.ErrorPair {
+	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2, errorPairChan)
 }
 
-func (o *Operator) SubscribeToNewTasksV3() (chan error, error) {
-	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3)
+func (o *Operator) SubscribeToNewTasksV3(errorPairChan chan chainio.ErrorPair) *chainio.ErrorPair {
+	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3, errorPairChan)
 }
 
 type OperatorLastProcessedBatch struct {
@@ -203,13 +203,16 @@ func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
 }
 
 func (o *Operator) Start(ctx context.Context) error {
-	subV2, err := o.SubscribeToNewTasksV2()
-	if err != nil {
+	// create a new channel to foward errors
+	subV2ErrorChannel := make(chan chainio.ErrorPair)
+	errorPair := o.SubscribeToNewTasksV2(subV2ErrorChannel)
+	if errorPair != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
 
-	subV3, err := o.SubscribeToNewTasksV3()
-	if err != nil {
+	subV3ErrorChannel := make(chan chainio.ErrorPair)
+	errorPair = o.SubscribeToNewTasksV3(subV3ErrorChannel)
+	if errorPair != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
 
@@ -229,16 +232,16 @@ func (o *Operator) Start(ctx context.Context) error {
 			return nil
 		case err := <-metricsErrChan:
 			o.Logger.Errorf("Metrics server failed", "err", err)
-		case err := <-subV2:
-			o.Logger.Infof("Error in websocket subscription", "err", err)
-			subV2, err = o.SubscribeToNewTasksV2()
-			if err != nil {
+		case errorPair := <-subV2ErrorChannel:
+			o.Logger.Infof("Error in websocket subscription", "err", errorPair)
+			errorPairPtr := o.SubscribeToNewTasksV2(subV2ErrorChannel)
+			if errorPairPtr != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V2")
 			}
-		case err := <-subV3:
-			o.Logger.Infof("Error in websocket subscription", "err", err)
-			subV3, err = o.SubscribeToNewTasksV3()
-			if err != nil {
+		case errorPair := <-subV3ErrorChannel:
+			o.Logger.Infof("Error in websocket subscription", "err", errorPair)
+			errorPairPtr := o.SubscribeToNewTasksV3(subV3ErrorChannel)
+			if errorPairPtr != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
 		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
@@ -246,7 +249,7 @@ func (o *Operator) Start(ctx context.Context) error {
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
 			go o.handleNewBatchLogV3(newBatchLogV3)
 		case blockNumber := <-o.lastProcessedBatch.batchProcessedChan:
-			err = o.UpdateLastProcessBatch(blockNumber)
+			err := o.UpdateLastProcessBatch(blockNumber)
 			if err != nil {
 				o.Logger.Errorf("Error while updating last process batch", "err", err)
 			}

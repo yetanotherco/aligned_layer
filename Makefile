@@ -3,11 +3,23 @@
 SHELL := /bin/bash
 OS := $(shell uname -s)
 
+NETWORK ?= devnet # devnet | holesky-stage | holesky
+ifeq ($(NETWORK),holesky)
+	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
+	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+else ifeq ($(ENVIRONMENT), holesky-stage)
+	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
+	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+else
+	RPC_URL ?= http://localhost:8545
+	BEACON_URL ?= http://localhost:58801
+endif
+
 CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.15.2
+OPERATOR_VERSION=v0.16.1
 EIGEN_SDK_GO_VERSION_DEVNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
@@ -190,29 +202,29 @@ start_proof_aggregator_gpu: is_aggregator_set reset_last_aggregated_block ## Sta
 start_proof_aggregator_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ## Starts proof aggregator with proving activated in ethereum package
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --features prove,gpu --bin proof_aggregator -- config-files/config-proof-aggregator-ethereum-package.yaml
 
-verify_aggregated_proof_sp1_holesky_stage: 
-	@echo "Verifying SP1 in aggregated proofs on holesky..."
+verify_aggregated_proof_sp1: 
+	@echo "Verifying SP1 in aggregated proofs on $(NETWORK)..."
 	@cd batcher/aligned/ && \
 	cargo run verify-agg-proof \
-		--network holesky-stage \
+		--network $(NETWORK) \
 		--from-block $(FROM_BLOCK) \
 		--proving_system SP1 \
-		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.pub \
-		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.vk \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
+		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
 		--beacon_url $(BEACON_URL) \
-		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+		--rpc_url $(RPC_URL)
 
-verify_aggregated_proof_risc0_holesky_stage: 
-	@echo "Verifying RISC0 in aggregated proofs on holesky..."
+verify_aggregated_proof_risc0: 
+	@echo "Verifying RISC0 in aggregated proofs on $(NETWORK)..."
 	@cd batcher/aligned/ && \
 	cargo run verify-agg-proof \
-		--network holesky-stage \
+		--network $(NETWORK) \
 		--from-block $(FROM_BLOCK) \
 		--proving_system Risc0 \
 		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
 		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
 		--beacon_url $(BEACON_URL) \
-		--rpc_url https://ethereum-holesky-rpc.publicnode.com
+		--rpc_url $(RPC_URL)
 
 install_aggregation_mode: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator
@@ -457,16 +469,12 @@ build_batcher_client:
 batcher/target/release/aligned:
 	@cd batcher/aligned && cargo b --release
 
-
-RPC_URL=http://localhost:8545
-NETWORK=devnet # devnet | holesky-stage | holesky
-
 batcher_send_sp1_task:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -475,8 +483,8 @@ batcher_send_sp1_burst:
 	@echo "Sending SP1 fibonacci task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
 		--repetitions $(BURST_SIZE) \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
@@ -523,9 +531,9 @@ batcher_send_plonk_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -534,9 +542,9 @@ batcher_send_plonk_bn254_burst: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--repetitions $(BURST_SIZE) \
@@ -546,9 +554,9 @@ batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
-		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -557,9 +565,9 @@ batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
-		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions 15 \
 		--rpc_url $(RPC_URL) \
@@ -569,9 +577,9 @@ batcher_send_groth16_bn254_task: batcher/target/release/aligned
 	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
 	@cd batcher/aligned/ && cargo run --release -- submit \
 		--proving_system Groth16Bn254 \
-		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
-		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
-		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -666,21 +674,32 @@ aligned_get_user_balance_holesky:
 		--user_addr $(USER_ADDR)
 
 __GENERATE_PROOFS__:
- # TODO add a default proving system
+generate_sp1_fibonacci_proof: ## Run the SP1 Fibonacci proof generator script
+	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
-generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
+generate_risc_zero_fibonacci_proof:
+	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
+	RUST_LOG=info cargo run --release && \
+	echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
+
+generate_risc_zero_empty_journal_proof:
+	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
+
+generate_gnark_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
 	@echo "Running gnark_plonk_bls12_381 script..."
 	@go run scripts/test_files/gnark_plonk_bls12_381_script/main.go
 
-generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_plonk_bn254 script..."
 	@go run scripts/test_files/gnark_plonk_bn254_script/main.go
 
-generate_groth16_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_groth16_bn254_proof: ## Run the gnark_groth16_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
 	@go run scripts/test_files/gnark_groth16_bn254_script/main.go
 
-generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_groth16_bn254_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254_ineq script..."
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
@@ -811,18 +830,6 @@ test_sp1_go_bindings_linux: build_sp1_linux
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
-# @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci_4_1_3.elf scripts/test_files/sp1/
-generate_sp1_fibonacci_proof:
-	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
-	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf
-	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci_4_1_3.proof scripts/test_files/sp1/
-	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
-
-generate_risc_zero_empty_journal_proof:
-	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
-	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
-
-
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
@@ -843,12 +850,6 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
 	go test ./operator/risc_zero/... -v
-
-generate_risc_zero_fibonacci_proof:
-	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
-		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
-
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
@@ -1018,8 +1019,8 @@ docker_batcher_send_sp1_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system SP1 \
-              --proof ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.proof \
-              --vm_program ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.elf \
+              --proof ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+              --vm_program ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -1043,9 +1044,9 @@ docker_batcher_send_plonk_bn254_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system GnarkPlonkBn254 \
-              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
+              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
               --repetitions $(DOCKER_BURST_SIZE) \
@@ -1056,9 +1057,9 @@ docker_batcher_send_plonk_bls12_381_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system GnarkPlonkBls12_381 \
-              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
+              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --repetitions $(DOCKER_BURST_SIZE) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -1069,9 +1070,9 @@ docker_batcher_send_groth16_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
             --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
 			--proving_system Groth16Bn254 \
-			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
-			--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
-			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
+			--public_input ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
+			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
 			--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
 			--repetitions $(DOCKER_BURST_SIZE) \
 			--rpc_url $(DOCKER_RPC_URL) \
@@ -1098,9 +1099,9 @@ docker_batcher_send_infinite_groth16:
 	              --rpc_url $(DOCKER_RPC_URL) \
 	              --repetitions $(DOCKER_BURST_SIZE) \
 	              --proving_system Groth16Bn254 \
-	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.proof \
-	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
-	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
+	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16_0_12_0.proof \
+	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16_0_12_0.pub \
+	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16_0_12_0.vk \
 	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
 				  --max_fee 0.1ether
 	    sleep $${timer}; \

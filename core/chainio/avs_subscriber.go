@@ -8,12 +8,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/event"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	servicemanager "github.com/yetanotherco/aligned_layer/contracts/bindings/AlignedLayerServiceManager"
 	retry "github.com/yetanotherco/aligned_layer/core"
 	"github.com/yetanotherco/aligned_layer/core/config"
 
+	"fmt"
 	sdklogging "github.com/Layr-Labs/eigensdk-go/logging"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -43,6 +45,11 @@ type AvsSubscriber struct {
 	logger                         sdklogging.Logger
 }
 
+type ErrorPair struct {
+	ErrorMainRPC     error
+	ErrorFallbackRPC error
+}
+
 func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, error) {
 	avsContractBindings, err := NewAvsServiceBindings(
 		baseConfig.AlignedLayerDeploymentConfig.AlignedLayerServiceManagerAddr,
@@ -61,26 +68,27 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 	}, nil
 }
 
-func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) (chan error, error) {
+func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, errorPairChannel chan ErrorPair) *ErrorPair {
 	// Create a new channel to receive new tasks
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 
 	// Subscribe to new tasks
-	sub, err := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
-	if err != nil {
-		s.logger.Error("Primary failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.NetworkNumRetries, "err", err)
-		return nil, err
+	sub, errMain := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
+	if errMain != nil {
+		s.logger.Error(fmt.Sprintf("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries), "errMain", fmt.Sprintf("%v", errMain))
 	}
 
-	subFallback, err := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
-	if err != nil {
-		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V2 tasks after %d retries", retry.NetworkNumRetries, "err", err)
-		return nil, err
+	subFallback, errFallback := SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
+	if errFallback != nil {
+		s.logger.Error(fmt.Sprintf("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries), "errFallback", fmt.Sprintf("%v", errFallback))
 	}
+
+	if errMain != nil && errFallback != nil {
+		s.logger.Error("Failed to subscribe to new AlignedLayer V2 tasks with both RPCs", "errMain", errMain, "errFallback", errFallback)
+		return &ErrorPair{ErrorMainRPC: errMain, ErrorFallbackRPC: errFallback}
+	}
+
 	s.logger.Info("Subscribed to new AlignedLayer V2 tasks")
-
-	// create a new channel to foward errors
-	errorChannel := make(chan error)
 
 	pollLatestBatchTicker := time.NewTicker(PollLatestBatchInterval)
 
@@ -109,49 +117,56 @@ func (s *AvsSubscriber) SubscribeToNewTasksV2(newTaskCreatedChan chan *servicema
 
 	// Handle errors and resubscribe
 	go func() {
-		for {
+		var errMain, errFallback error
+		var auxSub, auxSubFallback event.Subscription
+		for errMain == nil || errFallback == nil { //while one is active
 			select {
 			case err := <-sub.Err():
-				s.logger.Warn("Error in new task subscription", "err", err)
-				sub.Unsubscribe()
-				sub, err = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
-				if err != nil {
-					errorChannel <- err
+				s.logger.Warn("Error in new task subscription of main connection", "err", err)
+
+				auxSub, errMain = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
+				if errMain == nil {
+					sub = auxSub // update the subscription only if it was successful
+					s.logger.Info("Main connection resubscribed to new task subscription")
 				}
 			case err := <-subFallback.Err():
-				s.logger.Warn("Error in fallback new task subscription", "err", err)
-				subFallback.Unsubscribe()
-				subFallback, err = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
-				if err != nil {
-					errorChannel <- err
+				s.logger.Warn("Error in new task subscription of fallback connection", "err", err)
+
+				auxSubFallback, errFallback = SubscribeToNewTasksV2Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
+				if errFallback == nil {
+					subFallback = auxSubFallback // update the subscription only if it was successful
+					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			}
 		}
+		errorPairChannel <- ErrorPair{ErrorMainRPC: errMain, ErrorFallbackRPC: errFallback}
 	}()
 
-	return errorChannel, nil
+	return nil
 }
 
-func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) (chan error, error) {
+func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, errorPairChannel chan ErrorPair) *ErrorPair {
 	// Create a new channel to receive new tasks
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
+	s.logger.Info("Starting subscription to new AlignedLayer V3 tasks")
 	// Subscribe to new tasks
-	sub, err := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
-	if err != nil {
-		s.logger.Error("Primary failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries, "err", err)
-		return nil, err
+	sub, errMain := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
+	if errMain != nil {
+		s.logger.Error(fmt.Sprintf("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries), "err", fmt.Sprintf("%v", errMain))
 	}
 
-	subFallback, err := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
-	if err != nil {
-		s.logger.Error("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries, "err", err)
-		return nil, err
+	subFallback, errFallback := SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
+	if errFallback != nil {
+		s.logger.Error(fmt.Sprintf("Fallback failed to subscribe to new AlignedLayer V3 tasks after %d retries", MaxRetries), "err", fmt.Sprintf("%v", errFallback))
 	}
+
+	if errMain != nil && errFallback != nil {
+		s.logger.Error("Failed to subscribe to new AlignedLayer V3 tasks with both RPCs", "errMain", errMain, "errFallback", errFallback)
+		return &ErrorPair{ErrorMainRPC: errMain, ErrorFallbackRPC: errFallback}
+	}
+
 	s.logger.Info("Subscribed to new AlignedLayer V3 tasks")
-
-	// create a new channel to foward errors
-	errorChannel := make(chan error)
 
 	pollLatestBatchTicker := time.NewTicker(PollLatestBatchInterval)
 
@@ -180,27 +195,33 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 
 	// Handle errors and resubscribe
 	go func() {
-		for {
+		s.logger.Info("Starting error handling goroutine")
+		var errMain, errFallback error
+		var auxSub, auxSubFallback event.Subscription
+		for errMain == nil || errFallback == nil { //while one is active
 			select {
 			case err := <-sub.Err():
-				s.logger.Warn("Error in new task subscription", "err", err)
-				sub.Unsubscribe()
-				sub, err = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
-				if err != nil {
-					errorChannel <- err
+				s.logger.Warn("Error in new task subscription of main connection", "err", err)
+
+				auxSub, errMain = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
+				if errMain == nil {
+					sub = auxSub // update the subscription only if it was successful
+					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			case err := <-subFallback.Err():
-				s.logger.Warn("Error in fallback new task subscription", "err", err)
-				subFallback.Unsubscribe()
-				subFallback, err = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
-				if err != nil {
-					errorChannel <- err
+				s.logger.Warn("Error in new task subscription of fallback connection", "err", err)
+
+				auxSubFallback, errFallback = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
+				if errFallback == nil {
+					subFallback = auxSubFallback // update the subscription only if it was successful
+					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			}
 		}
+		errorPairChannel <- ErrorPair{ErrorMainRPC: errMain, ErrorFallbackRPC: errFallback}
 	}()
 
-	return errorChannel, nil
+	return nil
 }
 
 func (s *AvsSubscriber) processNewBatchV2(batch *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, batchesSet map[[32]byte]struct{}, newBatchMutex *sync.Mutex, newTaskCreatedChan chan<- *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {

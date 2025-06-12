@@ -385,8 +385,8 @@ aligned verify-agg-proof \
   --network holesky \
   --from-block 3638552 \
   --proving_system SP1 \
-  --public_input ../../scripts/test_files/sp1/sp1_fibonacci_4_1_3.pub \
-  --vk ./scripts/test_files/sp1/sp1_fibonacci_4_1_3.vk \
+  --public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
+  --vk ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
   --beacon_url <YOUR_BEACON_CLIENT> \
   --rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```

@@ -57,7 +57,7 @@ This guide assumes that:
 - Gnark library is installed. If not, install it using the following command inside your Go module:
 
  ```bash
- go get github.com/consensys/gnark@v0.10.0
+ go get github.com/consensys/gnark@v0.12.0
  ```
 
 - Gnark project to generate the proofs' instructions [here](https://docs.gnark.consensys.io/category/how-to)

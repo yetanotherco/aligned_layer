@@ -8,7 +8,32 @@ pub struct Risc0ProofReceiptAndImageId {
     pub receipt: Receipt,
 }
 
+#[derive(Debug)]
+pub enum AlignedRisc0VerificationError {
+    Verification(String),
+    UnsupportedProof,
+}
+
 impl Risc0ProofReceiptAndImageId {
+    /// Constructs a new instance of the struct, verifying the provided receipt against the given image ID.
+    pub fn new(
+        image_id: [u8; 32],
+        receipt: Receipt,
+    ) -> Result<Self, AlignedRisc0VerificationError> {
+        let is_supported_proof =
+            receipt.inner.composite().is_ok() || receipt.inner.succinct().is_ok();
+
+        if is_supported_proof {
+            receipt
+                .verify(image_id)
+                .map_err(|e| AlignedRisc0VerificationError::Verification(e.to_string()))?;
+        } else {
+            return Err(AlignedRisc0VerificationError::UnsupportedProof);
+        }
+
+        Ok(Self { image_id, receipt })
+    }
+
     pub fn public_inputs(&self) -> &Vec<u8> {
         &self.receipt.journal.bytes
     }
@@ -20,12 +45,6 @@ pub enum Risc0AggregationError {
     BuildExecutor(String),
     Prove(String),
     Verification(String),
-}
-
-#[derive(Debug)]
-pub enum AlignedRisc0VerificationError {
-    Verification(String),
-    UnsupportedProof,
 }
 
 /// Byte representation of the user proofs aggregator image_id, converted from `[u32; 8]` to `[u8; 32]`.
@@ -168,18 +187,4 @@ pub(crate) fn run_chunk_aggregator(
     };
 
     Ok(proof)
-}
-
-pub(crate) fn verify(
-    proof: &Risc0ProofReceiptAndImageId,
-) -> Result<(), AlignedRisc0VerificationError> {
-    // only stark proofs are supported for recursion
-    if proof.receipt.inner.composite().is_ok() || proof.receipt.inner.succinct().is_ok() {
-        proof
-            .receipt
-            .verify(proof.image_id)
-            .map_err(|e| AlignedRisc0VerificationError::Verification(e.to_string()))
-    } else {
-        Err(AlignedRisc0VerificationError::UnsupportedProof)
-    }
 }

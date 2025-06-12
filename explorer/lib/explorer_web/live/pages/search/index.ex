@@ -52,25 +52,27 @@ defmodule ExplorerWeb.Search.Index do
         Search Results for "<%= @hash |> Helpers.shorten_hash() %>"
       </.card_preheding>
       <%= if @results != nil or @results != [] do %>
-        <.table id="results" rows={@results}>
-          <:col :let={result} label="Batch Hash" class="text-left">
-            <.link
-              navigate={~p"/batches/#{result}"}
-              class="flex justify-between group group-hover:text-foreground/80"
-            >
-              <span class="items-center group-hover:text-foreground/80 hidden md:inline">
-                <%= result %>
-              </span>
-              <span class="items-center group-hover:text-foreground/80 md:hidden">
-                <%= result |> Helpers.shorten_hash(12) %>
-              </span>
-              <.right_arrow />
-              <.tooltip>
-                <%= result %>
-              </.tooltip>
-            </.link>
-          </:col>
-        </.table>
+      <.card_background>
+          <.table id="results" rows={@results}>
+            <:col :let={result} label="Batch Hash" class="text-left">
+              <.link
+                navigate={~p"/batches/#{result}"}
+                class="flex justify-between group group-hover:text-foreground/80"
+              >
+                <span class="items-center group-hover:text-foreground/80 hidden md:inline">
+                  <%= result %>
+                </span>
+                <span class="items-center group-hover:text-foreground/80 md:hidden">
+                  <%= result |> Helpers.shorten_hash(12) %>
+                </span>
+                <.right_arrow />
+                <.tooltip>
+                  <%= result %>
+                </.tooltip>
+              </.link>
+            </:col>
+          </.table>
+        </.card_background>
         <div class="flex gap-x-2 justify-center items-center">
           <%= if @current_page != 1 do %>
             <.link patch={~p"/search?q=#{@hash}&page=#{@current_page - 1}"}>

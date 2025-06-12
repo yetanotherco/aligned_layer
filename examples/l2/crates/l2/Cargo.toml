@@ -12,8 +12,8 @@ primitive-types = { workspace = true}
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
 rand = "0.8"
-sp1-sdk = "4.1.7"
-sp1_state_transition_program = { path = "./zkvm_programs/sp1/" }
+sp1-sdk = "5.0.0"
+sp1_state_transition_program = { path = "./zkvm_programs/sp1" }
 aligned-sdk = { path = "../../../../batcher/aligned-sdk" }
 bincode = "1.3.3"
 futures-util = "0.3"
@@ -26,7 +26,7 @@ name = "write_program_id"
 path = "./zkvm_programs/bin/write_program_ids.rs"
 
 [build-dependencies]
-sp1-build = { version = "4.1.7" } 
+sp1-build = { version = "5.0.0" }
 
 [profile.release]
 opt-level = 3
