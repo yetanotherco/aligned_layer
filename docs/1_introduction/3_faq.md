@@ -31,6 +31,8 @@ The batcher cannot transfer user's funds to other accounts, only spend them to c
     
 Ethereum is the most decentralized and most significant source of liquidity in the crypto ecosystem. We believe it is the most ambitious and long-term project on the internet. Aligned is being built to help Ethereum achieve its highest potential, and we believe this is only possible through validity/zero-knowledge proofs.
 
+For further reading on this subject, you can refer to [this aligned blog article](https://blog.alignedlayer.com/why-ethereum/), which explains why we chose Ethereum.
+
 ### What is Aligned's throughput?
     
 Aligned runs the verifier’s code natively. Verification time depends on the proof system, program run, and public input. Generally, most verifiers can be run on the order of milliseconds on consumer-grade hardware. We can optimize the code for speed and leverage parallelization by running it natively. Our current testnet can verify more than 4000 proofs per second.
