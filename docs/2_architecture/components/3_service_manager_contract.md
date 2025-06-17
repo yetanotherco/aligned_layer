@@ -19,7 +19,8 @@ Besides the base [EigenLayer middleware contracts](https://github.com/Layr-Labs/
 ```solidity
 function createNewTask(
     bytes32 batchMerkleRoot,
-    string calldata batchDataPointer
+    string calldata batchDataPointer,
+    uint256 respondToTaskFeeLimit
 ) external payable
 ```
 
@@ -27,6 +28,7 @@ This method is called to create a new batch verification task that will broadcas
 
 * `batchMerkleRoot` is a 256 bit hash corresponding to the Merkle Root of the proofs batch to be verified by operators.
 * `batchDataPointer` is a string representing a link to some specific data storage location. This is used by operators to download the entire batch of proofs.
+* `respondToTaskFeeLimit` are the funds required for the operator to respond to the task
 
 #### Respond to task
 
