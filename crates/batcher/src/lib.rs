@@ -57,6 +57,7 @@ use crate::telemetry::sender::TelemetrySender;
 mod config;
 mod connection;
 mod eth;
+pub mod circom;
 pub mod gnark;
 pub mod metrics;
 pub mod retry;
