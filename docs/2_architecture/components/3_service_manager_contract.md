@@ -35,6 +35,7 @@ This method is called to create a new batch verification task that will broadcas
 ```solidity
 function respondToTask(
     bytes32 batchMerkleRoot,
+    address senderAddress,
     NonSignerStakesAndSignature memory nonSignerStakesAndSignature
 ) external
 ```
@@ -43,6 +44,7 @@ This method is used by the Aggregator once the quorum for a particular task has 
 
 * `batchMerkleRoot` is a 256 bit hash representing the Merkle Root of the batch that has been verified and signed by operators.
 * `nonSignerStakesAndSignature` is a struct provided by EigenLayer middleware with information about operators' signatures, stakes and quorum for the given task.
+* `senderAddress` is the address of the batcher that created the task being responded to.
 
 ### Verify batch inclusion
 
