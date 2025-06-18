@@ -64,6 +64,7 @@ make explorer_start
 Note: If you are starting telemetry again and fails, a common failure reason can be forgetting to clean the db running `make telemetry_clean_db`.
 
 To spam transactions install spamoor:
+
 ```bash
 make spamoor_install
 ```
@@ -80,6 +81,7 @@ make spamoor_send_transactions  \\
 ```
 
 For Example:
+
 ```bash
 make spamoor_send_transactions COUNT=1000 TX_CONSUME_GAS=150000 TX_PER_BLOCK=50 NUM_WALLETS=100 TIP_FEE=2
 ```
@@ -108,8 +110,8 @@ make spamoor_send_transactions COUNT=1000000000  TX_CONSUME_GAS=150000 TX_PER_BL
 ```
 
 - Notes:
-    - A transaction consuming `150000` of gas would be similar to a bridge swap.
-    - We pass `2` gwei more to the `tipFee` that should be enough if not, you can increase it.
+  - A transaction consuming `150000` of gas would be similar to a bridge swap.
+  - We pass `2` gwei more to the `tipFee` that should be enough if not, you can increase it.
 
 3. **Monitor Gas Price Updates:** After a few blocks, the `gasPrice` will adjust. The aligned batcher and aggregator will fetch the updated `gasPrice` and start competing in the mempool with their adjusted bump.
 4. **Repeat as Needed:** Re-run the same command with the updated `TIP_FEE` to maintain competition:
