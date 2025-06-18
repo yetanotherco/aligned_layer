@@ -623,6 +623,8 @@ async fn main() -> Result<(), AlignedError> {
 
             for batch_merkle_root in unique_batch_merkle_roots {
                 let base_url = match submit_args.network.clone().into() {
+                    // Note: in case the explorer address changes for other networks, we should add an arm to this
+                    // match with that network since the default URL used here is the mainnet one
                     Network::Holesky => "https://holesky.explorer.alignedlayer.com/batches/0x",
                     _ => "https://explorer.alignedlayer.com/batches/0x",
                 };
