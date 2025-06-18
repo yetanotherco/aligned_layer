@@ -61,6 +61,8 @@ make explorer_build_db
 make explorer_start
 ```
 
+Note: If you are starting telemetry again and fails, a common failure reason can be forgetting to clean the db running `make telemetry_clean_db`.
+
 To spam transactions install spamoor:
 ```bash
 make spamoor_install
