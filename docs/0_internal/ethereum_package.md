@@ -56,6 +56,8 @@ To start Telemetry and the Explorer, run the usual commands:
 
 ```bash
 make telemetry_start_all
+
+make explorer_build_db
 make explorer_start
 ```
 
