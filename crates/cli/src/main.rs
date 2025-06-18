@@ -622,9 +622,14 @@ async fn main() -> Result<(), AlignedError> {
             }
 
             for batch_merkle_root in unique_batch_merkle_roots {
+                let base_url = match submit_args.network.clone().into() {
+                    Network::Holesky => "https://holesky.explorer.alignedlayer.com/batches/0x",
+                    _ => "https://explorer.alignedlayer.com/batches/0x",
+                };
+
                 info!(
-                    "https://explorer.alignedlayer.com/batches/0x{}",
-                    hex::encode(batch_merkle_root)
+                    "{}",
+                    base_url.to_string() + hex::encode(batch_merkle_root).as_str()
                 );
             }
         }
