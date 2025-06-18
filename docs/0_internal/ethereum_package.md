@@ -34,7 +34,7 @@ make batcher_start_ethereum_package
 To start the aggregator run:
 
 ```bash
-make aggregator_start_ethereum_package
+make aggregator_start_ethereum_package ENVIRONMENT=devnet
 ```
 
 To start an operator run:
