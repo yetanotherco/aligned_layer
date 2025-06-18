@@ -29,6 +29,11 @@ fn main() {
         .arg(CIRCOM_SRC);
 
     circom_build.status().expect("Circom build failed");
+    let output = circom_build.output().expect("Failed to execute Circom build command");
+    if !output.status.success() {
+        eprintln!("Circom build failed: {}", String::from_utf8_lossy(&output.stderr));
+        panic!("Circom build failed");
+    }
 
     println!("cargo:rerun-if-changed={}", GO_SRC);
     println!("cargo:rerun-if-changed={}", CIRCOM_SRC);

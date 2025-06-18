@@ -1,4 +1,4 @@
-package circom
+package main
 
 /*
 #include <stdlib.h>
@@ -30,10 +30,10 @@ func listRefToBytes(listRef C.ListRef) []byte {
 func main() {}
 
 //export VerifyCircomGroth16ProofBN128
-func VerifyCircomGroth16ProofBN128(proofBytes C.ListRef, pubInputBytes C.ListRef, verificationKeyBytes C.ListRef) bool {
-	proofBytes = listRefToBytes(proofBytes)
-	pubInputBytes = listRefToBytes(pubInputBytes)
-	verificationKeyBytes = listRefToBytes(verificationKeyBytes)
+func VerifyCircomGroth16ProofBN128(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef) bool {
+	proofBytes := listRefToBytes(proofBytesRef)
+	pubInputBytes := listRefToBytes(proofBytesRef)
+	verificationKeyBytes := listRefToBytes(proofBytesRef)
 
 	proof, err := parsers.ParseProof(proofBytes)
 	if err != nil {
