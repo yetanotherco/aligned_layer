@@ -45,6 +45,13 @@ make operator_full_registration_and_start_ethereum_package
 
 If you want to deploy more operators, you must duplicate the config-operator-1-ethereum-package.yaml and change the private and bls keys and the address.
 
+If operator starting fails due to a failure in operation registration to aligned (not whitelisted), try running the commands separately:
+
+```bash
+make operator_full_registration CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml ENVIRONMENT=devnet
+make operator_start CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml ENVIRONMENT=devnet
+```
+
 To start Telemetry and the Explorer, run the usual commands:
 
 ```bash
