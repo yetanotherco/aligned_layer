@@ -22,21 +22,20 @@ fn ensure_go_dependencies() {
     ];
     
     for dir in possible_dirs {
-        eprintln!("mod tidy dir: {:?}", dir);
         let go_mod_path = dir.join("go.mod");
         if go_mod_path.exists() {
             println!("Found go.mod in: {:?}", dir);
             
             // Run go mod tidy to ensure all dependencies are properly resolved
-            let mut tidy_cmd = Command::new("go");
-            tidy_cmd.arg("mod").arg("tidy").current_dir(&dir);
+//             let mut tidy_cmd = Command::new("go");
+//             tidy_cmd.arg("mod").arg("tidy").current_dir(&dir);
             
-            let tidy_output = tidy_cmd.output().expect("Failed to run go mod tidy");
-            if !tidy_output.status.success() {
-                eprintln!("go mod tidy failed in {:?}: {}", dir, String::from_utf8_lossy(&tidy_output.stderr));
-            } else {
-                println!("Successfully ran go mod tidy in {:?}", dir);
-            }
+//             let tidy_output = tidy_cmd.output().expect("Failed to run go mod tidy");
+//             if !tidy_output.status.success() {
+//                 eprintln!("go mod tidy failed in {:?}: {}", dir, String::from_utf8_lossy(&tidy_output.stderr));
+//             } else {
+//                 println!("Successfully ran go mod tidy in {:?}", dir);
+//             }
             
             // Run go mod download to ensure all modules are cached
             let mut cmd = Command::new("go");
