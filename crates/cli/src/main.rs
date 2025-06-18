@@ -584,7 +584,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Submitting proofs to the Aligned batcher...");
 
             let aligned_verification_data_vec = submit_multiple(
-                submit_args.network.into(),
+                submit_args.network.clone().into(),
                 &verification_data_arr,
                 max_fee_wei,
                 wallet.clone(),
