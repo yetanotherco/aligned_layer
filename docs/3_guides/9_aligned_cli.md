@@ -9,7 +9,7 @@ This document serves as a reference for the commands of the Aligned CLI.
 1. Download and install Aligned from the Aligned GitHub repo `https://github.com/yetanotherco/aligned_layer`:
 
     ```bash
-    curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/batcher/aligned/install_aligned.sh | bash
+    curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/crates/cli/install_aligned.sh | bash
     ```
 
 2. A source command will be printed in your terminal after installation. Execute that command to update your shell environment.

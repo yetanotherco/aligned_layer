@@ -1,7 +1,9 @@
 name: Build contracts
 on:
   push:
-    branches: [main]
+    branches:
+      - testnet
+      - staging
   pull_request:
     branches: ["*"]
     paths:

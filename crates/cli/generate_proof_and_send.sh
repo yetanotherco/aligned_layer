@@ -32,7 +32,7 @@ if [ -z "$NETWORK" ]; then
 fi
 
 cmd=(
-    ./batcher/target/release/aligned
+    ./crates/target/release/aligned
     submit
     --proving_system Groth16Bn254
     --repetitions "$repetitions"

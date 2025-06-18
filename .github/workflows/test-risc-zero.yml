@@ -2,7 +2,9 @@ name: test-risc-zero
 
 on:
   push:
-    branches: [main]
+    branches:
+      - testnet
+      - staging
   pull_request:
     branches: ["*"]
     paths:

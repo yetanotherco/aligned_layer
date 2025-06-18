@@ -51,20 +51,20 @@ Also, you have to install the following dependencies for Linux:
 To install foundry, run:
 
 ```bash
-make install_foundry
+make foundry_install
 foundryup
 ```
 
 To build the operator binary for **Testnet**, run:
 
 ```bash
-make build_operator ENVIRONMENT=testnet
+make operator_build ENVIRONMENT=testnet
 ```
 
 To build the operator binary for **Mainnet**, run:
 
 ```bash
-make build_operator ENVIRONMENT=mainnet
+make operator_build ENVIRONMENT=mainnet
 ```
 
 ### Upgrading the Operator
@@ -72,13 +72,13 @@ make build_operator ENVIRONMENT=mainnet
 If you want to upgrade the operator in **Testnet**, run:
 
 ```bash
-make update_operator ENVIRONMENT=testnet
+make operator_start ENVIRONMENT=testnet
 ```
 
 If you want to upgrade the operator in **Mainnet**, run:
 
 ```bash
-make update_operator ENVIRONMENT=mainnet
+make operator_start ENVIRONMENT=mainnet
 ```
 
 This will recreate the binaries. You can then proceed to restart the operator.

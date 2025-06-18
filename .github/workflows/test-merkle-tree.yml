@@ -2,7 +2,9 @@ name: test-merkle-tree
 
 on:
   push:
-    branches: [main]
+    branches:
+      - testnet
+      - staging
   pull_request:
     branches: ["*"]
     paths:
