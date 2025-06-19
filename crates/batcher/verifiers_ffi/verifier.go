@@ -8,13 +8,13 @@ typedef struct ListRef {
   const uint8_t *ptr;
   uintptr_t len;
 } ListRef;
-
-
 */
 import "C"
 
 import (
 	"bytes"
+	"github.com/yetanotherco/go-circom-prover-verifier/parsers"
+	"github.com/yetanotherco/go-circom-prover-verifier/verifier"
 	"log"
 	"unsafe"
 
@@ -118,4 +118,34 @@ func verifyGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, ver
 
 	err = groth16.Verify(proof, verificationKey, pubInput)
 	return err == nil
+}
+
+//export VerifyCircomGroth16ProofBN128
+func VerifyCircomGroth16ProofBN128(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef) bool {
+	proofBytes := listRefToBytes(proofBytesRef)
+	pubInputBytes := listRefToBytes(pubInputBytesRef)
+	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)
+	print("FFI proofBytes: ", unsafe.Pointer(proofBytesRef.ptr), " len: ", len(proofBytes))
+	print("FFI pubInputBytes: ", unsafe.Pointer(pubInputBytesRef.ptr), " len: ", len(pubInputBytes))
+	print("FFI verificationKeyBytes: ", unsafe.Pointer(verificationKeyBytesRef.ptr), " len: ", len(verificationKeyBytes))
+
+	proof, err := parsers.ParseProof(proofBytes)
+	if err != nil {
+		print("FFI ParseProof error: ", err)
+		return false
+	}
+	public, err := parsers.ParsePublicSignals(pubInputBytes)
+	if err != nil {
+		print("FFI ParsePublicSignals error: ", err)
+		return false
+	}
+	vk, err := parsers.ParseVk(verificationKeyBytes)
+	if err != nil {
+		print("FFI ParseVk error: ", err)
+		return false
+	}
+
+	is_valid := verifier.Verify(vk, proof, public)
+	print("FFI is_valid: ", is_valid)
+	return is_valid
 }

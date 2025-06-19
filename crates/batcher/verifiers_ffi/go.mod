@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	github.com/consensys/gnark v0.12.0
 	github.com/consensys/gnark-crypto v0.17.0
+	github.com/yetanotherco/go-circom-prover-verifier v0.0.0-20250618185957-f01a8a8ec4a6
 )
 
 require (
@@ -25,3 +26,5 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
+
+require github.com/ethereum/go-ethereum v1.14.0 // indirect
