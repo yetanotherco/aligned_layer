@@ -1,10 +1,10 @@
+use crate::circom::circom::verify_circom;
 use crate::gnark::verify_gnark;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
 use aligned_sdk::common::types::{ProvingSystemId, VerificationData};
 use ethers::types::U256;
 use log::{debug, warn};
-use crate::circom::circom::verify_circom;
 
 pub(crate) async fn verify(verification_data: &VerificationData) -> bool {
     let verification_data = verification_data.clone();

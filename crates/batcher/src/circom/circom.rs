@@ -52,4 +52,3 @@ extern "C" {
         verification_key: ListRef,
     ) -> bool;
 }
-
