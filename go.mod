@@ -20,6 +20,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/rs/zerolog v1.33.0
 	github.com/ugorji/go/codec v1.2.12
+	github.com/yetanotherco/go-circom-prover-verifier v0.0.0-20250618185957-f01a8a8ec4a6
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -60,7 +61,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
-	github.com/iden3/go-circom-prover-verifier v0.0.1 // indirect
 	github.com/ingonyama-zk/icicle/v3 v3.1.1-0.20241118092657-fccdb2f0921b // indirect
 	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/lmittmann/tint v1.0.4 // indirect
@@ -84,7 +84,6 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	github.com/yetanotherco/go-circom-prover-verifier v0.0.0-20250618185957-f01a8a8ec4a6 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
