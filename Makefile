@@ -1127,6 +1127,19 @@ docker_batcher_send_groth16_burst:
 			--rpc_url $(DOCKER_RPC_URL) \
 			--max_fee 0.1ether
 
+docker_batcher_send_circom_groth16_bn128_burst:
+	@echo "Sending Circom Groth16 BN128 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+			  --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			  --proving_system CircomGroth16Bn128 \
+			  --proof ./scripts/test_files/circom_groth16_bn128_script/proof.json \
+			  --public_input ./scripts/test_files/circom_groth16_bn128_script/public.json \
+			  --vk ./scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+			  --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			  --repetitions $(DOCKER_BURST_SIZE) \
+			  --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_sp1_burst
@@ -1134,6 +1147,7 @@ docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_plonk_bn254_burst
 	@$(MAKE) docker_batcher_send_plonk_bls12_381_burst
 	@$(MAKE) docker_batcher_send_groth16_burst
+	@$(MAKE) docker_batcher_send_circom_groth16_bn128_burst
 
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
