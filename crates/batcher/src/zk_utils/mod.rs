@@ -164,7 +164,7 @@ mod test {
     fn test_some_verifiers_disabled() {
         let verifiers = get_all_verifiers();
         // Disabling only the first verifier
-        let disabled_verifiers = ethers::types::U256::from(0b10001);
+        let disabled_verifiers = ethers::types::U256::from(0b100001);
         for verifier in get_all_verifiers().iter() {
             let verification_data = VerificationData {
                 proving_system: *verifier,
