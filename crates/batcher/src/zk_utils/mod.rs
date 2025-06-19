@@ -1,4 +1,4 @@
-use crate::circom::circom::verify_circom;
+use crate::circom::verifier::verify_circom;
 use crate::gnark::verify_gnark;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
