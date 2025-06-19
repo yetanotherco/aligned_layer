@@ -1185,6 +1185,7 @@ docker_verify_proofs_onchain:
 	  '
 
 DOCKER_PROOFS_WAIT_TIME=60
+DOCKER_SENT_PROOFS=6
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
@@ -1213,7 +1214,7 @@ docker_verify_proof_submission_success:
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
-			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 5 ]; then \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne $(DOCKER_SENT_PROOFS) ]; then \
 				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
 				exit 1; \
 			fi; \
