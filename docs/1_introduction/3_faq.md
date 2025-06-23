@@ -25,7 +25,7 @@ The batcher cannot transfer user's funds to other accounts, only spend them to c
 
 ### How do I send proofs without a batcher?
 
-You can see the steps to do it in [this markdown file](https://github.com/yetanotherco/aligned_layer/blob/8a3a6448c974d09c645f3b74d4c9ff9d2dd27249/docs/3_guides/8_submitting_batch_without_batcher.md).
+You can see the steps to do it in [this guide](../3_guides/8_submitting_batch_without_batcher.md).
 
 ### How do I run my own batcher?
 
