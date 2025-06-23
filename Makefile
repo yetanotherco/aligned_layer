@@ -561,7 +561,7 @@ batcher_send_risc0_task_no_pub_input: ## Send a Risc0 proof without public input
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
 		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_1_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id_2_1_0.bin \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_id_2_1_0.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
