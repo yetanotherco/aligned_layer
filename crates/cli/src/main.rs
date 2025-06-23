@@ -538,33 +538,33 @@ async fn main() -> Result<(), AlignedError> {
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
 
+            let used_network: Network = submit_args.network.clone().into();
+
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => {
-                    get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
-                        .await
-                        .map_err(|e| match e {
-                            aligned_sdk::common::errors::GetNonceError::EthRpcError(e) => {
-                                SubmitError::GetNonceError(e)
-                            }
-                            aligned_sdk::common::errors::GetNonceError::ConnectionFailed(e) => {
-                                SubmitError::GenericError(e)
-                            }
-                            aligned_sdk::common::errors::GetNonceError::InvalidRequest(e) => {
-                                SubmitError::GenericError(e)
-                            }
-                            aligned_sdk::common::errors::GetNonceError::SerializationError(e) => {
-                                SubmitError::GenericError(e)
-                            }
-                            aligned_sdk::common::errors::GetNonceError::ProtocolMismatch {
-                                current,
-                                expected,
-                            } => SubmitError::ProtocolVersionMismatch { current, expected },
-                            aligned_sdk::common::errors::GetNonceError::UnexpectedResponse(e) => {
-                                SubmitError::UnexpectedBatcherResponse(e)
-                            }
-                        })?
-                }
+                None => get_nonce_from_batcher(&used_network, wallet.address())
+                    .await
+                    .map_err(|e| match e {
+                        aligned_sdk::common::errors::GetNonceError::EthRpcError(e) => {
+                            SubmitError::GetNonceError(e)
+                        }
+                        aligned_sdk::common::errors::GetNonceError::ConnectionFailed(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::common::errors::GetNonceError::InvalidRequest(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::common::errors::GetNonceError::SerializationError(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::common::errors::GetNonceError::ProtocolMismatch {
+                            current,
+                            expected,
+                        } => SubmitError::ProtocolVersionMismatch { current, expected },
+                        aligned_sdk::common::errors::GetNonceError::UnexpectedResponse(e) => {
+                            SubmitError::UnexpectedBatcherResponse(e)
+                        }
+                    })?,
             };
 
             warn!("Nonce: {nonce}");
@@ -584,7 +584,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Submitting proofs to the Aligned batcher...");
 
             let aligned_verification_data_vec = submit_multiple(
-                submit_args.network.clone().into(),
+                &used_network,
                 &verification_data_arr,
                 max_fee_wei,
                 wallet.clone(),
@@ -622,7 +622,7 @@ async fn main() -> Result<(), AlignedError> {
             }
 
             for batch_merkle_root in unique_batch_merkle_roots {
-                let base_url = match submit_args.network.clone().into() {
+                let base_url = match used_network {
                     // Note: in case the explorer address changes for other networks, we should add an arm to this
                     // match with that network since the default URL used here is the mainnet one
                     Network::Holesky => "https://holesky.explorer.alignedlayer.com/batches/0x",
@@ -650,7 +650,7 @@ async fn main() -> Result<(), AlignedError> {
             info!("Verifying response data matches sent proof data...");
             let response = verification_layer::is_proof_verified(
                 &aligned_verification_data,
-                verify_inclusion_args.network.into(),
+                &(verify_inclusion_args.network.into()),
                 &verify_inclusion_args.eth_rpc_url,
             )
             .await?;
@@ -758,7 +758,7 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetUserNonce(args) => {
             let address = H160::from_str(&args.address).unwrap();
-            match get_nonce_from_batcher(args.network.into(), address).await {
+            match get_nonce_from_batcher(&args.network.into(), address).await {
                 Ok(nonce) => {
                     info!("Nonce for address {} is {}", address, nonce);
                 }
@@ -771,7 +771,7 @@ async fn main() -> Result<(), AlignedError> {
         GetUserNonceFromEthereum(args) => {
             let address = H160::from_str(&args.address).unwrap();
             let network = args.network.into();
-            match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
+            match get_nonce_from_ethereum(&args.eth_rpc_url, address, &network).await {
                 Ok(nonce) => {
                     info!(
                         "Nonce for address {} in BatcherPaymentService contract is {}",
@@ -788,8 +788,8 @@ async fn main() -> Result<(), AlignedError> {
             let address = H160::from_str(&args.address).unwrap();
             let network: Network = args.network.into();
             let Ok((ethereum_nonce, batcher_nonce)) = future::try_join(
-                get_nonce_from_ethereum(&args.eth_rpc_url, address, network.clone()),
-                get_nonce_from_batcher(network, address),
+                get_nonce_from_ethereum(&args.eth_rpc_url, address, &network),
+                get_nonce_from_batcher(&network, address),
             )
             .await
             .map_err(|e| error!("Error while getting nonce: {:?}", e)) else {
