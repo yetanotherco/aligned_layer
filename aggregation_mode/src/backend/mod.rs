@@ -54,7 +54,7 @@ impl ProofAggregator {
         )
         .expect("Keystore signer should be `cast wallet` compliant");
         let wallet = EthereumWallet::from(signer);
-        let rpc_provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
+        let rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
         let proof_aggregation_service = AlignedProofAggregationService::new(
             Address::from_str(&config.proof_aggregation_service_address)
                 .expect("AlignedProofAggregationService address should be valid"),
@@ -208,13 +208,17 @@ impl ProofAggregator {
         }
 
         // calculate kzg commitments for blob
-        let settings = c_kzg::ethereum_kzg_settings();
+
+        // This parameter is the optimal balance between performance and memory usage
+        // Source: https://github.com/ethereum/c-kzg-4844?tab=readme-ov-file#precompute
+        let settings = c_kzg::ethereum_kzg_settings(8);
         let blob = c_kzg::Blob::new(blob_data);
-        let commitment = c_kzg::KzgCommitment::blob_to_kzg_commitment(&blob, settings)
+        let commitment = settings
+            .blob_to_kzg_commitment(&blob)
             .map_err(|_| AggregatedProofSubmissionError::BuildingBlobCommitment)?;
-        let proof =
-            c_kzg::KzgProof::compute_blob_kzg_proof(&blob, &commitment.to_bytes(), settings)
-                .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
+        let proof = settings
+            .compute_blob_kzg_proof(&blob, &commitment.to_bytes())
+            .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
 
         let blob = BlobTransactionSidecar::from_kzg(
             vec![blob],
