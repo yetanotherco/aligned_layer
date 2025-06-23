@@ -328,7 +328,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
             loop {
                 let n = network_clone.clone();
                 let mut result = Vec::with_capacity(args.burst_size);
-                let nonce = get_nonce_from_batcher(n.clone(), wallet.address())
+                let nonce = get_nonce_from_batcher(&n, wallet.address())
                     .await
                     .inspect_err(|e| {
                         error!(
@@ -351,7 +351,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 );
 
                 let aligned_verification_data = submit_multiple(
-                    n.clone(),
+                    &n,
                     &verification_data_to_send.clone(),
                     max_fee,
                     wallet.clone(),

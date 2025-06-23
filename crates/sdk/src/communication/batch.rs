@@ -38,10 +38,10 @@ pub fn process_batcher_response(
 pub async fn await_batch_verification(
     aligned_verification_data: &AlignedVerificationData,
     rpc_url: &str,
-    network: Network,
+    network: &Network,
 ) -> Result<(), errors::SubmitError> {
     for _ in 0..RETRIES {
-        if is_proof_verified(aligned_verification_data, network.clone(), rpc_url)
+        if is_proof_verified(aligned_verification_data, network, rpc_url)
             .await
             .is_ok_and(|r| r)
         {

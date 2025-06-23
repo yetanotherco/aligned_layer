@@ -82,22 +82,21 @@ use std::path::PathBuf;
 #[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_multiple_and_wait_verification(
     eth_rpc_url: &str,
-    network: Network,
+    network: &Network,
     verification_data: &[VerificationData],
     max_fee: U256,
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
     let mut aligned_verification_data =
-        submit_multiple(network.clone(), verification_data, max_fee, wallet, nonce).await;
+        submit_multiple(network, verification_data, max_fee, wallet, nonce).await;
 
     // TODO: open issue: use a join to .await all at the same time, avoiding the loop
     // And await only once per batch, no need to await multiple proofs if they are in the same batch.
     let mut error_awaiting_batch_verification: Option<errors::SubmitError> = None;
     for aligned_verification_data_item in aligned_verification_data.iter().flatten() {
         if let Err(e) =
-            await_batch_verification(aligned_verification_data_item, eth_rpc_url, network.clone())
-                .await
+            await_batch_verification(aligned_verification_data_item, eth_rpc_url, network).await
         {
             error_awaiting_batch_verification = Some(e);
             break;
@@ -230,7 +229,7 @@ async fn fetch_gas_price(
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
-    network: Network,
+    network: &Network,
     verification_data: &[VerificationData],
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -263,7 +262,7 @@ pub async fn submit_multiple(
 async fn _submit_multiple(
     ws_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     mut ws_read: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    network: Network,
+    network: &Network,
     verification_data: &[VerificationData],
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -351,7 +350,7 @@ async fn _submit_multiple(
 #[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_and_wait_verification(
     eth_rpc_url: &str,
-    network: Network,
+    network: &Network,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -406,7 +405,7 @@ pub async fn submit_and_wait_verification(
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
-    network: Network,
+    network: &Network,
     verification_data: &VerificationData,
     max_fee: U256,
     wallet: Wallet<SigningKey>,
@@ -442,7 +441,7 @@ pub async fn submit(
 /// * `HexDecodingError` if there is an error decoding the Aligned service manager contract address.
 pub async fn is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    network: Network,
+    network: &Network,
     eth_rpc_url: &str,
 ) -> Result<bool, errors::VerificationError> {
     let eth_rpc_provider =
@@ -455,10 +454,10 @@ pub async fn is_proof_verified(
 
 async fn _is_proof_verified(
     aligned_verification_data: &AlignedVerificationData,
-    network: Network,
+    network: &Network,
     eth_rpc_provider: Provider<Http>,
 ) -> Result<bool, errors::VerificationError> {
-    let contract_address = network.clone().get_aligned_service_manager_address();
+    let contract_address = network.get_aligned_service_manager_address();
     let payment_service_addr = network.get_batcher_payment_service_address();
 
     // All the elements from the merkle proof have to be concatenated
@@ -532,7 +531,7 @@ pub fn get_vk_commitment(
 /// # Errors
 /// * `EthRpcError` if the batcher has an error in the Ethereum call when retrieving the nonce if not already cached.
 pub async fn get_nonce_from_batcher(
-    network: Network,
+    network: &Network,
     address: Address,
 ) -> Result<U256, GetNonceError> {
     let (ws_stream, _) = connect_async(network.get_batcher_url())
@@ -608,7 +607,7 @@ pub async fn get_nonce_from_batcher(
 pub async fn get_nonce_from_ethereum(
     eth_rpc_url: &str,
     submitter_addr: Address,
-    network: Network,
+    network: &Network,
 ) -> Result<U256, GetNonceError> {
     let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
         .map_err(|e| GetNonceError::EthRpcError(e.to_string()))?;
