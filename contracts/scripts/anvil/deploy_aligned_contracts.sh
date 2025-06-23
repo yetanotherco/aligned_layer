@@ -65,7 +65,7 @@ rm -f "script/output/devnet/alignedlayer_deployment_output.temp2.json"
 
 # Update Program IDs in anvil deployment
 cd ..
-make agg_mode_write_program_ids
+make proof_aggregator_write_program_ids
 
 # Copy new values to config file
 jq '.programs_id.risc0AggregationProgramImageId = $input[0].risc0_chunk_aggregator_image_id | .programs_id.sp1AggregationProgramVKHash = $input[0].sp1_chunk_aggregator_vk_hash' \

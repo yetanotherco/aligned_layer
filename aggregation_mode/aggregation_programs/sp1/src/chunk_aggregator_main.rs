@@ -5,7 +5,7 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use sha2::{Digest, Sha256};
 use sp1_aggregation_program::{ChunkAggregatorInput, Hash32};
 
-// Generated with `make agg_mode_write_program_ids` and copied from program_ids.json
+// Generated with `make proof_aggregator_write_program_ids` and copied from program_ids.json
 pub const USER_PROOFS_AGGREGATOR_PROGRAM_VK_HASH: [u32; 8] = [
     680366333, 641426229, 1664630596, 666355318, 451221463, 289732250, 1301203111, 977136872,
 ];
