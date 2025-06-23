@@ -469,9 +469,7 @@ async fn _is_proof_verified(
         .flatten()
         .collect();
 
-    let verification_data_comm = aligned_verification_data
-        .verification_data_commitment
-        .clone();
+    let verification_data_comm = &aligned_verification_data.verification_data_commitment;
 
     let service_manager = aligned_service_manager(eth_rpc_provider, contract_address).await?;
 

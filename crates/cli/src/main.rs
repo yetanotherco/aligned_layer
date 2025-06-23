@@ -587,7 +587,7 @@ async fn main() -> Result<(), AlignedError> {
                 &used_network,
                 &verification_data_arr,
                 max_fee_wei,
-                wallet.clone(),
+                wallet,
                 nonce,
             )
             .await;
@@ -718,7 +718,7 @@ async fn main() -> Result<(), AlignedError> {
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
 
-            let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
+            let client = SignerMiddleware::new(eth_rpc_provider, wallet.clone());
 
             match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
                 .await
