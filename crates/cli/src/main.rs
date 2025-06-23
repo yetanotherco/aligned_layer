@@ -624,9 +624,11 @@ async fn main() -> Result<(), AlignedError> {
             for batch_merkle_root in unique_batch_merkle_roots {
                 let base_url = match submit_args.network.clone().into() {
                     Network::Holesky => "https://holesky.explorer.alignedlayer.com/batches/0x",
-                    Network::HoleskyStage => "https://holesky.explorer.alignedlayer.com/batches/0x",
+                    Network::HoleskyStage => "https://stage.explorer.alignedlayer.com/batches/0x",
                     Network::Mainnet => "https://explorer.alignedlayer.com/batches/0x",
-                    Network::MainnetStage => "https://explorer.alignedlayer.com/batches/0x",
+                    Network::MainnetStage => {
+                        "https://mainnetstage.explorer.alignedlayer.com/batches/0x"
+                    }
                     Network::Devnet => "http://localhost:4000/batches/0x",
                     _ => "http://localhost:4000/batches/0x",
                 };
