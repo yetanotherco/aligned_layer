@@ -44,7 +44,7 @@ pub fn verify_gnark(
         ProvingSystemId::GnarkPlonkBls12_381 => unsafe {
             VerifyPlonkProofBLS12_381(proof, public_input, verification_key)
         },
-        ProvingSystemId::Groth16Bn254 => unsafe {
+        ProvingSystemId::GnarkGroth16Bn254 => unsafe {
             VerifyGroth16ProofBN254(proof, public_input, verification_key)
         },
         _ => false,

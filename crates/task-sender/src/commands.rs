@@ -434,7 +434,7 @@ fn get_verification_data_from_proofs_folder(
                 };
 
                 let verification_data = VerificationData {
-                    proving_system: ProvingSystemId::Groth16Bn254,
+                    proving_system: ProvingSystemId::GnarkGroth16Bn254,
                     proof,
                     pub_input: Some(public_input),
                     verification_key: Some(vk),

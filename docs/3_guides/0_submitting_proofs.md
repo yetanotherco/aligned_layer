@@ -206,7 +206,7 @@ The GnarkPlonkBn254, GnarkPlonkBls12_381 and Groth16Bn254 proofs need the proof 
 ```bash
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
---proving_system <GnarkPlonkBn254|GnarkPlonkBls12_381|Groth16Bn254> \
+--proving_system <GnarkPlonkBn254|GnarkPlonkBls12_381|GnarkGroth16Bn254> \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
@@ -223,9 +223,9 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system GnarkPlonkBn254 \
---proof ./scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
---public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
---vk ./scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
+--proof ./scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.proof \
+--public_input ./scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_pub_input_0_12_0.pub \
+--vk ./scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -235,9 +235,9 @@ aligned submit \
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
 --proving_system GnarkPlonkBls12_381 \
---proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.proof \
---public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input_0_12_0.pub \
---vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_0_12_0.vk \
+--proof ./scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.proof \
+--public_input ./scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_pub_input_0_12_0.pub \
+--vk ./scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -246,10 +246,10 @@ aligned submit \
 ```bash
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
---proving_system Groth16Bn254 \
---proof ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
---public_input ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
---vk ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
+--proving_system GnarkGroth16Bn254 \
+--proof ./scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.proof \
+--public_input ./scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.pub \
+--vk ./scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com

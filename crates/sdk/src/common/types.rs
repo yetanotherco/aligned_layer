@@ -42,7 +42,7 @@ const NONCED_VERIFICATION_DATA_TYPE: &[u8] =
 pub enum ProvingSystemId {
     GnarkPlonkBls12_381,
     GnarkPlonkBn254,
-    Groth16Bn254,
+    GnarkGroth16Bn254,
     #[default]
     SP1,
     Risc0,
@@ -53,7 +53,7 @@ impl Display for ProvingSystemId {
         match self {
             ProvingSystemId::GnarkPlonkBls12_381 => write!(f, "GnarkPlonkBls12_381"),
             ProvingSystemId::GnarkPlonkBn254 => write!(f, "GnarkPlonkBn254"),
-            ProvingSystemId::Groth16Bn254 => write!(f, "Groth16Bn254"),
+            ProvingSystemId::GnarkGroth16Bn254 => write!(f, "GnarkGroth16Bn254"),
             ProvingSystemId::SP1 => write!(f, "SP1"),
             ProvingSystemId::Risc0 => write!(f, "Risc0"),
         }
@@ -488,7 +488,7 @@ mod tests {
         let proof = [42, 42, 42, 42].to_vec();
         let pub_input = Some([32, 32, 32, 32].to_vec());
         let verification_key = Some([8, 8, 8, 8].to_vec());
-        let proving_system = ProvingSystemId::Groth16Bn254;
+        let proving_system = ProvingSystemId::GnarkGroth16Bn254;
 
         let verification_data = VerificationData {
             proving_system,

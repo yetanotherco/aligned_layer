@@ -350,8 +350,8 @@ pub enum ProvingSystemArg {
     GnarkPlonkBls12_381,
     #[clap(name = "GnarkPlonkBn254")]
     GnarkPlonkBn254,
-    #[clap(name = "Groth16Bn254")]
-    Groth16Bn254,
+    #[clap(name = "GnarkGroth16Bn254")]
+    GnarkGroth16Bn254,
     #[clap(name = "SP1")]
     SP1,
     #[clap(name = "Risc0")]
@@ -365,7 +365,7 @@ impl From<ProvingSystemArg> for ProvingSystemId {
         match proving_system {
             ProvingSystemArg::GnarkPlonkBls12_381 => ProvingSystemId::GnarkPlonkBls12_381,
             ProvingSystemArg::GnarkPlonkBn254 => ProvingSystemId::GnarkPlonkBn254,
-            ProvingSystemArg::Groth16Bn254 => ProvingSystemId::Groth16Bn254,
+            ProvingSystemArg::GnarkGroth16Bn254 => ProvingSystemId::GnarkGroth16Bn254,
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
         }
@@ -901,7 +901,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
         }
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
-        | ProvingSystemId::Groth16Bn254 => {
+        | ProvingSystemId::GnarkGroth16Bn254 => {
             verification_key = Some(read_file_option(
                 "--vk",
                 args.verification_key_file_name.clone(),

@@ -59,15 +59,15 @@ func GenerateIneqProof(x int, outputDir string) {
 		panic("GROTH16 proof not verified")
 	}
 
-	proofFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16_" + gnarkVersion + ".proof")
+	proofFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_gnark_groth16_" + gnarkVersion + ".proof")
 	if err != nil {
 		panic(err)
 	}
-	vkFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16_" + gnarkVersion + ".vk")
+	vkFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_gnark_groth16_" + gnarkVersion + ".vk")
 	if err != nil {
 		panic(err)
 	}
-	witnessFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_groth16_" + gnarkVersion + ".pub")
+	witnessFile, err := os.Create(outputDir + "ineq_" + strconv.Itoa(x) + "_gnark_groth16_" + gnarkVersion + ".pub")
 	if err != nil {
 		panic(err)
 	}

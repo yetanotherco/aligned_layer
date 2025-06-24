@@ -498,7 +498,7 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 
 		results <- verificationResult
 
-	case common.Groth16Bn254:
+	case common.GnarkGroth16Bn254:
 		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
 
