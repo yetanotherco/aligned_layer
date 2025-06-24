@@ -54,7 +54,7 @@ impl ProofAggregator {
         )
         .expect("Keystore signer should be `cast wallet` compliant");
         let wallet = EthereumWallet::from(signer);
-        let rpc_provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
+        let rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
         let proof_aggregation_service = AlignedProofAggregationService::new(
             Address::from_str(&config.proof_aggregation_service_address)
                 .expect("AlignedProofAggregationService address should be valid"),
@@ -187,6 +187,32 @@ impl ProofAggregator {
             .map_err(AggregatedProofSubmissionError::ReceiptError)
     }
 
+    /// ### Blob capacity
+    ///
+    /// As dictated in [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844), each blob can hold:
+    ///
+    /// - `FIELD_ELEMENTS_PER_BLOB = 4096`
+    /// - `BYTES_PER_FIELD_ELEMENT = 32`
+    ///
+    /// This gives a total theoretical capacity of:
+    ///
+    /// `FIELD_ELEMENTS_PER_BLOB * BYTES_PER_FIELD_ELEMENT = 4096 * 32 = 131072 bytes`
+    ///
+    /// However, this full capacity isn't usable due to the encoding of KZG commitments to elliptic curve points.
+    /// Specifically:
+    ///
+    /// - Ethereum uses the BLS12-381 curve, whose scalar field modulus is slightly less than `2^256`
+    ///   (closer to `2^255`).
+    /// - Therefore, 32-byte field elements can't represent all 256-bit values.
+    /// - To ensure values are within the field modulus, we **pad with a leading `0x00` byte**,
+    ///   effectively capping values below the modulus.
+    /// - This reduces the usable payload to **31 bytes per field element**.
+    ///
+    /// So, the _actual usable capacity_ per blob is:
+    ///
+    /// `4096 * 31 = 126976 bytes`
+    ///
+    /// Meaning that we can send as much as 126976 / 32 = 3968 proofs per blob
     async fn construct_blob(
         &self,
         leaves: Vec<[u8; 32]>,
@@ -208,13 +234,17 @@ impl ProofAggregator {
         }
 
         // calculate kzg commitments for blob
-        let settings = c_kzg::ethereum_kzg_settings();
+
+        // This parameter is the optimal balance between performance and memory usage to load the trusted setup
+        // Source: https://github.com/ethereum/c-kzg-4844?tab=readme-ov-file#precompute
+        let settings = c_kzg::ethereum_kzg_settings(8);
         let blob = c_kzg::Blob::new(blob_data);
-        let commitment = c_kzg::KzgCommitment::blob_to_kzg_commitment(&blob, settings)
+        let commitment = settings
+            .blob_to_kzg_commitment(&blob)
             .map_err(|_| AggregatedProofSubmissionError::BuildingBlobCommitment)?;
-        let proof =
-            c_kzg::KzgProof::compute_blob_kzg_proof(&blob, &commitment.to_bytes(), settings)
-                .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
+        let proof = settings
+            .compute_blob_kzg_proof(&blob, &commitment.to_bytes())
+            .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
 
         let blob = BlobTransactionSidecar::from_kzg(
             vec![blob],

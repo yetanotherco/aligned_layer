@@ -25,11 +25,15 @@ The batcher cannot transfer user's funds to other accounts, only spend them to c
 
 ### How do I send proofs without a batcher?
 
+You can see the steps to do it in [this guide](../3_guides/8_submitting_batch_without_batcher.md).
+
 ### How do I run my own batcher?
 
 ### Why build Aligned on top of Ethereum?
     
 Ethereum is the most decentralized and most significant source of liquidity in the crypto ecosystem. We believe it is the most ambitious and long-term project on the internet. Aligned is being built to help Ethereum achieve its highest potential, and we believe this is only possible through validity/zero-knowledge proofs.
+
+For further reading on this subject, you can refer to [this aligned blog article](https://blog.alignedlayer.com/why-ethereum/), which explains why we chose Ethereum.
 
 ### What is Aligned's throughput?
     
