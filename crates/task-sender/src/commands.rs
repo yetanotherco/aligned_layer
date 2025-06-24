@@ -318,9 +318,9 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     let network: Network = args.network.into();
     info!("Starting senders!");
     for (i, sender) in senders.iter().enumerate() {
+        // this clones are necessary because of the move
         let wallet = sender.wallet.clone();
         let verification_data = verification_data.clone();
-        // this is necessary because of the move
         let network_clone = network.clone();
 
         // a thread to send tasks from each loaded wallet:
@@ -328,7 +328,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
             loop {
                 let n = network_clone.clone();
                 let mut result = Vec::with_capacity(args.burst_size);
-                let nonce = get_nonce_from_batcher(&n, wallet.address())
+                let nonce = get_nonce_from_batcher(n.clone(), wallet.address())
                     .await
                     .inspect_err(|e| {
                         error!(
@@ -347,11 +347,11 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
                 info!(
                     "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}, nonce: {}, address: {:?}",
-                    args.burst_size, n.clone(), i, nonce, wallet.address(),
+                    args.burst_size, n, i, nonce, wallet.address(),
                 );
 
                 let aligned_verification_data = submit_multiple(
-                    &n,
+                    n,
                     &verification_data_to_send.clone(),
                     max_fee,
                     wallet.clone(),
