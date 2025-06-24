@@ -1,5 +1,7 @@
+use crate::ffi::gnark_ffi::{
+    VerifyGroth16ProofBN254, VerifyPlonkProofBLS12_381, VerifyPlonkProofBN254,
+};
 use aligned_sdk::common::types::ProvingSystemId;
-use crate::ffi::gnark_ffi::{VerifyGroth16ProofBN254, VerifyPlonkProofBLS12_381, VerifyPlonkProofBN254};
 
 pub fn verify_gnark(
     proving_system: &ProvingSystemId,

@@ -1,5 +1,5 @@
-use aligned_sdk::common::types::ProvingSystemId;
 use crate::ffi::circom_ffi::VerifyCircomGroth16ProofBN128;
+use aligned_sdk::common::types::ProvingSystemId;
 
 pub fn verify_circom(
     proving_system: &ProvingSystemId,
