@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf, process::Command};
 
-const GO_SRC: &str = "./verifiers_ffi/verifier.go";
+const GO_SRC: &str = "./go_verifiers_lib/verifier.go";
 const GO_OUT: &str = "libverifier.a";
 const GO_LIB: &str = "verifier";
 

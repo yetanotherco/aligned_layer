@@ -67,6 +67,7 @@ pub mod sp1;
 pub mod telemetry;
 pub mod types;
 mod zk_utils;
+mod ffi;
 
 pub const LISTEN_NEW_BLOCKS_MAX_TIMES: usize = usize::MAX;
 

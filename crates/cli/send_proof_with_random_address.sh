@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Params:
-# PROOF_TYPE = sp1|groth16|plonk|risc0|circom  (default sp1)
+# PROOF_TYPE = sp1|groth16|plonk|risc0|circom_groth16  (default sp1)
 # RPC_URL (default localhost:8545)
 # NETWORK   devnet|holesky-stage|holesky
 # REPETITIONS (default 1)
@@ -72,7 +72,7 @@ elif [[ $PROOF_TYPE == "risc0" ]]; then
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
-elif [[ $PROOF_TYPE == "circom" ]]; then
+elif [[ $PROOF_TYPE == "circom_groth16" ]]; then
     aligned submit \
     --proving_system CircomGroth16Bn128 \
     --proof ../../scripts/test_files/circom_groth16_bn128_script/proof.json \
