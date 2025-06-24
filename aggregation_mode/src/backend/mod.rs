@@ -209,7 +209,7 @@ impl ProofAggregator {
 
         // calculate kzg commitments for blob
 
-        // This parameter is the optimal balance between performance and memory usage
+        // This parameter is the optimal balance between performance and memory usage to load the trusted setup
         // Source: https://github.com/ethereum/c-kzg-4844?tab=readme-ov-file#precompute
         let settings = c_kzg::ethereum_kzg_settings(8);
         let blob = c_kzg::Blob::new(blob_data);
