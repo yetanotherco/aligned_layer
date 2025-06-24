@@ -125,27 +125,24 @@ func VerifyCircomGroth16ProofBN128(proofBytesRef C.ListRef, pubInputBytesRef C.L
 	proofBytes := listRefToBytes(proofBytesRef)
 	pubInputBytes := listRefToBytes(pubInputBytesRef)
 	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)
-	print("FFI proofBytes: ", unsafe.Pointer(proofBytesRef.ptr), " len: ", len(proofBytes))
-	print("FFI pubInputBytes: ", unsafe.Pointer(pubInputBytesRef.ptr), " len: ", len(pubInputBytes))
-	print("FFI verificationKeyBytes: ", unsafe.Pointer(verificationKeyBytesRef.ptr), " len: ", len(verificationKeyBytes))
 
 	proof, err := parsers.ParseProof(proofBytes)
 	if err != nil {
-		print("FFI ParseProof error: ", err)
-		return false
-	}
-	public, err := parsers.ParsePublicSignals(pubInputBytes)
-	if err != nil {
-		print("FFI ParsePublicSignals error: ", err)
-		return false
-	}
-	vk, err := parsers.ParseVk(verificationKeyBytes)
-	if err != nil {
-		print("FFI ParseVk error: ", err)
+		log.Printf("Could not parse proof: %v", err)
 		return false
 	}
 
-	is_valid := verifier.Verify(vk, proof, public)
-	print("FFI is_valid: ", is_valid)
-	return is_valid
+	public, err := parsers.ParsePublicSignals(pubInputBytes)
+	if err != nil {
+		log.Printf("Could not parse public signals: %v", err)
+		return false
+	}
+
+	vk, err := parsers.ParseVk(verificationKeyBytes)
+	if err != nil {
+		log.Printf("Could not parse verification key: %v", err)
+		return false
+	}
+
+	return verifier.Verify(vk, proof, public)
 }

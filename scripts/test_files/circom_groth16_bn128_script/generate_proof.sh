@@ -6,7 +6,7 @@
 circom --r1cs --wasm --c --sym --inspect circuit.circom
 # 11. View information about the circuit
 snarkjs r1cs info circuit.r1cs
-# 12. Print the constraints [ommitted]
+# 12. Print the constraints [omitted]
 # 13. Export r1cs to json
 snarkjs r1cs export json circuit.r1cs circuit.r1cs.json
 # 14. Calculate the witness
