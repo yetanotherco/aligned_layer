@@ -236,7 +236,7 @@ pub async fn submit_multiple(
     wallet: Wallet<SigningKey>,
     nonce: U256,
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
-    let (ws_stream, _) = match connect_async(network.clone().get_batcher_url()).await {
+    let (ws_stream, _) = match connect_async(network.get_batcher_url()).await {
         Ok((ws_stream, response)) => (ws_stream, response),
         Err(e) => return vec![Err(errors::SubmitError::WebSocketConnectionError(e))],
     };
