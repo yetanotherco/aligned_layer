@@ -2,10 +2,10 @@ FROM ghcr.io/yetanotherco/aligned_layer/aligned_base:latest AS base
 
 COPY go.mod .
 COPY go.sum .
-COPY crates/batcher/verifiers_ffi/verifier.go /aligned_layer/crates/batcher/verifiers_ffi/verifier.go
+COPY crates/batcher/go_verifiers_lib/verifier.go /aligned_layer/crates/batcher/go_verifiers_lib/verifier.go
 
 RUN apt update -y && apt install -y gcc
-RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/crates/batcher/verifiers_ffi/verifier.go
+RUN go build -buildmode=c-archive -o libverifier.a /aligned_layer/crates/batcher/go_verifiers_lib/verifier.go
 
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
