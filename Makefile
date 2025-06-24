@@ -292,8 +292,8 @@ verify_aggregated_proof_risc0:
 		--network $(NETWORK) \
 		--from-block $(FROM_BLOCK) \
 		--proving_system Risc0 \
-		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
 		--beacon_url $(BEACON_URL) \
 		--rpc_url $(RPC_URL)
 
@@ -549,9 +549,9 @@ batcher_send_risc0_task: ## Send a Risc0 fibonacci proof to Batcher. Parameters:
 	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -560,8 +560,8 @@ batcher_send_risc0_task_no_pub_input: ## Send a Risc0 proof without public input
 	@echo "Sending Risc0 no pub input proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id_2_0.bin \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_1_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_id_2_1_0.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -570,9 +570,9 @@ batcher_send_risc0_burst: ## Send a burst of Risc0 fibonacci proofs to Batcher. 
 	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
         --repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
@@ -1050,9 +1050,9 @@ docker_batcher_send_risc0_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system Risc0 \
-              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
-              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \

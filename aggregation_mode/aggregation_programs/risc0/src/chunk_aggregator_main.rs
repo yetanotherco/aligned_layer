@@ -6,10 +6,10 @@ use risc0_zkvm::guest::env;
 
 risc0_zkvm::guest::entry!(main);
 
-// Generated with `make agg_mode_write_program_ids` and copied from program_ids.json
+// Generated with `make proof_aggregator_write_program_ids` and copied from program_ids.json
 pub const USER_PROOFS_AGGREGATOR_PROGRAM_IMAGE_ID: [u8; 32] = [
-    83, 145, 39, 254, 127, 217, 146, 127, 63, 217, 69, 190, 11, 204, 170, 138, 215, 35, 175, 246,
-    209, 154, 52, 243, 85, 37, 177, 147, 22, 153, 155, 156,
+    175, 145, 238, 43, 162, 202, 160, 191, 6, 143, 117, 138, 116, 252, 141, 190, 142, 207, 55, 244,
+    195, 97, 136, 132, 37, 29, 123, 136, 87, 129, 46, 133,
 ];
 
 fn main() {
