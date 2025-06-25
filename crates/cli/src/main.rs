@@ -356,6 +356,8 @@ pub enum ProvingSystemArg {
     SP1,
     #[clap(name = "Risc0")]
     Risc0,
+    #[clap(name = "CircomGroth16Bn128")]
+    CircomGroth16Bn128,
 }
 
 const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
@@ -368,6 +370,7 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::Groth16Bn254 => ProvingSystemId::Groth16Bn254,
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
+            ProvingSystemArg::CircomGroth16Bn128 => ProvingSystemId::CircomGroth16Bn128,
         }
     }
 }
@@ -623,10 +626,14 @@ async fn main() -> Result<(), AlignedError> {
 
             for batch_merkle_root in unique_batch_merkle_roots {
                 let base_url = match used_network {
-                    // Note: in case the explorer address changes for other networks, we should add an arm to this
-                    // match with that network since the default URL used here is the mainnet one
                     Network::Holesky => "https://holesky.explorer.alignedlayer.com/batches/0x",
-                    _ => "https://explorer.alignedlayer.com/batches/0x",
+                    Network::HoleskyStage => "https://stage.explorer.alignedlayer.com/batches/0x",
+                    Network::Mainnet => "https://explorer.alignedlayer.com/batches/0x",
+                    Network::MainnetStage => {
+                        "https://mainnetstage.explorer.alignedlayer.com/batches/0x"
+                    }
+                    Network::Devnet => "http://localhost:4000/batches/0x",
+                    _ => "http://localhost:4000/batches/0x",
                 };
 
                 info!(
@@ -897,6 +904,16 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
         | ProvingSystemId::Groth16Bn254 => {
+            verification_key = Some(read_file_option(
+                "--vk",
+                args.verification_key_file_name.clone(),
+            )?);
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name.clone(),
+            )?);
+        }
+        ProvingSystemId::CircomGroth16Bn128 => {
             verification_key = Some(read_file_option(
                 "--vk",
                 args.verification_key_file_name.clone(),

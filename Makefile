@@ -19,7 +19,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.16.1
+OPERATOR_VERSION=v0.17.0
 EIGEN_SDK_GO_VERSION_DEVNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
@@ -292,8 +292,8 @@ verify_aggregated_proof_risc0:
 		--network $(NETWORK) \
 		--from-block $(FROM_BLOCK) \
 		--proving_system Risc0 \
-		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
 		--beacon_url $(BEACON_URL) \
 		--rpc_url $(RPC_URL)
 
@@ -549,9 +549,9 @@ batcher_send_risc0_task: ## Send a Risc0 fibonacci proof to Batcher. Parameters:
 	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -560,8 +560,8 @@ batcher_send_risc0_task_no_pub_input: ## Send a Risc0 proof without public input
 	@echo "Sending Risc0 no pub input proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id_2_0.bin \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_1_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_id_2_1_0.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -570,9 +570,9 @@ batcher_send_risc0_burst: ## Send a burst of Risc0 fibonacci proofs to Batcher. 
 	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
         --repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
@@ -652,6 +652,29 @@ batcher_send_groth16_bn254_infinite: crates/target/release/aligned ## Send a dif
 	@echo "Sending a burst of proofs to Batcher..."
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./crates/cli/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
+
+batcher_send_circom_groth16_bn128_task: crates/target/release/aligned ## Send a Circom Groth16 BN128 proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Circom Groth16 BN128 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system CircomGroth16Bn128 \
+		--proof ../../scripts/test_files/circom_groth16_bn128_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn128_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_circom_groth16_bn128_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN128 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Circom Groth16 BN128 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system CircomGroth16Bn128 \
+		--proof ../../scripts/test_files/circom_groth16_bn128_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn128_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
 
 batcher_send_proof_with_random_address: ## Send a proof with a random address to Batcher. Parameters: RPC_URL, NETWORK, PROOF_TYPE, REPETITIONS
 	@cd crates/cli/ && ./send_proof_with_random_address.sh
@@ -762,6 +785,13 @@ generate_gnark_groth16_bn254_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254_ineq script..."
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
+generate_circom_groth16_bn128_proof: ## Run the circom_groth16_bn128_script
+	@echo "Running circom_groth16_bn128 script..."
+	@cd scripts/test_files/circom_groth16_bn128_script && ./generate_proof.sh
+
+generate_circom_groth16_bn128_setup: ## Run the circom_groth16_bn128_script setup
+	@echo "Running circom_groth16_bn128 script setup..."
+	@cd scripts/test_files/circom_groth16_bn128_script && ./generate_setup.sh
 
 __CONTRACTS_DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
@@ -1050,9 +1080,9 @@ docker_batcher_send_risc0_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system Risc0 \
-              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
-              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -1097,6 +1127,19 @@ docker_batcher_send_groth16_burst:
 			--rpc_url $(DOCKER_RPC_URL) \
 			--max_fee 0.1ether
 
+docker_batcher_send_circom_groth16_bn128_burst:
+	@echo "Sending Circom Groth16 BN128 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+			  --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			  --proving_system CircomGroth16Bn128 \
+			  --proof ./scripts/test_files/circom_groth16_bn128_script/proof.json \
+			  --public_input ./scripts/test_files/circom_groth16_bn128_script/public.json \
+			  --vk ./scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+			  --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			  --repetitions $(DOCKER_BURST_SIZE) \
+			  --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_sp1_burst
@@ -1104,6 +1147,7 @@ docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_plonk_bn254_burst
 	@$(MAKE) docker_batcher_send_plonk_bls12_381_burst
 	@$(MAKE) docker_batcher_send_groth16_burst
+	@$(MAKE) docker_batcher_send_circom_groth16_bn128_burst
 
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
@@ -1141,6 +1185,7 @@ docker_verify_proofs_onchain:
 	  '
 
 DOCKER_PROOFS_WAIT_TIME=60
+DOCKER_SENT_PROOFS=6
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
@@ -1169,7 +1214,7 @@ docker_verify_proof_submission_success:
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
-			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 5 ]; then \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne $(DOCKER_SENT_PROOFS) ]; then \
 				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
 				exit 1; \
 			fi; \

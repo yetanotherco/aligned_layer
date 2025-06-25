@@ -20,7 +20,6 @@ sol!(
 );
 
 pub type AlignedProofAggregationServiceContract = AlignedProofAggregationServiceInstance<
-    (),
     FillProvider<
         JoinFill<
             JoinFill<
@@ -40,7 +39,6 @@ sol!(
 );
 
 pub type AlignedLayerServiceManagerContract = AlignedLayerServiceManagerInstance<
-    (),
     FillProvider<
         JoinFill<
             Identity,

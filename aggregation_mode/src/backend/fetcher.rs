@@ -35,7 +35,7 @@ pub struct ProofsFetcher {
 impl ProofsFetcher {
     pub fn new(config: &Config) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
-        let rpc_provider = ProviderBuilder::new().on_http(rpc_url);
+        let rpc_provider = ProviderBuilder::new().connect_http(rpc_url);
         let aligned_service_manager = AlignedLayerServiceManager::new(
             Address::from_str(&config.aligned_service_manager_address)
                 .expect("AlignedProofAggregationService address should be valid"),

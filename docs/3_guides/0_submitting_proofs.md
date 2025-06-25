@@ -13,7 +13,8 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: gnark - Groth16 (with BN254) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
 - :white_check_mark: SP1 [(v5.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v5.0.0)
-- :white_check_mark: Risc0 [(v2.0.0)](https://github.com/risc0/risc0/releases/tag/v2.0.0)
+- :white_check_mark: Risc0 [(v2.1.0)](https://github.com/risc0/risc0/releases/tag/v2.1.0)
+- :white_check_mark: Circom [(v2.2.2)](https://github.com/iden3/circom/releases/tag/v2.2.2)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
 
@@ -190,9 +191,9 @@ risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v2.0.0", default-f
 rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system Risc0 \
---proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
---vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
---public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
@@ -250,6 +251,37 @@ aligned submit \
 --proof ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
 --public_input ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
 --vk ./scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
+--keystore_path ~/.aligned_keystore/keystore0 \
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
+```
+
+### CircomGroth16Bn128
+
+The CircomGroth16Bn128 proof needs the proof file, the public input file and the verification key file.
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system CircomGroth16Bn128 \
+--proof <proof_file> \
+--public_input <public_input_file> \
+--vk <verification_key_file> \
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
+--keystore_path <path_to_ecdsa_keystore> \
+--network holesky \
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
+```
+**Example**
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system CircomGroth16Bn128 \
+--proof ./scripts/test_files/circom_groth16_bn128_script/proof.json \
+--public_input ./scripts/test_files/circom_groth16_bn128_script/public.json \
+--vk ./scripts/test_files/circom_groth16_bn128_script/verification_key.json \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com

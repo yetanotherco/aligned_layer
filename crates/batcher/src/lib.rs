@@ -54,9 +54,11 @@ use types::errors::{BatcherError, TransactionSendError};
 use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
 use crate::telemetry::sender::TelemetrySender;
 
+pub mod circom;
 mod config;
 mod connection;
 mod eth;
+mod ffi;
 pub mod gnark;
 pub mod metrics;
 pub mod retry;

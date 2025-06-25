@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Params:
-# PROOF_TYPE = sp1|groth16|plonk|risc0  (default sp1)
+# PROOF_TYPE = sp1|groth16|plonk|risc0|circom_groth16  (default sp1)
 # RPC_URL (default localhost:8545)
 # NETWORK   devnet|holesky-stage|holesky
 # REPETITIONS (default 1)
@@ -18,7 +18,7 @@ fi
 
 if [ -z $PROOF_TYPE ]; then
     echo "Proof type not provided, using SP1 default"
-    PROOF_TYPE="sp1" #sp1|groth16|plonk|risc0
+    PROOF_TYPE="sp1" #sp1|groth16|plonk|risc0|circom
 fi
 
 if [ -z $REPETITIONS ]; then
@@ -34,8 +34,8 @@ if [[ $PROOF_TYPE == "sp1" ]]; then
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
-        --random_address \
-        --repetitions $REPETITIONS \
+    --random_address \
+    --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
@@ -45,8 +45,8 @@ elif [[ $PROOF_TYPE == "groth16" ]]; then
 		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
 		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
 		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
-        --random_address \
-        --repetitions $REPETITIONS \
+    --random_address \
+    --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
@@ -57,20 +57,31 @@ elif [[ $PROOF_TYPE == "plonk" ]]; then
 		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
 		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
 		--random_address \
-        --repetitions $REPETITIONS \
+    --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
 elif [[ $PROOF_TYPE == "risc0" ]]; then
 	aligned submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
+    --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
+    --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
 		--random_address \
-        --repetitions $REPETITIONS \
+    --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
+
+elif [[ $PROOF_TYPE == "circom_groth16" ]]; then
+    aligned submit \
+    --proving_system CircomGroth16Bn128 \
+    --proof ../../scripts/test_files/circom_groth16_bn128_script/proof.json \
+    --public_input ../../scripts/test_files/circom_groth16_bn128_script/public.json \
+    --vk ../../scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+    --random_address \
+    --repetitions $REPETITIONS \
+    --rpc_url $RPC_URL \
+    --network $NETWORK
 
 else
     echo "Incorrect proof type provided $1"

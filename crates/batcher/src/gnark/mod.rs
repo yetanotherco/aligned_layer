@@ -1,31 +1,7 @@
+use crate::ffi::gnark_ffi::{
+    VerifyGroth16ProofBN254, VerifyPlonkProofBLS12_381, VerifyPlonkProofBN254,
+};
 use aligned_sdk::common::types::ProvingSystemId;
-
-#[derive(Copy, Clone, Debug)]
-#[repr(C)]
-pub struct ListRef {
-    data: *const u8,
-    len: usize,
-}
-
-impl From<Vec<u8>> for ListRef {
-    fn from(v: Vec<u8>) -> Self {
-        Self::from(v.as_slice())
-    }
-}
-
-impl From<&Vec<u8>> for ListRef {
-    fn from(v: &Vec<u8>) -> Self {
-        Self::from(v.as_slice())
-    }
-}
-
-impl From<&[u8]> for ListRef {
-    fn from(v: &[u8]) -> Self {
-        let len = v.len();
-        let data = v.as_ptr().cast();
-        ListRef { data, len }
-    }
-}
 
 pub fn verify_gnark(
     proving_system: &ProvingSystemId,
@@ -49,22 +25,4 @@ pub fn verify_gnark(
         },
         _ => false,
     }
-}
-
-extern "C" {
-    pub fn VerifyPlonkProofBLS12_381(
-        proof: ListRef,
-        public_input: ListRef,
-        verification_key: ListRef,
-    ) -> bool;
-    pub fn VerifyPlonkProofBN254(
-        proof: ListRef,
-        public_input: ListRef,
-        verification_key: ListRef,
-    ) -> bool;
-    pub fn VerifyGroth16ProofBN254(
-        proof: ListRef,
-        public_input: ListRef,
-        verification_key: ListRef,
-    ) -> bool;
 }

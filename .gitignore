@@ -21,3 +21,17 @@ infra/ansible/playbooks/files/**.pem
 
 examples/l2/crates/l2/db
 examples/l2/crates/l2/zkvm_programs/sp1/elf/sp1_state_transition_program
+
+# Circom
+*.ptau
+challenge_0003
+response_0003
+challenge_phase2_0003
+circuit.r1cs
+circuit.r1cs.json
+circuit.sym
+response_phase2_0003
+witness.wtns
+*.zkey
+circuit_cpp/
+circuit_js

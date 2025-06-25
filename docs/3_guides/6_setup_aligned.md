@@ -101,7 +101,7 @@ Different configs for operators can be found in `config-files/config-operator`.
 If you wish to only register an operator you can run:
 
 ```bash
-make operator_full_registration CONFIG_FILE<path_to_config_file>
+make operator_full_registration CONFIG_FILE=<path_to_config_file>
 ```
 
 and to start it once it has been registered:

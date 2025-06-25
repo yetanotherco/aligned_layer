@@ -1,3 +1,4 @@
+use crate::circom::verifier::verify_circom;
 use crate::gnark::verify_gnark;
 use crate::risc_zero::verify_risc_zero_proof;
 use crate::sp1::verify_sp1_proof;
@@ -59,6 +60,25 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             debug!("Gnark proof is valid: {}", is_valid);
             is_valid
         }
+        ProvingSystemId::CircomGroth16Bn128 => {
+            let Some(pub_input) = verification_data.pub_input.as_ref() else {
+                warn!("Circom Groth16 public input missing");
+                return false;
+            };
+            let Some(vk) = verification_data.verification_key.as_ref() else {
+                warn!("Circom Groth16 verification key missing");
+                return false;
+            };
+
+            let is_valid = verify_circom(
+                &verification_data.proving_system,
+                &verification_data.proof,
+                pub_input,
+                vk,
+            );
+            debug!("Circom Groth16 proof is valid: {}", is_valid);
+            is_valid
+        }
     }
 }
 
@@ -82,6 +102,7 @@ mod test {
             ProvingSystemId::Groth16Bn254,
             ProvingSystemId::SP1,
             ProvingSystemId::Risc0,
+            ProvingSystemId::CircomGroth16Bn128,
         ];
         // Just to make sure we are not missing any verifier. The compilation will fail if we do and it forces us to add it to the vec above.
         for verifier in verifiers.iter() {
@@ -91,6 +112,7 @@ mod test {
                 ProvingSystemId::GnarkPlonkBls12_381 => (),
                 ProvingSystemId::GnarkPlonkBn254 => (),
                 ProvingSystemId::Groth16Bn254 => (),
+                ProvingSystemId::CircomGroth16Bn128 => (),
             }
         }
         verifiers
@@ -142,7 +164,7 @@ mod test {
     fn test_some_verifiers_disabled() {
         let verifiers = get_all_verifiers();
         // Disabling only the first verifier
-        let disabled_verifiers = ethers::types::U256::from(0b10001);
+        let disabled_verifiers = ethers::types::U256::from(0b100001);
         for verifier in get_all_verifiers().iter() {
             let verification_data = VerificationData {
                 proving_system: *verifier,

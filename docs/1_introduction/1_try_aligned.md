@@ -14,7 +14,7 @@ We will download a previously generated SP1 proof, send it to Aligned for verifi
 1. Download and install Aligned to send proofs in the testnet:
 
 ```bash
-curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/crates/cli/install_aligned.sh | bash
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/testnet/crates/cli/install_aligned.sh | bash
 ```
 
 2. Run the `source` command that should appear in the shell
@@ -22,7 +22,7 @@ curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/crates
 3. Download the example SP1 proof file together with the ELF file of the proved program using:
 
 ```bash
-curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/crates/cli/get_proof_test_files.sh | bash
+curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/testnet/crates/cli/get_proof_test_files.sh | bash
 ```
 
 4. Send the proof to be verified in Aligned with

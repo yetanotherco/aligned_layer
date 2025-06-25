@@ -1,6 +1,8 @@
 module github.com/yetanotherco/aligned_layer
 
-go 1.22.2
+go 1.22.3
+
+toolchain go1.23.4
 
 require (
 	github.com/Layr-Labs/eigensdk-go v0.2.0-beta.1
@@ -16,7 +18,9 @@ require (
 	github.com/consensys/gnark v0.12.0
 	github.com/consensys/gnark-crypto v0.17.0
 	github.com/fxamacker/cbor/v2 v2.7.0
+	github.com/rs/zerolog v1.33.0
 	github.com/ugorji/go/codec v1.2.12
+	github.com/yetanotherco/go-circom-prover-verifier v0.0.0-20250618185957-f01a8a8ec4a6
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -71,7 +75,6 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/ronanh/intcomp v1.1.0 // indirect
 	github.com/rs/cors v1.8.3 // indirect
-	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shirou/gopsutil v3.21.6+incompatible // indirect
 	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466 // indirect
