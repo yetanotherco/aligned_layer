@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/yetanotherco/go-circom-prover-verifier/parsers"
+	"github.com/yetanotherco/go-circom-prover-verifier/verifier"
 	"log"
 	"math/big"
 	"net/http"
@@ -514,6 +516,13 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 			verificationData.VmProgramCode, verificationData.PubInput)
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, err, "Risc0 proof verification")
+
+	case common.CircomGroth16Bn128:
+		verificationResult := o.verifyCircomGroth16Bn128Proof(verificationData.Proof,
+			verificationData.PubInput, verificationData.VerificationKey)
+		o.Logger.Infof("Circom Groth16 BN128 proof verification result: %t", verificationResult)
+		o.handleVerificationResult(results, verificationResult, nil, "Circom Groth16 BN128 proof verification")
+
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
 		results <- false
@@ -605,6 +614,27 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 
 	err = groth16.Verify(proof, verificationKey, pubInput)
 	return err == nil
+}
+
+// verifyCircomGroth16Bn128Proof verifies a Circom Groth16 proof using BN128 curve.
+func (o *Operator) verifyCircomGroth16Bn128Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	proof, err := parsers.ParseProof(proofBytes)
+	if err != nil {
+		o.Logger.Infof("Could not parse proof: %v", err)
+		return false
+	}
+	public, err := parsers.ParsePublicSignals(pubInputBytes)
+	if err != nil {
+		o.Logger.Infof("Could not parse public signals: %v", err)
+		return false
+	}
+	vk, err := parsers.ParseVk(verificationKeyBytes)
+	if err != nil {
+		o.Logger.Infof("Could not parse verification key: %v", err)
+		return false
+	}
+
+	return verifier.Verify(vk, proof, public)
 }
 
 func (o *Operator) SignTaskResponse(batchIdentifierHash [32]byte) *bls.Signature {

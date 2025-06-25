@@ -8,13 +8,13 @@ typedef struct ListRef {
   const uint8_t *ptr;
   uintptr_t len;
 } ListRef;
-
-
 */
 import "C"
 
 import (
 	"bytes"
+	"github.com/yetanotherco/go-circom-prover-verifier/parsers"
+	"github.com/yetanotherco/go-circom-prover-verifier/verifier"
 	"log"
 	"unsafe"
 
@@ -118,4 +118,31 @@ func verifyGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, ver
 
 	err = groth16.Verify(proof, verificationKey, pubInput)
 	return err == nil
+}
+
+//export VerifyCircomGroth16ProofBN128
+func VerifyCircomGroth16ProofBN128(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef) bool {
+	proofBytes := listRefToBytes(proofBytesRef)
+	pubInputBytes := listRefToBytes(pubInputBytesRef)
+	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)
+
+	proof, err := parsers.ParseProof(proofBytes)
+	if err != nil {
+		log.Printf("Could not parse proof: %v", err)
+		return false
+	}
+
+	public, err := parsers.ParsePublicSignals(pubInputBytes)
+	if err != nil {
+		log.Printf("Could not parse public signals: %v", err)
+		return false
+	}
+
+	vk, err := parsers.ParseVk(verificationKeyBytes)
+	if err != nil {
+		log.Printf("Could not parse verification key: %v", err)
+		return false
+	}
+
+	return verifier.Verify(vk, proof, public)
 }
