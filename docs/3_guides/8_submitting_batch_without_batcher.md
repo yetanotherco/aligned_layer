@@ -35,7 +35,7 @@ If, after this analysis, a User still wants to submit his own Batch, here is how
    ```
    [
        {
-           "proving_system": "Groth16Bn254",
+           "proving_system": "GnarkGroth16Bn254",
            "proof": [
                152, 88, 141, 155, 88, 35, 94, 76, ...
            ],
