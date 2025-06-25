@@ -34,7 +34,7 @@ fi
 cmd=(
     ./crates/target/release/aligned
     submit
-    --proving_system Groth16Bn254
+    --proving_system GnarkGroth16Bn254
     --repetitions "$repetitions"
     --proof "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_gnark_groth16_0_12_0.proof"
     --public_input "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_gnark_groth16_0_12_0.pub"
