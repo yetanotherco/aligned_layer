@@ -35,23 +35,23 @@ func listRefToBytes(listRef C.ListRef) []byte {
 
 func main() {}
 
-//export VerifyPlonkProofBLS12_381
-func VerifyPlonkProofBLS12_381(proofBytes C.ListRef, pubInputBytes C.ListRef, verificationKeyBytes C.ListRef) bool {
-	return verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BLS12_381)
+//export VerifyGnarkPlonkProofBLS12_381
+func VerifyGnarkPlonkProofBLS12_381(proofBytes C.ListRef, pubInputBytes C.ListRef, verificationKeyBytes C.ListRef) bool {
+	return verifyGnarkPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BLS12_381)
 }
 
-//export VerifyPlonkProofBN254
-func VerifyPlonkProofBN254(proofBytes C.ListRef, pubInputBytes C.ListRef, verificationKeyBytes C.ListRef) bool {
-	return verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
+//export VerifyGnarkPlonkProofBN254
+func VerifyGnarkPlonkProofBN254(proofBytes C.ListRef, pubInputBytes C.ListRef, verificationKeyBytes C.ListRef) bool {
+	return verifyGnarkPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
-//export VerifyGroth16ProofBN254
-func VerifyGroth16ProofBN254(proofBytes C.ListRef, pubInputBytes C.ListRef, verificationKeyBytes C.ListRef) bool {
-	return verifyGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
+//export VerifyGnarkGroth16ProofBN254
+func VerifyGnarkGroth16ProofBN254(proofBytes C.ListRef, pubInputBytes C.ListRef, verificationKeyBytes C.ListRef) bool {
+	return verifyGnarkGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
-// verifyPlonkProof contains the common proof verification logic.
-func verifyPlonkProof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef, curve ecc.ID) bool {
+// verifyGnarkPlonkProof contains the common proof verification logic.
+func verifyGnarkPlonkProof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef, curve ecc.ID) bool {
 	proofBytes := listRefToBytes(proofBytesRef)
 	pubInputBytes := listRefToBytes(pubInputBytesRef)
 	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)
@@ -85,8 +85,8 @@ func verifyPlonkProof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verif
 	return err == nil
 }
 
-// verifyGroth16Proof contains the common proof verification logic.
-func verifyGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef, curve ecc.ID) bool {
+// verifyGnarkGroth16Proof contains the common proof verification logic.
+func verifyGnarkGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef, curve ecc.ID) bool {
 	proofBytes := listRefToBytes(proofBytesRef)
 	pubInputBytes := listRefToBytes(pubInputBytesRef)
 	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)
