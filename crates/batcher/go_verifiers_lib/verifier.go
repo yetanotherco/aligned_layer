@@ -13,8 +13,10 @@ import "C"
 
 import (
 	"bytes"
-	"github.com/yetanotherco/go-circom-prover-verifier/parsers"
-	"github.com/yetanotherco/go-circom-prover-verifier/verifier"
+	"encoding/json"
+	"github.com/iden3/go-rapidsnark/types"
+	"github.com/iden3/go-rapidsnark/verifier"
+
 	"log"
 	"unsafe"
 
@@ -126,23 +128,29 @@ func VerifyCircomGroth16ProofBN128(proofBytesRef C.ListRef, pubInputBytesRef C.L
 	pubInputBytes := listRefToBytes(pubInputBytesRef)
 	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)
 
-	proof, err := parsers.ParseProof(proofBytes)
+	proofData := &types.ProofData{}
+	err := json.Unmarshal(proofBytes, proofData)
 	if err != nil {
-		log.Printf("Could not parse proof: %v", err)
+		log.Printf("Could not marshal proof: %v", err)
 		return false
 	}
 
-	public, err := parsers.ParsePublicSignals(pubInputBytes)
+	var pubSignals []string
+	err = json.Unmarshal(pubInputBytes, &pubSignals)
 	if err != nil {
-		log.Printf("Could not parse public signals: %v", err)
+		log.Printf("Error unmarshaling JSON: %v", err)
 		return false
 	}
 
-	vk, err := parsers.ParseVk(verificationKeyBytes)
-	if err != nil {
-		log.Printf("Could not parse verification key: %v", err)
-		return false
+	zkProof := types.ZKProof{
+		Proof:      proofData,
+		PubSignals: pubSignals,
 	}
 
-	return verifier.Verify(vk, proof, public)
+	err = verifier.VerifyGroth16(zkProof, verificationKeyBytes)
+	if err != nil {
+		log.Printf("Could not verify Groth16 proof: %v", err)
+		return false
+	}
+	return true
 }
