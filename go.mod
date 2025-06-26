@@ -18,9 +18,10 @@ require (
 	github.com/consensys/gnark v0.12.0
 	github.com/consensys/gnark-crypto v0.17.0
 	github.com/fxamacker/cbor/v2 v2.7.0
+	github.com/iden3/go-rapidsnark/types v0.0.3
+	github.com/iden3/go-rapidsnark/verifier v0.0.5
 	github.com/rs/zerolog v1.33.0
 	github.com/ugorji/go/codec v1.2.12
-	github.com/yetanotherco/go-circom-prover-verifier v0.0.0-20250618185957-f01a8a8ec4a6
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -61,6 +62,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
+	github.com/iden3/go-iden3-crypto v0.0.17 // indirect
 	github.com/ingonyama-zk/icicle/v3 v3.1.1-0.20241118092657-fccdb2f0921b // indirect
 	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/lmittmann/tint v1.0.4 // indirect

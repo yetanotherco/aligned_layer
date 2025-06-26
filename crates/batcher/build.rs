@@ -9,8 +9,9 @@ fn main() {
 
     // Fix the missing dependency issue
     let mut get_cmd = Command::new("go");
-    get_cmd.arg("get")
-           .arg("github.com/yetanotherco/go-circom-prover-verifier/parsers@v0.0.0-20250618185957-f01a8a8ec4a6");
+    get_cmd
+        .arg("get")
+        .arg("github.com/iden3/go-rapidsnark/verifier@v0.0.5");
 
     let _ = get_cmd.output(); // Run but don't fail if it has issues
 

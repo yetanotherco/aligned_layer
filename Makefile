@@ -653,24 +653,24 @@ batcher_send_gnark_groth16_bn254_infinite: crates/target/release/aligned ## Send
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./crates/cli/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
-batcher_send_circom_groth16_bn128_task: crates/target/release/aligned ## Send a Circom Groth16 BN128 proof to Batcher. Parameters: RPC_URL, NETWORK
-	@echo "Sending Circom Groth16 BN128 proof to Batcher..."
+batcher_send_circom_groth16_bn256_task: crates/target/release/aligned ## Send a Circom Groth16 BN256 proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
-		--proving_system CircomGroth16Bn128 \
-		--proof ../../scripts/test_files/circom_groth16_bn128_script/proof.json \
-		--public_input ../../scripts/test_files/circom_groth16_bn128_script/public.json \
-		--vk ../../scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+		--proving_system CircomGroth16Bn256 \
+		--proof ../../scripts/test_files/circom_groth16_bn256_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn256_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn256_script/verification_key.json \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_circom_groth16_bn128_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN128 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
-	@echo "Sending Circom Groth16 BN128 proof to Batcher..."
+batcher_send_circom_groth16_bn256_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN256 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
-		--proving_system CircomGroth16Bn128 \
-		--proof ../../scripts/test_files/circom_groth16_bn128_script/proof.json \
-		--public_input ../../scripts/test_files/circom_groth16_bn128_script/public.json \
-		--vk ../../scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+		--proving_system CircomGroth16Bn256 \
+		--proof ../../scripts/test_files/circom_groth16_bn256_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn256_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn256_script/verification_key.json \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
@@ -785,13 +785,13 @@ generate_gnark_groth16_bn254_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254_ineq script..."
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
-generate_circom_groth16_bn128_proof: ## Run the circom_groth16_bn128_script
-	@echo "Running circom_groth16_bn128 script..."
-	@cd scripts/test_files/circom_groth16_bn128_script && ./generate_proof.sh
+generate_circom_groth16_bn256_proof: ## Run the circom_groth16_bn256_script
+	@echo "Running circom_groth16_bn256 script..."
+	@cd scripts/test_files/circom_groth16_bn256_script && ./generate_proof.sh
 
-generate_circom_groth16_bn128_setup: ## Run the circom_groth16_bn128_script setup
-	@echo "Running circom_groth16_bn128 script setup..."
-	@cd scripts/test_files/circom_groth16_bn128_script && ./generate_setup.sh
+generate_circom_groth16_bn256_setup: ## Run the circom_groth16_bn256_script setup
+	@echo "Running circom_groth16_bn256 script setup..."
+	@cd scripts/test_files/circom_groth16_bn256_script && ./generate_setup.sh
 
 __CONTRACTS_DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
@@ -1127,14 +1127,14 @@ docker_batcher_send_gnark_groth16_burst:
 			--rpc_url $(DOCKER_RPC_URL) \
 			--max_fee 0.1ether
 
-docker_batcher_send_circom_groth16_bn128_burst:
-	@echo "Sending Circom Groth16 BN128 task to Batcher..."
+docker_batcher_send_circom_groth16_bn256_burst:
+	@echo "Sending Circom Groth16 BN256 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
 			  --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-			  --proving_system CircomGroth16Bn128 \
-			  --proof ./scripts/test_files/circom_groth16_bn128_script/proof.json \
-			  --public_input ./scripts/test_files/circom_groth16_bn128_script/public.json \
-			  --vk ./scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+			  --proving_system CircomGroth16Bn256 \
+			  --proof ./scripts/test_files/circom_groth16_bn256_script/proof.json \
+			  --public_input ./scripts/test_files/circom_groth16_bn256_script/public.json \
+			  --vk ./scripts/test_files/circom_groth16_bn256_script/verification_key.json \
 			  --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
 			  --repetitions $(DOCKER_BURST_SIZE) \
 			  --rpc_url $(DOCKER_RPC_URL) \
@@ -1147,7 +1147,7 @@ docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_gnark_plonk_bn254_burst
 	@$(MAKE) docker_batcher_send_gnark_plonk_bls12_381_burst
 	@$(MAKE) docker_batcher_send_gnark_groth16_burst
-	@$(MAKE) docker_batcher_send_circom_groth16_bn128_burst
+	@$(MAKE) docker_batcher_send_circom_groth16_bn256_burst
 
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \

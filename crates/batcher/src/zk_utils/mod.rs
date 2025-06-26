@@ -60,7 +60,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             debug!("Gnark proof is valid: {}", is_valid);
             is_valid
         }
-        ProvingSystemId::CircomGroth16Bn128 => {
+        ProvingSystemId::CircomGroth16Bn256 => {
             let Some(pub_input) = verification_data.pub_input.as_ref() else {
                 warn!("Circom Groth16 public input missing");
                 return false;
@@ -102,7 +102,7 @@ mod test {
             ProvingSystemId::GnarkGroth16Bn254,
             ProvingSystemId::SP1,
             ProvingSystemId::Risc0,
-            ProvingSystemId::CircomGroth16Bn128,
+            ProvingSystemId::CircomGroth16Bn256,
         ];
         // Just to make sure we are not missing any verifier. The compilation will fail if we do and it forces us to add it to the vec above.
         for verifier in verifiers.iter() {
@@ -112,7 +112,7 @@ mod test {
                 ProvingSystemId::GnarkPlonkBls12_381 => (),
                 ProvingSystemId::GnarkPlonkBn254 => (),
                 ProvingSystemId::GnarkGroth16Bn254 => (),
-                ProvingSystemId::CircomGroth16Bn128 => (),
+                ProvingSystemId::CircomGroth16Bn256 => (),
             }
         }
         verifiers

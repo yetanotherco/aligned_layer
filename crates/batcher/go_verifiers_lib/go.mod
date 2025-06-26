@@ -5,7 +5,8 @@ go 1.22.3
 require (
 	github.com/consensys/gnark v0.12.0
 	github.com/consensys/gnark-crypto v0.17.0
-	github.com/yetanotherco/go-circom-prover-verifier v0.0.0-20250618185957-f01a8a8ec4a6
+	github.com/iden3/go-rapidsnark/types v0.0.3
+	github.com/iden3/go-rapidsnark/verifier v0.0.5
 )
 
 require (
@@ -14,6 +15,7 @@ require (
 	github.com/consensys/bavard v0.1.29 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 // indirect
+	github.com/iden3/go-iden3-crypto v0.0.17 // indirect
 	github.com/ingonyama-zk/icicle/v3 v3.1.1-0.20241118092657-fccdb2f0921b // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -26,5 +28,3 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
-
-require github.com/ethereum/go-ethereum v1.14.0 // indirect

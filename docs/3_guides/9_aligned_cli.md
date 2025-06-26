@@ -58,7 +58,7 @@ Submit a proof to the Aligned Layer batcher.
   - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - `--proving_system <proving_system>`: Proof system of the submitted proof  
-  - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`, `CircomGroth16Bn128`
+  - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`, `CircomGroth16Bn256`
 - `--proof <proof_file_path>`: Path to the proof file.
 - `--public_input <public_input_file_path>`: Path to the public input file.
 - `--vk <verification_key_file_path>`: Path to the verification key file (required for specific proof systems).
