@@ -2,8 +2,6 @@ module github.com/yetanotherco/aligned_layer
 
 go 1.22.3
 
-toolchain go1.23.4
-
 require (
 	github.com/Layr-Labs/eigensdk-go v0.2.0-beta.1
 	github.com/ethereum/go-ethereum v1.14.0
