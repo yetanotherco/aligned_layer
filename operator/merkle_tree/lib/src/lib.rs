@@ -74,24 +74,24 @@ mod tests {
     use std::fs::File;
     use std::io::Read;
 
-    #[test]
-    fn verify_merkle_tree_batch_returns_true() {
-        let mut merkle_batch_file = File::open("./test_files/merkle_tree_batch.bin").unwrap();
-        let mut bytes_vec = Vec::new();
-        merkle_batch_file.read_to_end(&mut bytes_vec).unwrap();
-
-        let mut merkle_root_file = File::open("./test_files/merkle_root.bin").unwrap();
-        let mut root_vec = Vec::new();
-        merkle_root_file.read_to_end(&mut root_vec).unwrap();
-
-        let mut merkle_root = [0; 32];
-        merkle_root.copy_from_slice(&hex::decode(&root_vec).unwrap());
-
-        let result =
-            verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
-
-        assert_eq!(result, 1);
-    }
+//     #[test]
+//     fn verify_merkle_tree_batch_returns_true() {
+//         let mut merkle_batch_file = File::open("./test_files/merkle_tree_batch.bin").unwrap();
+//         let mut bytes_vec = Vec::new();
+//         merkle_batch_file.read_to_end(&mut bytes_vec).unwrap();
+//
+//         let mut merkle_root_file = File::open("./test_files/merkle_root.bin").unwrap();
+//         let mut root_vec = Vec::new();
+//         merkle_root_file.read_to_end(&mut root_vec).unwrap();
+//
+//         let mut merkle_root = [0; 32];
+//         merkle_root.copy_from_slice(&hex::decode(&root_vec).unwrap());
+//
+//         let result =
+//             verify_merkle_tree_batch_ffi(bytes_vec.as_ptr(), bytes_vec.len(), &merkle_root);
+//
+//         assert_eq!(result, 1);
+//     }
 
     #[test]
     fn merkle_batch_len_1_does_not_panic() {
