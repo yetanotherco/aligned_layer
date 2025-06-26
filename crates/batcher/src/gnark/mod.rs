@@ -1,5 +1,5 @@
 use crate::ffi::gnark_ffi::{
-    VerifyGroth16ProofBN254, VerifyPlonkProofBLS12_381, VerifyPlonkProofBN254,
+    VerifyGnarkGroth16ProofBN254, VerifyGnarkPlonkProofBLS12_381, VerifyGnarkPlonkProofBN254,
 };
 use aligned_sdk::common::types::ProvingSystemId;
 
@@ -15,13 +15,13 @@ pub fn verify_gnark(
 
     match proving_system {
         ProvingSystemId::GnarkPlonkBn254 => unsafe {
-            VerifyPlonkProofBN254(proof, public_input, verification_key)
+            VerifyGnarkPlonkProofBN254(proof, public_input, verification_key)
         },
         ProvingSystemId::GnarkPlonkBls12_381 => unsafe {
-            VerifyPlonkProofBLS12_381(proof, public_input, verification_key)
+            VerifyGnarkPlonkProofBLS12_381(proof, public_input, verification_key)
         },
-        ProvingSystemId::Groth16Bn254 => unsafe {
-            VerifyGroth16ProofBN254(proof, public_input, verification_key)
+        ProvingSystemId::GnarkGroth16Bn254 => unsafe {
+            VerifyGnarkGroth16ProofBN254(proof, public_input, verification_key)
         },
         _ => false,
     }

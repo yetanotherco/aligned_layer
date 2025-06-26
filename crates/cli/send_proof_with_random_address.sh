@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Params:
-# PROOF_TYPE = sp1|groth16|plonk|risc0|circom_groth16  (default sp1)
+# PROOF_TYPE = sp1|gnark_groth16|gnark_plonk|risc0|circom_groth16  (default sp1)
 # RPC_URL (default localhost:8545)
 # NETWORK   devnet|holesky-stage|holesky
 # REPETITIONS (default 1)
@@ -18,7 +18,7 @@ fi
 
 if [ -z $PROOF_TYPE ]; then
     echo "Proof type not provided, using SP1 default"
-    PROOF_TYPE="sp1" #sp1|groth16|plonk|risc0|circom
+    PROOF_TYPE="sp1" #sp1|gnark_groth16|gnark_plonk|risc0|circom_groth16
 fi
 
 if [ -z $REPETITIONS ]; then
@@ -39,23 +39,23 @@ if [[ $PROOF_TYPE == "sp1" ]]; then
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
-elif [[ $PROOF_TYPE == "groth16" ]]; then
+elif [[ $PROOF_TYPE == "gnark_groth16" ]]; then
     aligned submit \
-		--proving_system Groth16Bn254 \
-		--proof ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.proof \
-		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.pub \
-		--vk ../../scripts/test_files/gnark_groth16_bn254_script/groth16_0_12_0.vk \
+		--proving_system GnarkGroth16Bn254 \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.vk \
     --random_address \
     --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
 
-elif [[ $PROOF_TYPE == "plonk" ]]; then
+elif [[ $PROOF_TYPE == "gnark_plonk" ]]; then
     aligned submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input_0_12_0.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk_0_12_0.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.vk \
 		--random_address \
     --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \

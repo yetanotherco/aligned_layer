@@ -34,11 +34,11 @@ fi
 cmd=(
     ./crates/target/release/aligned
     submit
-    --proving_system Groth16Bn254
+    --proving_system GnarkGroth16Bn254
     --repetitions "$repetitions"
-    --proof "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.proof"
-    --public_input "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.pub"
-    --vk "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.vk"
+    --proof "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_gnark_groth16_0_12_0.proof"
+    --public_input "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_gnark_groth16_0_12_0.pub"
+    --vk "scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_gnark_groth16_0_12_0.vk"
     --proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
     --rpc_url "$RPC"
     --network "$NETWORK"

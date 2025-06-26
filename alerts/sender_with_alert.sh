@@ -106,11 +106,11 @@ do
   ## Send Proof
   echo "Submitting $REPETITIONS proofs $x != 0"
   submit=$(aligned submit \
-    --proving_system Groth16Bn254 \
+    --proving_system GnarkGroth16Bn254 \
     --repetitions $REPETITIONS \
-    --proof "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.proof" \
-    --public_input "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.pub" \
-    --vk "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_groth16_0_12_0.vk" \
+    --proof "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_gnark_groth16_0_12_0.proof" \
+    --public_input "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_gnark_groth16_0_12_0.pub" \
+    --vk "./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_${x}_gnark_groth16_0_12_0.vk" \
     --private_key $PRIVATE_KEY \
     --rpc_url $RPC_URL \
     --network $NETWORK \

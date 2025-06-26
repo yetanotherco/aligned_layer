@@ -489,19 +489,19 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 	}
 	switch verificationData.ProvingSystemId {
 	case common.GnarkPlonkBls12_381:
-		verificationResult := o.verifyPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
+		verificationResult := o.verifyGnarkPlonkProofBLS12_381(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("PLONK BLS12-381 proof verification result: %t", verificationResult)
 
 		results <- verificationResult
 
 	case common.GnarkPlonkBn254:
-		verificationResult := o.verifyPlonkProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
+		verificationResult := o.verifyGnarkPlonkProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("PLONK BN254 proof verification result: %t", verificationResult)
 
 		results <- verificationResult
 
-	case common.Groth16Bn254:
-		verificationResult := o.verifyGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
+	case common.GnarkGroth16Bn254:
+		verificationResult := o.verifyGnarkGroth16ProofBN254(verificationData.Proof, verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("GROTH16 BN254 proof verification result: %t", verificationResult)
 
 		results <- verificationResult
@@ -539,23 +539,23 @@ func (o *Operator) handleVerificationResult(results chan bool, isVerified bool, 
 	}
 }
 
-// VerifyPlonkProofBLS12_381 verifies a PLONK proof using BLS12-381 curve.
-func (o *Operator) verifyPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
-	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BLS12_381)
+// VerifyGnarkPlonkProofBLS12_381 verifies a PLONK proof using BLS12-381 curve.
+func (o *Operator) verifyGnarkPlonkProofBLS12_381(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	return o.verifyGnarkPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BLS12_381)
 }
 
-// VerifyPlonkProofBN254 verifies a PLONK proof using BN254 curve.
-func (o *Operator) verifyPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
-	return o.verifyPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
+// VerifyGnarkPlonkProofBN254 verifies a PLONK proof using BN254 curve.
+func (o *Operator) verifyGnarkPlonkProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	return o.verifyGnarkPlonkProof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
-// VerifyGroth16ProofBN254 verifies a GROTH16 proof using BN254 curve.
-func (o *Operator) verifyGroth16ProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
-	return o.verifyGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
+// VerifyGnarkGroth16ProofBN254 verifies a GROTH16 proof using BN254 curve.
+func (o *Operator) verifyGnarkGroth16ProofBN254(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	return o.verifyGnarkGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
-// verifyPlonkProof contains the common proof verification logic.
-func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+// verifyGnarkPlonkProof contains the common proof verification logic.
+func (o *Operator) verifyGnarkPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
@@ -585,8 +585,8 @@ func (o *Operator) verifyPlonkProof(proofBytes []byte, pubInputBytes []byte, ver
 	return err == nil
 }
 
-// verifyGroth16Proof contains the common proof verification logic.
-func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+// verifyGnarkGroth16Proof contains the common proof verification logic.
+func (o *Operator) verifyGnarkGroth16Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
 	proofReader := bytes.NewReader(proofBytes)
 	proof := groth16.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {

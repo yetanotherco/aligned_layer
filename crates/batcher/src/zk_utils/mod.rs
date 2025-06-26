@@ -39,7 +39,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
         }
         ProvingSystemId::GnarkPlonkBls12_381
         | ProvingSystemId::GnarkPlonkBn254
-        | ProvingSystemId::Groth16Bn254 => {
+        | ProvingSystemId::GnarkGroth16Bn254 => {
             let Some(vk) = verification_data.verification_key.as_ref() else {
                 warn!("Gnark verification key missing");
                 return false;
@@ -99,7 +99,7 @@ mod test {
         let verifiers = vec![
             ProvingSystemId::GnarkPlonkBls12_381,
             ProvingSystemId::GnarkPlonkBn254,
-            ProvingSystemId::Groth16Bn254,
+            ProvingSystemId::GnarkGroth16Bn254,
             ProvingSystemId::SP1,
             ProvingSystemId::Risc0,
             ProvingSystemId::CircomGroth16Bn256,
@@ -111,7 +111,7 @@ mod test {
                 ProvingSystemId::Risc0 => (),
                 ProvingSystemId::GnarkPlonkBls12_381 => (),
                 ProvingSystemId::GnarkPlonkBn254 => (),
-                ProvingSystemId::Groth16Bn254 => (),
+                ProvingSystemId::GnarkGroth16Bn254 => (),
                 ProvingSystemId::CircomGroth16Bn256 => (),
             }
         }
