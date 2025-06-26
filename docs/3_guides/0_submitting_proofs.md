@@ -256,14 +256,14 @@ aligned submit \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
-### CircomGroth16Bn128
+### CircomGroth16Bn256
 
-The CircomGroth16Bn128 proof needs the proof file, the public input file and the verification key file.
+The CircomGroth16Bn256 proof needs the proof file, the public input file and the verification key file.
 
 ```bash
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
---proving_system CircomGroth16Bn128 \
+--proving_system CircomGroth16Bn256 \
 --proof <proof_file> \
 --public_input <public_input_file> \
 --vk <verification_key_file> \
@@ -278,10 +278,10 @@ aligned submit \
 ```bash
 rm -rf ./aligned_verification_data/ &&
 aligned submit \
---proving_system CircomGroth16Bn128 \
---proof ./scripts/test_files/circom_groth16_bn128_script/proof.json \
---public_input ./scripts/test_files/circom_groth16_bn128_script/public.json \
---vk ./scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+--proving_system CircomGroth16Bn256 \
+--proof ./scripts/test_files/circom_groth16_bn256_script/proof.json \
+--public_input ./scripts/test_files/circom_groth16_bn256_script/public.json \
+--vk ./scripts/test_files/circom_groth16_bn256_script/verification_key.json \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com

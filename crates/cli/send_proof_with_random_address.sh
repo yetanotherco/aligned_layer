@@ -74,10 +74,10 @@ elif [[ $PROOF_TYPE == "risc0" ]]; then
 
 elif [[ $PROOF_TYPE == "circom_groth16" ]]; then
     aligned submit \
-    --proving_system CircomGroth16Bn128 \
-    --proof ../../scripts/test_files/circom_groth16_bn128_script/proof.json \
-    --public_input ../../scripts/test_files/circom_groth16_bn128_script/public.json \
-    --vk ../../scripts/test_files/circom_groth16_bn128_script/verification_key.json \
+    --proving_system CircomGroth16Bn256 \
+    --proof ../../scripts/test_files/circom_groth16_bn256_script/proof.json \
+    --public_input ../../scripts/test_files/circom_groth16_bn256_script/public.json \
+    --vk ../../scripts/test_files/circom_groth16_bn256_script/verification_key.json \
     --random_address \
     --repetitions $REPETITIONS \
     --rpc_url $RPC_URL \

@@ -122,8 +122,8 @@ func verifyGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, ver
 	return err == nil
 }
 
-//export VerifyCircomGroth16ProofBN128
-func VerifyCircomGroth16ProofBN128(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef) bool {
+//export VerifyCircomGroth16ProofBN256
+func VerifyCircomGroth16ProofBN256(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef) bool {
 	proofBytes := listRefToBytes(proofBytesRef)
 	pubInputBytes := listRefToBytes(pubInputBytesRef)
 	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)

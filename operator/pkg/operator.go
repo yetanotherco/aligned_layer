@@ -517,11 +517,11 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		o.Logger.Infof("Risc0 proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, err, "Risc0 proof verification")
 
-	case common.CircomGroth16Bn128:
-		verificationResult := o.verifyCircomGroth16Bn128Proof(verificationData.Proof,
+	case common.CircomGroth16Bn256:
+		verificationResult := o.verifyCircomGroth16Bn256Proof(verificationData.Proof,
 			verificationData.PubInput, verificationData.VerificationKey)
-		o.Logger.Infof("Circom Groth16 BN128 proof verification result: %t", verificationResult)
-		o.handleVerificationResult(results, verificationResult, nil, "Circom Groth16 BN128 proof verification")
+		o.Logger.Infof("Circom Groth16 BN256 proof verification result: %t", verificationResult)
+		o.handleVerificationResult(results, verificationResult, nil, "Circom Groth16 BN256 proof verification")
 
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
@@ -616,8 +616,8 @@ func (o *Operator) verifyGroth16Proof(proofBytes []byte, pubInputBytes []byte, v
 	return err == nil
 }
 
-// verifyCircomGroth16Bn128Proof verifies a Circom Groth16 proof using BN128 curve.
-func (o *Operator) verifyCircomGroth16Bn128Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+// verifyCircomGroth16Bn256Proof verifies a Circom Groth16 proof using BN256 curve.
+func (o *Operator) verifyCircomGroth16Bn256Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
 	proofData := &rapidsnark_types.ProofData{}
 	err := json.Unmarshal(proofBytes, proofData)
 	if err != nil {
@@ -639,7 +639,7 @@ func (o *Operator) verifyCircomGroth16Bn128Proof(proofBytes []byte, pubInputByte
 
 	err = verifier.VerifyGroth16(zkProof, verificationKeyBytes)
 	if err != nil {
-		o.Logger.Infof("Could not verify Circom Groth16 BN128 proof: %v", err)
+		o.Logger.Infof("Could not verify Circom Groth16 BN256 proof: %v", err)
 		return false
 	}
 	return true

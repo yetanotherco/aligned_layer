@@ -1,4 +1,4 @@
-use crate::ffi::circom_ffi::VerifyCircomGroth16ProofBN128;
+use crate::ffi::circom_ffi::VerifyCircomGroth16ProofBN256;
 use aligned_sdk::common::types::ProvingSystemId;
 
 pub fn verify_circom(
@@ -12,8 +12,8 @@ pub fn verify_circom(
     let verification_key = verification_key.into();
 
     match proving_system {
-        ProvingSystemId::CircomGroth16Bn128 => unsafe {
-            VerifyCircomGroth16ProofBN128(proof, public_input, verification_key)
+        ProvingSystemId::CircomGroth16Bn256 => unsafe {
+            VerifyCircomGroth16ProofBN256(proof, public_input, verification_key)
         },
         _ => false,
     }

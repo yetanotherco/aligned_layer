@@ -32,10 +32,10 @@ make generate_gnark_plonk_bn254_proof
 make generate_gnark_plonk_bls12_381_proof
 ```
 
-## Generate Circom Groth16 BN128 Proof
+## Generate Circom Groth16 BN256 Proof
 
 ```bash
-make generate_circom_groth16_bn128_proof
+make generate_circom_groth16_bn256_proof
 ```
 
-You can find more details about Circom in [./circom_groth16_bn128_script/README.md](./circom_groth16_bn128_script/README.md).
+You can find more details about Circom in [./circom_groth16_bn256_script/README.md](./circom_groth16_bn256_script/README.md).
