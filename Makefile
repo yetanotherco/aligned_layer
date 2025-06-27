@@ -80,8 +80,8 @@ deps: submodules go_deps build_all_ffi ## Install deps
 go_deps:
 	@echo "Installing Go dependencies..."
 	go install github.com/maoueh/zap-pretty@v0.3.0
-	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
+	go install github.com/ethereum/go-ethereum/cmd/abigen@v1.14.0
+	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@v0.13.0
 
 foundry_install:
 	curl -L https://foundry.paradigm.xyz | bash
