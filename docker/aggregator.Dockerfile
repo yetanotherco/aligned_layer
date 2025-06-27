@@ -9,7 +9,8 @@ COPY core         ./core
 COPY metrics      ./metrics
 COPY contracts/bindings/ ./contracts/bindings
 
-RUN go get github.com/ethereum/go-ethereum@latest
+RUN go get github.com/btcsuite/btcd/btcec/v2@v2.2.0
+RUN go get github.com/ethereum/go-ethereum@v1.14.0
 RUN go get github.com/gorilla/websocket@v1.5.1
 RUN go build -o ./aligned-layer-aggregator aggregator/cmd/main.go
 
