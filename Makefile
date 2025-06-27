@@ -515,6 +515,9 @@ aligned_uninstall: ## Uninstall Aligned CLI
 aligned_install_compiling: ## Install Aligned CLI by compiling from source
 	@cargo install --path crates/cli
 
+build_batcher_client:
+	@cd crates/cli && cargo b --release
+
 __SEND_PROOFS__: ## ____
 
 crates/target/release/aligned:
