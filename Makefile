@@ -381,7 +381,7 @@ operator_update: ## Update the Operator to the latest version and build it. Para
 	$(GET_SDK_VERSION)
 	@echo "Updating Operator..."
 	@./scripts/fetch_latest_release.sh
-	@make build_operator
+	@make operator_build
 	@./operator/build/aligned-operator --version
 
 operator_valid_marshall_fuzz_macos:
