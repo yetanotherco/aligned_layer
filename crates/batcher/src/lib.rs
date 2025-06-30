@@ -86,6 +86,7 @@ pub struct Batcher {
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
+    user_mutexes: Mutex<HashMap<Address, Arc<Mutex<()>>>>,
     min_block_interval: u64,
     transaction_wait_timeout: u64,
     max_proof_size: usize,
@@ -276,6 +277,7 @@ impl Batcher {
             aggregator_gas_cost: config.batcher.aggregator_gas_cost,
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
+            user_mutexes: Mutex::new(HashMap::new()),
             disabled_verifiers: Mutex::new(disabled_verifiers),
             metrics,
             telemetry,
@@ -679,6 +681,7 @@ impl Batcher {
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
 
+        // Step 1: Get or insert the per-address mutex under lock
         let is_user_in_state: bool = {
             let batch_state_lock = self.batch_state.lock().await;
             batch_state_lock.user_states.contains_key(&addr)
@@ -727,13 +730,22 @@ impl Batcher {
         // This is needed because we need to query the user state to make validations and
         // finally add the proof to the batch queue.
 
-        let mut batch_state_lock = self.batch_state.lock().await;
+        let user_mutex = {
+            let mut map = self.user_mutexes.lock().await;
+            map.entry(addr)
+                .or_insert_with(|| Arc::new(Mutex::new(())))
+                .clone()
+        };
+        let _ = user_mutex.lock().await;
 
         let msg_max_fee = nonced_verification_data.max_fee;
-        let Some(user_last_max_fee_limit) =
-            batch_state_lock.get_user_last_max_fee_limit(&addr).await
+        let Some(user_last_max_fee_limit) = self
+            .batch_state
+            .lock()
+            .await
+            .get_user_last_max_fee_limit(&addr)
+            .await
         else {
-            std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::AddToBatchError,
@@ -743,9 +755,13 @@ impl Batcher {
             return Ok(());
         };
 
-        let Some(user_accumulated_fee) = batch_state_lock.get_user_total_fees_in_queue(&addr).await
+        let Some(user_accumulated_fee) = self
+            .batch_state
+            .lock()
+            .await
+            .get_user_total_fees_in_queue(&addr)
+            .await
         else {
-            std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::AddToBatchError,
@@ -756,7 +772,6 @@ impl Batcher {
         };
 
         if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
-            std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::InsufficientBalance(addr),
@@ -766,11 +781,10 @@ impl Batcher {
             return Ok(());
         }
 
-        let cached_user_nonce = batch_state_lock.get_user_nonce(&addr).await;
+        let cached_user_nonce = self.batch_state.lock().await.get_user_nonce(&addr).await;
 
         let Some(expected_nonce) = cached_user_nonce else {
             error!("Failed to get cached user nonce: User not found in user states, but it should have been already inserted");
-            std::mem::drop(batch_state_lock);
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::AddToBatchError,
@@ -781,7 +795,6 @@ impl Batcher {
         };
 
         if expected_nonce < msg_nonce {
-            std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}, expected nonce: {expected_nonce:?}, received nonce: {msg_nonce:?}");
             send_message(
                 ws_conn_sink.clone(),
@@ -797,7 +810,6 @@ impl Batcher {
         if expected_nonce > msg_nonce {
             info!("Possible replacement message received: Expected nonce {expected_nonce:?} - message nonce: {msg_nonce:?}");
             self.handle_replacement_message(
-                batch_state_lock,
                 nonced_verification_data,
                 ws_conn_sink.clone(),
                 client_msg.signature,
@@ -811,7 +823,6 @@ impl Batcher {
         // We check this after replacement logic because if user wants to replace a proof, their
         // new_max_fee must be greater or equal than old_max_fee
         if msg_max_fee > user_last_max_fee_limit {
-            std::mem::drop(batch_state_lock);
             warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
@@ -822,13 +833,21 @@ impl Batcher {
             return Ok(());
         }
 
-        self.verify_proof(&nonced_verification_data);
+        if let Err(e) = self.verify_proof(&nonced_verification_data).await {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidProof(e),
+            )
+            .await;
+            return Ok(());
+        };
 
         // * ---------------------------------------------------------------------*
         // *        Perform validation over batcher queue                         *
         // * ---------------------------------------------------------------------*
 
-        if batch_state_lock.is_queue_full() {
+        if self.batch_state.lock().await.is_queue_full() {
+            let mut batch_state_lock = self.batch_state.lock().await;
             debug!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
 
             // This cannot panic, if the batch queue is full it has at least one item
@@ -889,6 +908,7 @@ impl Batcher {
         // *        Add message data into the queue and update user state         *
         // * ---------------------------------------------------------------------*
 
+        let mut batch_state_lock = self.batch_state.lock().await;
         if let Err(e) = self
             .add_to_batch(
                 batch_state_lock,
@@ -934,7 +954,6 @@ impl Batcher {
     /// Returns true if the message was replaced in the batch, false otherwise
     async fn handle_replacement_message(
         &self,
-        mut batch_state_lock: MutexGuard<'_, BatchState>,
         nonced_verification_data: NoncedVerificationData,
         ws_conn_sink: WsMessageSink,
         signature: Signature,
@@ -942,8 +961,13 @@ impl Batcher {
     ) {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
-        let Some(entry) = batch_state_lock.get_entry(addr, nonce) else {
-            std::mem::drop(batch_state_lock);
+        let Some(entry) = self
+            .batch_state
+            .lock()
+            .await
+            .get_entry(addr, nonce)
+            .cloned()
+        else {
             warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
             send_message(
                 ws_conn_sink.clone(),
@@ -956,7 +980,6 @@ impl Batcher {
 
         let original_max_fee = entry.nonced_verification_data.max_fee;
         if original_max_fee > replacement_max_fee {
-            std::mem::drop(batch_state_lock);
             warn!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
@@ -969,7 +992,14 @@ impl Batcher {
         }
 
         // if all went well, verify the proof
-        self.verify_proof(&nonced_verification_data);
+        if let Err(e) = self.verify_proof(&nonced_verification_data).await {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidProof(e),
+            )
+            .await;
+            return;
+        };
 
         info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
 
@@ -998,8 +1028,12 @@ impl Batcher {
         }
 
         replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
-        if !batch_state_lock.replacement_entry_is_valid(&replacement_entry) {
-            std::mem::drop(batch_state_lock);
+        if !self
+            .batch_state
+            .lock()
+            .await
+            .replacement_entry_is_valid(&replacement_entry)
+        {
             warn!("Invalid replacement message");
             send_message(
                 ws_conn_sink.clone(),
@@ -1020,6 +1054,7 @@ impl Batcher {
         // note that the entries are considered equal for the priority queue
         // if they have the same nonce and sender, so we can remove the old entry
         // by calling remove with the new entry
+        let mut batch_state_lock = self.batch_state.lock().await;
         batch_state_lock.batch_queue.remove(&replacement_entry);
         batch_state_lock.batch_queue.push(
             replacement_entry.clone(),
