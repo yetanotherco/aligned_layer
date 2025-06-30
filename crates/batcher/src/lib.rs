@@ -86,6 +86,7 @@ pub struct Batcher {
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
     batch_state: Mutex<BatchState>,
+    batch_building_mutex: Mutex<()>,
     user_mutexes: Mutex<HashMap<Address, Arc<Mutex<()>>>>,
     min_block_interval: u64,
     transaction_wait_timeout: u64,
@@ -278,6 +279,7 @@ impl Batcher {
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
             user_mutexes: Mutex::new(HashMap::new()),
+            batch_building_mutex: Mutex::new(()),
             disabled_verifiers: Mutex::new(disabled_verifiers),
             metrics,
             telemetry,
@@ -616,8 +618,9 @@ impl Batcher {
         debug!("Received message with nonce: {msg_nonce:?}");
         self.metrics.received_proofs.inc();
 
-        // TODO: check if the user is already being attended
-        // TODO: check if a batch is being built
+        // if this is locked, then it means that the a batch is being built
+        // so we need to stop the processing
+        self.batch_building_mutex.lock().await;
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
@@ -908,7 +911,7 @@ impl Batcher {
         // *        Add message data into the queue and update user state         *
         // * ---------------------------------------------------------------------*
 
-        let mut batch_state_lock = self.batch_state.lock().await;
+        let batch_state_lock = self.batch_state.lock().await;
         if let Err(e) = self
             .add_to_batch(
                 batch_state_lock,
@@ -1228,7 +1231,12 @@ impl Batcher {
         block_number: u64,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
+        let batch_building_mutex = self.batch_building_mutex.lock().await;
         let batch_state_lock = self.batch_state.lock().await;
+        // acquire all the user locks to make sure all the ongoing message have been processed
+        for user_mutex in self.user_mutexes.lock().await.values() {
+            let _ = user_mutex.lock().await;
+        }
         let current_batch_len = batch_state_lock.batch_queue.len();
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
