@@ -613,6 +613,9 @@ impl Batcher {
         debug!("Received message with nonce: {msg_nonce:?}");
         self.metrics.received_proofs.inc();
 
+        // TODO: check if the user is already being attended
+        // TODO: check if a batch is being built
+
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
         // * ---------------------------------------------------*
@@ -662,46 +665,6 @@ impl Batcher {
             nonced_verification_data = aux_verification_data
         }
 
-        // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-        if self.pre_verification_is_enabled {
-            let verification_data = &nonced_verification_data.verification_data;
-            if self
-                .is_verifier_disabled(verification_data.proving_system)
-                .await
-            {
-                warn!(
-                    "Verifier for proving system {} is disabled, skipping verification",
-                    verification_data.proving_system
-                );
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
-                        verification_data.proving_system,
-                    )),
-                )
-                .await;
-                self.metrics.user_error(&[
-                    "disabled_verifier",
-                    &format!("{}", verification_data.proving_system),
-                ]);
-                return Ok(());
-            }
-
-            if !zk_utils::verify(verification_data).await {
-                error!("Invalid proof detected. Verification failed");
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
-                )
-                .await;
-                self.metrics.user_error(&[
-                    "rejected_proof",
-                    &format!("{}", verification_data.proving_system),
-                ]);
-                return Ok(());
-            }
-        }
-
         info!("Handling message");
 
         // We don't need a batch state lock here, since if the user locks its funds
@@ -715,11 +678,10 @@ impl Batcher {
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
 
-        let is_user_in_state: bool;
-        {
+        let is_user_in_state: bool = {
             let batch_state_lock = self.batch_state.lock().await;
-            is_user_in_state = batch_state_lock.user_states.contains_key(&addr);
-        }
+            batch_state_lock.user_states.contains_key(&addr)
+        };
 
         if !is_user_in_state {
             let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
@@ -858,6 +820,8 @@ impl Batcher {
             self.metrics.user_error(&["invalid_max_fee", ""]);
             return Ok(());
         }
+
+        self.verify_proof(&nonced_verification_data);
 
         // * ---------------------------------------------------------------------*
         // *        Perform validation over batcher queue                         *
@@ -1002,6 +966,9 @@ impl Batcher {
                 .user_error(&["invalid_replacement_message", ""]);
             return;
         }
+
+        // if all went well, verify the proof
+        self.verify_proof(&nonced_verification_data);
 
         info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
 
@@ -2039,5 +2006,42 @@ impl Batcher {
         }
 
         true
+    }
+
+    async fn verify_proof(
+        &self,
+        nonced_verification_data: &NoncedVerificationData,
+    ) -> Result<(), ProofInvalidReason> {
+        if !self.pre_verification_is_enabled {
+            return Ok(());
+        }
+        let verification_data = &nonced_verification_data.verification_data;
+        if self
+            .is_verifier_disabled(verification_data.proving_system)
+            .await
+        {
+            warn!(
+                "Verifier for proving system {} is disabled, skipping verification",
+                verification_data.proving_system
+            );
+            self.metrics.user_error(&[
+                "disabled_verifier",
+                &format!("{}", verification_data.proving_system),
+            ]);
+            return Err(ProofInvalidReason::DisabledVerifier(
+                verification_data.proving_system,
+            ));
+        }
+
+        if !zk_utils::verify(verification_data).await {
+            error!("Invalid proof detected. Verification failed");
+            self.metrics.user_error(&[
+                "rejected_proof",
+                &format!("{}", verification_data.proving_system),
+            ]);
+            return Err(ProofInvalidReason::RejectedProof);
+        }
+
+        Ok(())
     }
 }
