@@ -61,6 +61,7 @@ mod eth;
 mod ffi;
 pub mod gnark;
 pub mod metrics;
+mod proof_processor;
 pub mod retry;
 pub mod risc_zero;
 pub mod s3;
