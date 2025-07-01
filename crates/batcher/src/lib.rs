@@ -620,7 +620,7 @@ impl Batcher {
 
         // if this is locked, then it means that the a batch is being built
         // so we need to stop the processing
-        self.batch_building_mutex.lock().await;
+        let _ = self.batch_building_mutex.lock().await;
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
@@ -910,11 +910,8 @@ impl Batcher {
         // * ---------------------------------------------------------------------*
         // *        Add message data into the queue and update user state         *
         // * ---------------------------------------------------------------------*
-
-        let batch_state_lock = self.batch_state.lock().await;
         if let Err(e) = self
             .add_to_batch(
-                batch_state_lock,
                 nonced_verification_data,
                 ws_conn_sink.clone(),
                 signature,
@@ -927,6 +924,21 @@ impl Batcher {
             self.metrics.user_error(&["add_to_batch_error", ""]);
             return Ok(());
         };
+
+        if let Err(_) = self
+            .batch_state
+            .lock()
+            .await
+            .update_user_after_adding_proof(addr, msg_nonce, msg_max_fee)
+            .await
+        {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
+            return Ok(());
+        }
 
         info!("Verification data message handled");
         Ok(())
@@ -1137,7 +1149,6 @@ impl Batcher {
     /// Adds verification data to the current batch queue.
     async fn add_to_batch(
         &self,
-        mut batch_state_lock: MutexGuard<'_, BatchState>,
         verification_data: NoncedVerificationData,
         ws_conn_sink: WsMessageSink,
         proof_submitter_sig: Signature,
@@ -1149,6 +1160,7 @@ impl Batcher {
 
         let max_fee = verification_data.max_fee;
         let nonce = verification_data.nonce;
+        let mut batch_state_lock = self.batch_state.lock().await;
         batch_state_lock.batch_queue.push(
             BatchQueueEntry::new(
                 verification_data,
@@ -1167,46 +1179,6 @@ impl Batcher {
             .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
 
         info!("Current batch queue length: {}", queue_len);
-
-        let Some(user_proof_count) = batch_state_lock
-            .get_user_proof_count(&proof_submitter_addr)
-            .await
-        else {
-            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
-            std::mem::drop(batch_state_lock);
-            return Err(BatcherError::AddressNotFoundInUserStates(
-                proof_submitter_addr,
-            ));
-        };
-
-        let Some(current_total_fees_in_queue) = batch_state_lock
-            .get_user_total_fees_in_queue(&proof_submitter_addr)
-            .await
-        else {
-            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
-            std::mem::drop(batch_state_lock);
-            return Err(BatcherError::AddressNotFoundInUserStates(
-                proof_submitter_addr,
-            ));
-        };
-
-        // User state is updated
-        if batch_state_lock
-            .update_user_state(
-                &proof_submitter_addr,
-                nonce + U256::one(),
-                max_fee,
-                user_proof_count + 1,
-                current_total_fees_in_queue + max_fee,
-            )
-            .is_none()
-        {
-            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
-            std::mem::drop(batch_state_lock);
-            return Err(BatcherError::AddressNotFoundInUserStates(
-                proof_submitter_addr,
-            ));
-        };
 
         Ok(())
     }
@@ -1231,7 +1203,7 @@ impl Batcher {
         block_number: u64,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
-        let batch_building_mutex = self.batch_building_mutex.lock().await;
+        let _ = self.batch_building_mutex.lock().await;
         let batch_state_lock = self.batch_state.lock().await;
         // acquire all the user locks to make sure all the ongoing message have been processed
         for user_mutex in self.user_mutexes.lock().await.values() {
