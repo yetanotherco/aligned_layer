@@ -1313,8 +1313,13 @@ impl Batcher {
         let _building_batch_mutex = self.building_batch_mutex.lock().await;
 
         info!("Batch building: waiting until all the ongoing messages finish");
+
         // acquire all the user locks to make sure all the ongoing message have been processed
-        for user_mutex in self.user_proof_processing_mutexes.lock().await.values() {
+        let mutexes: Vec<Arc<Mutex<()>>> = {
+            let user_proofs_lock = self.user_proof_processing_mutexes.lock().await;
+            user_proofs_lock.values().cloned().collect()
+        };
+        for user_mutex in mutexes {
             let _ = user_mutex.lock().await;
         }
         info!("Batch building: all user locks acquired, proceeding to build batch");
