@@ -415,11 +415,9 @@ impl Batcher {
             }
 
             info!("Received new block: {}", block_number);
-            tokio::spawn(async move {
-                if let Err(e) = batcher.handle_new_block(block_number).await {
-                    error!("Error when handling new block: {:?}", e);
-                }
-            });
+            if let Err(e) = batcher.handle_new_block(block_number).await {
+                error!("Error when handling new block: {:?}", e);
+            }
         }
         error!("Both main and fallback Ethereum WS clients subscriptions have disconnected, will try to reconnect...");
 
@@ -619,7 +617,9 @@ impl Batcher {
 
         // if this is locked, then it means that the a batch is being built
         // so we need to stop the processing
+        debug!("Checking if a batch is being built before proceeding with the message");
         let _ = self.batch_building_mutex.lock().await;
+        debug!("Batch building has finished or did't started, proceeding with the message");
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
@@ -732,45 +732,36 @@ impl Batcher {
         // This is needed because we need to query the user state to make validations and
         // finally add the proof to the batch queue.
 
+        debug!("Trying to acquire user mutex for {:?}...", addr_in_msg);
         let user_mutex = {
             let mut map = self.user_mutexes.lock().await;
             map.entry(addr)
                 .or_insert_with(|| Arc::new(Mutex::new(())))
                 .clone()
         };
-        let _ = user_mutex.lock().await;
+        let _user_mutex = user_mutex.lock().await;
+        debug!("User mutex for {:?} acquired...", addr_in_msg);
 
         let msg_max_fee = nonced_verification_data.max_fee;
-        let Some(user_last_max_fee_limit) = self
-            .batch_state
-            .lock()
-            .await
-            .get_user_last_max_fee_limit(&addr)
-            .await
-        else {
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::AddToBatchError,
-            )
-            .await;
-            self.metrics.user_error(&["batcher_state_error", ""]);
-            return Ok(());
-        };
+        let (user_last_max_fee_limit, user_accumulated_fee) = {
+            let batch_state_lock = self.batch_state.lock().await;
+            let last_max_fee = batch_state_lock.get_user_last_max_fee_limit(&addr).await;
+            let accumulated_fee = batch_state_lock.get_user_total_fees_in_queue(&addr).await;
+            drop(batch_state_lock);
 
-        let Some(user_accumulated_fee) = self
-            .batch_state
-            .lock()
-            .await
-            .get_user_total_fees_in_queue(&addr)
-            .await
-        else {
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::AddToBatchError,
-            )
-            .await;
-            self.metrics.user_error(&["batcher_state_error", ""]);
-            return Ok(());
+            match (last_max_fee, accumulated_fee) {
+                (Some(last_max), Some(accumulated)) => (last_max, accumulated),
+                _ => {
+                    send_message(
+                        ws_conn_sink.clone(),
+                        SubmitProofResponseMessage::AddToBatchError,
+                    )
+                    .await;
+
+                    self.metrics.user_error(&["batcher_state_error", ""]);
+                    return Ok(());
+                }
+            }
         };
 
         if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
@@ -1203,15 +1194,18 @@ impl Batcher {
         block_number: u64,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
+        info!("Batch building: started, acquiring lock to stop processing new messages...");
         let _ = self.batch_building_mutex.lock().await;
-        let batch_state_lock = self.batch_state.lock().await;
+
+        info!("Batch building: waiting until all the ongoing messages finish");
         // acquire all the user locks to make sure all the ongoing message have been processed
         for user_mutex in self.user_mutexes.lock().await.values() {
             let _ = user_mutex.lock().await;
         }
-        let current_batch_len = batch_state_lock.batch_queue.len();
-        let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
+        info!("Batch building: all locks acquired, proceeding to build batch");
 
+        let batch_state_lock = self.batch_state.lock().await;
+        let current_batch_len = batch_state_lock.batch_queue.len();
         if current_batch_len < 1 {
             info!(
                 "Current batch has {} proofs. Waiting for more proofs...",
@@ -1220,6 +1214,7 @@ impl Batcher {
             return None;
         }
 
+        let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
         if block_number < *last_uploaded_batch_block_lock + self.min_block_interval {
             info!(
                 "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.min_block_interval,
@@ -1332,7 +1327,6 @@ impl Batcher {
     /// The last uploaded batch block is updated once the task is created in Aligned.
     async fn finalize_batch(
         &self,
-        block_number: u64,
         finalized_batch: Vec<BatchQueueEntry>,
         gas_price: U256,
     ) -> Result<(), BatcherError> {
@@ -1364,16 +1358,6 @@ impl Batcher {
                 )
             })?;
 
-        {
-            let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
-            // update last uploaded batch block
-            *last_uploaded_batch_block = block_number;
-            info!(
-                "Batch Finalizer: Last uploaded batch block updated to: {}. Lock unlocked",
-                block_number
-            );
-        }
-
         let leaves: Vec<[u8; 32]> = batch_data_comm
             .iter()
             .map(VerificationCommitmentBatch::hash_data)
@@ -1388,7 +1372,7 @@ impl Batcher {
         }
 
         // Here we submit the batch on-chain
-        if let Err(e) = self
+        match self
             .submit_batch(
                 &batch_bytes,
                 &batch_merkle_tree.root,
@@ -1398,30 +1382,41 @@ impl Batcher {
             )
             .await
         {
-            let reason = format!("{:?}", e);
-            if let Err(e) = self
-                .telemetry
-                .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
-                .await
-            {
-                warn!("Failed to send task status to telemetry: {:?}", e);
+            Ok(block_number) => {
+                let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+                // update last uploaded batch block
+                *last_uploaded_batch_block = block_number;
+                info!(
+                    "Batch Finalizer: Last uploaded batch block updated to: {}. Lock unlocked",
+                    block_number
+                );
             }
+            Err(e) => {
+                let reason = format!("{:?}", e);
+                if let Err(e) = self
+                    .telemetry
+                    .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
+                    .await
+                {
+                    warn!("Failed to send task status to telemetry: {:?}", e);
+                }
 
-            // decide if i want to flush the queue:
-            match e {
-                BatcherError::TransactionSendError(
-                    TransactionSendError::SubmissionInsufficientBalance,
-                ) => {
-                    // TODO calling remove_proofs_from_queue here is a better solution, flushing only the failed batch
-                    // this would also need a message sent to the clients
-                    self.flush_queue_and_clear_nonce_cache().await;
+                // decide if i want to flush the queue:
+                match e {
+                    BatcherError::TransactionSendError(
+                        TransactionSendError::SubmissionInsufficientBalance,
+                    ) => {
+                        // TODO calling remove_proofs_from_queue here is a better solution, flushing only the failed batch
+                        // this would also need a message sent to the clients
+                        self.flush_queue_and_clear_nonce_cache().await;
+                    }
+                    _ => {
+                        // Add more cases here if we want in the future
+                    }
                 }
-                _ => {
-                    // Add more cases here if we want in the future
-                }
+
+                return Err(e);
             }
-
-            return Err(e);
         };
 
         // Once the submit is succesfull, we remove the submitted proofs from the queue
@@ -1499,7 +1494,7 @@ impl Batcher {
 
         if let Some(finalized_batch) = self.is_batch_ready(block_number, modified_gas_price).await {
             let batch_finalization_result = self
-                .finalize_batch(block_number, finalized_batch, modified_gas_price)
+                .finalize_batch(finalized_batch, modified_gas_price)
                 .await;
 
             // Resetting this here to avoid doing it on every return path of `finalize_batch` function
@@ -1520,7 +1515,7 @@ impl Batcher {
         leaves: Vec<[u8; 32]>,
         finalized_batch: &[BatchQueueEntry],
         gas_price: U256,
-    ) -> Result<(), BatcherError> {
+    ) -> Result<u64, BatcherError> {
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
@@ -1592,10 +1587,10 @@ impl Batcher {
             )
             .await
         {
-            Ok(_) => {
+            Ok(res) => {
                 info!("Batch verification task created on Aligned contract");
                 self.metrics.sent_batches.inc();
-                Ok(())
+                Ok(res.block_number.map(|e| e.as_u64()).unwrap_or_default())
             }
             Err(e) => {
                 error!("Failed to send batch to contract: {:?}", e);
@@ -2028,6 +2023,8 @@ impl Batcher {
         &self,
         nonced_verification_data: &NoncedVerificationData,
     ) -> Result<(), ProofInvalidReason> {
+        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+
         if !self.pre_verification_is_enabled {
             return Ok(());
         }
