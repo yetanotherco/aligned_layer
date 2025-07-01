@@ -39,7 +39,12 @@ async fn main() -> Result<(), BatcherError> {
         None => dotenvy::dotenv().ok(),
     };
 
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(Env::default().filter_or(
+        "RUST_LOG",
+        "info,aligned_batcher=debug,ethers_providers=off",
+    ))
+    .init();
+
     let batcher = Batcher::new(cli.config).await;
     let batcher = Arc::new(batcher);
 
