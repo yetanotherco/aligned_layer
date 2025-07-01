@@ -683,7 +683,6 @@ impl Batcher {
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
 
-        // Step 1: Get or insert the per-address mutex under lock
         let is_user_in_state: bool = {
             let batch_state_lock = self.batch_state.lock().await;
             batch_state_lock.user_states.contains_key(&addr)
@@ -739,7 +738,28 @@ impl Batcher {
                 .or_insert_with(|| Arc::new(Mutex::new(())))
                 .clone()
         };
-        let _user_mutex = user_mutex.lock().await;
+
+        // This looks very ugly but basically, we are doing the following:
+        // 1. We try to acquire the `user_mutex`: this can take some time if there is another task with it
+        // 2. While that time that passes, the batcher might have tried to build a new batch, so we check the `batch_building_mutex`
+        // 3. If it is taken, then release the lock so the batcher can continue building (as it is waiting for all user mutex to finish)
+        // 4. If it isn't building then continue with the message
+        //
+        // This is done to give the batcher builder process priority
+        // and prevent a situation where we are the batcher wants to build a new batch
+        // but it has to wait for a ton of messages to be processed first
+        // Leading to a decrease batch throughput
+        let _user_mutex = loop {
+            let _user_mutex = user_mutex.lock().await;
+            let res = self.batch_building_mutex.try_lock();
+            if res.is_ok() {
+                break _user_mutex;
+            } else {
+                drop(_user_mutex);
+                // tell the runtime to we are done for now and continue with another task
+                tokio::task::yield_now().await;
+            }
+        };
         debug!("User mutex for {:?} acquired...", addr_in_msg);
 
         let msg_max_fee = nonced_verification_data.max_fee;
@@ -815,6 +835,11 @@ impl Batcher {
 
         // We check this after replacement logic because if user wants to replace a proof, their
         // new_max_fee must be greater or equal than old_max_fee
+        //
+        // Note: we don't do this before the handle_replacement_message as this operation can block for some time
+        // this is run again in the handle_replacement_message
+        // by enforcing stricter rules in replacements (a min bump + min fee) we can be sure this is run on valid message that user will actually pay for it
+        // and so running the pre-verification isn't free
         if msg_max_fee > user_last_max_fee_limit {
             warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
             send_message(
@@ -826,6 +851,7 @@ impl Batcher {
             return Ok(());
         }
 
+        // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if let Err(e) = self.verify_proof(&nonced_verification_data).await {
             send_message(
                 ws_conn_sink.clone(),
