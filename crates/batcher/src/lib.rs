@@ -1195,7 +1195,7 @@ impl Batcher {
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
         info!("Batch building: started, acquiring lock to stop processing new messages...");
-        let _ = self.batch_building_mutex.lock().await;
+        let _batch_building_mutex = self.batch_building_mutex.lock().await;
 
         info!("Batch building: waiting until all the ongoing messages finish");
         // acquire all the user locks to make sure all the ongoing message have been processed
@@ -2023,8 +2023,6 @@ impl Batcher {
         &self,
         nonced_verification_data: &NoncedVerificationData,
     ) -> Result<(), ProofInvalidReason> {
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-
         if !self.pre_verification_is_enabled {
             return Ok(());
         }
