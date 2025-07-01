@@ -84,9 +84,23 @@ pub struct Batcher {
     payment_service_fallback: BatcherPaymentService,
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
+    /// Holds both the user state and the proofs queue.
+    ///
+    /// We should consider splitting the user state and the queue into separate mutexes
+    /// to improve concurrency.
     batch_state: Mutex<BatchState>,
-    batch_building_mutex: Mutex<()>,
-    user_mutexes: Mutex<HashMap<Address, Arc<Mutex<()>>>>,
+    /// A mutex that signals an ongoing batch building process.
+    /// It remains locked until the batch has been fully built.
+    /// Used to synchronize the processing of proofs during batch construction.
+    building_batch_mutex: Mutex<()>,
+    /// A map of per-user mutexes used to synchronize proof processing.
+    /// It allows us to mutate the users state atomically,
+    /// while avoiding the need to lock the entire [`batch_state`] structure.
+    ///
+    /// During batch building, the process also locks these per-user mutexes
+    /// (after acquiring [`building_batch_mutex`]) to ensure that all ongoing
+    /// proof messages complete and the state remains consistent.
+    user_proof_processing_mutexes: Mutex<HashMap<Address, Arc<Mutex<()>>>>,
     min_block_interval: u64,
     transaction_wait_timeout: u64,
     max_proof_size: usize,
@@ -95,7 +109,6 @@ pub struct Batcher {
     last_uploaded_batch_block: Mutex<u64>,
     pre_verification_is_enabled: bool,
     non_paying_config: Option<NonPayingConfig>,
-    posting_batch: Mutex<bool>,
     disabled_verifiers: Mutex<U256>,
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
@@ -275,10 +288,9 @@ impl Batcher {
                 .batcher
                 .aggregator_fee_percentage_multiplier,
             aggregator_gas_cost: config.batcher.aggregator_gas_cost,
-            posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
-            user_mutexes: Mutex::new(HashMap::new()),
-            batch_building_mutex: Mutex::new(()),
+            user_proof_processing_mutexes: Mutex::new(HashMap::new()),
+            building_batch_mutex: Mutex::new(()),
             disabled_verifiers: Mutex::new(disabled_verifiers),
             metrics,
             telemetry,
@@ -615,11 +627,10 @@ impl Batcher {
         debug!("Received message with nonce: {msg_nonce:?}");
         self.metrics.received_proofs.inc();
 
-        // if this is locked, then it means that the a batch is being built
-        // so we need to stop the processing
-        debug!("Checking if a batch is being built before proceeding with the message");
-        let _ = self.batch_building_mutex.lock().await;
-        debug!("Batch building has finished or did't started, proceeding with the message");
+        // Make sure there are no batches being built before processing the message
+        debug!("Checking if there is an ongoing batch before processing the message...");
+        let _ = self.building_batch_mutex.lock().await;
+        debug!("Batch building mutex acquired. Proceeding with message processing.");
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
@@ -727,13 +738,13 @@ impl Batcher {
             return Ok(());
         };
 
-        // For now on until the message is fully processed, the batch state is locked
+        // For now on until the message is fully processed, the corresponding user mutex is acquired from `user_proof_processing_mutexes`
         // This is needed because we need to query the user state to make validations and
-        // finally add the proof to the batch queue.
-
+        // finally add the proof to the batch queue which must be done individually.
+        // This allows us to process each user without having to lock the whole `batch_state`
         debug!("Trying to acquire user mutex for {:?}...", addr_in_msg);
         let user_mutex = {
-            let mut map = self.user_mutexes.lock().await;
+            let mut map = self.user_proof_processing_mutexes.lock().await;
             map.entry(addr)
                 .or_insert_with(|| Arc::new(Mutex::new(())))
                 .clone()
@@ -741,7 +752,7 @@ impl Batcher {
 
         // This looks very ugly but basically, we are doing the following:
         // 1. We try to acquire the `user_mutex`: this can take some time if there is another task with it
-        // 2. While that time that passes, the batcher might have tried to build a new batch, so we check the `batch_building_mutex`
+        // 2. While that time that passes, the batcher might have tried to build a new batch, so we check the `building_batch_mutex`
         // 3. If it is taken, then release the lock so the batcher can continue building (as it is waiting for all user mutex to finish)
         // 4. If it isn't building then continue with the message
         //
@@ -751,7 +762,7 @@ impl Batcher {
         // Leading to a decrease batch throughput
         let _user_mutex = loop {
             let _user_mutex = user_mutex.lock().await;
-            let res = self.batch_building_mutex.try_lock();
+            let res = self.building_batch_mutex.try_lock();
             if res.is_ok() {
                 break _user_mutex;
             } else {
@@ -833,13 +844,6 @@ impl Batcher {
             return Ok(());
         }
 
-        // We check this after replacement logic because if user wants to replace a proof, their
-        // new_max_fee must be greater or equal than old_max_fee
-        //
-        // Note: we don't do this before the handle_replacement_message as this operation can block for some time
-        // this is run again in the handle_replacement_message
-        // by enforcing stricter rules in replacements (a min bump + min fee) we can be sure this is run on valid message that user will actually pay for it
-        // and so running the pre-verification isn't free
         if msg_max_fee > user_last_max_fee_limit {
             warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
             send_message(
@@ -851,8 +855,20 @@ impl Batcher {
             return Ok(());
         }
 
-        // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-        if let Err(e) = self.verify_proof(&nonced_verification_data).await {
+        // * ---------------------------------------------------*
+        // *                  Validate proof                    *
+        // * ---------------------------------------------------*
+
+        // Note: While it may seem obvious to run this before `handle_replacement_message` and avoid repeating code
+        // We intentionally do not run this verification before `handle_replacement_message`
+        // because this function is "expensive" and it may block for a few milliseconds.
+        //
+        // When handling replacement message, before running the verification we make sure
+        // the user has bumped the fee enough so that running the pre-verification is justified.
+        if let Err(e) = self
+            .verify_proof(&nonced_verification_data.verification_data)
+            .await
+        {
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::InvalidProof(e),
@@ -901,6 +917,7 @@ impl Batcher {
                 batch_state_lock.update_user_state_on_entry_removal(&removed_entry);
 
                 if let Some(removed_entry_ws) = removed_entry.messaging_sink {
+                    std::mem::drop(batch_state_lock);
                     send_message(
                         removed_entry_ws,
                         SubmitProofResponseMessage::UnderpricedProof,
@@ -941,21 +958,67 @@ impl Batcher {
             return Ok(());
         };
 
-        if self
+        let Some(user_proof_count) = self
             .batch_state
             .lock()
             .await
-            .update_user_after_adding_proof(addr, msg_nonce, msg_max_fee)
+            .get_user_proof_count(&addr)
             .await
-            .is_err()
-        {
+        else {
+            error!("User state of address {addr} was not found when trying to update user state. This user state should have been present");
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::AddToBatchError,
             )
             .await;
             return Ok(());
-        }
+        };
+
+        let Some(current_total_fees_in_queue) = self
+            .batch_state
+            .lock()
+            .await
+            .get_user_total_fees_in_queue(&addr)
+            .await
+        else {
+            error!("User state of address {addr} was not found when trying to update user state. This user state should have been present");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
+            return Ok(());
+        };
+
+        // User state is updated
+        if self
+            .batch_state
+            .lock()
+            .await
+            .update_user_state(
+                &addr,
+                msg_nonce + U256::one(),
+                msg_max_fee,
+                user_proof_count + 1,
+                current_total_fees_in_queue + msg_max_fee,
+            )
+            .is_none()
+        {
+            error!("User state of address {addr} was not found when trying to update user state. This user state should have been present");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
+            return Ok(());
+        };
+
+        // Finally, we remove the mutex from the map
+        //
+        // Note: this removal is safe even if other processes are waiting on the lock
+        // This is because it is wrapped on an Arc so the variable will still live until all clones are dropped.
+        let mut user_mutexes = self.user_proof_processing_mutexes.lock().await;
+        user_mutexes.remove(&addr);
 
         info!("Verification data message handled");
         Ok(())
@@ -1023,8 +1086,11 @@ impl Batcher {
             return;
         }
 
-        // if all went well, verify the proof
-        if let Err(e) = self.verify_proof(&nonced_verification_data).await {
+        // If all went well, verify the proof
+        if let Err(e) = self
+            .verify_proof(&nonced_verification_data.verification_data)
+            .await
+        {
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::InvalidProof(e),
@@ -1201,11 +1267,16 @@ impl Batcher {
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
+    ///
     /// There are essentially two conditions to be checked:
     ///   * Has the current batch reached the minimum size to be posted?
     ///   * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     ///
-    /// Then the batch will be made as big as possible given this two conditions:
+    /// If both are met then:
+    ///  * We acquire the building batch mutex to stop processing new proof messages
+    ///  * We acquire all the users locks to wait until all current proof messages are processed
+    ///
+    /// Once we hold them, the biggest possible batch will be built, making sure that:
     ///   * The serialized batch size needs to be smaller than the maximum batch size
     ///   * The batch submission fee is less than the lowest `max fee` included the batch,
     ///   * And the batch submission fee is more than the highest `max fee` not included the batch.
@@ -1220,18 +1291,7 @@ impl Batcher {
         block_number: u64,
         gas_price: U256,
     ) -> Option<Vec<BatchQueueEntry>> {
-        info!("Batch building: started, acquiring lock to stop processing new messages...");
-        let _batch_building_mutex = self.batch_building_mutex.lock().await;
-
-        info!("Batch building: waiting until all the ongoing messages finish");
-        // acquire all the user locks to make sure all the ongoing message have been processed
-        for user_mutex in self.user_mutexes.lock().await.values() {
-            let _ = user_mutex.lock().await;
-        }
-        info!("Batch building: all locks acquired, proceeding to build batch");
-
-        let batch_state_lock = self.batch_state.lock().await;
-        let current_batch_len = batch_state_lock.batch_queue.len();
+        let current_batch_len = self.batch_state.lock().await.batch_queue.len();
         if current_batch_len < 1 {
             info!(
                 "Current batch has {} proofs. Waiting for more proofs...",
@@ -1249,17 +1309,17 @@ impl Batcher {
             return None;
         }
 
-        // Check if a batch is currently being posted
-        let mut batch_posting = self.posting_batch.lock().await;
-        if *batch_posting {
-            info!(
-                "Batch is currently being posted. Waiting for the current batch to be finalized..."
-            );
-            return None;
-        }
+        info!("Batch building: started, acquiring lock to stop processing new messages...");
+        let _building_batch_mutex = self.building_batch_mutex.lock().await;
 
-        // Set the batch posting flag to true
-        *batch_posting = true;
+        info!("Batch building: waiting until all the ongoing messages finish");
+        // acquire all the user locks to make sure all the ongoing message have been processed
+        for user_mutex in self.user_proof_processing_mutexes.lock().await.values() {
+            let _ = user_mutex.lock().await;
+        }
+        info!("Batch building: all user locks acquired, proceeding to build batch");
+        let batch_state_lock = self.batch_state.lock().await;
+
         let batch_queue_copy = batch_state_lock.batch_queue.clone();
         let finalized_batch = batch_queue::try_build_batch(
             batch_queue_copy,
@@ -1269,7 +1329,6 @@ impl Batcher {
             self.constant_gas_cost(),
         )
         .inspect_err(|e| {
-            *batch_posting = false;
             match e {
                 // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
                 BatcherError::BatchCostTooHigh => {
@@ -1522,10 +1581,6 @@ impl Batcher {
             let batch_finalization_result = self
                 .finalize_batch(finalized_batch, modified_gas_price)
                 .await;
-
-            // Resetting this here to avoid doing it on every return path of `finalize_batch` function
-            let mut batch_posting = self.posting_batch.lock().await;
-            *batch_posting = false;
 
             batch_finalization_result?;
         }
@@ -2045,14 +2100,14 @@ impl Batcher {
         true
     }
 
+    /// Takes [`VerificationData`] and spawns a blocking task to verify the proof
     async fn verify_proof(
         &self,
-        nonced_verification_data: &NoncedVerificationData,
+        verification_data: &VerificationData,
     ) -> Result<(), ProofInvalidReason> {
         if !self.pre_verification_is_enabled {
             return Ok(());
         }
-        let verification_data = &nonced_verification_data.verification_data;
         if self
             .is_verifier_disabled(verification_data.proving_system)
             .await

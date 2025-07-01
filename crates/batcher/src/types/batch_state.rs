@@ -176,38 +176,6 @@ impl BatchState {
         None
     }
 
-    pub(crate) async fn update_user_after_adding_proof(
-        &mut self,
-        addr: Address,
-        nonce: U256,
-        max_fee: U256,
-    ) -> Result<(), String> {
-        let Some(user_proof_count) = self.get_user_proof_count(&addr).await else {
-            return Err("user proof count".into());
-        };
-
-        let Some(current_total_fees_in_queue) = self.get_user_total_fees_in_queue(&addr).await
-        else {
-            return Err("user total fees in queue not found".into());
-        };
-
-        // User state is updated
-        if self
-            .update_user_state(
-                &addr,
-                nonce + U256::one(),
-                max_fee,
-                user_proof_count + 1,
-                current_total_fees_in_queue + max_fee,
-            )
-            .is_none()
-        {
-            return Err("user not found".into());
-        };
-
-        Ok(())
-    }
-
     // LOGIC:
 
     pub(crate) fn calculate_new_user_states_data(&self) -> HashMap<Address, (usize, U256, U256)> {
