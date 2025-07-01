@@ -46,7 +46,7 @@ use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{Mutex, MutexGuard, RwLock};
+use tokio::sync::{Mutex, RwLock};
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, TransactionSendError};
@@ -61,7 +61,6 @@ mod eth;
 mod ffi;
 pub mod gnark;
 pub mod metrics;
-mod proof_processor;
 pub mod retry;
 pub mod risc_zero;
 pub mod s3;
@@ -925,12 +924,13 @@ impl Batcher {
             return Ok(());
         };
 
-        if let Err(_) = self
+        if self
             .batch_state
             .lock()
             .await
             .update_user_after_adding_proof(addr, msg_nonce, msg_max_fee)
             .await
+            .is_err()
         {
             send_message(
                 ws_conn_sink.clone(),
