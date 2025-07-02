@@ -688,7 +688,7 @@ BURST_TIME_SECS ?= 3
 task_sender_generate_gnark_groth16_proofs:
 	@cd crates/task-sender && \
 	cargo run --release -- generate-proofs \
-	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type gnark_groth16 \
+	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type groth16 \
 	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
 
 # ===== DEVNET =====
