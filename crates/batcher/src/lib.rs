@@ -90,7 +90,12 @@ pub struct Batcher {
     /// to improve concurrency.
     batch_state: Mutex<BatchState>,
     /// A mutex that signals an ongoing batch building process.
-    /// It remains locked until the batch has been fully built.
+    /// It remains locked until the batch has been fully built and is ready to be submitted.
+    ///
+    /// When a new proof message arrives, before processing it
+    /// we check that this mutex isn't locked and if it is we wait until unlocked
+    ///
+    /// This check covers the case where a new user submits a message while a batch is in construction
     /// Used to synchronize the processing of proofs during batch construction.
     building_batch_mutex: Mutex<()>,
     /// A map of per-user mutexes used to synchronize proof processing.
@@ -742,7 +747,7 @@ impl Batcher {
         // This is needed because we need to query the user state to make validations and
         // finally add the proof to the batch queue which must be done individually.
         // This allows us to process each user without having to lock the whole `batch_state`
-        debug!("Trying to acquire user mutex for {:?}...", addr_in_msg);
+        debug!("Trying to acquire user mutex for {:?}...", addr);
         let user_mutex = {
             let mut map = self.user_proof_processing_mutexes.lock().await;
             map.entry(addr)
@@ -757,9 +762,9 @@ impl Batcher {
         // 4. If it isn't building then continue with the message
         //
         // This is done to give the batcher builder process priority
-        // and prevent a situation where we are the batcher wants to build a new batch
+        // and prevent a situation where the batcher wants to build a new batch
         // but it has to wait for a ton of messages to be processed first
-        // Leading to a decrease batch throughput
+        // Leading to a decrease in batch throughput
         let _user_mutex = loop {
             let _user_mutex = user_mutex.lock().await;
             let res = self.building_batch_mutex.try_lock();
@@ -778,9 +783,11 @@ impl Batcher {
             let batch_state_lock = self.batch_state.lock().await;
             let last_max_fee = batch_state_lock.get_user_last_max_fee_limit(&addr).await;
             let accumulated_fee = batch_state_lock.get_user_total_fees_in_queue(&addr).await;
-            drop(batch_state_lock);
+            (last_max_fee, accumulated_fee)
+        };
 
-            match (last_max_fee, accumulated_fee) {
+        let (user_last_max_fee_limit, user_accumulated_fee) =
+            match (user_last_max_fee_limit, user_accumulated_fee) {
                 (Some(last_max), Some(accumulated)) => (last_max, accumulated),
                 _ => {
                     send_message(
@@ -792,8 +799,7 @@ impl Batcher {
                     self.metrics.user_error(&["batcher_state_error", ""]);
                     return Ok(());
                 }
-            }
-        };
+            };
 
         if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
             send_message(
@@ -844,6 +850,8 @@ impl Batcher {
             return Ok(());
         }
 
+        // We check this after replacement logic because if user wants to replace a proof, their
+        // new_max_fee must be greater or equal than old_max_fee
         if msg_max_fee > user_last_max_fee_limit {
             warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
             send_message(
@@ -955,61 +963,6 @@ impl Batcher {
             error!("Error while adding entry to batch: {e:?}");
             send_message(ws_conn_sink, SubmitProofResponseMessage::AddToBatchError).await;
             self.metrics.user_error(&["add_to_batch_error", ""]);
-            return Ok(());
-        };
-
-        let Some(user_proof_count) = self
-            .batch_state
-            .lock()
-            .await
-            .get_user_proof_count(&addr)
-            .await
-        else {
-            error!("User state of address {addr} was not found when trying to update user state. This user state should have been present");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::AddToBatchError,
-            )
-            .await;
-            return Ok(());
-        };
-
-        let Some(current_total_fees_in_queue) = self
-            .batch_state
-            .lock()
-            .await
-            .get_user_total_fees_in_queue(&addr)
-            .await
-        else {
-            error!("User state of address {addr} was not found when trying to update user state. This user state should have been present");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::AddToBatchError,
-            )
-            .await;
-            return Ok(());
-        };
-
-        // User state is updated
-        if self
-            .batch_state
-            .lock()
-            .await
-            .update_user_state(
-                &addr,
-                msg_nonce + U256::one(),
-                msg_max_fee,
-                user_proof_count + 1,
-                current_total_fees_in_queue + msg_max_fee,
-            )
-            .is_none()
-        {
-            error!("User state of address {addr} was not found when trying to update user state. This user state should have been present");
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::AddToBatchError,
-            )
-            .await;
             return Ok(());
         };
 
@@ -1153,7 +1106,21 @@ impl Batcher {
         // if they have the same nonce and sender, so we can remove the old entry
         // by calling remove with the new entry
         let mut batch_state_lock = self.batch_state.lock().await;
-        batch_state_lock.batch_queue.remove(&replacement_entry);
+        if batch_state_lock
+            .batch_queue
+            .remove(&replacement_entry)
+            .is_none()
+        {
+            std::mem::drop(batch_state_lock);
+            warn!("Replacement entry for {addr:?} was not present in batcher queue");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
+            return;
+        };
+
         batch_state_lock.batch_queue.push(
             replacement_entry.clone(),
             BatchQueueEntryPriority::new(replacement_max_fee, nonce),
@@ -1229,7 +1196,7 @@ impl Batcher {
         .await
     }
 
-    /// Adds verification data to the current batch queue.
+    /// Adds verification data to the current batch queue and updates the user state
     async fn add_to_batch(
         &self,
         verification_data: NoncedVerificationData,
@@ -1262,6 +1229,46 @@ impl Batcher {
             .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
 
         info!("Current batch queue length: {}", queue_len);
+
+        let Some(user_proof_count) = batch_state_lock
+            .get_user_proof_count(&proof_submitter_addr)
+            .await
+        else {
+            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            std::mem::drop(batch_state_lock);
+            return Err(BatcherError::AddressNotFoundInUserStates(
+                proof_submitter_addr,
+            ));
+        };
+
+        let Some(current_total_fees_in_queue) = batch_state_lock
+            .get_user_total_fees_in_queue(&proof_submitter_addr)
+            .await
+        else {
+            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            std::mem::drop(batch_state_lock);
+            return Err(BatcherError::AddressNotFoundInUserStates(
+                proof_submitter_addr,
+            ));
+        };
+
+        // User state is updated
+        if batch_state_lock
+            .update_user_state(
+                &proof_submitter_addr,
+                nonce + U256::one(),
+                max_fee,
+                user_proof_count + 1,
+                current_total_fees_in_queue + max_fee,
+            )
+            .is_none()
+        {
+            error!("User state of address {proof_submitter_addr} was not found when trying to update user state. This user state should have been present");
+            std::mem::drop(batch_state_lock);
+            return Err(BatcherError::AddressNotFoundInUserStates(
+                proof_submitter_addr,
+            ));
+        };
 
         Ok(())
     }
@@ -1312,9 +1319,7 @@ impl Batcher {
         info!("Batch building: started, acquiring lock to stop processing new messages...");
         let _building_batch_mutex = self.building_batch_mutex.lock().await;
 
-        info!("Batch building: waiting until all the ongoing messages finish");
-
-        // acquire all the user locks to make sure all the ongoing message have been processed
+        info!("Batch building: waiting until all the user messages and proofs get processed");
         let mutexes: Vec<Arc<Mutex<()>>> = {
             let user_proofs_lock = self.user_proof_processing_mutexes.lock().await;
             user_proofs_lock.values().cloned().collect()
@@ -1323,9 +1328,11 @@ impl Batcher {
             let _ = user_mutex.lock().await;
         }
         info!("Batch building: all user locks acquired, proceeding to build batch");
-        let batch_state_lock = self.batch_state.lock().await;
 
-        let batch_queue_copy = batch_state_lock.batch_queue.clone();
+        let batch_queue_copy = {
+            let batch_state_lock = self.batch_state.lock().await;
+            batch_state_lock.batch_queue.clone()
+        };
         let finalized_batch = batch_queue::try_build_batch(
             batch_queue_copy,
             gas_price,
