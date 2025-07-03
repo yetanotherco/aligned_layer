@@ -933,13 +933,6 @@ impl Batcher {
             return Ok(());
         };
 
-        // Finally, we remove the mutex from the map
-        //
-        // Note: this removal is safe even if other processes are waiting on the lock
-        // This is because it is wrapped on an Arc so the variable will still live until all clones are dropped.
-        let mut user_mutexes = self.user_proof_processing_mutexes.lock().await;
-        user_mutexes.remove(&addr);
-
         info!("Verification data message handled");
         Ok(())
     }
@@ -1072,6 +1065,10 @@ impl Batcher {
         // note that the entries are considered equal for the priority queue
         // if they have the same nonce and sender, so we can remove the old entry
         // by calling remove with the new entry
+        //
+        // Note: If `remove` returns `None`, it means the proof was already removed—
+        // likely by the batch building process running in parallel.
+        // This is rare but expected due to concurrent access.
         let mut batch_state_lock = self.batch_state.lock().await;
         if batch_state_lock
             .batch_queue
@@ -1082,7 +1079,7 @@ impl Batcher {
             warn!("Replacement entry for {addr:?} was not present in batcher queue");
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::AddToBatchError,
+                SubmitProofResponseMessage::InvalidReplacementMessage,
             )
             .await;
             return;
@@ -1241,16 +1238,11 @@ impl Batcher {
     }
 
     /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
-    ///
     /// There are essentially two conditions to be checked:
     ///   * Has the current batch reached the minimum size to be posted?
     ///   * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
     ///
-    /// If both are met then:
-    ///  * We acquire the building batch mutex to stop processing new proof messages
-    ///  * We acquire all the users locks to wait until all current proof messages are processed
-    ///
-    /// Once we hold them, the biggest possible batch will be built, making sure that:
+    /// Then the batch will be made as big as possible given this two conditions:
     ///   * The serialized batch size needs to be smaller than the maximum batch size
     ///   * The batch submission fee is less than the lowest `max fee` included the batch,
     ///   * And the batch submission fee is more than the highest `max fee` not included the batch.
@@ -1283,6 +1275,7 @@ impl Batcher {
             return None;
         }
 
+        info!("Trying to build a new batch...");
         let batch_queue_copy = {
             let batch_state_lock = self.batch_state.lock().await;
             batch_state_lock.batch_queue.clone()
