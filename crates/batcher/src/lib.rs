@@ -89,15 +89,7 @@ pub struct Batcher {
     /// We should consider splitting the user state and the queue into separate mutexes
     /// to improve concurrency.
     batch_state: Mutex<BatchState>,
-    /// A mutex that signals an ongoing batch building process.
-    /// It remains locked until the batch has been fully built and is ready to be submitted.
-    ///
-    /// When a new proof message arrives, before processing it
-    /// we check that this mutex isn't locked and if it is we wait until unlocked
-    ///
-    /// This check covers the case where a new user submits a message while a batch is in construction
-    /// Used to synchronize the processing of proofs during batch construction.
-    building_batch_mutex: Mutex<()>,
+
     /// A map of per-user mutexes used to synchronize proof processing.
     /// It allows us to mutate the users state atomically,
     /// while avoiding the need to lock the entire [`batch_state`] structure.
@@ -295,7 +287,6 @@ impl Batcher {
             aggregator_gas_cost: config.batcher.aggregator_gas_cost,
             batch_state: Mutex::new(batch_state),
             user_proof_processing_mutexes: Mutex::new(HashMap::new()),
-            building_batch_mutex: Mutex::new(()),
             disabled_verifiers: Mutex::new(disabled_verifiers),
             metrics,
             telemetry,
@@ -632,11 +623,6 @@ impl Batcher {
         debug!("Received message with nonce: {msg_nonce:?}");
         self.metrics.received_proofs.inc();
 
-        // Make sure there are no batches being built before processing the message
-        debug!("Checking if there is an ongoing batch before processing the message...");
-        let _ = self.building_batch_mutex.lock().await;
-        debug!("Batch building mutex acquired. Proceeding with message processing.");
-
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
         // * ---------------------------------------------------*
@@ -754,28 +740,7 @@ impl Batcher {
                 .or_insert_with(|| Arc::new(Mutex::new(())))
                 .clone()
         };
-
-        // This looks very ugly but basically, we are doing the following:
-        // 1. We try to acquire the `user_mutex`: this can take some time if there is another task with it
-        // 2. While that time that passes, the batcher might have tried to build a new batch, so we check the `building_batch_mutex`
-        // 3. If it is taken, then release the lock so the batcher can continue building (as it is waiting for all user mutex to finish)
-        // 4. If it isn't building then continue with the message
-        //
-        // This is done to give the batcher builder process priority
-        // and prevent a situation where the batcher wants to build a new batch
-        // but it has to wait for a ton of messages to be processed first
-        // Leading to a decrease in batch throughput
-        let _user_mutex = loop {
-            let _user_mutex = user_mutex.lock().await;
-            let res = self.building_batch_mutex.try_lock();
-            if res.is_ok() {
-                break _user_mutex;
-            } else {
-                drop(_user_mutex);
-                // tell the runtime to we are done for now and continue with another task
-                tokio::task::yield_now().await;
-            }
-        };
+        let _user_mutex = user_mutex.lock().await;
         debug!("User mutex for {:?} acquired...", addr_in_msg);
 
         let msg_max_fee = nonced_verification_data.max_fee;
@@ -1315,19 +1280,6 @@ impl Batcher {
             );
             return None;
         }
-
-        info!("Batch building: started, acquiring lock to stop processing new messages...");
-        let _building_batch_mutex = self.building_batch_mutex.lock().await;
-
-        info!("Batch building: waiting until all the user messages and proofs get processed");
-        let mutexes: Vec<Arc<Mutex<()>>> = {
-            let user_proofs_lock = self.user_proof_processing_mutexes.lock().await;
-            user_proofs_lock.values().cloned().collect()
-        };
-        for user_mutex in mutexes {
-            let _ = user_mutex.lock().await;
-        }
-        info!("Batch building: all user locks acquired, proceeding to build batch");
 
         let batch_queue_copy = {
             let batch_state_lock = self.batch_state.lock().await;
