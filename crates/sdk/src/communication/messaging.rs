@@ -267,7 +267,7 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
         }
         Ok(SubmitProofResponseMessage::UnderpricedProof) => {
             error!("Batcher responded with error: proof underpriced. Funds have not been spent.");
-            Err(SubmitError::BatchQueueLimitExceededError)
+            Err(SubmitError::InvalidMaxFee)
         }
         Err(e) => {
             error!(

@@ -202,12 +202,8 @@ pub fn compute_fee_per_proof_formula(num_proofs_in_batch: usize, gas_price: U256
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
         / num_proofs_in_batch as u128;
 
-    let fee_per_proof = (U256::from(estimated_gas_per_proof)
-        * gas_price
-        * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))
-        / U256::from(PERCENTAGE_DIVIDER);
-
-    fee_per_proof
+    (U256::from(estimated_gas_per_proof) * gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))
+        / U256::from(PERCENTAGE_DIVIDER)
 }
 
 async fn fetch_gas_price(

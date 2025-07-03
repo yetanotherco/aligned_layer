@@ -1011,7 +1011,8 @@ impl Batcher {
         // TODO: move this to a config file
         let original_max_fee = entry.nonced_verification_data.max_fee;
         let bump_factor_percentage = 10;
-        let min_bump = original_max_fee * U256::from(bump_factor_percentage) / U256::from(100);
+        let min_bump = original_max_fee
+            + (original_max_fee * U256::from(bump_factor_percentage)) / U256::from(100);
         if replacement_max_fee < min_bump {
             std::mem::drop(batch_state_lock);
             warn!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}");
