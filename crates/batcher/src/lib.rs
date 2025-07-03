@@ -97,6 +97,7 @@ pub struct Batcher {
     disabled_verifiers: Mutex<U256>,
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
+    latest_block_gas_price: RwLock<U256>,
     pub metrics: metrics::BatcherMetrics,
     pub telemetry: TelemetrySender,
 }
@@ -276,6 +277,7 @@ impl Batcher {
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
             disabled_verifiers: Mutex::new(disabled_verifiers),
+            latest_block_gas_price: RwLock::new(U256::zero()),
             metrics,
             telemetry,
         }
@@ -767,6 +769,22 @@ impl Batcher {
         let mut batch_state_lock = self.batch_state.lock().await;
 
         let msg_max_fee = nonced_verification_data.max_fee;
+
+        // Verify that the max fee is enough to cover a batch of 32 proofs at least
+        // TODO move number to config file
+        let gas_price = *self.latest_block_gas_price.read().await;
+        let min_max_fee_per_proof =
+            aligned_sdk::verification_layer::compute_fee_per_proof_formula(32, gas_price);
+        if msg_max_fee < min_max_fee_per_proof {
+            std::mem::drop(batch_state_lock);
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::UnderpricedProof,
+            )
+            .await;
+            return Ok(());
+        }
+
         let Some(user_last_max_fee_limit) =
             batch_state_lock.get_user_last_max_fee_limit(&addr).await
         else {
@@ -1502,6 +1520,9 @@ impl Batcher {
         let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
 
         {
+            let mut latest_block_gas_price = self.latest_block_gas_price.write().await;
+            *latest_block_gas_price = gas_price;
+
             let new_disable_verifiers = disable_verifiers
                 .map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
             let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;

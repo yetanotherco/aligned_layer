@@ -171,20 +171,43 @@ pub async fn calculate_fee_per_proof_for_batch_of_size(
         })?;
     let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
-    // Cost for estimate `num_proofs_per_batch` proofs
+    let fee_per_proof = compute_fee_per_proof_formula(num_proofs_in_batch, gas_price);
+    Ok(fee_per_proof)
+}
+
+/// Estimates the fee per proof based on the given batch size and gas price.
+///
+/// This function models the cost of submitting a batch of proofs to the network
+/// by computing an estimated gas cost per proof. The total gas cost is composed of:
+/// - a constant base gas cost for any batch submission (`DEFAULT_CONSTANT_GAS_COST`)
+/// - an additional gas cost that scales linearly with the number of proofs in the batch
+///   (`ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch`)
+///
+/// The final fee per proof is calculated by:
+///     (estimated_gas_per_proof * gas_price * GAS_PRICE_PERCENTAGE_MULTIPLIER) / PERCENTAGE_DIVIDER
+///
+///
+/// # Arguments
+/// * `num_proofs_in_batch` - Number of proofs in the batch (must be > 0).
+/// * `gas_price` - Current gas price (in wei).
+///
+/// # Returns
+/// * Estimated fee per individual proof (in wei).
+///
+/// # Panics
+/// This function panics if `num_proofs_in_batch` is 0 due to division by zero.
+pub fn compute_fee_per_proof_formula(num_proofs_in_batch: usize, gas_price: U256) -> U256 {
+    // Gas cost for `num_proofs_per_batch` proofs
     let estimated_gas_per_proof = (DEFAULT_CONSTANT_GAS_COST
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
         / num_proofs_in_batch as u128;
 
-    // Price of 1 proof in a batch of size `num_proofs_in_batch` i.e. (1 / `num_proofs_in_batch`).
-    // The computed price is adjusted with respect to the percentage multiplier from:
-    // https://github.com/yetanotherco/aligned_layer/blob/staging/crates/batcher/src/lib.rs#L1401
     let fee_per_proof = (U256::from(estimated_gas_per_proof)
         * gas_price
         * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))
         / U256::from(PERCENTAGE_DIVIDER);
 
-    Ok(fee_per_proof)
+    fee_per_proof
 }
 
 async fn fetch_gas_price(
