@@ -84,19 +84,21 @@ pub struct Batcher {
     payment_service_fallback: BatcherPaymentService,
     service_manager: ServiceManager,
     service_manager_fallback: ServiceManager,
-    /// Holds both the user state and the proofs queue.
+    /// Shared state containing both the user data and the proofs queue.
     ///
-    /// We should consider splitting the user state and the queue into separate mutexes
-    /// to improve concurrency.
+    /// This state is accessed concurrently by the proof messages handler
+    /// and the batches builder. Any mutation typically consists of:
+    ///   1. Adding and/or removing a proof from the queue.
+    ///   2. Updating the corresponding user state based on 1.
+    ///
+    /// The `batch_state` lock MUST be held for the full duration of both steps
+    /// to ensure consistency in the state.
     batch_state: Mutex<BatchState>,
-
-    /// A map of per-user mutexes used to synchronize proof processing.
-    /// It allows us to mutate the users state atomically,
-    /// while avoiding the need to lock the entire [`batch_state`] structure.
+    /// A map of per-user mutexes.
     ///
-    /// During batch building, the process also locks these per-user mutexes
-    /// (after acquiring [`building_batch_mutex`]) to ensure that all ongoing
-    /// proof messages complete and the state remains consistent.
+    /// It allows us to synchronize the processing of proof messages
+    /// per user ensuring the state is mutated atomically between each user,
+    /// while avoiding the need to lock the entire [`batch_state`] structure.
     user_proof_processing_mutexes: Mutex<HashMap<Address, Arc<Mutex<()>>>>,
     min_block_interval: u64,
     transaction_wait_timeout: u64,
