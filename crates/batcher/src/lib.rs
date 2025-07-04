@@ -1009,8 +1009,8 @@ impl Batcher {
 
         // Validate that the max fee is at least higher or equal to the original fee + a [`min_bump_percentage`]
         let original_max_fee = entry.nonced_verification_data.max_fee;
-        let min_bump = original_max_fee
-            + (original_max_fee * U256::from(self.min_bump_percentage)) / U256::from(100);
+        let min_bump =
+            original_max_fee + (original_max_fee * self.min_bump_percentage) / U256::from(100);
 
         if replacement_max_fee < min_bump {
             std::mem::drop(batch_state_lock);
