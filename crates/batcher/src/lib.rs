@@ -98,6 +98,8 @@ pub struct Batcher {
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
     latest_block_gas_price: RwLock<U256>,
+    proofs_to_cover_in_min_max_fee: usize,
+    min_bump_percentage: U256,
     pub metrics: metrics::BatcherMetrics,
     pub telemetry: TelemetrySender,
 }
@@ -267,6 +269,8 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_byte_size: config.batcher.max_batch_byte_size,
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
+            proofs_to_cover_in_min_max_fee: config.batcher.proofs_to_cover_in_min_max_fee,
+            min_bump_percentage: U256::from(config.batcher.min_bump_percentage),
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -664,6 +668,19 @@ impl Batcher {
             nonced_verification_data = aux_verification_data
         }
 
+        // Before moving on to process the message, verify that the max fee covers the
+        // minimum max fee allowed. This prevents users from spamming with very low max fees
+        // the min max fee is enforced by checking if it can cover a batch of [`proofs_to_cover_in_min_max_fee`]
+        let msg_max_fee = nonced_verification_data.max_fee;
+        if !self.msg_covers_minimum_max_fee(msg_max_fee).await {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::UnderpricedProof,
+            )
+            .await;
+            return Ok(());
+        };
+
         // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
         if self.pre_verification_is_enabled {
             let verification_data = &nonced_verification_data.verification_data;
@@ -767,23 +784,6 @@ impl Batcher {
         // finally add the proof to the batch queue.
 
         let mut batch_state_lock = self.batch_state.lock().await;
-
-        let msg_max_fee = nonced_verification_data.max_fee;
-
-        // Verify that the max fee is enough to cover a batch of 32 proofs at least
-        // TODO move number to config file
-        let gas_price = *self.latest_block_gas_price.read().await;
-        let min_max_fee_per_proof =
-            aligned_sdk::verification_layer::compute_fee_per_proof_formula(32, gas_price);
-        if msg_max_fee < min_max_fee_per_proof {
-            std::mem::drop(batch_state_lock);
-            send_message(
-                ws_conn_sink.clone(),
-                SubmitProofResponseMessage::UnderpricedProof,
-            )
-            .await;
-            return Ok(());
-        }
 
         let Some(user_last_max_fee_limit) =
             batch_state_lock.get_user_last_max_fee_limit(&addr).await
@@ -1007,12 +1007,11 @@ impl Batcher {
             return;
         };
 
-        // the replacement max fee bump must be at least 10 percent higher
-        // TODO: move this to a config file
+        // Validate that the max fee is at least higher or equal to the original fee + a [`min_bump_percentage`]
         let original_max_fee = entry.nonced_verification_data.max_fee;
-        let bump_factor_percentage = 10;
         let min_bump = original_max_fee
-            + (original_max_fee * U256::from(bump_factor_percentage)) / U256::from(100);
+            + (original_max_fee * U256::from(self.min_bump_percentage)) / U256::from(100);
+
         if replacement_max_fee < min_bump {
             std::mem::drop(batch_state_lock);
             warn!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}");
@@ -2044,6 +2043,15 @@ impl Batcher {
         }
 
         true
+    }
+
+    async fn msg_covers_minimum_max_fee(&self, msg_max_fee: U256) -> bool {
+        let gas_price = *self.latest_block_gas_price.read().await;
+        let min_max_fee_per_proof = aligned_sdk::verification_layer::compute_fee_per_proof_formula(
+            self.proofs_to_cover_in_min_max_fee,
+            gas_price,
+        );
+        msg_max_fee >= min_max_fee_per_proof
     }
 
     /// Checks if the user's balance is unlocked
