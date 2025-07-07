@@ -1,22 +1,21 @@
 use std::io::Read;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use ciborium::de::Error as CiboriumDeError;
+use ciborium::ser::Error as CiboriumSerError;
+use serde::{de::DeserializeOwned, Serialize};
+use std::io::Error;
 
-pub fn cbor_serialize<T: Serialize>(value: &T) -> Result<Vec<u8>, SerializationError> {
+pub type CiboriumSerializationError = CiboriumSerError<Error>;
+pub type CiboriumDeserializationError = CiboriumDeError<Error>;
+
+pub fn cbor_serialize<T: Serialize>(value: &T) -> Result<Vec<u8>, CiboriumSerializationError> {
     let mut buf = Vec::new();
-    ciborium::into_writer(value, &mut buf).map_err(|_| SerializationError)?;
+    ciborium::into_writer(value, &mut buf)?;
     Ok(buf)
 }
 
-pub fn cbor_deserialize<R: Read, T: DeserializeOwned>(buf: R) -> Result<T, SerializationError> {
-    ciborium::from_reader(buf).map_err(|_| SerializationError)
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SerializationError;
-
-impl std::fmt::Display for SerializationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Serialization error")
-    }
+pub fn cbor_deserialize<R: Read, T: DeserializeOwned>(
+    buf: R,
+) -> Result<T, CiboriumDeserializationError> {
+    ciborium::from_reader(buf)
 }

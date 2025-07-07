@@ -504,7 +504,7 @@ async fn main() -> Result<(), AlignedError> {
                 PathBuf::from(&submit_args.batch_inclusion_data_directory_path);
 
             std::fs::create_dir_all(&batch_inclusion_data_directory_path).map_err(|e| {
-                SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e)
+                SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e.to_string())
             })?;
 
             let eth_rpc_url = submit_args.eth_rpc_url.clone();
@@ -542,22 +542,22 @@ async fn main() -> Result<(), AlignedError> {
             wallet = wallet.with_chain_id(chain_id);
 
             let nonce = match &submit_args.nonce {
-                Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
+                Some(nonce) => U256::from_dec_str(nonce).expect("A valid nonce number"),
                 None => {
                     get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
                         .await
                         .map_err(|e| match e {
                             aligned_sdk::common::errors::GetNonceError::EthRpcError(e) => {
-                                SubmitError::GetNonceError(e)
+                                SubmitError::EthereumProviderError(e)
                             }
                             aligned_sdk::common::errors::GetNonceError::ConnectionFailed(e) => {
-                                SubmitError::GenericError(e)
+                                SubmitError::WebSocketConnectionError(e)
                             }
                             aligned_sdk::common::errors::GetNonceError::InvalidRequest(e) => {
                                 SubmitError::GenericError(e)
                             }
                             aligned_sdk::common::errors::GetNonceError::SerializationError(e) => {
-                                SubmitError::GenericError(e)
+                                SubmitError::SerializationError(e)
                             }
                             aligned_sdk::common::errors::GetNonceError::ProtocolMismatch {
                                 current,
@@ -612,8 +612,7 @@ async fn main() -> Result<(), AlignedError> {
                             .insert(aligned_verification_data.batch_merkle_root);
                     }
                     Err(e) => {
-                        warn!("Error while submitting proof: {:?}", e);
-                        handle_submit_err(e).await;
+                        warn!("Error while submitting proof: {}", e);
                         return Ok(());
                     }
                 };
@@ -646,13 +645,16 @@ async fn main() -> Result<(), AlignedError> {
         VerifyProofOnchain(verify_inclusion_args) => {
             let batch_inclusion_file =
                 File::open(verify_inclusion_args.batch_inclusion_data.clone()).map_err(|e| {
-                    SubmitError::IoError(verify_inclusion_args.batch_inclusion_data.clone(), e)
+                    SubmitError::IoError(
+                        verify_inclusion_args.batch_inclusion_data.clone(),
+                        e.to_string(),
+                    )
                 })?;
 
             let reader = BufReader::new(batch_inclusion_file);
 
-            let aligned_verification_data: AlignedVerificationData =
-                cbor_deserialize(reader).map_err(SubmitError::SerializationError)?;
+            let aligned_verification_data: AlignedVerificationData = cbor_deserialize(reader)
+                .map_err(|e| SubmitError::SerializationError(e.to_string()))?;
 
             info!("Verifying response data matches sent proof data...");
             let response = verification_layer::is_proof_verified(
@@ -677,10 +679,10 @@ async fn main() -> Result<(), AlignedError> {
             info!("Commitment: {}", hex::encode(vk_commitment));
             if let Some(output_file) = args.output_file {
                 let mut file = File::create(output_file.clone())
-                    .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
+                    .map_err(|e| SubmitError::IoError(output_file.clone(), e.to_string()))?;
 
                 file.write_all(hex::encode(vk_commitment).as_bytes())
-                    .map_err(|e| SubmitError::IoError(output_file.clone(), e))?;
+                    .map_err(|e| SubmitError::IoError(output_file.clone(), e.to_string()))?;
             }
         }
         DepositToBatcher(deposit_to_batcher_args) => {
@@ -940,27 +942,8 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     })
 }
 
-async fn handle_submit_err(err: SubmitError) {
-    match err {
-        SubmitError::InvalidNonce => {
-            error!("Invalid nonce. try again");
-        }
-        SubmitError::ProofQueueFlushed => {
-            error!("Batch was reset. try resubmitting the proof");
-        }
-        SubmitError::InvalidProof(reason) => error!("Submitted proof is invalid: {}", reason),
-        SubmitError::InsufficientBalance(sender_address) => {
-            error!(
-                "Insufficient balance to pay for the transaction, address: {}",
-                sender_address
-            )
-        }
-        _ => {}
-    }
-}
-
 fn read_file(file_name: PathBuf) -> Result<Vec<u8>, SubmitError> {
-    std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e))
+    std::fs::read(&file_name).map_err(|e| SubmitError::IoError(file_name, e.to_string()))
 }
 
 fn read_file_option(param_name: &str, file_name: Option<PathBuf>) -> Result<Vec<u8>, SubmitError> {

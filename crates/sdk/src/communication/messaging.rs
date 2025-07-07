@@ -62,7 +62,7 @@ pub async fn send_messages(
             Ok(bin) => bin,
             Err(e) => {
                 error!("Error while serializing message: {:?}", e);
-                sent_verification_data.push(Err(SubmitError::SerializationError(e)));
+                sent_verification_data.push(Err(SubmitError::SerializationError(e.to_string())));
                 return sent_verification_data;
             }
         };
@@ -70,7 +70,7 @@ pub async fn send_messages(
         // Send the message
         if let Err(e) = ws_write.send(Message::Binary(msg_bin.clone())).await {
             error!("Error while sending message: {:?}", e);
-            sent_verification_data.push(Err(SubmitError::WebSocketConnectionError(e)));
+            sent_verification_data.push(Err(SubmitError::WebSocketConnectionError(e.to_string())));
             return sent_verification_data;
         }
 
@@ -108,7 +108,7 @@ pub async fn receive(
             warn!("Unexpected WS close");
             if let Some(close_msg) = close_frame {
                 aligned_submitted_data.push(Err(SubmitError::WebSocketClosedUnexpectedlyError(
-                    close_msg.to_owned(),
+                    close_msg.to_string(),
                 )));
                 break;
             }
@@ -174,79 +174,6 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             //OK case. Proofs was valid and it was included in this batch.
             Ok(batch_inclusion_data)
         }
-        Ok(SubmitProofResponseMessage::InvalidNonce) => {
-            error!("Batcher responded with invalid nonce. Funds have not been spent.");
-            Err(SubmitError::InvalidNonce)
-        }
-        Ok(SubmitProofResponseMessage::InvalidSignature) => {
-            error!("Batcher responded with invalid signature. Funds have not been spent.");
-            Err(SubmitError::InvalidSignature)
-        }
-        Ok(SubmitProofResponseMessage::ProofTooLarge) => {
-            error!("Batcher responded with proof too large. Funds have not been spent.");
-            Err(SubmitError::ProofTooLarge)
-        }
-        Ok(SubmitProofResponseMessage::InvalidMaxFee) => {
-            error!("Batcher responded with invalid max fee. Funds have not been spent.");
-            Err(SubmitError::InvalidMaxFee)
-        }
-        Ok(SubmitProofResponseMessage::InsufficientBalance(addr)) => {
-            error!("Batcher responded with insufficient balance. Funds have not been spent for submittions which had insufficient balance.");
-            Err(SubmitError::InsufficientBalance(addr))
-        }
-        Ok(SubmitProofResponseMessage::InvalidChainId) => {
-            error!("Batcher responded with invalid chain id. Funds have not been spent.");
-            Err(SubmitError::InvalidChainId)
-        }
-        Ok(SubmitProofResponseMessage::InvalidReplacementMessage) => {
-            error!(
-                "Batcher responded with invalid replacement message. Funds have not been spent."
-            );
-            Err(SubmitError::InvalidReplacementMessage)
-        }
-        Ok(SubmitProofResponseMessage::AddToBatchError) => {
-            error!("Batcher responded with add to batch error. Funds have not been spent.");
-            Err(SubmitError::AddToBatchError)
-        }
-        Ok(SubmitProofResponseMessage::EthRpcError) => {
-            error!("Batcher experienced Eth RPC connection error. Funds have not been spent.");
-            Err(SubmitError::EthereumProviderError(
-                "Batcher experienced Eth RPC connection error. Funds have not been spent."
-                    .to_string(),
-            ))
-        }
-        Ok(SubmitProofResponseMessage::InvalidPaymentServiceAddress(
-            received_addr,
-            expected_addr,
-        )) => {
-            error!(
-                "Batcher responded with invalid payment service address: {:?}, expected: {:?}. Funds have not been spent.",
-                received_addr, expected_addr
-            );
-            Err(SubmitError::InvalidPaymentServiceAddress(
-                received_addr,
-                expected_addr,
-            ))
-        }
-        Ok(SubmitProofResponseMessage::InvalidProof(reason)) => {
-            error!(
-                "Batcher responded with invalid proof: {}. Funds have not been spent.",
-                reason
-            );
-            Err(SubmitError::InvalidProof(reason))
-        }
-        Ok(SubmitProofResponseMessage::CreateNewTaskError(merkle_root, error)) => {
-            error!(
-                "Batcher responded with create new task error: {}. Funds have not been spent.",
-                error
-            );
-            Err(SubmitError::BatchSubmissionFailed(
-                "Could not create task with merkle root ".to_owned()
-                    + &merkle_root
-                    + ", failed with error: "
-                    + &error,
-            ))
-        }
         Ok(SubmitProofResponseMessage::ProtocolVersion(_)) => {
             error!("Batcher responded with protocol version instead of batch inclusion data. Funds have not been spent.");
             Err(SubmitError::UnexpectedBatcherResponse(
@@ -254,28 +181,8 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
                     .to_string(),
             ))
         }
-        Ok(SubmitProofResponseMessage::BatchReset) => {
-            error!("Batcher responded with batch reset. Funds have not been spent.");
-            Err(SubmitError::ProofQueueFlushed)
-        }
-        Ok(SubmitProofResponseMessage::Error(e)) => {
-            error!(
-                "Batcher responded with error: {}. Funds have not been spent.",
-                e
-            );
-            Err(SubmitError::GenericError(e))
-        }
-        Ok(SubmitProofResponseMessage::UnderpricedProof) => {
-            error!("Batcher responded with error: queue limit has been exceeded. Funds have not been spent.");
-            Err(SubmitError::BatchQueueLimitExceededError)
-        }
-        Err(e) => {
-            error!(
-                "Error while deserializing batch inclusion data: {}. Funds have not been spent.",
-                e
-            );
-            Err(SubmitError::SerializationError(e))
-        }
+        Ok(SubmitProofResponseMessage::Error(e)) => Err(e),
+        Err(e) => Err(SubmitError::SerializationError(e.to_string())),
     }
 }
 

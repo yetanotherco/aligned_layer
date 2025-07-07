@@ -5,7 +5,7 @@ use crate::{
             DEFAULT_MAX_FEE_BATCH_SIZE, GAS_PRICE_PERCENTAGE_MULTIPLIER,
             INSTANT_MAX_FEE_BATCH_SIZE, PERCENTAGE_DIVIDER,
         },
-        errors::{self, GetNonceError},
+        errors::{self, FileError, GetNonceError},
         types::{
             AlignedVerificationData, ClientMessage, FeeEstimationType, GetNonceResponseMessage,
             Network, ProvingSystemId, VerificationData,
@@ -238,7 +238,11 @@ pub async fn submit_multiple(
 ) -> Vec<Result<AlignedVerificationData, errors::SubmitError>> {
     let (ws_stream, _) = match connect_async(network.get_batcher_url()).await {
         Ok((ws_stream, response)) => (ws_stream, response),
-        Err(e) => return vec![Err(errors::SubmitError::WebSocketConnectionError(e))],
+        Err(e) => {
+            return vec![Err(errors::SubmitError::WebSocketConnectionError(
+                e.to_string(),
+            ))]
+        }
     };
 
     debug!("WebSocket handshake has been successfully completed");
@@ -769,7 +773,8 @@ fn save_response_cbor(
     let batch_inclusion_data_path =
         batch_inclusion_data_directory_path.join(batch_inclusion_data_file_name);
 
-    let data = cbor_serialize(&aligned_verification_data)?;
+    let data = cbor_serialize(&aligned_verification_data)
+        .map_err(|e| FileError::SerializationError(e.to_string()))?;
 
     let mut file = File::create(batch_inclusion_data_path)?;
     file.write_all(data.as_slice())?;

@@ -203,7 +203,7 @@ impl BatchState {
     pub(crate) fn replacement_entry_is_valid(
         &mut self,
         replacement_entry: &BatchQueueEntry,
-    ) -> bool {
+    ) -> Result<(), (U256, U256)> {
         let replacement_max_fee = replacement_entry.nonced_verification_data.max_fee;
         let nonce = replacement_entry.nonced_verification_data.nonce;
         let sender = replacement_entry.sender;
@@ -214,11 +214,18 @@ impl BatchState {
         );
 
         // it is a valid entry only if there is no entry with the same sender, lower nonce and a lower fee
-        !self.batch_queue.iter().any(|(entry, _)| {
+        if let Some((entry, _)) = self.batch_queue.iter().find(|(entry, _)| {
             entry.sender == sender
                 && entry.nonced_verification_data.nonce < nonce
                 && entry.nonced_verification_data.max_fee < replacement_max_fee
-        })
+        }) {
+            Err((
+                entry.nonced_verification_data.nonce,
+                entry.nonced_verification_data.max_fee,
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     /// Updates or removes a user's state when their latest proof entry is removed from the batch queue.

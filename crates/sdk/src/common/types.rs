@@ -18,6 +18,8 @@ use lambdaworks_crypto::merkle_tree::{
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
+use crate::common::errors::SubmitError;
+
 use super::constants::{
     ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY,
     ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY_STAGE, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET,
@@ -313,7 +315,7 @@ impl SubmitProofMessage {
         verification_data: NoncedVerificationData,
         wallet: Wallet<SigningKey>,
     ) -> Self {
-        let signature = wallet
+        let signature: Signature = wallet
             .sign_typed_data(&verification_data)
             .await
             .expect("Failed to sign the verification data");
@@ -365,7 +367,8 @@ impl AlignedVerificationData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProofInvalidReason {
-    RejectedProof,
+    ProofTooLarge { size: u64, max_allowed: u64 },
+    VerificationFailed,
     VerifierNotSupported,
     DisabledVerifier(ProvingSystemId),
 }
@@ -373,34 +376,29 @@ pub enum ProofInvalidReason {
 impl Display for ProofInvalidReason {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            ProofInvalidReason::ProofTooLarge { size, max_allowed } => write!(
+                f,
+                "Proof too large size {} max allowed {}",
+                size, max_allowed
+            ),
             ProofInvalidReason::VerifierNotSupported => write!(f, "Verifier not supported"),
             ProofInvalidReason::DisabledVerifier(proving_system_id) => {
                 write!(f, "Disabled verifier: {}", proving_system_id)
             }
-            ProofInvalidReason::RejectedProof => write!(f, "Proof did not verify"),
+            ProofInvalidReason::VerificationFailed => write!(f, "Proof did not verify"),
         }
     }
 }
 
+pub enum SubmitProofSuccessResponse {
+    ProtocolVersion(u16),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SubmitProofResponseMessage {
-    BatchInclusionData(BatchInclusionData),
     ProtocolVersion(u16),
-    CreateNewTaskError(String, String), //merkle-root, error
-    InvalidProof(ProofInvalidReason),
-    BatchReset,
-    Error(String),
-    InvalidNonce,
-    InvalidSignature,
-    ProofTooLarge,
-    InvalidMaxFee,
-    InsufficientBalance(Address),
-    InvalidChainId,
-    InvalidReplacementMessage,
-    AddToBatchError,
-    EthRpcError,
-    InvalidPaymentServiceAddress(Address, Address),
-    UnderpricedProof,
+    BatchInclusionData(BatchInclusionData),
+    Error(SubmitError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

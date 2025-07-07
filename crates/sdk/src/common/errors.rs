@@ -2,13 +2,12 @@ use core::fmt;
 use ethers::providers::ProviderError;
 use ethers::signers::WalletError;
 use ethers::types::transaction::eip712::Eip712Error;
-use ethers::types::{SignatureError, H160};
+use ethers::types::{SignatureError, H160, U256};
+use ethers::utils::format_ether;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use std::io;
 use std::path::PathBuf;
-use tokio_tungstenite::tungstenite::protocol::CloseFrame;
-
-use crate::communication::serialization::SerializationError;
 
 use super::types::ProofInvalidReason;
 
@@ -63,12 +62,14 @@ impl fmt::Display for AlignedError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SubmitError {
-    WebSocketConnectionError(tokio_tungstenite::tungstenite::Error),
-    WebSocketClosedUnexpectedlyError(CloseFrame<'static>),
-    IoError(PathBuf, io::Error),
-    SerializationError(SerializationError),
+    // TODO: remove the GenericError and create an error for each case
+    GenericError(String),
+    WebSocketConnectionError(String),
+    WebSocketClosedUnexpectedlyError(String),
+    IoError(PathBuf, String),
+    SerializationError(String),
     EthereumProviderError(String),
     HexDecodingError(String),
     WalletSignerError(String),
@@ -82,33 +83,52 @@ pub enum SubmitError {
     UnexpectedBatcherResponse(String),
     EmptyVerificationDataCommitments,
     EmptyVerificationDataList,
-    InvalidNonce,
-    InvalidMaxFee,
+    InvalidNonce { sent: U256, expected: U256 },
+    InvalidMaxFee { sent: U256, required: U256 },
     ProofQueueFlushed,
     InvalidSignature,
     InvalidChainId,
     InvalidProof(ProofInvalidReason),
-    ProofTooLarge,
-    InvalidReplacementMessage,
-    InsufficientBalance(H160),
-    InvalidPaymentServiceAddress(H160, H160),
+    InvalidReplacementMessage(ReplacementInvalidReason),
+    InsufficientBalance { available: U256, required: U256 },
+    BalanceUnlocked,
+    InvalidPaymentServiceAddress { expected: H160, received: H160 },
     BatchSubmissionFailed(String),
-    AddToBatchError,
     InvalidProofInclusionData,
-    GetNonceError(String),
-    BatchQueueLimitExceededError,
-    GenericError(String),
+    BatchQueueLimitExceeded,
+    BatcherUnexpectedError,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ReplacementInvalidReason {
+    EntryNotFound,
+    UnderpricedMaxFee { sent: U256, min_bump_required: U256 },
+    ReplacementConflictWithPendingEntry { nonce: U256, max_fee: U256 },
+}
+
+impl Display for ReplacementInvalidReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Self::EntryNotFound => write!(f, "Entry not found in state"),
+            Self::UnderpricedMaxFee {
+                sent,
+                min_bump_required,
+            } => write!(
+                f,
+                "Max fee does not cover replacement, sent: {}ether, min bump required {}ether",
+                format_ether(*sent),
+                format_ether(*min_bump_required),
+            ),
+            Self::ReplacementConflictWithPendingEntry { nonce, max_fee } => {
+                write!(f, "Replacement rejected: a pending entry from the same sender exists with a lower nonce and higher max fee (nonce: {}, fee: {}).", nonce, format_ether(*max_fee))
+            }
+        }
+    }
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
     fn from(e: tokio_tungstenite::tungstenite::Error) -> Self {
-        SubmitError::WebSocketConnectionError(e)
-    }
-}
-
-impl From<SerializationError> for SubmitError {
-    fn from(e: SerializationError) -> Self {
-        SubmitError::SerializationError(e)
+        SubmitError::WebSocketConnectionError(e.to_string())
     }
 }
 
@@ -140,31 +160,82 @@ impl From<VerificationError> for SubmitError {
 impl fmt::Display for SubmitError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            // General System-level Errors
+            SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
             SubmitError::WebSocketConnectionError(e) => {
                 write!(f, "WebSocket connection error: {}", e)
             }
             SubmitError::WebSocketClosedUnexpectedlyError(close_frame) => {
                 write!(f, "WebSocket closed unexpectedly: {}", close_frame)
             }
+
+            // Serialization Networking Errors
             SubmitError::IoError(path, e) => write!(f, "IO error: {}: {}", path.display(), e),
             SubmitError::SerializationError(e) => write!(f, "Serialization error: {}", e),
+
+            // Ethereum Cryptographic Errors
             SubmitError::EthereumProviderError(e) => write!(f, "Ethereum provider error: {}", e),
             SubmitError::HexDecodingError(e) => write!(f, "Hex decoding error: {}", e),
             SubmitError::WalletSignerError(e) => write!(f, "Wallet signer error: {}", e),
+            SubmitError::InvalidEthereumAddress(address) => {
+                write!(f, "Invalid Ethereum address: {}", address)
+            }
+            SubmitError::InvalidSignature => write!(f, "Invalid Signature"),
+            SubmitError::InvalidChainId => write!(f, "Invalid chain Id"),
+
+            // User Input Parameter Validation
             SubmitError::MissingRequiredParameter(param) => {
                 write!(f, "Missing required parameter: {}", param)
             }
             SubmitError::UnsupportedProvingSystem(proving_system) => {
                 write!(f, "Unsupported proving system: {}", proving_system)
             }
-            SubmitError::InvalidEthereumAddress(address) => {
-                write!(f, "Invalid Ethereum address: {}", address)
-            }
             SubmitError::ProtocolVersionMismatch { current, expected } => write!(
                 f,
                 "Protocol version mismatch: current={}, expected={}",
                 current, expected
             ),
+            SubmitError::InvalidNonce { sent, expected } => {
+                write!(f, "Invalid nonce, sent: {}, required: {}", sent, expected)
+            }
+            SubmitError::InvalidMaxFee { sent, required } => write!(
+                f,
+                "Invalid max fee, sent: {}ether, required: {}ether",
+                format_ether(*sent),
+                format_ether(*required)
+            ),
+            SubmitError::InsufficientBalance {
+                available,
+                required,
+            } => {
+                write!(
+                    f,
+                    "Insufficient balance, available: {}ether, required {}ether",
+                    format_ether(*available),
+                    format_ether(*required)
+                )
+            }
+            SubmitError::BalanceUnlocked => {
+                write!(f, "Balance is in batcher payment contract is unlocked")
+            }
+            SubmitError::InvalidProof(reason) => {
+                write!(f, "Invalid proof, reason: {}", reason)
+            }
+            SubmitError::InvalidReplacementMessage(reason) => {
+                write!(f, "Invalid replacement message, reason: {}", reason)
+            }
+            SubmitError::InvalidPaymentServiceAddress {
+                received: received_addr,
+                expected: expected_addr,
+            } => {
+                write!(
+                    f,
+                    "Invalid payment service address, received: {}, expected: {}",
+                    received_addr, expected_addr
+                )
+            }
+
+            // Batcher-related Errors
             SubmitError::BatchVerifiedEventStreamError(e) => {
                 write!(f, "Batch verified event stream error: {}", e)
             }
@@ -182,40 +253,27 @@ impl fmt::Display for SubmitError {
             SubmitError::EmptyVerificationDataCommitments => {
                 write!(f, "Verification data commitments are empty")
             }
-            SubmitError::EmptyVerificationDataList => write!(f, "Verification data list is empty"),
-            SubmitError::InvalidNonce => write!(f, "Invalid nonce"),
-            SubmitError::InvalidMaxFee => write!(f, "Invalid max fee"),
+            SubmitError::EmptyVerificationDataList => {
+                write!(f, "Verification data list is empty")
+            }
             SubmitError::BatchSubmissionFailed(merkle_root) => write!(
                 f,
                 "Could not create task with batch merkle root {}",
                 merkle_root
             ),
-            SubmitError::GenericError(e) => write!(f, "Generic error: {}", e),
-            SubmitError::InvalidSignature => write!(f, "Invalid Signature"),
-            SubmitError::InvalidChainId => write!(f, "Invalid chain Id"),
-            SubmitError::InvalidProof(reason) => write!(f, "Invalid proof {}", reason),
-            SubmitError::ProofTooLarge => write!(f, "Proof too Large"),
-            SubmitError::InvalidReplacementMessage => write!(f, "Invalid replacement message"),
-            SubmitError::InsufficientBalance(addr) => {
-                write!(f, "Insufficient balance, address: {}", addr)
-            }
-            SubmitError::InvalidPaymentServiceAddress(received_addr, expected_addr) => {
-                write!(
-                    f,
-                    "Invalid payment service address, received: {}, expected: {}",
-                    received_addr, expected_addr
-                )
-            }
             SubmitError::ProofQueueFlushed => write!(f, "Batch reset"),
-            SubmitError::AddToBatchError => write!(f, "Error while adding entry to batch"),
             SubmitError::InvalidProofInclusionData => {
                 write!(f, "Batcher responded with invalid batch inclusion data. Can't verify your proof was correctly included in the batch.")
             }
-            SubmitError::BatchQueueLimitExceededError => {
-                write!(f, "Error while adding entry to batch, queue limit exeeded.")
+            SubmitError::BatchQueueLimitExceeded => {
+                write!(
+                    f,
+                    "Error while adding entry to batch, queue limit exceeded."
+                )
             }
-
-            SubmitError::GetNonceError(e) => write!(f, "Error while getting nonce {}", e),
+            SubmitError::BatcherUnexpectedError => {
+                write!(f, "Batcher responded with an unexpected error")
+            }
         }
     }
 }
@@ -338,13 +396,7 @@ pub enum BalanceError {
 #[derive(Debug)]
 pub enum FileError {
     IoError(PathBuf, io::Error),
-    SerializationError(SerializationError),
-}
-
-impl From<SerializationError> for FileError {
-    fn from(e: SerializationError) -> Self {
-        FileError::SerializationError(e)
-    }
+    SerializationError(String),
 }
 
 impl From<io::Error> for FileError {

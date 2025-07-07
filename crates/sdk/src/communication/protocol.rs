@@ -28,7 +28,7 @@ pub async fn check_protocol_version(
                 ));
             }
             Err(e) => {
-                return Err(SubmitError::SerializationError(e));
+                return Err(SubmitError::SerializationError(e.to_string()));
             }
         }
     }

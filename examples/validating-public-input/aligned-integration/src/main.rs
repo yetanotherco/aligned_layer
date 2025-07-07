@@ -263,7 +263,7 @@ fn save_response(
     pub_input: &[u8],
 ) -> Result<(), SubmitError> {
     std::fs::create_dir_all(&batch_inclusion_data_directory_path)
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e))?;
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_directory_path.clone(), e.to_string()))?;
 
     let batch_merkle_root = &hex::encode(aligned_verification_data.batch_merkle_root)[..8];
     let batch_inclusion_data_file_name = batch_merkle_root.to_owned()
@@ -293,9 +293,9 @@ fn save_response(
     });
 
     let mut file = File::create(&batch_inclusion_data_path)
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e.to_string()))?;
     file.write_all(serde_json::to_string_pretty(&data).unwrap().as_bytes())
-        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e))?;
+        .map_err(|e| SubmitError::IoError(batch_inclusion_data_path.clone(), e.to_string()))?;
     let current_dir = env::current_dir().expect("Failed to get current directory");
 
     info!(
