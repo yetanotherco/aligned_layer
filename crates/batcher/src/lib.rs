@@ -1533,7 +1533,7 @@ impl Batcher {
         // The lock is dropped immediately after this assignment completes.
         *self.current_min_max_fee.write().await = min_max_fee;
         info!(
-            "Updated min-max fee: {} ETH per proof (batch size: {})",
+            "Updated min max-fee: {} ETH per proof (batch size: {})",
             ethers::utils::format_ether(min_max_fee),
             self.amount_of_proofs_for_min_max_fee
         );
