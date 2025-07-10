@@ -97,7 +97,7 @@ pub struct Batcher {
     disabled_verifiers: Mutex<U256>,
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
-    latest_block_gas_price: RwLock<U256>,
+    current_min_max_fee: RwLock<U256>,
     amount_of_proofs_for_min_max_fee: usize,
     min_bump_percentage: U256,
     pub metrics: metrics::BatcherMetrics,
@@ -281,7 +281,7 @@ impl Batcher {
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
             disabled_verifiers: Mutex::new(disabled_verifiers),
-            latest_block_gas_price: RwLock::new(U256::zero()),
+            current_min_max_fee: RwLock::new(U256::zero()),
             metrics,
             telemetry,
         }
@@ -1252,12 +1252,9 @@ impl Batcher {
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
         if current_batch_len < 1 {
-            let min_max_fee = self.get_min_max_fee().await;
             info!(
-                "Current batch has {} proofs, min max fee {} for a batch of {}. Waiting for more proofs...",
-                current_batch_len, 
-                min_max_fee, 
-                self.amount_of_proofs_for_min_max_fee
+                "Current batch has {} proofs. Waiting for more proofs...",
+                current_batch_len
             );
             return None;
         }
@@ -1526,9 +1523,20 @@ impl Batcher {
             tokio::join!(gas_price_future, disabled_verifiers_future);
 
         let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
+
+        // compute the new min max fee
+        let min_max_fee = aligned_sdk::verification_layer::compute_fee_per_proof_formula(
+            self.amount_of_proofs_for_min_max_fee,
+            gas_price,
+        );
         // Acquire a write lock to update the latest gas price.
         // The lock is dropped immediately after this assignment completes.
-        *self.latest_block_gas_price.write().await = gas_price;
+        *self.current_min_max_fee.write().await = min_max_fee;
+        info!(
+            "Updated min-max fee: {} ETH per proof (batch size: {})",
+            ethers::utils::format_ether(min_max_fee),
+            self.amount_of_proofs_for_min_max_fee
+        );
 
         {
             let new_disable_verifiers = disable_verifiers
@@ -1939,14 +1947,6 @@ impl Batcher {
             + BATCHER_SUBMISSION_BASE_GAS_COST
     }
 
-    async fn get_min_max_fee(&self) -> U256 {
-        let gas_price = *self.latest_block_gas_price.read().await;
-        aligned_sdk::verification_layer::compute_fee_per_proof_formula(
-            self.amount_of_proofs_for_min_max_fee,
-            gas_price,
-        )
-    }
-
     /// Checks if the message signature is valid
     /// and returns the address if its.
     /// If not, returns false, logs the error,
@@ -2058,8 +2058,8 @@ impl Batcher {
     }
 
     async fn msg_covers_minimum_max_fee(&self, msg_max_fee: U256) -> bool {
-        let min_max_fee_per_proof = self.get_min_max_fee().await;
-        msg_max_fee >= min_max_fee_per_proof
+        let min_max_fee_per_proof = self.current_min_max_fee.read().await;
+        msg_max_fee >= *min_max_fee_per_proof
     }
 
     /// Checks if the user's balance is unlocked
