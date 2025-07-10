@@ -627,7 +627,7 @@ impl Batcher {
         // * ---------------------------------------------------*
 
         // All check functions sends the error to the metrics server and logs it
-        // if they return false
+        // if they return SubmitError
         self.msg_chain_id_is_valid(&client_msg).await?;
         self.msg_batcher_payment_addr_is_valid(&client_msg).await?;
         self.msg_proof_size_is_valid(&client_msg).await?;
@@ -1880,7 +1880,8 @@ impl Batcher {
     }
 
     /// Checks if the chain id matches the one in the config
-    /// and sends it to the metrics server if it doesn't matches
+    /// Returns SubmitError if chain id is not valid, logs the error,
+    /// and sends it to the metrics server
     async fn msg_chain_id_is_valid(
         &self,
         client_msg: &SubmitProofMessage,
@@ -1896,8 +1897,8 @@ impl Batcher {
     }
 
     /// Checks if the message has a valid payment service address
-    /// Returns false, logs the error,
-    /// and sends it to the metrics server if it doesn't match
+    /// Returns SubmitError if payment_service address is not valid, logs the error,
+    /// and sends it to the metrics server
     async fn msg_batcher_payment_addr_is_valid(
         &self,
         client_msg: &SubmitProofMessage,
@@ -1917,7 +1918,7 @@ impl Batcher {
     }
 
     /// Checks if the user's balance is unlocked
-    /// Returns false if balance is unlocked, logs the error,
+    /// Returns SubmitError if balance is unlocked, logs the error,
     /// and sends it to the metrics server
     async fn msg_user_balance_is_locked(&self, addr: &Address) -> Result<(), SubmitError> {
         if self.user_balance_is_unlocked(addr).await {
