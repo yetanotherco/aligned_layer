@@ -1524,8 +1524,7 @@ impl Batcher {
         let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
 
         {
-            let mut latest_block_gas_price = self.latest_block_gas_price.write().await;
-            *latest_block_gas_price = gas_price;
+            *self.latest_block_gas_price.write().await = gas_price;
 
             let new_disable_verifiers = disable_verifiers
                 .map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
