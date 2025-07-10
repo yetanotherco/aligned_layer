@@ -995,7 +995,7 @@ impl Batcher {
     ) {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
-        let Some(entry) = batch_state_lock.get_entry(addr, nonce) else {
+        let Some(replacement_entry) = batch_state_lock.get_entry(addr, nonce) else {
             std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
             send_message(
@@ -1008,13 +1008,13 @@ impl Batcher {
         };
 
         // Validate that the max fee is at least higher or equal to the original fee + a [`min_bump_percentage`]
-        let original_max_fee = entry.nonced_verification_data.max_fee;
+        let original_max_fee = replacement_entry.nonced_verification_data.max_fee;
         let min_bump =
             original_max_fee + (original_max_fee * self.min_bump_percentage) / U256::from(100);
 
         if replacement_max_fee < min_bump {
             std::mem::drop(batch_state_lock);
-            warn!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}");
+            info!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::UnderpricedProof,
@@ -1028,7 +1028,7 @@ impl Batcher {
         info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
 
         // The replacement entry is built from the old entry and validated for then to be replaced
-        let mut replacement_entry = entry.clone();
+        let mut replacement_entry = replacement_entry.clone();
         replacement_entry.signature = signature;
         replacement_entry.verification_data_commitment =
             nonced_verification_data.verification_data.clone().into();
@@ -1521,11 +1521,13 @@ impl Batcher {
 
         let (gas_price, disable_verifiers) =
             tokio::join!(gas_price_future, disabled_verifiers_future);
+
         let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
+        // Acquire a write lock to update the latest gas price.
+        // The lock is dropped immediately after this assignment completes.
+        *self.latest_block_gas_price.write().await = gas_price;
 
         {
-            *self.latest_block_gas_price.write().await = gas_price;
-
             let new_disable_verifiers = disable_verifiers
                 .map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
             let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;
