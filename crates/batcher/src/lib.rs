@@ -995,7 +995,7 @@ impl Batcher {
     ) {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
-        let Some(replacement_entry) = batch_state_lock.get_entry(addr, nonce) else {
+        let Some(entry_to_replace) = batch_state_lock.get_entry(addr, nonce) else {
             std::mem::drop(batch_state_lock);
             warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
             send_message(
@@ -1008,7 +1008,7 @@ impl Batcher {
         };
 
         // Validate that the max fee is at least higher or equal to the original fee + a [`min_bump_percentage`]
-        let original_max_fee = replacement_entry.nonced_verification_data.max_fee;
+        let original_max_fee = entry_to_replace.nonced_verification_data.max_fee;
         let min_bump =
             original_max_fee + (original_max_fee * self.min_bump_percentage) / U256::from(100);
 
@@ -1028,7 +1028,7 @@ impl Batcher {
         info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
 
         // The replacement entry is built from the old entry and validated for then to be replaced
-        let mut replacement_entry = replacement_entry.clone();
+        let mut replacement_entry = entry_to_replace.clone();
         replacement_entry.signature = signature;
         replacement_entry.verification_data_commitment =
             nonced_verification_data.verification_data.clone().into();
