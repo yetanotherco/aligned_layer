@@ -41,7 +41,7 @@ async fn main() -> Result<(), BatcherError> {
 
     env_logger::Builder::from_env(Env::default().filter_or(
         "RUST_LOG",
-        "info,aligned_batcher=debug,ethers_providers=off",
+        "info,aligned_batcher=debug,ethers_providers=warn",
     ))
     .init();
 
