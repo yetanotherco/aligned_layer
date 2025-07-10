@@ -98,7 +98,7 @@ pub struct Batcher {
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
     latest_block_gas_price: RwLock<U256>,
-    proofs_to_cover_in_min_max_fee: usize,
+    amount_of_proofs_for_min_max_fee: usize,
     min_bump_percentage: U256,
     pub metrics: metrics::BatcherMetrics,
     pub telemetry: TelemetrySender,
@@ -269,7 +269,7 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_byte_size: config.batcher.max_batch_byte_size,
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
-            proofs_to_cover_in_min_max_fee: config.batcher.proofs_to_cover_in_min_max_fee,
+            amount_of_proofs_for_min_max_fee: config.batcher.amount_of_proofs_for_min_max_fee,
             min_bump_percentage: U256::from(config.batcher.min_bump_percentage),
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
@@ -670,7 +670,7 @@ impl Batcher {
 
         // Before moving on to process the message, verify that the max fee covers the
         // minimum max fee allowed. This prevents users from spamming with very low max fees
-        // the min max fee is enforced by checking if it can cover a batch of [`proofs_to_cover_in_min_max_fee`]
+        // the min max fee is enforced by checking if it can cover a batch of [`amount_of_proofs_for_min_max_fee`]
         let msg_max_fee = nonced_verification_data.max_fee;
         if !self.msg_covers_minimum_max_fee(msg_max_fee).await {
             send_message(
@@ -2049,7 +2049,7 @@ impl Batcher {
     async fn msg_covers_minimum_max_fee(&self, msg_max_fee: U256) -> bool {
         let gas_price = *self.latest_block_gas_price.read().await;
         let min_max_fee_per_proof = aligned_sdk::verification_layer::compute_fee_per_proof_formula(
-            self.proofs_to_cover_in_min_max_fee,
+            self.amount_of_proofs_for_min_max_fee,
             gas_price,
         );
         msg_max_fee >= min_max_fee_per_proof
