@@ -1252,9 +1252,12 @@ impl Batcher {
         let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
 
         if current_batch_len < 1 {
+            let min_max_fee = self.get_min_max_fee().await;
             info!(
-                "Current batch has {} proofs. Waiting for more proofs...",
-                current_batch_len
+                "Current batch has {} proofs, min max fee {} for a batch of {}. Waiting for more proofs...",
+                current_batch_len, 
+                min_max_fee, 
+                self.amount_of_proofs_for_min_max_fee
             );
             return None;
         }
@@ -1936,6 +1939,14 @@ impl Batcher {
             + BATCHER_SUBMISSION_BASE_GAS_COST
     }
 
+    async fn get_min_max_fee(&self) -> U256 {
+        let gas_price = *self.latest_block_gas_price.read().await;
+        aligned_sdk::verification_layer::compute_fee_per_proof_formula(
+            self.amount_of_proofs_for_min_max_fee,
+            gas_price,
+        )
+    }
+
     /// Checks if the message signature is valid
     /// and returns the address if its.
     /// If not, returns false, logs the error,
@@ -2047,11 +2058,7 @@ impl Batcher {
     }
 
     async fn msg_covers_minimum_max_fee(&self, msg_max_fee: U256) -> bool {
-        let gas_price = *self.latest_block_gas_price.read().await;
-        let min_max_fee_per_proof = aligned_sdk::verification_layer::compute_fee_per_proof_formula(
-            self.amount_of_proofs_for_min_max_fee,
-            gas_price,
-        );
+        let min_max_fee_per_proof = self.get_min_max_fee().await;
         msg_max_fee >= min_max_fee_per_proof
     }
 
