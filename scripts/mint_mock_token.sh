@@ -22,7 +22,7 @@ mock_token_address=$(cast call "$mock_strategy_address" "underlyingToken()" --rp
 
 operator_address=$(cat "$1" | yq -r '.operator.address')
 
-if [[ -z  "$mock_token_address" ]]; then
+if [[ -z "$mock_token_address" || "$mock_token_address" == "null" ]]; then
   echo "Mock token address is empty, please deploy the contracts first"
   exit 1
 fi;
