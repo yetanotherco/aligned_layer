@@ -20,11 +20,11 @@ use log::info;
 use serde_json::json;
 
 const PROOF_FILE_RISC0_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof";
 const PUB_INPUT_RISC0_FILE_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub";
 const IMAGE_ID_RISC0_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id_2_0.bin";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin";
 const PROOF_SP1_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.proof";
 const PUB_INPUT_SP1_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.pub";
 const ELF_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.elf";
