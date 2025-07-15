@@ -191,9 +191,9 @@ risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v2.0.0", default-f
 rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system Risc0 \
---proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
---vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
---public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
