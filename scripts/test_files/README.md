@@ -12,7 +12,13 @@ make generate_sp1_fibonacci_proof
 
 ## Generate Risc0 Proof
 
-[//]: # (TODO)
+```bash
+make generate_risc_zero_fibonacci_proof
+```
+
+```bash
+make generate_risc_zero_empty_journal_proof
+```
 
 ## Generate Gnark Groth16 BN254 Proof
 

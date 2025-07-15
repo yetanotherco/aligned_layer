@@ -8,7 +8,7 @@ resolver = "2"
 serde = { version = "1.0.203" }
 serde_json = "1.0.117"
 # Unstable feature is necessary for tiny-keccak patch, see: https://dev.risczero.com/api/zkvm/precompiles#stability
-risc0-zkvm = { git = "https://github.com/risc0/risc0", tag="v2.1.0", default-features = false, features = ["unstable", "std"] }
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag="v2.2.0", default-features = false, features = ["unstable", "std"] }
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
 
