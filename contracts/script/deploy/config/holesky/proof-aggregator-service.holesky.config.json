@@ -6,7 +6,7 @@
   },
   "programs_id": {
     "sp1AggregationProgramVKHash": "0x0073c64593b6224bb8059787baa93b3aa491a308e9f126788b547ca02d3d599e",
-    "risc0AggregationProgramImageId": "0xcee9c4f2e4758970c20676cc7bfd23a1640f18b8b025ed05be7330c9472aa65a"
+    "risc0AggregationProgramImageId": "0x4121299f6bc60c97cee65caf19677339c07134d14807b01fe88e4d42789d4ef4"
   },
   "permissions": {
     "owner": "0x97aEC5F28181abe5d2aD40dBe7FbaEe014529b7D"
