@@ -26,7 +26,6 @@ sp1_aggregation_program = { path = "./aggregation_programs/sp1" }
 risc0-zkvm = { version = "2.2.0" }
 risc0_aggregation_program = { path = "./aggregation_programs/risc0" }
 risc0-ethereum-contracts = { git = "https://github.com/risc0/risc0-ethereum/", tag = "v2.2.2" }
-#nybbles = { version = "0.4.1", default-features = false }
 
 [build-dependencies]
 sp1-build = { version = "5.0.0" }

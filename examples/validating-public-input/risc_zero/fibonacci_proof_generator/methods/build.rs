@@ -1,7 +1,6 @@
 use risc0_build::{DockerOptionsBuilder, GuestOptionsBuilder};
 use std::collections::HashMap;
 
-// Reference: https://docs.succinct.xyz/docs/sp1/writing-programs/compiling#advanced-build-options-1
 fn main() {
     // With this containerized build process, we ensure that all builds of the guest code,
     // regardless of the machine or local environment, will produce the same ImageID
