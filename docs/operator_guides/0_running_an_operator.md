@@ -72,13 +72,13 @@ make operator_build ENVIRONMENT=mainnet
 If you want to upgrade the operator in **Testnet**, run:
 
 ```bash
-make operator_start ENVIRONMENT=testnet
+make operator_update ENVIRONMENT=testnet
 ```
 
 If you want to upgrade the operator in **Mainnet**, run:
 
 ```bash
-make operator_start ENVIRONMENT=mainnet
+make operator_update ENVIRONMENT=mainnet
 ```
 
 This will recreate the binaries. You can then proceed to restart the operator.
