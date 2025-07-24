@@ -21,12 +21,7 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
 			o.Logger.Infof("Waiting for %s before retrying data fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
-			select {
-			case <-time.After(retryDelay):
-				// Wait before retrying
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
+			time.Sleep(retryDelay)
 			retryDelay *= 2 // Exponential backoff. Ex: 5s, 10s, 20s
 		}
 
