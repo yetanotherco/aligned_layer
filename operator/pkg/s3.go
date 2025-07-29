@@ -20,7 +20,7 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 
 	// Create HTTP client with response header timeout to prevent hanging on silent servers
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.ResponseHeaderTimeout = 60 * time.Second
+	transport.ResponseHeaderTimeout = 15 * time.Second
 	client := &http.Client{
 		Transport: transport,
 	}

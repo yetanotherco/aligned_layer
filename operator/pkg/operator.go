@@ -67,8 +67,8 @@ type Operator struct {
 const (
 	// This time out will even kill the retries, so it should be enough
 	// for them to be completed in most cases
-	BatchDownloadTimeout    = 5 * time.Minute
-	BatchDownloadMaxRetries = 3
+	BatchDownloadTimeout    = 3 * time.Minute
+	BatchDownloadMaxRetries = 4
 	BatchDownloadRetryDelay = 5 * time.Second
 	UnverifiedBatchOffset   = 100
 )
