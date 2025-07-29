@@ -18,10 +18,22 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 	var err error
 	var req *http.Request
 
+	// Create HTTP client with response header timeout to prevent hanging on silent servers
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.ResponseHeaderTimeout = 60 * time.Second
+	client := &http.Client{
+		Transport: transport,
+	}
+
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
 			o.Logger.Infof("Waiting for %s before retrying data fetch (attempt %d of %d)", retryDelay, attempt+1, maxRetries)
-			time.Sleep(retryDelay)
+			select {
+			case <-time.After(retryDelay):
+				// Wait before retrying
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
 			retryDelay *= 2 // Exponential backoff. Ex: 5s, 10s, 20s
 		}
 
@@ -30,7 +42,7 @@ func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string,
 			return nil, err
 		}
 
-		resp, err = http.DefaultClient.Do(req)
+		resp, err = client.Do(req)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			break // Successful request, exit retry loop
 		}

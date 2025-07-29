@@ -6,8 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	rapidsnark_types "github.com/iden3/go-rapidsnark/types"
-	"github.com/iden3/go-rapidsnark/verifier"
 	"log"
 	"math/big"
 	"net/http"
@@ -15,6 +13,9 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	rapidsnark_types "github.com/iden3/go-rapidsnark/types"
+	"github.com/iden3/go-rapidsnark/verifier"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
@@ -64,7 +65,9 @@ type Operator struct {
 }
 
 const (
-	BatchDownloadTimeout    = 1 * time.Minute
+	// This time out will even kill the retries, so it should be enough
+	// for them to be completed in most cases
+	BatchDownloadTimeout    = 5 * time.Minute
 	BatchDownloadMaxRetries = 3
 	BatchDownloadRetryDelay = 5 * time.Second
 	UnverifiedBatchOffset   = 100
