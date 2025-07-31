@@ -19,8 +19,8 @@ use tokio::join;
 use tokio_tungstenite::connect_async;
 
 use crate::structs::{
-    GenerateAndFundWalletsArgs, GenerateProofsArgs, InfiniteProofType, ProofType, SendInfiniteProofsArgs,
-    TestConnectionsArgs,
+    GenerateAndFundWalletsArgs, GenerateProofsArgs, InfiniteProofType, ProofType,
+    SendInfiniteProofsArgs, TestConnectionsArgs,
 };
 
 const GROTH_16_PROOF_GENERATOR_FILE_PATH: &str =
@@ -271,8 +271,8 @@ async fn load_senders_from_file(
     let mut senders = vec![];
 
     for line in reader.lines() {
-        let private_key_str = line
-            .map_err(|err| format!("Could not read line from private keys file: {}", err))?;
+        let private_key_str =
+            line.map_err(|err| format!("Could not read line from private keys file: {}", err))?;
         let wallet = Wallet::from_str(private_key_str.trim())
             .map_err(|_| "Invalid private key".to_string())?
             .with_chain_id(chain_id.as_u64());
@@ -297,7 +297,7 @@ async fn run_infinite_proof_sender(
     random_address: bool,
 ) {
     let mut handles = vec![];
-    
+
     for (i, sender) in senders.iter().enumerate() {
         let wallet = sender.wallet.clone();
         let verification_data = verification_data.clone();
@@ -382,7 +382,8 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
 
     // Load wallets using shared function
     info!("Loading wallets");
-    let senders = match load_senders_from_file(&args.eth_rpc_url, &args.private_keys_filepath).await {
+    let senders = match load_senders_from_file(&args.eth_rpc_url, &args.private_keys_filepath).await
+    {
         Ok(senders) => senders,
         Err(err) => {
             error!("{}", err);
@@ -396,8 +397,8 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
         InfiniteProofType::GnarkGroth16 { proofs_dir } => {
             info!("Loading Groth16 proofs from directory structure");
             let data = get_verification_data_from_proofs_folder(
-                proofs_dir.clone(), 
-                senders[0].wallet.address()
+                proofs_dir.clone(),
+                senders[0].wallet.address(),
             );
             if data.is_empty() {
                 error!("Verification data empty, not continuing");
@@ -405,7 +406,11 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
             }
             data
         }
-        InfiniteProofType::Risc0 { proof_path, bin_path, pub_path } => {
+        InfiniteProofType::Risc0 {
+            proof_path,
+            bin_path,
+            pub_path,
+        } => {
             info!("Loading RISC Zero proof files");
             let Ok(proof) = std::fs::read(proof_path) else {
                 error!("Could not read proof file: {}", proof_path);
@@ -432,12 +437,12 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
             }]
         }
     };
-    
+
     info!("Proofs loaded!");
 
     let max_fee = U256::from_dec_str(&args.max_fee).expect("Invalid max fee");
     let network: Network = args.network.into();
-    
+
     info!("Starting senders!");
     run_infinite_proof_sender(
         senders,
@@ -447,10 +452,14 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
         args.burst_time_secs,
         max_fee,
         args.random_address,
-    ).await;
+    )
+    .await;
 }
 
-fn load_groth16_proof_files(dir_path: &std::path::Path, base_name: &str) -> Option<VerificationData> {
+fn load_groth16_proof_files(
+    dir_path: &std::path::Path,
+    base_name: &str,
+) -> Option<VerificationData> {
     let proof_path = dir_path.join(format!("{}.proof", base_name));
     let public_input_path = dir_path.join(format!("{}.pub", base_name));
     let vk_path = dir_path.join(format!("{}.vk", base_name));
@@ -482,7 +491,9 @@ fn load_from_subdirectories(dir_path: &str) -> Vec<VerificationData> {
                 .and_then(|dir| dir.flatten().map(|e| e.path()).find(|path| path.is_file()))
             {
                 if let Some(base_name) = first_file.file_stem().and_then(|s| s.to_str()) {
-                    if let Some(verification_data) = load_groth16_proof_files(&proof_folder_dir, base_name) {
+                    if let Some(verification_data) =
+                        load_groth16_proof_files(&proof_folder_dir, base_name)
+                    {
                         verifications_data.push(verification_data);
                     }
                 }
@@ -496,7 +507,7 @@ fn load_from_subdirectories(dir_path: &str) -> Vec<VerificationData> {
 fn load_from_flat_directory(dir_path: &str) -> Vec<VerificationData> {
     let mut verifications_data = vec![];
     let mut base_names = std::collections::HashSet::new();
-    
+
     // Collect all unique base names from .proof files
     if let Ok(dir) = std::fs::read_dir(dir_path) {
         for entry in dir.flatten() {
@@ -530,8 +541,9 @@ fn get_verification_data_from_proofs_folder(
     // Check if we have subdirectories with groth16 in the name
     let has_groth16_subdirs = std::fs::read_dir(&dir_path)
         .map(|dir| {
-            dir.flatten()
-                .any(|entry| entry.path().is_dir() && entry.path().to_str().unwrap().contains("groth16"))
+            dir.flatten().any(|entry| {
+                entry.path().is_dir() && entry.path().to_str().unwrap().contains("groth16")
+            })
         })
         .unwrap_or(false);
 
@@ -548,4 +560,3 @@ fn get_verification_data_from_proofs_folder(
 
     verifications_data
 }
-
