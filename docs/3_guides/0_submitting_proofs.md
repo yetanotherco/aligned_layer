@@ -134,6 +134,7 @@ aligned submit \
 --proving_system SP1 \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
+--public_input <pub_input_file> \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
@@ -149,6 +150,7 @@ aligned submit \
 --proving_system SP1 \
 --proof ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 --vm_program ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+--public_input ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
@@ -166,7 +168,7 @@ aligned submit \
 --proving_system Risc0 \
 --proof <proof_file> \
 --vm_program <vm_program_file> \
---pub_input <pub_input_file> \
+--public_input <pub_input_file> \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \

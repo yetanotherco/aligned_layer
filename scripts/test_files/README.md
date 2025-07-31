@@ -10,6 +10,10 @@ Note: You have to be in the root of the project
 make generate_sp1_fibonacci_proof
 ```
 
+```bash
+make generate_sp1_no_public_input_proof
+```
+
 ## Generate Risc0 Proof
 
 ```bash

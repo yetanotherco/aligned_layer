@@ -887,6 +887,11 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
                 "--vm_program",
                 args.vm_program_code_file_name.clone(),
             )?);
+            pub_input = args
+                .pub_input_file_name
+                .clone()
+                .map(read_file)
+                .transpose()?;
         }
         ProvingSystemId::Risc0 => {
             vm_program_code = Some(read_file_option(

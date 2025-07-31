@@ -510,7 +510,7 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		results <- verificationResult
 
 	case common.SP1:
-		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.PubInput, verificationData.VmProgramCode)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, err, "SP1 proof verification")
 

@@ -34,7 +34,8 @@ if [[ $PROOF_TYPE == "sp1" ]]; then
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
-    --random_address \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
+		--random_address \
     --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK

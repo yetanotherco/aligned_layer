@@ -529,6 +529,7 @@ batcher_send_sp1_task: ## Send a SP1 fibonacci proof to Batcher. Parameters: RPC
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -539,6 +540,7 @@ batcher_send_sp1_burst: ## Send a burst of SP1 fibonacci proofs to Batcher. Para
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
@@ -762,6 +764,10 @@ __GENERATE_PROOFS__: ## ____
 generate_sp1_fibonacci_proof: ## Run the SP1 Fibonacci proof generator script
 	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
+
+generate_sp1_fibonacci_proof_no_pub_input: ## Run the SP1 Fibonacci proof generator script with empty journal
+	@cd scripts/test_files/sp1/no_public_inputs/script && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF with no public inputs generated in scripts/test_files/sp1 folder"
 
 generate_risc_zero_fibonacci_proof: ## Run the Risc0 Fibonacci proof generator script
 	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
@@ -1073,6 +1079,7 @@ docker_batcher_send_sp1_burst:
               --proving_system SP1 \
               --proof ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
               --vm_program ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+              --public_input ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \

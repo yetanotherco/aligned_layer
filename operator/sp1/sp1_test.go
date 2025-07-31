@@ -8,7 +8,7 @@ import (
 )
 
 const ProofFilePath = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof"
-
+const PublicInputsFilePath = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub"
 const ElfFilePath = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf"
 
 func TestFibonacciSp1ProofVerifies(t *testing.T) {
@@ -17,12 +17,17 @@ func TestFibonacciSp1ProofVerifies(t *testing.T) {
 		t.Errorf("could not open proof file: %s", err)
 	}
 
+	publicInputsBytes, err := os.ReadFile(PublicInputsFilePath)
+	if err != nil {
+		t.Errorf("could not open public inputs file: %s", err)
+	}
+
 	elfBytes, err := os.ReadFile(ElfFilePath)
 	if err != nil {
 		t.Errorf("could not open elf file: %s", err)
 	}
 
-	verified, err := sp1.VerifySp1Proof(proofBytes, elfBytes)
+	verified, err := sp1.VerifySp1Proof(proofBytes, publicInputsBytes, elfBytes)
 	if err != nil || !verified {
 		t.Errorf("proof did not verify")
 	}

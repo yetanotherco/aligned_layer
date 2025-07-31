@@ -33,6 +33,7 @@ aligned submit \
 --proving_system SP1 \
 --proof ~/.aligned/test_files/sp1_fibonacci_5_0_0.proof \
 --vm_program ~/.aligned/test_files/sp1_fibonacci_5_0_0.elf \
+--public_input ~/.aligned/test_files/sp1_fibonacci_5_0_0.pub \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --network holesky \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
