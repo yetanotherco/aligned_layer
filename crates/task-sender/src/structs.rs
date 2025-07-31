@@ -158,6 +158,18 @@ pub enum InfiniteProofType {
         )]
         pub_path: Option<String>,
     },
+    #[clap(about = "Send infinite SP1 proofs from file paths")]
+    SP1 {
+        #[arg(name = "Path to SP1 proof file (.proof)", long = "proof-path")]
+        proof_path: String,
+        #[arg(name = "Path to SP1 ELF file (.elf)", long = "elf-path")]
+        elf_path: String,
+        #[arg(
+            name = "Path to SP1 public input file (.pub) - optional",
+            long = "pub-path"
+        )]
+        pub_path: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]

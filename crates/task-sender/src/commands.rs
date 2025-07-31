@@ -436,6 +436,36 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 proof_generator_addr: Address::zero(), // Will be set randomly in the loop
             }]
         }
+        InfiniteProofType::SP1 {
+            proof_path,
+            elf_path,
+            pub_path,
+        } => {
+            info!("Loading SP1 proof files");
+            let Ok(proof) = std::fs::read(proof_path) else {
+                error!("Could not read proof file: {}", proof_path);
+                return;
+            };
+            let Ok(vm_program) = std::fs::read(elf_path) else {
+                error!("Could not read ELF file: {}", elf_path);
+                return;
+            };
+            let pub_input = if let Some(pub_path) = pub_path {
+                std::fs::read(pub_path).ok()
+            } else {
+                None
+            };
+
+            // Create template verification data (without proof_generator_addr)
+            vec![VerificationData {
+                proving_system: ProvingSystemId::SP1,
+                proof,
+                pub_input,
+                verification_key: None,
+                vm_program_code: Some(vm_program),
+                proof_generator_addr: Address::zero(), // Will be set randomly in the loop
+            }]
+        }
     };
 
     info!("Proofs loaded!");
