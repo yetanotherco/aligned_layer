@@ -877,7 +877,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     // Read proof file
     let proof = read_file(args.proof_file_name.clone())?;
 
-    let mut pub_input: Option<Vec<u8>> = None;
+    let pub_input: Option<Vec<u8>>;
     let mut verification_key: Option<Vec<u8>> = None;
     let mut vm_program_code: Option<Vec<u8>> = None;
 
