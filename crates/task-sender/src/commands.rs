@@ -450,64 +450,100 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     ).await;
 }
 
+fn load_groth16_proof_files(dir_path: &std::path::Path, base_name: &str) -> Option<VerificationData> {
+    let proof_path = dir_path.join(format!("{}.proof", base_name));
+    let public_input_path = dir_path.join(format!("{}.pub", base_name));
+    let vk_path = dir_path.join(format!("{}.vk", base_name));
+
+    let proof = std::fs::read(&proof_path).ok()?;
+    let public_input = std::fs::read(&public_input_path).ok()?;
+    let vk = std::fs::read(&vk_path).ok()?;
+
+    Some(VerificationData {
+        proving_system: ProvingSystemId::GnarkGroth16Bn254,
+        proof,
+        pub_input: Some(public_input),
+        verification_key: Some(vk),
+        vm_program_code: None,
+        proof_generator_addr: Address::zero(), // Will be set later
+    })
+}
+
+fn load_from_subdirectories(dir_path: &str) -> Vec<VerificationData> {
+    let mut verifications_data = vec![];
+    let dir = std::fs::read_dir(dir_path).expect("Directory does not exist");
+
+    for entry in dir.flatten() {
+        let proof_folder_dir = entry.path();
+        if proof_folder_dir.is_dir() && proof_folder_dir.to_str().unwrap().contains("groth16") {
+            // Get the first file to determine the base name
+            if let Some(first_file) = fs::read_dir(&proof_folder_dir)
+                .ok()
+                .and_then(|dir| dir.flatten().map(|e| e.path()).find(|path| path.is_file()))
+            {
+                if let Some(base_name) = first_file.file_stem().and_then(|s| s.to_str()) {
+                    if let Some(verification_data) = load_groth16_proof_files(&proof_folder_dir, base_name) {
+                        verifications_data.push(verification_data);
+                    }
+                }
+            }
+        }
+    }
+
+    verifications_data
+}
+
+fn load_from_flat_directory(dir_path: &str) -> Vec<VerificationData> {
+    let mut verifications_data = vec![];
+    let mut base_names = std::collections::HashSet::new();
+    
+    // Collect all unique base names from .proof files
+    if let Ok(dir) = std::fs::read_dir(dir_path) {
+        for entry in dir.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("proof") {
+                if let Some(base_name) = path.file_stem().and_then(|s| s.to_str()) {
+                    base_names.insert(base_name.to_string());
+                }
+            }
+        }
+    }
+
+    // Load verification data for each base name
+    let dir_path = std::path::Path::new(dir_path);
+    for base_name in base_names {
+        if let Some(verification_data) = load_groth16_proof_files(dir_path, &base_name) {
+            verifications_data.push(verification_data);
+        }
+    }
+
+    verifications_data
+}
+
 /// Returns the corresponding verification data for the generated proofs directory
 fn get_verification_data_from_proofs_folder(
     dir_path: String,
     default_addr: Address,
 ) -> Vec<VerificationData> {
-    let mut verifications_data = vec![];
-
     info!("Reading proofs from {:?}", dir_path);
 
-    let dir = std::fs::read_dir(dir_path).expect("Directory does not exists");
+    // Check if we have subdirectories with groth16 in the name
+    let has_groth16_subdirs = std::fs::read_dir(&dir_path)
+        .map(|dir| {
+            dir.flatten()
+                .any(|entry| entry.path().is_dir() && entry.path().to_str().unwrap().contains("groth16"))
+        })
+        .unwrap_or(false);
 
-    for proof_folder in dir {
-        // each proof_folder is a dir called groth16_n
-        let proof_folder_dir = proof_folder.unwrap().path();
-        if proof_folder_dir.is_dir() {
-            // todo(marcos): this should be improved if we want to support more proofs
-            // currently we stored the proofs on subdirs with a prefix for the proof type
-            // and here we check the subdir name and based on build the verification data accordingly
-            if proof_folder_dir.to_str().unwrap().contains("groth16") {
-                // Get the first file from the folder
-                let first_file = fs::read_dir(proof_folder_dir.clone())
-                    .expect("Can't read proofs directory")
-                    .filter_map(|entry| entry.ok().map(|e| e.path()))
-                    .find(|path| path.is_file()) // Find any valid file
-                    .expect("No valid proof files found");
+    let mut verifications_data = if has_groth16_subdirs {
+        load_from_subdirectories(&dir_path)
+    } else {
+        load_from_flat_directory(&dir_path)
+    };
 
-                // Extract the base name (file stem) without extension
-                let base_name = first_file
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .expect("Failed to extract base name");
-
-                // Generate the paths for the other files
-                let proof_path = proof_folder_dir.join(format!("{}.proof", base_name));
-                let public_input_path = proof_folder_dir.join(format!("{}.pub", base_name));
-                let vk_path = proof_folder_dir.join(format!("{}.vk", base_name));
-
-                let Ok(proof) = std::fs::read(&proof_path) else {
-                    continue;
-                };
-                let Ok(public_input) = std::fs::read(&public_input_path) else {
-                    continue;
-                };
-                let Ok(vk) = std::fs::read(&vk_path) else {
-                    continue;
-                };
-
-                let verification_data = VerificationData {
-                    proving_system: ProvingSystemId::GnarkGroth16Bn254,
-                    proof,
-                    pub_input: Some(public_input),
-                    verification_key: Some(vk),
-                    vm_program_code: None,
-                    proof_generator_addr: default_addr,
-                };
-                verifications_data.push(verification_data);
-            }
-        }
+    // Set the default address for all verification data
+    for data in &mut verifications_data {
+        data.proof_generator_addr = default_addr;
     }
 
     verifications_data
