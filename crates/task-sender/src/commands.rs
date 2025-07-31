@@ -19,7 +19,7 @@ use tokio::join;
 use tokio_tungstenite::connect_async;
 
 use crate::structs::{
-    GenerateAndFundWalletsArgs, GenerateProofsArgs, ProofType, SendInfiniteProofsArgs,
+    GenerateAndFundWalletsArgs, GenerateProofsArgs, InfiniteProofType, ProofType, SendInfiniteProofsArgs,
     TestConnectionsArgs,
 };
 
@@ -253,81 +253,60 @@ struct Sender {
     wallet: Wallet<SigningKey>,
 }
 
-pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
-    if matches!(args.network.clone().into(), Network::Holesky) {
-        error!("Network not supported this infinite proof sender");
-        return;
-    }
+async fn load_senders_from_file(
+    eth_rpc_url: &str,
+    private_keys_filepath: &str,
+) -> Result<Vec<Sender>, String> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|_| "Could not connect to eth rpc".to_string())?;
+    let chain_id = eth_rpc_provider
+        .get_chainid()
+        .await
+        .map_err(|_| "Could not get chain id".to_string())?;
 
-    info!("Loading wallets");
-    let mut senders = vec![];
-    let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
-        error!("Could not connect to eth rpc");
-        return;
-    };
-    let Ok(chain_id) = eth_rpc_provider.get_chainid().await else {
-        error!("Could not get chain id");
-        return;
-    };
-
-    let file = match File::open(&args.private_keys_filepath) {
-        Ok(file) => file,
-        Err(err) => {
-            error!("Could not open private keys file: {}", err);
-            return;
-        }
-    };
+    let file = File::open(private_keys_filepath)
+        .map_err(|err| format!("Could not open private keys file: {}", err))?;
 
     let reader = BufReader::new(file);
+    let mut senders = vec![];
 
-    // now here we need to load the senders from the provided files
     for line in reader.lines() {
-        let private_key_str = match line {
-            Ok(line) => line,
-            Err(err) => {
-                error!("Could not read line from private keys file: {}", err);
-                return;
-            }
-        };
-        let wallet = Wallet::from_str(private_key_str.trim()).expect("Invalid private key");
-        let wallet = wallet.with_chain_id(chain_id.as_u64());
+        let private_key_str = line
+            .map_err(|err| format!("Could not read line from private keys file: {}", err))?;
+        let wallet = Wallet::from_str(private_key_str.trim())
+            .map_err(|_| "Invalid private key".to_string())?
+            .with_chain_id(chain_id.as_u64());
         let sender = Sender { wallet };
-
-        // info!("Wallet {} loaded", i);
         senders.push(sender);
     }
 
     if senders.is_empty() {
-        error!("No wallets in file");
-        return;
+        return Err("No wallets in file".to_string());
     }
-    info!("All wallets loaded");
 
-    info!("Loading proofs verification data");
-    let verification_data =
-        get_verification_data_from_proofs_folder(args.proofs_dir, senders[0].wallet.address());
-    if verification_data.is_empty() {
-        error!("Verification data empty, not continuing");
-        return;
-    }
-    info!("Proofs loaded!");
+    Ok(senders)
+}
 
-    let max_fee = U256::from_dec_str(&args.max_fee).expect("Invalid max fee");
-
+async fn run_infinite_proof_sender(
+    senders: Vec<Sender>,
+    verification_data: Vec<VerificationData>,
+    network: Network,
+    burst_size: usize,
+    burst_time_secs: u64,
+    max_fee: U256,
+    random_address: bool,
+) {
     let mut handles = vec![];
-    let network: Network = args.network.into();
-    info!("Starting senders!");
+    
     for (i, sender) in senders.iter().enumerate() {
-        // this clones are necessary because of the move
         let wallet = sender.wallet.clone();
         let verification_data = verification_data.clone();
         let network_clone = network.clone();
 
-        // a thread to send tasks from each loaded wallet:
         let handle = tokio::spawn(async move {
             loop {
                 let n = network_clone.clone();
-                let mut result = Vec::with_capacity(args.burst_size);
+                let mut result = Vec::with_capacity(burst_size);
                 let nonce = get_nonce_from_batcher(n.clone(), wallet.address())
                     .await
                     .inspect_err(|e| {
@@ -338,16 +317,25 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                         )
                     })
                     .unwrap();
-                while result.len() < args.burst_size {
+                while result.len() < burst_size {
                     let samples = verification_data
-                        .choose_multiple(&mut thread_rng(), args.burst_size - result.len());
-                    result.extend(samples.cloned());
+                        .choose_multiple(&mut thread_rng(), burst_size - result.len());
+                    for mut sample in samples.cloned() {
+                        // Randomize proof generator address if requested
+                        if random_address {
+                            sample.proof_generator_addr = Address::random();
+                        } else if sample.proof_generator_addr == Address::zero() {
+                            // If it was set to zero (template), use wallet address
+                            sample.proof_generator_addr = wallet.address();
+                        }
+                        result.push(sample);
+                    }
                 }
                 let verification_data_to_send = result;
 
                 info!(
                     "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}, nonce: {}, address: {:?}",
-                    args.burst_size, n, i, nonce, wallet.address(),
+                    burst_size, n, i, nonce, wallet.address(),
                 );
 
                 let aligned_verification_data = submit_multiple(
@@ -374,7 +362,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 }
                 info!("All responses received for sender {}", i);
 
-                tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
+                tokio::time::sleep(Duration::from_secs(burst_time_secs)).await;
             }
         });
 
@@ -384,6 +372,82 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     for handle in handles {
         let _ = join!(handle);
     }
+}
+
+pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
+    if matches!(args.network.clone().into(), Network::Holesky) {
+        error!("Network not supported this infinite proof sender");
+        return;
+    }
+
+    // Load wallets using shared function
+    info!("Loading wallets");
+    let senders = match load_senders_from_file(&args.eth_rpc_url, &args.private_keys_filepath).await {
+        Ok(senders) => senders,
+        Err(err) => {
+            error!("{}", err);
+            return;
+        }
+    };
+    info!("All wallets loaded");
+
+    // Load verification data based on proof type
+    let verification_data = match &args.proof_type {
+        InfiniteProofType::GnarkGroth16 { proofs_dir } => {
+            info!("Loading Groth16 proofs from directory structure");
+            let data = get_verification_data_from_proofs_folder(
+                proofs_dir.clone(), 
+                senders[0].wallet.address()
+            );
+            if data.is_empty() {
+                error!("Verification data empty, not continuing");
+                return;
+            }
+            data
+        }
+        InfiniteProofType::Risc0 { proof_path, bin_path, pub_path } => {
+            info!("Loading RISC Zero proof files");
+            let Ok(proof) = std::fs::read(proof_path) else {
+                error!("Could not read proof file: {}", proof_path);
+                return;
+            };
+            let Ok(vm_program) = std::fs::read(bin_path) else {
+                error!("Could not read bin file: {}", bin_path);
+                return;
+            };
+            let pub_input = if let Some(pub_path) = pub_path {
+                std::fs::read(pub_path).ok()
+            } else {
+                None
+            };
+
+            // Create template verification data (without proof_generator_addr)
+            vec![VerificationData {
+                proving_system: ProvingSystemId::Risc0,
+                proof,
+                pub_input,
+                verification_key: None,
+                vm_program_code: Some(vm_program),
+                proof_generator_addr: Address::zero(), // Will be set randomly in the loop
+            }]
+        }
+    };
+    
+    info!("Proofs loaded!");
+
+    let max_fee = U256::from_dec_str(&args.max_fee).expect("Invalid max fee");
+    let network: Network = args.network.into();
+    
+    info!("Starting senders!");
+    run_infinite_proof_sender(
+        senders,
+        verification_data,
+        network,
+        args.burst_size,
+        args.burst_time_secs,
+        max_fee,
+        args.random_address,
+    ).await;
 }
 
 /// Returns the corresponding verification data for the generated proofs directory
@@ -448,3 +512,4 @@ fn get_verification_data_from_proofs_folder(
 
     verifications_data
 }
+
