@@ -6,6 +6,7 @@ out
 cache
 **/build
 **/target
+**/CLAUDE.md
 scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/**
 crates/cli/batch_inclusion_responses/*
 **/aligned_verification_data
