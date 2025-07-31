@@ -29,7 +29,6 @@ func VerifySp1Proof(proofBuffer []byte, publicInputsBuffer []byte, elfBuffer []b
 	}()
 
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
-	//publicInputsPtr := (*C.uchar)(unsafe.Pointer(&publicInputsBuffer[0]))
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
 
 	r := (C.int32_t)(0)
