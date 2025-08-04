@@ -1911,6 +1911,9 @@ impl Batcher {
             warn!("Failed to upload batch to secondary S3");
         }
         
+        // Update metrics with number of available data services
+        self.metrics.available_data_services.set(successful_urls.len() as i64);
+        
         // If no uploads succeeded, return error
         if successful_urls.is_empty() {
             error!("Failed to upload batch to both S3 buckets");
