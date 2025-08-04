@@ -893,44 +893,11 @@ impl Batcher {
             return Ok(());
         }
 
-        // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-        if self.pre_verification_is_enabled {
-            let verification_data = &nonced_verification_data.verification_data;
-            if self
-                .is_verifier_disabled(verification_data.proving_system)
-                .await
-            {
-                warn!(
-                    "Verifier for proving system {} is disabled, skipping verification",
-                    verification_data.proving_system
-                );
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
-                        verification_data.proving_system,
-                    )),
-                )
-                .await;
-                self.metrics.user_error(&[
-                    "disabled_verifier",
-                    &format!("{}", verification_data.proving_system),
-                ]);
-                return Ok(());
-            }
-
-            if !zk_utils::verify(verification_data).await {
-                error!("Invalid proof detected. Verification failed");
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
-                )
-                .await;
-                self.metrics.user_error(&[
-                    "rejected_proof",
-                    &format!("{}", verification_data.proving_system),
-                ]);
-                return Ok(());
-            }
+        if !self.verify_proof_if_enabled(
+            &nonced_verification_data.verification_data,
+            ws_conn_sink.clone(),
+        ).await {
+            return Ok(());
         }
 
         // * ---------------------------------------------------------------------*
@@ -1134,48 +1101,13 @@ impl Batcher {
 
         info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
 
-        // When pre-verification is enabled, verify the replacement proof
-        if self.pre_verification_is_enabled {
-            let verification_data = &nonced_verification_data.verification_data;
-            if self
-                .is_verifier_disabled(verification_data.proving_system)
-                .await
-            {
-                drop(batch_state_guard);
-                drop(user_state_guard);
-                warn!(
-                    "Verifier for proving system {} is disabled for replacement message",
-                    verification_data.proving_system
-                );
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
-                        verification_data.proving_system,
-                    )),
-                )
-                .await;
-                self.metrics.user_error(&[
-                    "disabled_verifier",
-                    &format!("{}", verification_data.proving_system),
-                ]);
-                return;
-            }
-
-            if !zk_utils::verify(verification_data).await {
-                drop(batch_state_guard);
-                drop(user_state_guard);
-                error!("Invalid replacement proof detected. Verification failed");
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
-                )
-                .await;
-                self.metrics.user_error(&[
-                    "rejected_proof",
-                    &format!("{}", verification_data.proving_system),
-                ]);
-                return;
-            }
+        if !self.verify_proof_if_enabled(
+            &nonced_verification_data.verification_data,
+            ws_conn_sink.clone(),
+        ).await {
+            drop(batch_state_guard);
+            drop(user_state_guard);
+            return;
         }
 
         // The replacement entry is built from the old entry and validated for then to be replaced
@@ -1238,6 +1170,51 @@ impl Batcher {
 
         let fee_difference = replacement_max_fee - original_max_fee;
         user_state_guard.total_fees_in_queue += fee_difference;
+    }
+
+    async fn verify_proof_if_enabled(
+        &self,
+        verification_data: &aligned_sdk::common::types::VerificationData,
+        ws_conn_sink: WsMessageSink,
+    ) -> bool {
+        if !self.pre_verification_is_enabled {
+            return true;
+        }
+
+        if self
+            .is_verifier_disabled(verification_data.proving_system)
+            .await
+        {
+            warn!("Verifier for proving system {} is disabled", verification_data.proving_system);
+            send_message(
+                ws_conn_sink,
+                SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                    verification_data.proving_system,
+                )),
+            )
+            .await;
+            self.metrics.user_error(&[
+                "disabled_verifier",
+                &format!("{}", verification_data.proving_system),
+            ]);
+            return false;
+        }
+
+        if !zk_utils::verify(verification_data).await {
+            error!("Invalid proof detected. Verification failed");
+            send_message(
+                ws_conn_sink,
+                SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
+            )
+            .await;
+            self.metrics.user_error(&[
+                "rejected_proof",
+                &format!("{}", verification_data.proving_system),
+            ]);
+            return false;
+        }
+
+        true
     }
 
     async fn disabled_verifiers(&self) -> Result<U256, ContractError<SignerMiddlewareT>> {
