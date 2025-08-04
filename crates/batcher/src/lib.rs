@@ -995,13 +995,18 @@ impl Batcher {
                                     &mut user_guard,
                                 );
 
-                                // Notify the evicted user
                                 if let Some(ref removed_entry_ws) = removed.messaging_sink {
-                                    send_message(
-                                        removed_entry_ws.clone(),
-                                        SubmitProofResponseMessage::UnderpricedProof,
-                                    )
-                                    .await;
+                                    let ws_sink = removed_entry_ws.clone();
+                                    // Usually we just drop the locks, but this time
+                                    // We still need to keep them since we are doing more work
+                                    // So we send the message in an async manner
+                                    tokio::spawn(async move {
+                                        send_message(
+                                            ws_sink,
+                                            SubmitProofResponseMessage::UnderpricedProof,
+                                        )
+                                        .await;
+                                    });
                                 }
 
                                 evicted_entry = Some(removed);
