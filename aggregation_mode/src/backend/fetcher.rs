@@ -97,13 +97,14 @@ impl ProofsFetcher {
             );
 
             // Download batch proofs from s3
-            let data = match get_aligned_batch_from_s3_with_multiple_urls(batch.batchDataPointer).await {
-                Ok(data) => data,
-                Err(err) => {
-                    error!("Error while downloading proofs from s3. Err {:?}", err);
-                    continue;
-                }
-            };
+            let data =
+                match get_aligned_batch_from_s3_with_multiple_urls(batch.batchDataPointer).await {
+                    Ok(data) => data,
+                    Err(err) => {
+                        error!("Error while downloading proofs from s3. Err {:?}", err);
+                        continue;
+                    }
+                };
 
             info!("Data downloaded from S3, number of proofs {}", data.len());
 

@@ -1,5 +1,5 @@
-use tracing::{info, warn};
 use aligned_sdk::common::types::VerificationData;
+use tracing::{info, warn};
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -21,12 +21,16 @@ pub async fn get_aligned_batch_from_s3_with_multiple_urls(
 ) -> Result<Vec<VerificationData>, GetBatchProofsError> {
     // Parse comma-separated URLs and limit to max 5
     let parsed_urls = parse_batch_urls(&urls);
-    info!("Getting batch from data service with {} URLs: {:?}", parsed_urls.len(), parsed_urls);
-    
+    info!(
+        "Getting batch from data service with {} URLs: {:?}",
+        parsed_urls.len(),
+        parsed_urls
+    );
+
     let mut errors = Vec::new();
 
     // Try each URL until first successful response
-    for (_i, url) in parsed_urls.iter().enumerate() {
+    for url in parsed_urls.iter() {
         match get_aligned_batch_from_s3(url.clone()).await {
             Ok(data) => {
                 return Ok(data);
