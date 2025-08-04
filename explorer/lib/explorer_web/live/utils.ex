@@ -261,6 +261,8 @@ defmodule Utils do
                      _ -> 268_435_456
                    end)
 
+  @max_batch_urls 5
+
   @batcher_submission_gas_cost Application.compile_env(:explorer, :batcher_submission_gas_cost)
   @aggregator_gas_cost Application.compile_env(:explorer, :aggregator_gas_cost)
   @aggregator_fee_percentage_multiplier Application.compile_env(
@@ -362,6 +364,42 @@ defmodule Utils do
     end
   end
 
+  # fetch_batch_data_pointer_with_multiple_urls tries multiple comma-separated URLs until first successful response
+  def fetch_batch_data_pointer_with_multiple_urls(batch_data_pointers) do
+    # Parse comma-separated URLs and limit to max 5
+    urls = parse_batch_urls(batch_data_pointers)
+    
+    errors = []
+    
+    # Try each URL until first successful response
+    try_urls(urls, errors)
+  end
+
+  # parse_batch_urls parses comma-separated URLs and limits to max 5
+  defp parse_batch_urls(batch_data_pointers) do
+    batch_data_pointers
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.filter(fn url -> url != "" end)
+    |> Enum.take(@max_batch_urls)
+  end
+
+  # try_urls attempts to fetch from each URL until success
+  defp try_urls([], errors) do
+    # All URLs failed
+    {:error, {:all_urls_failed, Enum.reverse(errors)}}
+  end
+
+  defp try_urls([url | remaining_urls], errors) do
+    case fetch_batch_data_pointer(url) do
+      {:ok, data} ->
+        {:ok, data}
+      {:error, reason} ->
+        new_errors = ["URL #{url}: #{inspect(reason)}" | errors]
+        try_urls(remaining_urls, new_errors)
+    end
+  end
+
   def fetch_batch_data_pointer(batch_data_pointer) do
     case Finch.build(:get, batch_data_pointer)
          |> Finch.stream_while(Explorer.Finch, {"", 0}, &stream_handler(&1, &2)) do
@@ -459,7 +497,7 @@ defmodule Utils do
       nil ->
         Logger.debug("Fetching from S3")
 
-        batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
+        batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer_with_multiple_urls()
 
         case batch_content do
           {:ok, batch_content} ->
