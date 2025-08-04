@@ -1115,21 +1115,68 @@ impl Batcher {
         };
 
         let original_max_fee = entry.nonced_verification_data.max_fee;
-        if original_max_fee > replacement_max_fee {
+        // Require 10% fee increase to prevent DoS attacks. While this could theoretically overflow,
+        // it would require an attacker to have an impractical amount of Ethereum to reach U256::MAX
+        let min_required_fee = original_max_fee + (original_max_fee / U256::from(10)); // 10% increase (1.1x)
+        if replacement_max_fee < min_required_fee {
             drop(batch_state_guard);
             drop(user_state_guard);
-            warn!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}");
+            info!("Replacement message fee increase too small for address {addr}. Original: {original_max_fee:?}, received: {replacement_max_fee:?}, minimum required: {min_required_fee:?}");
             send_message(
                 ws_conn_sink.clone(),
                 SubmitProofResponseMessage::InvalidReplacementMessage,
             )
             .await;
             self.metrics
-                .user_error(&["invalid_replacement_message", ""]);
+                .user_error(&["insufficient_fee_increase", ""]);
             return;
         }
 
         info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
+
+        // When pre-verification is enabled, verify the replacement proof
+        if self.pre_verification_is_enabled {
+            let verification_data = &nonced_verification_data.verification_data;
+            if self
+                .is_verifier_disabled(verification_data.proving_system)
+                .await
+            {
+                drop(batch_state_guard);
+                drop(user_state_guard);
+                warn!(
+                    "Verifier for proving system {} is disabled for replacement message",
+                    verification_data.proving_system
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                        verification_data.proving_system,
+                    )),
+                )
+                .await;
+                self.metrics.user_error(&[
+                    "disabled_verifier",
+                    &format!("{}", verification_data.proving_system),
+                ]);
+                return;
+            }
+
+            if !zk_utils::verify(verification_data).await {
+                drop(batch_state_guard);
+                drop(user_state_guard);
+                error!("Invalid replacement proof detected. Verification failed");
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
+                )
+                .await;
+                self.metrics.user_error(&[
+                    "rejected_proof",
+                    &format!("{}", verification_data.proving_system),
+                ]);
+                return;
+            }
+        }
 
         // The replacement entry is built from the old entry and validated for then to be replaced
         let mut replacement_entry = entry.clone();
@@ -1157,7 +1204,8 @@ impl Batcher {
 
         replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
         if !batch_state_guard.replacement_entry_is_valid(&replacement_entry) {
-            std::mem::drop(batch_state_guard);
+            drop(batch_state_guard);
+            drop(user_state_guard);
             warn!("Invalid replacement message");
             send_message(
                 ws_conn_sink.clone(),
