@@ -1568,8 +1568,10 @@ impl Batcher {
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
-        
-        let batch_data_pointer = self.upload_batch_to_multiple_s3(batch_bytes, &file_name).await?;
+
+        let batch_data_pointer = self
+            .upload_batch_to_multiple_s3(batch_bytes, &file_name)
+            .await?;
         if let Err(e) = self
             .telemetry
             .task_uploaded_to_s3(&batch_merkle_root_hex)
@@ -1892,34 +1894,59 @@ impl Batcher {
     ) -> Result<String, BatcherError> {
         // Upload to both S3 buckets and collect successful URLs
         let mut successful_urls = Vec::new();
-        
+
         // Try primary S3 upload
-        if let Ok(_) = self.upload_batch_to_s3(&self.s3_client, batch_bytes, file_name, &self.s3_bucket_name).await {
+        if self
+            .upload_batch_to_s3(
+                &self.s3_client,
+                batch_bytes,
+                file_name,
+                &self.s3_bucket_name,
+            )
+            .await
+            .is_ok()
+        {
             let primary_url = format!("{}/{}", self.download_endpoint, file_name);
             successful_urls.push(primary_url.clone());
             info!("Successfully uploaded batch to primary S3: {}", primary_url);
         } else {
             warn!("Failed to upload batch to primary S3");
         }
-        
+
         // Try secondary S3 upload
-        if let Ok(_) = self.upload_batch_to_s3(&self.s3_client_secondary, batch_bytes, file_name, &self.s3_bucket_name_secondary).await {
+        if self
+            .upload_batch_to_s3(
+                &self.s3_client_secondary,
+                batch_bytes,
+                file_name,
+                &self.s3_bucket_name_secondary,
+            )
+            .await
+            .is_ok()
+        {
             let secondary_url = format!("{}/{}", self.download_endpoint_secondary, file_name);
             successful_urls.push(secondary_url.clone());
-            info!("Successfully uploaded batch to secondary S3: {}", secondary_url);
+            info!(
+                "Successfully uploaded batch to secondary S3: {}",
+                secondary_url
+            );
         } else {
             warn!("Failed to upload batch to secondary S3");
         }
-        
+
         // Update metrics with number of available data services
-        self.metrics.available_data_services.set(successful_urls.len() as i64);
-        
+        self.metrics
+            .available_data_services
+            .set(successful_urls.len() as i64);
+
         // If no uploads succeeded, return error
         if successful_urls.is_empty() {
             error!("Failed to upload batch to both S3 buckets");
-            return Err(BatcherError::BatchUploadError("Failed to upload to any S3 bucket".to_string()));
+            return Err(BatcherError::BatchUploadError(
+                "Failed to upload to any S3 bucket".to_string(),
+            ));
         }
-        
+
         Ok(successful_urls.join(","))
     }
 

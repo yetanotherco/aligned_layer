@@ -1,10 +1,10 @@
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::BehaviorVersion;
+use aws_sdk_s3::config::Region;
 use aws_sdk_s3::error::SdkError;
 use aws_sdk_s3::operation::put_object::{PutObjectError, PutObjectOutput};
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
-use aws_sdk_s3::config::Region;
 use log::info;
 
 pub struct S3Config {
@@ -16,16 +16,19 @@ pub struct S3Config {
 
 pub async fn create_client(s3_config: S3Config) -> Client {
     let mut config = aws_config::defaults(BehaviorVersion::latest());
-    
+
     if let Some(region) = s3_config.region {
-        let region_provider = RegionProviderChain::first_try(Region::new(region)).or_else("us-east-2");
+        let region_provider =
+            RegionProviderChain::first_try(Region::new(region)).or_else("us-east-2");
         config = config.region(region_provider);
     } else {
         let region_provider = RegionProviderChain::default_provider().or_else("us-east-2");
         config = config.region(region_provider);
     }
 
-    if let (Some(access_key_id), Some(secret_access_key)) = (s3_config.access_key_id, s3_config.secret_access_key) {
+    if let (Some(access_key_id), Some(secret_access_key)) =
+        (s3_config.access_key_id, s3_config.secret_access_key)
+    {
         let credentials = aws_sdk_s3::config::Credentials::new(
             access_key_id,
             secret_access_key,
