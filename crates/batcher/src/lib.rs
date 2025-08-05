@@ -893,10 +893,13 @@ impl Batcher {
             return Ok(());
         }
 
-        if !self.verify_proof_if_enabled(
-            &nonced_verification_data.verification_data,
-            ws_conn_sink.clone(),
-        ).await {
+        if !self
+            .verify_proof_if_enabled(
+                &nonced_verification_data.verification_data,
+                ws_conn_sink.clone(),
+            )
+            .await
+        {
             return Ok(());
         }
 
@@ -1094,17 +1097,19 @@ impl Batcher {
                 SubmitProofResponseMessage::InvalidReplacementMessage,
             )
             .await;
-            self.metrics
-                .user_error(&["insufficient_fee_increase", ""]);
+            self.metrics.user_error(&["insufficient_fee_increase", ""]);
             return;
         }
 
         info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
 
-        if !self.verify_proof_if_enabled(
-            &nonced_verification_data.verification_data,
-            ws_conn_sink.clone(),
-        ).await {
+        if !self
+            .verify_proof_if_enabled(
+                &nonced_verification_data.verification_data,
+                ws_conn_sink.clone(),
+            )
+            .await
+        {
             drop(batch_state_guard);
             drop(user_state_guard);
             return;
@@ -1185,7 +1190,10 @@ impl Batcher {
             .is_verifier_disabled(verification_data.proving_system)
             .await
         {
-            warn!("Verifier for proving system {} is disabled", verification_data.proving_system);
+            warn!(
+                "Verifier for proving system {} is disabled",
+                verification_data.proving_system
+            );
             send_message(
                 ws_conn_sink,
                 SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
