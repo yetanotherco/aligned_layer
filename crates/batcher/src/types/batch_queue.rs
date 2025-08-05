@@ -106,7 +106,7 @@ impl Ord for BatchQueueEntryPriority {
         // Implementation of lowest-first:
         let ord: std::cmp::Ordering = other.max_fee.cmp(&self.max_fee);
         // This means, less max_fee will go first
-        // We want this because we will .pop() to remove unwanted elements, low fee submitions.
+        // We want this because we will .pop() to remove unwanted elements, low fee submissions.
 
         if ord == std::cmp::Ordering::Equal {
             // Case of same max_fee:
@@ -200,8 +200,7 @@ pub(crate) fn extract_batch_directly(
         return Err(BatcherError::BatchCostTooHigh);
     }
 
-    // Extract remaining entries in sorted order
-    // Since pop() gives highest priority first, we collect them directly
+    // Extract remaining entries
     let mut batch_for_posting = Vec::new();
     while let Some((entry, _)) = batch_queue.pop() {
         batch_for_posting.push(entry);
