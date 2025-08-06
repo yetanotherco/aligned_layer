@@ -29,6 +29,7 @@ aligned-sdk = { path = "../sdk" }
 ciborium = "=0.2.2"
 priority-queue = "2.1.0"
 reqwest = { version = "0.12", features = ["json"] }
+dashmap = "6.0.1"
 
 once_cell = "1.20.2"
 warp = "0.3.7"

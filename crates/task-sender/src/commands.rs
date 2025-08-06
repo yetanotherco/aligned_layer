@@ -5,7 +5,7 @@ use aligned_sdk::verification_layer::{
 use ethers::prelude::*;
 use ethers::utils::parse_ether;
 use k256::ecdsa::SigningKey;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::fs::{self, File};
@@ -19,8 +19,8 @@ use tokio::join;
 use tokio_tungstenite::connect_async;
 
 use crate::structs::{
-    GenerateAndFundWalletsArgs, GenerateProofsArgs, ProofType, SendInfiniteProofsArgs,
-    TestConnectionsArgs,
+    GenerateAndFundWalletsArgs, GenerateProofsArgs, InfiniteProofType, ProofType,
+    SendInfiniteProofsArgs, TestConnectionsArgs,
 };
 
 const GROTH_16_PROOF_GENERATOR_FILE_PATH: &str =
@@ -149,70 +149,273 @@ pub async fn generate_and_fund_wallets(args: GenerateAndFundWalletsArgs) {
         .expect("Invalid private key")
         .with_chain_id(chain_id.as_u64());
 
-    for i in 0..args.number_of_wallets {
-        // this is necessary because of the move
-        let eth_rpc_provider = eth_rpc_provider.clone();
-        let funding_wallet = funding_wallet.clone();
-        let amount_to_deposit = args.amount_to_deposit.clone();
-        let amount_to_deposit_aligned = args.amount_to_deposit_to_aligned.clone();
+    // Generate all wallets first
+    let mut wallets = Vec::new();
+    let mut wallet_private_keys = Vec::new();
 
-        // Generate new wallet
+    info!("Generating {} wallets...", args.number_of_wallets);
+    for i in 0..args.number_of_wallets {
         let wallet = Wallet::new(&mut thread_rng()).with_chain_id(chain_id.as_u64());
         info!("Generated wallet {} with address {:?}", i, wallet.address());
 
-        // Fund the wallet
-        let signer = SignerMiddleware::new(eth_rpc_provider.clone(), funding_wallet.clone());
-        let amount_to_deposit =
-            parse_ether(&amount_to_deposit).expect("Ether format should be: XX.XX");
-        info!("Depositing {}wei to wallet {}", amount_to_deposit, i);
-        let tx = TransactionRequest::new()
-            .from(funding_wallet.address())
-            .to(wallet.address())
-            .value(amount_to_deposit);
-
-        let pending_transaction = match signer.send_transaction(tx, None).await {
-            Ok(tx) => tx,
-            Err(err) => {
-                error!("Could not fund wallet {}", err);
-                return;
-            }
-        };
-        if let Err(err) = pending_transaction.await {
-            error!("Could not fund wallet {}", err);
-        }
-        info!("Wallet {} funded", i);
-
-        // Deposit to aligned
-        let amount_to_deposit_to_aligned =
-            parse_ether(&amount_to_deposit_aligned).expect("Ether format should be: XX.XX");
-        info!(
-            "Depositing {}wei to aligned {}",
-            amount_to_deposit_to_aligned, i
-        );
-        let signer = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
-        if let Err(err) = deposit_to_aligned(
-            amount_to_deposit_to_aligned,
-            signer,
-            args.network.clone().into(),
-        )
-        .await
-        {
-            error!("Could not deposit to aligned, err: {:?}", err);
-            return;
-        }
-        info!("Successfully deposited to aligned for wallet {}", i);
-
-        // Store private key
-        info!("Storing private key");
         let signer_bytes = wallet.signer().to_bytes();
         let secret_key_hex = ethers::utils::hex::encode(signer_bytes);
-
-        if let Err(err) = writeln!(file, "{}", secret_key_hex) {
-            error!("Could not store private key: {}", err);
-        } else {
-            info!("Private key {} stored", i);
-        }
+        wallet_private_keys.push(secret_key_hex);
+        wallets.push(wallet);
     }
+
+    // Get base nonce for funding wallet to avoid nonce conflicts
+    let mut current_nonce = match eth_rpc_provider
+        .get_transaction_count(
+            funding_wallet.address(),
+            Some(ethers::types::BlockNumber::Pending.into()),
+        )
+        .await
+    {
+        Ok(nonce) => nonce,
+        Err(err) => {
+            error!("Could not get base nonce for funding wallet: {}", err);
+            return;
+        }
+    };
+
+    let batch_size = 25;
+    let amount_to_deposit =
+        parse_ether(&args.amount_to_deposit).expect("Ether format should be: XX.XX");
+    let amount_to_deposit_to_aligned =
+        parse_ether(&args.amount_to_deposit_to_aligned).expect("Ether format should be: XX.XX");
+
+    let mut total_successful = 0;
+    let total_batches = args.number_of_wallets.div_ceil(batch_size);
+
+    // Process wallets in batches
+    for (batch_idx, wallet_chunk) in wallets.chunks(batch_size).enumerate() {
+        info!(
+            "Processing batch {} of {} ({} wallets)...",
+            batch_idx + 1,
+            total_batches,
+            wallet_chunk.len()
+        );
+
+        // Refresh nonce for each batch to avoid stale nonce issues
+        current_nonce = match eth_rpc_provider
+            .get_transaction_count(
+                funding_wallet.address(),
+                Some(ethers::types::BlockNumber::Pending.into()),
+            )
+            .await
+        {
+            Ok(nonce) => {
+                info!("Batch {}: Using fresh nonce {}", batch_idx + 1, nonce);
+                nonce
+            }
+            Err(err) => {
+                error!("Could not get fresh nonce for batch {}: {}", batch_idx + 1, err);
+                current_nonce // Use previous nonce as fallback
+            }
+        };
+
+        // ETH funding phase for this batch
+        info!(
+            "Batch {}: Starting ETH funding transactions...",
+            batch_idx + 1
+        );
+        let mut eth_funding_handles = Vec::new();
+
+        for (chunk_idx, wallet) in wallet_chunk.iter().enumerate() {
+            let global_idx = batch_idx * batch_size + chunk_idx;
+            let eth_rpc_provider = eth_rpc_provider.clone();
+            let funding_wallet = funding_wallet.clone();
+            let wallet_address = wallet.address();
+            let nonce = current_nonce + U256::from(chunk_idx);
+
+            let handle = tokio::spawn(async move {
+
+                info!(
+                    "Submitting ETH funding transaction for wallet {} with nonce {}",
+                    global_idx, nonce
+                );
+                let signer = SignerMiddleware::new(eth_rpc_provider, funding_wallet.clone());
+                
+                // Get current gas price and bump it by 20% to avoid replacement issues
+                let base_gas_price = match signer.provider().get_gas_price().await {
+                    Ok(price) => price,
+                    Err(_) => U256::from(20_000_000_000u64), // 20 gwei fallback
+                };
+                let bumped_gas_price = base_gas_price * 120 / 100; // 20% bump
+                
+                let tx = TransactionRequest::new()
+                    .from(funding_wallet.address())
+                    .to(wallet_address)
+                    .value(amount_to_deposit)
+                    .nonce(nonce)
+                    .gas_price(bumped_gas_price);
+
+                let result = {
+                    match signer.send_transaction(tx, None).await {
+                        Ok(pending_tx) => {
+                            info!(
+                                "ETH funding transaction submitted for wallet {}",
+                                global_idx
+                            );
+                            pending_tx.await
+                        }
+                        Err(err) => {
+                            error!(
+                                "Could not submit ETH funding transaction for wallet {}: {}",
+                                global_idx, err
+                            );
+                            return None;
+                        }
+                    }
+                };
+
+                match result {
+                    Ok(receipt) => {
+                        if let Some(receipt) = receipt {
+                            info!(
+                                "ETH funding confirmed for wallet {} (tx: {:?})",
+                                global_idx, receipt.transaction_hash
+                            );
+                        } else {
+                            info!(
+                                "ETH funding confirmed for wallet {} (no receipt)",
+                                global_idx
+                            );
+                        }
+                        Some(global_idx)
+                    }
+                    Err(err) => {
+                        error!("ETH funding failed for wallet {}: {}", global_idx, err);
+                        None
+                    }
+                }
+            });
+            eth_funding_handles.push(handle);
+        }
+
+        // Wait for ETH funding to complete
+        let mut funded_indices = Vec::new();
+        for handle in eth_funding_handles {
+            if let Ok(Some(idx)) = handle.await {
+                funded_indices.push(idx);
+            }
+        }
+
+        info!(
+            "Batch {}: ETH funding completed for {} out of {} wallets",
+            batch_idx + 1,
+            funded_indices.len(),
+            wallet_chunk.len()
+        );
+
+        if funded_indices.is_empty() {
+            warn!(
+                "Batch {}: No wallets were funded, skipping Aligned deposits",
+                batch_idx + 1
+            );
+            current_nonce += U256::from(wallet_chunk.len());
+            continue;
+        }
+
+        // Aligned deposit phase for funded wallets in this batch
+        info!(
+            "Batch {}: Starting Aligned deposit transactions...",
+            batch_idx + 1
+        );
+        let mut aligned_deposit_handles = Vec::new();
+
+        for &idx in &funded_indices {
+            let wallet = wallets[idx].clone();
+            let eth_rpc_provider = eth_rpc_provider.clone();
+            let network = args.network.clone();
+
+            let handle = tokio::spawn(async move {
+
+                info!("Submitting Aligned deposit for wallet {}", idx);
+                let signer = SignerMiddleware::new(eth_rpc_provider, wallet);
+
+                match deposit_to_aligned(amount_to_deposit_to_aligned, signer, network.into()).await
+                {
+                    Ok(_) => {
+                        info!("Successfully deposited to aligned for wallet {}", idx);
+                        Ok(idx)
+                    }
+                    Err(err) => {
+                        error!("Could not deposit to aligned for wallet {}: {:?}", idx, err);
+                        Err(idx)
+                    }
+                }
+            });
+            aligned_deposit_handles.push(handle);
+        }
+
+        // Wait for Aligned deposits to complete and write private keys immediately
+        let mut batch_successful = 0;
+        for handle in aligned_deposit_handles {
+            if let Ok(Ok(idx)) = handle.await {
+                let wallet_address = wallets[idx].address();
+                let private_key = &wallet_private_keys[idx];
+                
+                // Write to original file (private key only) for compatibility
+                if let Err(err) = writeln!(file, "{}", private_key) {
+                    error!("Could not store private key for wallet {}: {}", idx, err);
+                    continue;
+                }
+                
+                // Write to new file (private_key;address format)
+                let detailed_filepath = format!("{}.detailed", args.private_keys_filepath);
+                let detailed_file = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&detailed_filepath);
+                
+                match detailed_file {
+                    Ok(mut f) => {
+                        if let Err(err) = writeln!(f, "{};{:?}", private_key, wallet_address) {
+                            error!("Could not store detailed info for wallet {}: {}", idx, err);
+                        } else {
+                            info!("Wallet {} stored: private key and address saved", idx);
+                            batch_successful += 1;
+                        }
+                    }
+                    Err(err) => {
+                        error!("Could not open detailed file {}: {}", detailed_filepath, err);
+                        // Still count as successful since main file was written
+                        info!("Private key for wallet {} stored (detailed file failed)", idx);
+                        batch_successful += 1;
+                    }
+                }
+            }
+        }
+
+        total_successful += batch_successful;
+        current_nonce += U256::from(wallet_chunk.len());
+
+        info!(
+            "Batch {} completed: {} wallets successfully funded and deposited (Total: {} / {})",
+            batch_idx + 1,
+            batch_successful,
+            total_successful,
+            args.number_of_wallets
+        );
+
+        // Optional: Small delay between batches (commented out for speed)
+        // if batch_idx + 1 < total_batches {
+        //     tokio::time::sleep(Duration::from_millis(50)).await;
+        // }
+    }
+
+    info!(
+        "All batches completed! Successfully created and funded {} wallets out of {} requested",
+        total_successful, args.number_of_wallets
+    );
+    info!(
+        "Private keys for {} successful wallets stored in:",
+        total_successful
+    );
+    info!("  - {} (private keys only, for compatibility)", args.private_keys_filepath);
+    info!("  - {}.detailed (private_key;address format)", args.private_keys_filepath);
 }
 
 /// infinitely hangs connections
@@ -253,81 +456,60 @@ struct Sender {
     wallet: Wallet<SigningKey>,
 }
 
-pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
-    if matches!(args.network.clone().into(), Network::Holesky) {
-        error!("Network not supported this infinite proof sender");
-        return;
-    }
+async fn load_senders_from_file(
+    eth_rpc_url: &str,
+    private_keys_filepath: &str,
+) -> Result<Vec<Sender>, String> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|_| "Could not connect to eth rpc".to_string())?;
+    let chain_id = eth_rpc_provider
+        .get_chainid()
+        .await
+        .map_err(|_| "Could not get chain id".to_string())?;
 
-    info!("Loading wallets");
-    let mut senders = vec![];
-    let Ok(eth_rpc_provider) = Provider::<Http>::try_from(args.eth_rpc_url.clone()) else {
-        error!("Could not connect to eth rpc");
-        return;
-    };
-    let Ok(chain_id) = eth_rpc_provider.get_chainid().await else {
-        error!("Could not get chain id");
-        return;
-    };
-
-    let file = match File::open(&args.private_keys_filepath) {
-        Ok(file) => file,
-        Err(err) => {
-            error!("Could not open private keys file: {}", err);
-            return;
-        }
-    };
+    let file = File::open(private_keys_filepath)
+        .map_err(|err| format!("Could not open private keys file: {}", err))?;
 
     let reader = BufReader::new(file);
+    let mut senders = vec![];
 
-    // now here we need to load the senders from the provided files
     for line in reader.lines() {
-        let private_key_str = match line {
-            Ok(line) => line,
-            Err(err) => {
-                error!("Could not read line from private keys file: {}", err);
-                return;
-            }
-        };
-        let wallet = Wallet::from_str(private_key_str.trim()).expect("Invalid private key");
-        let wallet = wallet.with_chain_id(chain_id.as_u64());
+        let private_key_str =
+            line.map_err(|err| format!("Could not read line from private keys file: {}", err))?;
+        let wallet = Wallet::from_str(private_key_str.trim())
+            .map_err(|_| "Invalid private key".to_string())?
+            .with_chain_id(chain_id.as_u64());
         let sender = Sender { wallet };
-
-        // info!("Wallet {} loaded", i);
         senders.push(sender);
     }
 
     if senders.is_empty() {
-        error!("No wallets in file");
-        return;
+        return Err("No wallets in file".to_string());
     }
-    info!("All wallets loaded");
 
-    info!("Loading proofs verification data");
-    let verification_data =
-        get_verification_data_from_proofs_folder(args.proofs_dir, senders[0].wallet.address());
-    if verification_data.is_empty() {
-        error!("Verification data empty, not continuing");
-        return;
-    }
-    info!("Proofs loaded!");
+    Ok(senders)
+}
 
-    let max_fee = U256::from_dec_str(&args.max_fee).expect("Invalid max fee");
-
+async fn run_infinite_proof_sender(
+    senders: Vec<Sender>,
+    verification_data: Vec<VerificationData>,
+    network: Network,
+    burst_size: usize,
+    burst_time_secs: u64,
+    max_fee: U256,
+    random_address: bool,
+) {
     let mut handles = vec![];
-    let network: Network = args.network.into();
-    info!("Starting senders!");
+
     for (i, sender) in senders.iter().enumerate() {
-        // this clones are necessary because of the move
         let wallet = sender.wallet.clone();
         let verification_data = verification_data.clone();
         let network_clone = network.clone();
 
-        // a thread to send tasks from each loaded wallet:
         let handle = tokio::spawn(async move {
             loop {
                 let n = network_clone.clone();
-                let mut result = Vec::with_capacity(args.burst_size);
+                let mut result = Vec::with_capacity(burst_size);
                 let nonce = get_nonce_from_batcher(n.clone(), wallet.address())
                     .await
                     .inspect_err(|e| {
@@ -338,16 +520,25 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                         )
                     })
                     .unwrap();
-                while result.len() < args.burst_size {
+                while result.len() < burst_size {
                     let samples = verification_data
-                        .choose_multiple(&mut thread_rng(), args.burst_size - result.len());
-                    result.extend(samples.cloned());
+                        .choose_multiple(&mut thread_rng(), burst_size - result.len());
+                    for mut sample in samples.cloned() {
+                        // Randomize proof generator address if requested
+                        if random_address {
+                            sample.proof_generator_addr = Address::random();
+                        } else if sample.proof_generator_addr == Address::zero() {
+                            // If it was set to zero (template), use wallet address
+                            sample.proof_generator_addr = wallet.address();
+                        }
+                        result.push(sample);
+                    }
                 }
                 let verification_data_to_send = result;
 
                 info!(
                     "Sending {:?} Proofs to Aligned Batcher on {:?} from sender {}, nonce: {}, address: {:?}",
-                    args.burst_size, n, i, nonce, wallet.address(),
+                    burst_size, n, i, nonce, wallet.address(),
                 );
 
                 let aligned_verification_data = submit_multiple(
@@ -374,7 +565,7 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
                 }
                 info!("All responses received for sender {}", i);
 
-                tokio::time::sleep(Duration::from_secs(args.burst_time_secs)).await;
+                tokio::time::sleep(Duration::from_secs(burst_time_secs)).await;
             }
         });
 
@@ -386,64 +577,188 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
     }
 }
 
+pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
+    if matches!(args.network.clone().into(), Network::Holesky) {
+        error!("Network not supported this infinite proof sender");
+        return;
+    }
+
+    // Load wallets using shared function
+    info!("Loading wallets");
+    let senders = match load_senders_from_file(&args.eth_rpc_url, &args.private_keys_filepath).await
+    {
+        Ok(senders) => senders,
+        Err(err) => {
+            error!("{}", err);
+            return;
+        }
+    };
+    info!("All wallets loaded");
+
+    // Load verification data based on proof type
+    let verification_data = match &args.proof_type {
+        InfiniteProofType::GnarkGroth16 { proofs_dir } => {
+            info!("Loading Groth16 proofs from directory structure");
+            let data = get_verification_data_from_proofs_folder(
+                proofs_dir.clone(),
+                senders[0].wallet.address(),
+            );
+            if data.is_empty() {
+                error!("Verification data empty, not continuing");
+                return;
+            }
+            data
+        }
+        InfiniteProofType::Risc0 {
+            proof_path,
+            bin_path,
+            pub_path,
+        } => {
+            info!("Loading RISC Zero proof files");
+            let Ok(proof) = std::fs::read(proof_path) else {
+                error!("Could not read proof file: {}", proof_path);
+                return;
+            };
+            let Ok(vm_program) = std::fs::read(bin_path) else {
+                error!("Could not read bin file: {}", bin_path);
+                return;
+            };
+            let pub_input = if let Some(pub_path) = pub_path {
+                std::fs::read(pub_path).ok()
+            } else {
+                None
+            };
+
+            // Create template verification data (without proof_generator_addr)
+            vec![VerificationData {
+                proving_system: ProvingSystemId::Risc0,
+                proof,
+                pub_input,
+                verification_key: None,
+                vm_program_code: Some(vm_program),
+                proof_generator_addr: Address::zero(), // Will be set randomly in the loop
+            }]
+        }
+    };
+
+    info!("Proofs loaded!");
+
+    let max_fee = U256::from_dec_str(&args.max_fee).expect("Invalid max fee");
+    let network: Network = args.network.into();
+
+    info!("Starting senders!");
+    run_infinite_proof_sender(
+        senders,
+        verification_data,
+        network,
+        args.burst_size,
+        args.burst_time_secs,
+        max_fee,
+        args.random_address,
+    )
+    .await;
+}
+
+fn load_groth16_proof_files(
+    dir_path: &std::path::Path,
+    base_name: &str,
+) -> Option<VerificationData> {
+    let proof_path = dir_path.join(format!("{}.proof", base_name));
+    let public_input_path = dir_path.join(format!("{}.pub", base_name));
+    let vk_path = dir_path.join(format!("{}.vk", base_name));
+
+    let proof = std::fs::read(&proof_path).ok()?;
+    let public_input = std::fs::read(&public_input_path).ok()?;
+    let vk = std::fs::read(&vk_path).ok()?;
+
+    Some(VerificationData {
+        proving_system: ProvingSystemId::GnarkGroth16Bn254,
+        proof,
+        pub_input: Some(public_input),
+        verification_key: Some(vk),
+        vm_program_code: None,
+        proof_generator_addr: Address::zero(), // Will be set later
+    })
+}
+
+fn load_from_subdirectories(dir_path: &str) -> Vec<VerificationData> {
+    let mut verifications_data = vec![];
+    let dir = std::fs::read_dir(dir_path).expect("Directory does not exist");
+
+    for entry in dir.flatten() {
+        let proof_folder_dir = entry.path();
+        if proof_folder_dir.is_dir() && proof_folder_dir.to_str().unwrap().contains("groth16") {
+            // Get the first file to determine the base name
+            if let Some(first_file) = fs::read_dir(&proof_folder_dir)
+                .ok()
+                .and_then(|dir| dir.flatten().map(|e| e.path()).find(|path| path.is_file()))
+            {
+                if let Some(base_name) = first_file.file_stem().and_then(|s| s.to_str()) {
+                    if let Some(verification_data) =
+                        load_groth16_proof_files(&proof_folder_dir, base_name)
+                    {
+                        verifications_data.push(verification_data);
+                    }
+                }
+            }
+        }
+    }
+
+    verifications_data
+}
+
+fn load_from_flat_directory(dir_path: &str) -> Vec<VerificationData> {
+    let mut verifications_data = vec![];
+    let mut base_names = std::collections::HashSet::new();
+
+    // Collect all unique base names from .proof files
+    if let Ok(dir) = std::fs::read_dir(dir_path) {
+        for entry in dir.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("proof") {
+                if let Some(base_name) = path.file_stem().and_then(|s| s.to_str()) {
+                    base_names.insert(base_name.to_string());
+                }
+            }
+        }
+    }
+
+    // Load verification data for each base name
+    let dir_path = std::path::Path::new(dir_path);
+    for base_name in base_names {
+        if let Some(verification_data) = load_groth16_proof_files(dir_path, &base_name) {
+            verifications_data.push(verification_data);
+        }
+    }
+
+    verifications_data
+}
+
 /// Returns the corresponding verification data for the generated proofs directory
 fn get_verification_data_from_proofs_folder(
     dir_path: String,
     default_addr: Address,
 ) -> Vec<VerificationData> {
-    let mut verifications_data = vec![];
-
     info!("Reading proofs from {:?}", dir_path);
 
-    let dir = std::fs::read_dir(dir_path).expect("Directory does not exists");
+    // Check if we have subdirectories with groth16 in the name
+    let has_groth16_subdirs = std::fs::read_dir(&dir_path)
+        .map(|dir| {
+            dir.flatten().any(|entry| {
+                entry.path().is_dir() && entry.path().to_str().unwrap().contains("groth16")
+            })
+        })
+        .unwrap_or(false);
 
-    for proof_folder in dir {
-        // each proof_folder is a dir called groth16_n
-        let proof_folder_dir = proof_folder.unwrap().path();
-        if proof_folder_dir.is_dir() {
-            // todo(marcos): this should be improved if we want to support more proofs
-            // currently we stored the proofs on subdirs with a prefix for the proof type
-            // and here we check the subdir name and based on build the verification data accordingly
-            if proof_folder_dir.to_str().unwrap().contains("groth16") {
-                // Get the first file from the folder
-                let first_file = fs::read_dir(proof_folder_dir.clone())
-                    .expect("Can't read proofs directory")
-                    .filter_map(|entry| entry.ok().map(|e| e.path()))
-                    .find(|path| path.is_file()) // Find any valid file
-                    .expect("No valid proof files found");
+    let mut verifications_data = if has_groth16_subdirs {
+        load_from_subdirectories(&dir_path)
+    } else {
+        load_from_flat_directory(&dir_path)
+    };
 
-                // Extract the base name (file stem) without extension
-                let base_name = first_file
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .expect("Failed to extract base name");
-
-                // Generate the paths for the other files
-                let proof_path = proof_folder_dir.join(format!("{}.proof", base_name));
-                let public_input_path = proof_folder_dir.join(format!("{}.pub", base_name));
-                let vk_path = proof_folder_dir.join(format!("{}.vk", base_name));
-
-                let Ok(proof) = std::fs::read(&proof_path) else {
-                    continue;
-                };
-                let Ok(public_input) = std::fs::read(&public_input_path) else {
-                    continue;
-                };
-                let Ok(vk) = std::fs::read(&vk_path) else {
-                    continue;
-                };
-
-                let verification_data = VerificationData {
-                    proving_system: ProvingSystemId::GnarkGroth16Bn254,
-                    proof,
-                    pub_input: Some(public_input),
-                    verification_key: Some(vk),
-                    vm_program_code: None,
-                    proof_generator_addr: default_addr,
-                };
-                verifications_data.push(verification_data);
-            }
-        }
+    // Set the default address for all verification data
+    for data in &mut verifications_data {
+        data.proof_generator_addr = default_addr;
     }
 
     verifications_data

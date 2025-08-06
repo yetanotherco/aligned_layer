@@ -126,11 +126,38 @@ pub struct SendInfiniteProofsArgs {
     )]
     pub private_keys_filepath: String,
     #[arg(
-        name = "The generated proofs directory",
-        long = "proofs-dirpath",
-        default_value = "devnet"
+        name = "Use random addresses for proof generator",
+        long = "random-address",
+        action = clap::ArgAction::SetTrue
     )]
-    pub proofs_dir: String,
+    pub random_address: bool,
+    #[clap(subcommand)]
+    pub proof_type: InfiniteProofType,
+}
+
+#[derive(Parser, Debug)]
+pub enum InfiniteProofType {
+    #[clap(about = "Send infinite Gnark Groth16 proofs from directory")]
+    GnarkGroth16 {
+        #[arg(
+            name = "The generated proofs directory",
+            long = "proofs-dir",
+            default_value = "scripts/test_files/task_sender/proofs"
+        )]
+        proofs_dir: String,
+    },
+    #[clap(about = "Send infinite RISC Zero proofs from file paths")]
+    Risc0 {
+        #[arg(name = "Path to RISC Zero proof file (.proof)", long = "proof-path")]
+        proof_path: String,
+        #[arg(name = "Path to RISC Zero binary file (.bin)", long = "bin-path")]
+        bin_path: String,
+        #[arg(
+            name = "Path to RISC Zero public input file (.pub) - optional",
+            long = "pub-path"
+        )]
+        pub_path: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
