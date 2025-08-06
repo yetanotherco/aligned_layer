@@ -129,7 +129,9 @@ impl Batcher {
         let s3_bucket_name_secondary = env::var("AWS_BUCKET_NAME_SECONDARY").ok();
         let download_endpoint_secondary = env::var("DOWNLOAD_ENDPOINT_SECONDARY").ok();
 
-        let s3_client_secondary = if s3_bucket_name_secondary.is_some() && download_endpoint_secondary.is_some() {
+        let s3_client_secondary = if s3_bucket_name_secondary.is_some()
+            && download_endpoint_secondary.is_some()
+        {
             let s3_config_secondary = s3::S3Config {
                 access_key_id: env::var("AWS_ACCESS_KEY_ID_SECONDARY").ok(),
                 secret_access_key: env::var("AWS_SECRET_ACCESS_KEY_SECONDARY").ok(),
@@ -1916,8 +1918,15 @@ impl Batcher {
         }
 
         // Try secondary S3 upload (if configured)
-        if let (Some(s3_client_secondary), Some(s3_bucket_name_secondary), Some(download_endpoint_secondary)) = 
-            (&self.s3_client_secondary, &self.s3_bucket_name_secondary, &self.download_endpoint_secondary) {
+        if let (
+            Some(s3_client_secondary),
+            Some(s3_bucket_name_secondary),
+            Some(download_endpoint_secondary),
+        ) = (
+            &self.s3_client_secondary,
+            &self.s3_bucket_name_secondary,
+            &self.download_endpoint_secondary,
+        ) {
             if self
                 .upload_batch_to_s3(
                     s3_client_secondary,
