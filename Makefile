@@ -298,7 +298,7 @@ verify_aggregated_proof_risc0:
 		--rpc_url $(RPC_URL)
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
-	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator --locked
+	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator_gpu --locked
 
 proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
 	@cd aggregation_mode && ./scripts/build_programs.sh
