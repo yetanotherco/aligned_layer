@@ -1,9 +1,9 @@
 pub mod config;
 pub mod fetcher;
 mod merkle_tree;
+mod retry;
 mod s3;
 mod types;
-mod retry;
 
 use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
 

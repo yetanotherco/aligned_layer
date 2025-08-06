@@ -30,7 +30,7 @@ impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt
 
 /// Supports retries only on async functions. See: https://docs.rs/backon/latest/backon/#retry-an-async-function
 /// Runs with `jitter: false`.
-/// 
+///
 /// # Parameters
 /// * `function` - The async function to retry
 /// * `min_delay_millis` - Initial delay before first retry attempt (in milliseconds)
@@ -44,9 +44,9 @@ pub async fn retry_function<FutureFn, Fut, T, E>(
     max_times: usize,
     max_delay_seconds: u64,
 ) -> Result<T, RetryError<E>>
-    where
-        Fut: Future<Output = Result<T, RetryError<E>>>,
-        FutureFn: FnMut() -> Fut,
+where
+    Fut: Future<Output = Result<T, RetryError<E>>>,
+    FutureFn: FnMut() -> Fut,
 {
     let backoff = ExponentialBuilder::default()
         .with_min_delay(Duration::from_millis(min_delay_millis))

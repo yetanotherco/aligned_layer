@@ -1,7 +1,7 @@
-use std::time::Duration;
-use aligned_sdk::common::types::VerificationData;
-use tracing::{info, warn};
 use crate::backend::retry::{retry_function, RetryError};
+use aligned_sdk::common::types::VerificationData;
+use std::time::Duration;
+use tracing::{info, warn};
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -40,20 +40,22 @@ async fn get_aligned_batch_from_s3_retryable(
         .connect_timeout(CONNECT_TIMEOUT_SECONDS)
         .timeout(BATCH_DOWNLOAD_TIMEOUT_SECONDS)
         .build()
-        .map_err(|e| RetryError::Permanent(GetBatchProofsError::ReqwestClientFailed(e.to_string())))?;
-
-    let response = client
-        .get(&url)
-        .send()
-        .await
         .map_err(|e| {
-            warn!("Failed to send request to {}: {}", url, e);
-            RetryError::Transient(GetBatchProofsError::FetchingS3Batch(e.to_string()))
+            RetryError::Permanent(GetBatchProofsError::ReqwestClientFailed(e.to_string()))
         })?;
+
+    let response = client.get(&url).send().await.map_err(|e| {
+        warn!("Failed to send request to {}: {}", url, e);
+        RetryError::Transient(GetBatchProofsError::FetchingS3Batch(e.to_string()))
+    })?;
 
     if !response.status().is_success() {
         let status_code = response.status().as_u16();
-        let reason = response.status().canonical_reason().unwrap_or("").to_string();
+        let reason = response
+            .status()
+            .canonical_reason()
+            .unwrap_or("")
+            .to_string();
 
         // Determine if the error is retryable based on status code
         let error = GetBatchProofsError::StatusFailed((status_code, reason));
@@ -69,20 +71,16 @@ async fn get_aligned_batch_from_s3_retryable(
         };
     }
 
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| {
-            warn!("Failed to read response body from {}: {}", url, e);
-            RetryError::Transient(GetBatchProofsError::EmptyBody(e.to_string()))
-        })?;
+    let bytes = response.bytes().await.map_err(|e| {
+        warn!("Failed to read response body from {}: {}", url, e);
+        RetryError::Transient(GetBatchProofsError::EmptyBody(e.to_string()))
+    })?;
     let bytes: &[u8] = bytes.iter().as_slice();
 
-    let data: Vec<VerificationData> = ciborium::from_reader(bytes)
-        .map_err(|e| {
-            warn!("Failed to deserialize batch data from {}: {}", url, e);
-            RetryError::Permanent(GetBatchProofsError::Deserialization(e.to_string()))
-        })?;
+    let data: Vec<VerificationData> = ciborium::from_reader(bytes).map_err(|e| {
+        warn!("Failed to deserialize batch data from {}: {}", url, e);
+        RetryError::Permanent(GetBatchProofsError::Deserialization(e.to_string()))
+    })?;
 
     Ok(data)
 }
