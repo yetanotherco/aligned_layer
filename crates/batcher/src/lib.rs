@@ -374,6 +374,36 @@ impl Batcher {
         updated_user_states
     }
 
+    /// Helper to apply 15-second timeout to user lock acquisition with consistent logging and metrics
+    async fn try_user_lock_with_timeout<F, T>(&self, addr: Address, lock_future: F) -> Option<T>
+    where
+        F: std::future::Future<Output = T>,
+    {
+        match timeout(Duration::from_secs(15), lock_future).await {
+            Ok(result) => Some(result),
+            Err(_) => {
+                warn!("User lock acquisition timed out for address {}", addr);
+                self.metrics.inc_message_handler_user_lock_timeout();
+                None
+            }
+        }
+    }
+
+    /// Helper to apply 15-second timeout to batch lock acquisition with consistent logging and metrics
+    async fn try_batch_lock_with_timeout<F, T>(&self, lock_future: F) -> Option<T>
+    where
+        F: std::future::Future<Output = T>,
+    {
+        match timeout(Duration::from_secs(15), lock_future).await {
+            Ok(result) => Some(result),
+            Err(_) => {
+                warn!("Batch lock acquisition timed out");
+                self.metrics.inc_message_handler_batch_lock_timeout();
+                None
+            }
+        }
+    }
+
     pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
         // Create the event loop and TCP listener we'll accept connections on.
         let listener = TcpListener::bind(address)
@@ -659,7 +689,14 @@ impl Batcher {
             let user_state_ref = self.user_states.get(&address);
             match user_state_ref {
                 Some(user_state_ref) => {
-                    let user_state_guard = user_state_ref.lock().await;
+                    let Some(user_state_guard) = self
+                        .try_user_lock_with_timeout(address, user_state_ref.lock())
+                        .await
+                    else {
+                        send_message(ws_conn_sink.clone(), GetNonceResponseMessage::ServerBusy)
+                            .await;
+                        return Ok(());
+                    };
                     Some(user_state_guard.nonce)
                 }
                 None => None,
@@ -795,7 +832,13 @@ impl Batcher {
         };
 
         // We acquire the lock on the user state, now everything will be processed sequentially
-        let mut user_state_guard = user_state_ref.lock().await;
+        let Some(mut user_state_guard) = self
+            .try_user_lock_with_timeout(addr, user_state_ref.lock())
+            .await
+        else {
+            send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
+            return Ok(());
+        };
 
         // If the user state was not present, we need to get the nonce from the Ethereum contract and update the dummy user state
         if !is_user_in_state {
@@ -907,7 +950,13 @@ impl Batcher {
         // *        Perform validation over batcher queue                         *
         // * ---------------------------------------------------------------------*
 
-        let mut batch_state_lock = self.batch_state.lock().await;
+        let Some(mut batch_state_lock) = self
+            .try_batch_lock_with_timeout(self.batch_state.lock())
+            .await
+        else {
+            send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
+            return Ok(());
+        };
         if batch_state_lock.is_queue_full() {
             debug!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
 
@@ -1070,7 +1119,14 @@ impl Batcher {
     ) {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
-        let mut batch_state_guard = self.batch_state.lock().await; // Second: batch lock
+        let Some(mut batch_state_guard) = self
+            .try_batch_lock_with_timeout(self.batch_state.lock())
+            .await
+        else {
+            drop(user_state_guard);
+            send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
+            return;
+        };
         let Some(entry) = batch_state_guard.get_entry(addr, nonce) else {
             drop(batch_state_guard);
             drop(user_state_guard);

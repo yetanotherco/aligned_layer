@@ -27,6 +27,8 @@ pub struct BatcherMetrics {
     pub cancel_create_new_task_duration: IntGauge,
     pub batcher_gas_cost_create_task_total: GenericCounter<AtomicF64>,
     pub batcher_gas_cost_cancel_task_total: GenericCounter<AtomicF64>,
+    pub message_handler_user_lock_timeouts: IntCounter,
+    pub message_handler_batch_lock_timeouts: IntCounter,
 }
 
 impl BatcherMetrics {
@@ -80,6 +82,16 @@ impl BatcherMetrics {
                 "Batcher Gas Cost Cancel Task Total"
             ))?;
 
+        let message_handler_user_lock_timeouts = register_int_counter!(opts!(
+            "message_handler_user_lock_timeouts_count",
+            "Message Handler User Lock Timeouts"
+        ))?;
+
+        let message_handler_batch_lock_timeouts = register_int_counter!(opts!(
+            "message_handler_batch_lock_timeouts_count",
+            "Message Handler Batch Lock Timeouts"
+        ))?;
+
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
         registry.register(Box::new(sent_batches.clone()))?;
@@ -96,6 +108,8 @@ impl BatcherMetrics {
         registry.register(Box::new(cancel_create_new_task_duration.clone()))?;
         registry.register(Box::new(batcher_gas_cost_create_task_total.clone()))?;
         registry.register(Box::new(batcher_gas_cost_cancel_task_total.clone()))?;
+        registry.register(Box::new(message_handler_user_lock_timeouts.clone()))?;
+        registry.register(Box::new(message_handler_batch_lock_timeouts.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -124,6 +138,8 @@ impl BatcherMetrics {
             cancel_create_new_task_duration,
             batcher_gas_cost_create_task_total,
             batcher_gas_cost_cancel_task_total,
+            message_handler_user_lock_timeouts,
+            message_handler_batch_lock_timeouts,
         })
     }
 
@@ -157,5 +173,13 @@ impl BatcherMetrics {
     pub fn update_queue_metrics(&self, queue_len: i64, queue_size: i64) {
         self.queue_len.set(queue_len);
         self.queue_size_bytes.set(queue_size);
+    }
+
+    pub fn inc_message_handler_user_lock_timeout(&self) {
+        self.message_handler_user_lock_timeouts.inc();
+    }
+
+    pub fn inc_message_handler_batch_lock_timeout(&self) {
+        self.message_handler_batch_lock_timeouts.inc();
     }
 }

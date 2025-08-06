@@ -584,6 +584,9 @@ pub async fn get_nonce_from_batcher(
         Ok(GetNonceResponseMessage::Nonce(nonce)) => Ok(nonce),
         Ok(GetNonceResponseMessage::EthRpcError(e)) => Err(GetNonceError::EthRpcError(e)),
         Ok(GetNonceResponseMessage::InvalidRequest(e)) => Err(GetNonceError::InvalidRequest(e)),
+        Ok(GetNonceResponseMessage::ServerBusy) => Err(GetNonceError::GenericError(
+            "Server is busy processing requests, please retry".to_string(),
+        )),
         Err(_) => Err(GetNonceError::SerializationError(
             "Failed to deserialize batcher message".to_string(),
         )),
