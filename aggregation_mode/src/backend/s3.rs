@@ -26,8 +26,10 @@ const RETRY_MAX_TIMES: usize = 5;
 /// Maximum delay between retry attempts (in seconds)
 const RETRY_MAX_DELAY_SECONDS: u64 = 10;
 
-/// Timeout for Reqwest Client
-const REQWEST_TIMEOUT_SECONDS: Duration = Duration::from_secs(60);
+/// Timeout for establishing a connection to S3
+const CONNECT_TIMEOUT_SECONDS: Duration = Duration::from_secs(10);
+/// Timeout for Batch Download Requests
+const BATCH_DOWNLOAD_TIMEOUT_SECONDS: Duration = Duration::from_secs(5 * 60);
 
 async fn get_aligned_batch_from_s3_retryable(
     url: String,
@@ -35,7 +37,8 @@ async fn get_aligned_batch_from_s3_retryable(
     info!("Fetching batch from S3 URL: {}", url);
     let client = reqwest::Client::builder()
         .user_agent(DEFAULT_USER_AGENT)
-        .timeout(REQWEST_TIMEOUT_SECONDS)
+        .connect_timeout(CONNECT_TIMEOUT_SECONDS)
+        .timeout(BATCH_DOWNLOAD_TIMEOUT_SECONDS)
         .build()
         .map_err(|e| RetryError::Permanent(GetBatchProofsError::ReqwestClientFailed(e.to_string())))?;
 
