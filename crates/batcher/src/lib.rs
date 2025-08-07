@@ -102,11 +102,12 @@ pub struct Batcher {
     /// - Batch creation needs to be able to change all the states, so all processing
     ///   needs to be stopped, and all user_states locks need to be taken
     batch_state: Mutex<BatchState>,
-    /// Flag to indicate when restoration is in progress
+    
+    /// Flag to indicate when recovery is in progress
     /// When true, message handlers will return ServerBusy responses
     /// It's used a way to "lock" all the user_states at the same time
     /// If one needed is taken in the handle message it will timeout
-    is_restoration_in_progress: RwLock<bool>,
+    is_recovering_from_submission_failure: RwLock<bool>,
     user_states: DashMap<Address, Arc<Mutex<UserState>>>,
 
     last_uploaded_batch_block: Mutex<u64>,
@@ -117,8 +118,6 @@ pub struct Batcher {
     posting_batch: Mutex<bool>,
 
     disabled_verifiers: Mutex<U256>,
-
-
 
     // Observability and monitoring
     pub metrics: metrics::BatcherMetrics,
@@ -299,7 +298,7 @@ impl Batcher {
             batch_state: Mutex::new(batch_state),
             user_states,
             disabled_verifiers: Mutex::new(disabled_verifiers),
-            is_restoration_in_progress: RwLock::new(false),
+            is_recovering_from_submission_failure: RwLock::new(false),
             metrics,
             telemetry,
         }
@@ -674,7 +673,7 @@ impl Batcher {
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
         // Check if restoration is in progress
-        if *self.is_restoration_in_progress.read().await {
+        if *self.is_recovering_from_submission_failure.read().await {
             warn!(
                 "Rejecting nonce request from {} during restoration",
                 address
@@ -769,7 +768,7 @@ impl Batcher {
         self.metrics.received_proofs.inc();
 
         // Check if restoration is in progress
-        if *self.is_restoration_in_progress.read().await {
+        if *self.is_recovering_from_submission_failure.read().await {
             warn!(
                 "Rejecting proof submission from {} during restoration (nonce: {})",
                 client_msg.verification_data.verification_data.proof_generator_addr, msg_nonce
@@ -1561,7 +1560,7 @@ impl Batcher {
         );
 
         // Set restoration flag to stop handling new user messages
-        *self.is_restoration_in_progress.write().await = true;
+        *self.is_recovering_from_submission_failure.write().await = true;
 
         let mut batch_state_lock = self.batch_state.lock().await;
         let mut restored_entries = Vec::new();
@@ -1624,10 +1623,15 @@ impl Batcher {
         let users_with_restored_proofs: std::collections::HashSet<Address> =
             restored_entries.iter().map(|entry| entry.sender).collect();
 
-        // Update user states for successfully restored proofs
-        info!("Updating user states after proof restoration...");
-        // TODO: We may have ejected some users that didn't have restored proofs, 
-        // we should include in this list the ejected users
+        // At this point we have a valid queue with updated evicted users states
+        // Only auxiliary user data (max_min_fee) can be "inconsistent"
+        // but we can keep updating it without locking the queue
+        info!("Queue recovered from submission failure, resuming user processing and updating user states metadata");
+        std::mem::drop(batch_state_lock);
+        *self.is_recovering_from_submission_failure.write().await = false;
+  
+
+        info!("Updating user states after proof restoration...");        
         if let Err(e) = self
             .update_user_states_from_queue_state(users_with_restored_proofs)
             .await
@@ -1638,9 +1642,6 @@ impl Batcher {
             );
         }
 
-        // Clear restoration flag to allow normal user message handling
-        *self.is_restoration_in_progress.write().await = false;
-        info!("Proof restoration completed, resuming normal operations");
     }
 
     /// Takes the finalized batch as input and:
