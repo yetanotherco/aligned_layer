@@ -5,11 +5,58 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ugorji/go/codec"
 	"github.com/yetanotherco/aligned_layer/operator/merkle_tree"
 )
+
+const (
+	MaxBatchURLs = 5
+)
+
+// getBatchFromDataServiceWithMultipleURLs tries multiple comma-separated URLs until first successful response
+func (o *Operator) getBatchFromDataServiceWithMultipleURLs(ctx context.Context, batchURLs string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
+    // Parse comma-separated URLs and limit to max 5
+	urls := parseBatchURLs(batchURLs)
+	o.Logger.Infof("Getting batch from data service with %d URLs: %v", len(urls), urls)
+
+	var errors []string
+
+	// Try each URL until first successful response
+	for i, batchURL := range urls {
+		o.Logger.Infof("Trying URL %d of %d: %s", i+1, len(urls), batchURL)
+
+		batch, err := o.getBatchFromDataService(ctx, batchURL, expectedMerkleRoot, maxRetries, retryDelay)
+		if err != nil {
+			o.Logger.Warnf("Failed to get batch from URL %s: %v", batchURL, err)
+			errors = append(errors, fmt.Sprintf("URL %s: %v", batchURL, err))
+		} else {
+			o.Logger.Infof("Successfully retrieved batch from URL: %s", batchURL)
+			return batch, nil
+		}
+	}
+
+	// All URLs failed
+	return nil, fmt.Errorf("failed to get batch from all URLs, errors: %s", strings.Join(errors, "; "))
+}
+
+// parseBatchURLs parses comma-separated URLs and limits to max 5
+func parseBatchURLs(batchURLs string) []string {
+	urls := make([]string, 0)
+	for _, url := range strings.Split(batchURLs, ",") {
+		trimmedURL := strings.TrimSpace(url)
+		if trimmedURL != "" {
+			urls = append(urls, trimmedURL)
+			if len(urls) > MaxBatchURLs {
+				break
+			}
+		}
+	}
+
+	return urls
+}
 
 func (o *Operator) getBatchFromDataService(ctx context.Context, batchURL string, expectedMerkleRoot [32]byte, maxRetries int, retryDelay time.Duration) ([]VerificationData, error) {
 	o.Logger.Infof("Getting batch from data service, batchURL: %s", batchURL)

@@ -13,3 +13,20 @@ services:
       - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./scripts/init-s3.py:/etc/localstack/init/ready.d/init-s3.py"  # bucket initialization script
+      - "./scripts/init-s3-main.sh:/etc/localstack/init/ready.d/init-s3-main.sh"  # bucket initialization script
+
+  localstack2:
+    container_name: "${LOCALSTACK2_DOCKER_NAME:-localstack-secondary}"
+    image: localstack/localstack:s3-latest
+    ports:
+      - "127.0.0.1:4567:4566"            # LocalStack Gateway
+    environment:
+      - DEBUG=${DEBUG:-0}
+      - DEFAULT_REGION=us-west-1
+      - AWS_ACCESS_KEY_ID=test2
+      - AWS_SECRET_ACCESS_KEY=test2
+    volumes:
+      - "${LOCALSTACK2_VOLUME_DIR:-./volume2}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./scripts/init-s3.py:/etc/localstack/init/ready.d/init-s3.py"  # bucket initialization script
+      - "./scripts/init-s3-secondary.sh:/etc/localstack/init/ready.d/init-s3-secondary.sh"  # bucket initialization script

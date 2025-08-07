@@ -9,7 +9,7 @@ use crate::{
         risc0_aggregator::Risc0ProofReceiptAndImageId, sp1_aggregator::SP1ProofWithPubValuesAndElf,
         AlignedProof, ZKVMEngine,
     },
-    backend::s3::get_aligned_batch_from_s3,
+    backend::s3::get_aligned_batch_from_s3_with_multiple_urls,
 };
 use aligned_sdk::common::types::ProvingSystemId;
 use alloy::{
@@ -97,13 +97,14 @@ impl ProofsFetcher {
             );
 
             // Download batch proofs from s3
-            let data = match get_aligned_batch_from_s3(batch.batchDataPointer).await {
-                Ok(data) => data,
-                Err(err) => {
-                    error!("Error while downloading proofs from s3. Err {:?}", err);
-                    continue;
-                }
-            };
+            let data =
+                match get_aligned_batch_from_s3_with_multiple_urls(batch.batchDataPointer).await {
+                    Ok(data) => data,
+                    Err(err) => {
+                        error!("Error while downloading proofs from s3. Err {:?}", err);
+                        continue;
+                    }
+                };
 
             info!("Data downloaded from S3, number of proofs {}", data.len());
 

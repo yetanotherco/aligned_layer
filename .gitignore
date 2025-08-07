@@ -12,6 +12,7 @@ crates/cli/batch_inclusion_responses/*
 **/aligned_verification_data
 **/broadcast
 volume
+volume2
 config-files/*.last_processed_batch.json
 config-files/*.last_aggregated_block.json
 

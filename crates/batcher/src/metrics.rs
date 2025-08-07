@@ -29,6 +29,7 @@ pub struct BatcherMetrics {
     pub batcher_gas_cost_cancel_task_total: GenericCounter<AtomicF64>,
     pub message_handler_user_lock_timeouts: IntCounter,
     pub message_handler_batch_lock_timeouts: IntCounter,
+    pub available_data_services: IntGauge,
 }
 
 impl BatcherMetrics {
@@ -81,6 +82,10 @@ impl BatcherMetrics {
                 "batcher_gas_cost_cancel_task_total",
                 "Batcher Gas Cost Cancel Task Total"
             ))?;
+        let available_data_services = register_int_gauge!(opts!(
+            "available_data_services",
+            "Number of available data services (0-2)"
+        ))?;
 
         let message_handler_user_lock_timeouts = register_int_counter!(opts!(
             "message_handler_user_lock_timeouts_count",
@@ -110,6 +115,7 @@ impl BatcherMetrics {
         registry.register(Box::new(batcher_gas_cost_cancel_task_total.clone()))?;
         registry.register(Box::new(message_handler_user_lock_timeouts.clone()))?;
         registry.register(Box::new(message_handler_batch_lock_timeouts.clone()))?;
+        registry.register(Box::new(available_data_services.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -140,9 +146,9 @@ impl BatcherMetrics {
             batcher_gas_cost_cancel_task_total,
             message_handler_user_lock_timeouts,
             message_handler_batch_lock_timeouts,
+            available_data_services,
         })
     }
-
     pub async fn metrics_handler(registry: prometheus::Registry) -> Result<impl Reply, Rejection> {
         use prometheus::Encoder;
         let encoder = prometheus::TextEncoder::new();
