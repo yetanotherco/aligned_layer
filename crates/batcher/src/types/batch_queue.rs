@@ -148,7 +148,7 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
 
 /// Directly extracts a batch from the given queue, modifying the queue in place.
 /// This avoids the inefficiency of cloning the queue and then removing entries individually.
-/// Uses the same logic as try_build_batch but works directly on the original queue.
+// Note: Uses the same logic as the old try_build_batch but works directly on the original queue
 pub(crate) fn extract_batch_directly(
     batch_queue: &mut BatchQueue,
     gas_price: U256,
