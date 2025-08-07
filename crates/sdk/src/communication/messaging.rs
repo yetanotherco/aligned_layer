@@ -271,7 +271,9 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
         }
         Ok(SubmitProofResponseMessage::ServerBusy) => {
             error!("Server is busy processing requests, please retry. Funds have not been spent.");
-            Err(SubmitError::GenericError("Server is busy processing requests, please retry".to_string()))
+            Err(SubmitError::GenericError(
+                "Server is busy processing requests, please retry".to_string(),
+            ))
         }
         Err(e) => {
             error!(

@@ -102,7 +102,7 @@ pub struct Batcher {
     /// - Batch creation needs to be able to change all the states, so all processing
     ///   needs to be stopped, and all user_states locks need to be taken
     batch_state: Mutex<BatchState>,
-    
+
     /// Flag to indicate when recovery is in progress
     /// When true, message handlers will return ServerBusy responses
     /// It's used a way to "lock" all the user_states at the same time
@@ -771,7 +771,11 @@ impl Batcher {
         if *self.is_recovering_from_submission_failure.read().await {
             warn!(
                 "Rejecting proof submission from {} during restoration (nonce: {})",
-                client_msg.verification_data.verification_data.proof_generator_addr, msg_nonce
+                client_msg
+                    .verification_data
+                    .verification_data
+                    .proof_generator_addr,
+                msg_nonce
             );
             let response = SubmitProofResponseMessage::ServerBusy;
             send_message(ws_conn_sink, response).await;
@@ -1629,9 +1633,8 @@ impl Batcher {
         info!("Queue recovered from submission failure, resuming user processing and updating user states metadata");
         std::mem::drop(batch_state_lock);
         *self.is_recovering_from_submission_failure.write().await = false;
-  
 
-        info!("Updating user states after proof restoration...");        
+        info!("Updating user states after proof restoration...");
         if let Err(e) = self
             .update_user_states_from_queue_state(users_with_restored_proofs)
             .await
@@ -1641,7 +1644,6 @@ impl Batcher {
                 e
             );
         }
-
     }
 
     /// Takes the finalized batch as input and:
