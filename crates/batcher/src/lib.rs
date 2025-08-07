@@ -1508,7 +1508,10 @@ impl Batcher {
                     .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
             }
             Err(e) => {
-                error!("Failed to calculate batch size for queue metrics update: {:?}", e);
+                error!(
+                    "Failed to calculate batch size for queue metrics update: {:?}",
+                    e
+                );
                 // Still update queue length metric, set size to 0 due to calculation error
                 self.metrics.update_queue_metrics(queue_len as i64, 0);
             }
