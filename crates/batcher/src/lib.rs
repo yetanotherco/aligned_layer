@@ -75,6 +75,9 @@ pub struct Batcher {
     s3_client: S3Client,
     s3_bucket_name: String,
     download_endpoint: String,
+    s3_client_secondary: Option<S3Client>,
+    s3_bucket_name_secondary: Option<String>,
+    download_endpoint_secondary: Option<String>,
     eth_ws_url: String,
     eth_ws_url_fallback: String,
     batcher_signer: Arc<SignerMiddlewareT>,
@@ -106,7 +109,13 @@ impl Batcher {
         dotenv().ok();
 
         // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/localstack.html
-        let upload_endpoint = env::var("UPLOAD_ENDPOINT").ok();
+        // Primary S3 configuration
+        let s3_config_primary = s3::S3Config {
+            access_key_id: env::var("AWS_ACCESS_KEY_ID").ok(),
+            secret_access_key: env::var("AWS_SECRET_ACCESS_KEY").ok(),
+            region: env::var("AWS_REGION").ok(),
+            endpoint_url: env::var("UPLOAD_ENDPOINT").ok(),
+        };
 
         let s3_bucket_name =
             env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
@@ -114,7 +123,26 @@ impl Batcher {
         let download_endpoint =
             env::var("DOWNLOAD_ENDPOINT").expect("DOWNLOAD_ENDPOINT not found in environment");
 
-        let s3_client = s3::create_client(upload_endpoint).await;
+        let s3_client = s3::create_client(s3_config_primary).await;
+
+        // Secondary S3 configuration (optional)
+        let s3_bucket_name_secondary = env::var("AWS_BUCKET_NAME_SECONDARY").ok();
+        let download_endpoint_secondary = env::var("DOWNLOAD_ENDPOINT_SECONDARY").ok();
+
+        let s3_client_secondary = if s3_bucket_name_secondary.is_some()
+            && download_endpoint_secondary.is_some()
+        {
+            let s3_config_secondary = s3::S3Config {
+                access_key_id: env::var("AWS_ACCESS_KEY_ID_SECONDARY").ok(),
+                secret_access_key: env::var("AWS_SECRET_ACCESS_KEY_SECONDARY").ok(),
+                region: env::var("AWS_REGION_SECONDARY").ok(),
+                endpoint_url: env::var("UPLOAD_ENDPOINT_SECONDARY").ok(),
+            };
+            Some(s3::create_client(s3_config_secondary).await)
+        } else {
+            info!("Secondary S3 configuration not found or incomplete. Operating with primary S3 only.");
+            None
+        };
 
         let config = ConfigFromYaml::new(config_file);
         // Ensure max_batch_bytes_size can at least hold one proof of max_proof_size,
@@ -252,6 +280,9 @@ impl Batcher {
             s3_client,
             s3_bucket_name,
             download_endpoint,
+            s3_client_secondary,
+            s3_bucket_name_secondary,
+            download_endpoint_secondary,
             eth_ws_url: config.eth_ws_url,
             eth_ws_url_fallback: config.eth_ws_url_fallback,
             batcher_signer,
@@ -1541,7 +1572,18 @@ impl Batcher {
         let batch_merkle_root_hex = hex::encode(batch_merkle_root);
         info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
         let file_name = batch_merkle_root_hex.clone() + ".json";
-        let batch_data_pointer: String = "".to_owned() + &self.download_endpoint + "/" + &file_name;
+
+        let batch_data_pointer = self
+            .upload_batch_to_multiple_s3(batch_bytes, &file_name)
+            .await?;
+        if let Err(e) = self
+            .telemetry
+            .task_uploaded_to_s3(&batch_merkle_root_hex)
+            .await
+        {
+            warn!("Failed to send task status to telemetry: {:?}", e);
+        };
+        info!("Batch upload to: {}", batch_data_pointer);
 
         let num_proofs_in_batch = leaves.len();
         let gas_per_proof = (self.constant_gas_cost()
@@ -1577,16 +1619,6 @@ impl Batcher {
             .gas_price_used_on_latest_batch
             .set(gas_price.as_u64() as i64);
 
-        info!("Uploading batch to S3...");
-        self.upload_batch_to_s3(batch_bytes, &file_name).await?;
-        if let Err(e) = self
-            .telemetry
-            .task_uploaded_to_s3(&batch_merkle_root_hex)
-            .await
-        {
-            warn!("Failed to send task status to telemetry: {:?}", e);
-        };
-        info!("Batch sent to S3 with name: {}", file_name);
         if let Err(e) = self
             .telemetry
             .task_created(
@@ -1857,13 +1889,90 @@ impl Batcher {
         unlocked
     }
 
+    /// Uploads the batch to both S3 buckets and returns the comma-separated URLs of successful uploads.
+    /// Returns an error only if all uploads fail.
+    async fn upload_batch_to_multiple_s3(
+        &self,
+        batch_bytes: &[u8],
+        file_name: &str,
+    ) -> Result<String, BatcherError> {
+        // Upload to both S3 buckets and collect successful URLs
+        let mut successful_urls = Vec::new();
+
+        // Try primary S3 upload
+        if self
+            .upload_batch_to_s3(
+                &self.s3_client,
+                batch_bytes,
+                file_name,
+                &self.s3_bucket_name,
+            )
+            .await
+            .is_ok()
+        {
+            let primary_url = format!("{}/{}", self.download_endpoint, file_name);
+            successful_urls.push(primary_url.clone());
+            info!("Successfully uploaded batch to primary S3: {}", primary_url);
+        } else {
+            warn!("Failed to upload batch to primary S3");
+        }
+
+        // Try secondary S3 upload (if configured)
+        if let (
+            Some(s3_client_secondary),
+            Some(s3_bucket_name_secondary),
+            Some(download_endpoint_secondary),
+        ) = (
+            &self.s3_client_secondary,
+            &self.s3_bucket_name_secondary,
+            &self.download_endpoint_secondary,
+        ) {
+            if self
+                .upload_batch_to_s3(
+                    s3_client_secondary,
+                    batch_bytes,
+                    file_name,
+                    s3_bucket_name_secondary,
+                )
+                .await
+                .is_ok()
+            {
+                let secondary_url = format!("{}/{}", download_endpoint_secondary, file_name);
+                successful_urls.push(secondary_url.clone());
+                info!(
+                    "Successfully uploaded batch to secondary S3: {}",
+                    secondary_url
+                );
+            } else {
+                warn!("Failed to upload batch to secondary S3");
+            }
+        }
+
+        // Update metrics with number of available data services
+        self.metrics
+            .available_data_services
+            .set(successful_urls.len() as i64);
+
+        // If no uploads succeeded, return error
+        if successful_urls.is_empty() {
+            error!("Failed to upload batch to both S3 buckets");
+            return Err(BatcherError::BatchUploadError(
+                "Failed to upload to any S3 bucket".to_string(),
+            ));
+        }
+
+        Ok(successful_urls.join(","))
+    }
+
     /// Uploads the batch to s3.
     /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     async fn upload_batch_to_s3(
         &self,
+        s3_client: &S3Client,
         batch_bytes: &[u8],
         file_name: &str,
+        bucket_name: &str,
     ) -> Result<(), BatcherError> {
         let start = Instant::now();
         let result = retry_function(
@@ -1871,8 +1980,8 @@ impl Batcher {
                 Self::upload_batch_to_s3_retryable(
                     batch_bytes,
                     file_name,
-                    self.s3_client.clone(),
-                    &self.s3_bucket_name,
+                    s3_client.clone(),
+                    bucket_name,
                 )
             },
             ETHEREUM_CALL_MIN_RETRY_DELAY,

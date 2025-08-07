@@ -27,6 +27,7 @@ pub struct BatcherMetrics {
     pub cancel_create_new_task_duration: IntGauge,
     pub batcher_gas_cost_create_task_total: GenericCounter<AtomicF64>,
     pub batcher_gas_cost_cancel_task_total: GenericCounter<AtomicF64>,
+    pub available_data_services: IntGauge,
 }
 
 impl BatcherMetrics {
@@ -79,6 +80,10 @@ impl BatcherMetrics {
                 "batcher_gas_cost_cancel_task_total",
                 "Batcher Gas Cost Cancel Task Total"
             ))?;
+        let available_data_services = register_int_gauge!(opts!(
+            "available_data_services",
+            "Number of available data services (0-2)"
+        ))?;
 
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
@@ -96,6 +101,7 @@ impl BatcherMetrics {
         registry.register(Box::new(cancel_create_new_task_duration.clone()))?;
         registry.register(Box::new(batcher_gas_cost_create_task_total.clone()))?;
         registry.register(Box::new(batcher_gas_cost_cancel_task_total.clone()))?;
+        registry.register(Box::new(available_data_services.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -124,6 +130,7 @@ impl BatcherMetrics {
             cancel_create_new_task_duration,
             batcher_gas_cost_create_task_total,
             batcher_gas_cost_cancel_task_total,
+            available_data_services,
         })
     }
 
