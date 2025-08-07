@@ -1500,6 +1500,20 @@ impl Batcher {
             finalized_batch.len()
         );
 
+        // Update queue metrics after successful batch extraction
+        let queue_len = batch_state_lock.batch_queue.len();
+        match calculate_batch_size(&batch_state_lock.batch_queue) {
+            Ok(queue_size_bytes) => {
+                self.metrics
+                    .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+            }
+            Err(e) => {
+                error!("Failed to calculate batch size for queue metrics update: {:?}", e);
+                // Still update queue length metric, set size to 0 due to calculation error
+                self.metrics.update_queue_metrics(queue_len as i64, 0);
+            }
+        }
+
         Some(finalized_batch)
     }
 
