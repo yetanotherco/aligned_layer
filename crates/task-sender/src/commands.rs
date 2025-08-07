@@ -412,29 +412,27 @@ pub async fn send_infinite_proofs(args: SendInfiniteProofsArgs) {
             pub_path,
         } => {
             info!("Loading RISC Zero proof files");
-            let Ok(proof) = std::fs::read(proof_path) else {
-                error!("Could not read proof file: {}", proof_path);
-                return;
-            };
-            let Ok(vm_program) = std::fs::read(bin_path) else {
-                error!("Could not read bin file: {}", bin_path);
-                return;
-            };
-            let pub_input = if let Some(pub_path) = pub_path {
-                std::fs::read(pub_path).ok()
-            } else {
-                None
-            };
-
-            // Create template verification data (without proof_generator_addr)
-            vec![VerificationData {
-                proving_system: ProvingSystemId::Risc0,
-                proof,
-                pub_input,
-                verification_key: None,
-                vm_program_code: Some(vm_program),
-                proof_generator_addr: Address::zero(), // Will be set randomly in the loop
-            }]
+            match load_risc0_verification_data(proof_path, bin_path, pub_path) {
+                Ok(data) => data,
+                Err(err) => {
+                    error!("Failed to load RISC Zero files: {}", err);
+                    return;
+                }
+            }
+        }
+        InfiniteProofType::SP1 {
+            proof_path,
+            elf_path,
+            pub_path,
+        } => {
+            info!("Loading SP1 proof files");
+            match load_sp1_verification_data(proof_path, elf_path, pub_path) {
+                Ok(data) => data,
+                Err(err) => {
+                    error!("Failed to load SP1 files: {}", err);
+                    return;
+                }
+            }
         }
     };
 
@@ -559,4 +557,50 @@ fn get_verification_data_from_proofs_folder(
     }
 
     verifications_data
+}
+
+fn load_risc0_verification_data(
+    proof_path: &str,
+    bin_path: &str,
+    pub_path: &Option<String>,
+) -> Result<Vec<VerificationData>, std::io::Error> {
+    let proof = std::fs::read(proof_path)?;
+    let vm_program = std::fs::read(bin_path)?;
+    let pub_input = if let Some(pub_path) = pub_path {
+        std::fs::read(pub_path).ok()
+    } else {
+        None
+    };
+
+    Ok(vec![VerificationData {
+        proving_system: ProvingSystemId::Risc0,
+        proof,
+        pub_input,
+        verification_key: None,
+        vm_program_code: Some(vm_program),
+        proof_generator_addr: Address::zero(),
+    }])
+}
+
+fn load_sp1_verification_data(
+    proof_path: &str,
+    elf_path: &str,
+    pub_path: &Option<String>,
+) -> Result<Vec<VerificationData>, std::io::Error> {
+    let proof = std::fs::read(proof_path)?;
+    let vm_program = std::fs::read(elf_path)?;
+    let pub_input = if let Some(pub_path) = pub_path {
+        std::fs::read(pub_path).ok()
+    } else {
+        None
+    };
+
+    Ok(vec![VerificationData {
+        proving_system: ProvingSystemId::SP1,
+        proof,
+        pub_input,
+        verification_key: None,
+        vm_program_code: Some(vm_program),
+        proof_generator_addr: Address::zero(),
+    }])
 }

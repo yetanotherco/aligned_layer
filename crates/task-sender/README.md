@@ -1,4 +1,5 @@
 # Task Sender
+
 This CLI is made to stress-test the network.
 
 It has the following commands:
@@ -8,6 +9,7 @@ It has the following commands:
 This command is to generate N Groth16 proofs.
 
 To run it, you can:
+
 ```bash
 cargo run --release -- generate-proofs \
         --number-of-proofs <NUMBER_OF_PROOFS> --proof-type groth16 \
@@ -15,14 +17,17 @@ cargo run --release -- generate-proofs \
 ```
 
 We also have a make target:
+
 ```bash
 NUMBER_OF_PROOFS=15 make task_sender_generate_groth16_proofs
 ```
+
 ## GenerateAndFundWallets
 
 This command is to generate N wallets, and fund them in the BatcherPaymentService.
 
 To run it, you can:
+
 ```bash
 cargo run --release -- generate-and-fund-wallets \
         --eth-rpc-url <RPC_URL> \
@@ -35,17 +40,20 @@ cargo run --release -- generate-and-fund-wallets \
 ```
 
 ### In Testnet
+
 ```bash
 NUM_WALLETS=<N> make task_sender_generate_and_fund_wallets_holesky_stage
 ```
 
 ### In Devnet:
 Run anvil with more prefunded accounts, using the following make target:
+
 ```bash
 make anvil_start_with_more_prefunded_accounts
 ```
 
 Then run the following make target, with `NUM_WALLETS` being the amount of wallets you want to deposit funds to aligned payment service, up to 1000.
+
 ```bash
 NUM_WALLETS=<N> make task_sender_generate_and_fund_wallets_devnet
 ```
@@ -56,20 +64,55 @@ This command sends `BURST_SIZE` proofs from each private key in `PATH_TO_PRIVATE
 
 To vary the amount of senders, it is recommended to have a backup with all private keys, and add/remove keys from the file being used.
 
-To run it, you can:
+Note: The `--random-address` flag is optional and will use the address a salt to avoid the repetitions of batches.
+
+### RISC Zero Proofs
+
 ```bash
 cargo run --release -- send-infinite-proofs \
-        --burst-size <BURST_SIZE> --burst-time-secs <BURST_TIME_SECS> \
-        --eth-rpc-url <RPC_URL> \
-        --network <network> \
-        --proofs-dirpath $(PWD)/scripts/test_files/task_sender/proofs \
-        --private-keys-filepath <PATH_TO_PRIVATE_KEYS_FILE>
+        --private-keys-filepath <PATH_TO_PRIVATE_KEYS_FILE> \
+        --random-address \
+        --burst-size <BURST_SIZE> \
+        --burst-time-secs <BURST_TIME_SECS> \
+        --network <NETWORK> \
+        risc0 \
+            --proof-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
+            --bin-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
+            --pub-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub
 ```
 
-We also have the following related make targets
+### Gnark Groth16 Proofs
+
+```bash
+cargo run --release -- send-infinite-proofs \
+        --private-keys-filepath <PATH_TO_PRIVATE_KEYS_FILE> \
+        --random-address \
+        --burst-size <BURST_SIZE> \
+        --burst-time-secs <BURST_TIME_SECS> \
+        --network <NETWORK> \
+        gnark-groth16 --proofs-dir ./scripts/test_files/gnark_groth16_bn254_script
+```
+
+### SP1 Proofs
+
+```bash
+cargo run --release --manifest-path ./crates/task-sender/Cargo.toml -- send-infinite-proofs \
+        --private-keys-filepath <PATH_TO_PRIVATE_KEYS_FILE> \
+        --burst-size <BURST_SIZE> \
+        --burst-time-secs <BURST_TIME_SECS> \
+        --random-address \
+        sp1 \
+        --proof-path ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+        --elf-path ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+        --pub-path ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
+```
+
+We also have the following related make targets:
+
 ```bash
 BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_send_infinite_proofs_devnet
 ```
+
 ```bash
 BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_send_infinite_proofs_holesky_stage
 ```
@@ -79,15 +122,18 @@ BURST_SIZE=<N> BURST_TIME_SECS=<N> make task_sender_send_infinite_proofs_holesky
 This command enables and hangs N connections with the Batcher.
 
 To run it, you can:
-```
-cargo run --release -- test-connections \
+
+```bash
+cargo run --release --manifest-path ./crates/task-sender/Cargo.toml -- test-connections \
         --num-senders <NUM_SENDERS>
 ```
 
 We also have the following related make targets:
+
 ```bash
 NUM_SENDERS=<N> make task_sender_test_connections_devnet
 ```
+
 ```bash
 NUM_SENDERS=<N> make task_sender_test_connections_holesky_stage
 ```
