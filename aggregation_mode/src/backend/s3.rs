@@ -32,7 +32,6 @@ const CONNECT_TIMEOUT_SECONDS: Duration = Duration::from_secs(10);
 /// Timeout for Batch Download Requests
 const BATCH_DOWNLOAD_TIMEOUT_SECONDS: Duration = Duration::from_secs(5 * 60);
 
-
 // get_aligned_batch_from_s3_with_multiple_urls tries multiple comma-separated URLs until first successful response
 pub async fn get_aligned_batch_from_s3_with_multiple_urls(
     urls: String,
