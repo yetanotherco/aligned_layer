@@ -883,6 +883,7 @@ impl Batcher {
             let dummy_user_state = UserState::new(U256::zero());
             self.user_states
                 .insert(addr, Arc::new(Mutex::new(dummy_user_state)));
+            info!("Dummy user state for address {addr:?} created");
         }
 
         let Some(user_state_ref) = self.user_states.get(&addr) else {
