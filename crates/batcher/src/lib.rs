@@ -884,12 +884,12 @@ impl Batcher {
         let is_user_in_state = self.user_states.contains_key(&addr);
 
         if !is_user_in_state {
-            info!("User state for address {addr:?} not found, creating a new one");
+            warn!("User state for address {addr:?} not found, creating a new one");
             // We add a dummy user state to grab a lock on the user state
             let dummy_user_state = UserState::new(U256::zero());
             self.user_states
                 .insert(addr, Arc::new(Mutex::new(dummy_user_state)));
-            info!("Dummy user state for address {addr:?} created");
+            warn!("Dummy user state for address {addr:?} created");
         }
 
         let Some(user_state_ref) = self.user_states.get(&addr) else {
