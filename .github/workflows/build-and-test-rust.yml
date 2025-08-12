@@ -17,7 +17,7 @@ jobs:
     runs-on: aligned-runner
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
@@ -86,7 +86,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
