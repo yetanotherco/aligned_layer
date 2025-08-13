@@ -108,9 +108,9 @@ pub struct Batcher {
     /// Flag to indicate when recovery is in progress
     /// When true, message handlers will return ServerBusy responses
     /// It's used a way to "lock" all the user_states at the same time
-    /// If one needed is taken in the handle message it will timeout
+    /// If one needed is taken in the handle message it will time out
     is_recovering_from_submission_failure: RwLock<bool>,
-    user_states: Arc<tokio::sync::RwLock<HashMap<Address, Arc<Mutex<UserState>>>>>,
+    user_states: Arc<RwLock<HashMap<Address, Arc<Mutex<UserState>>>>>,
 
     last_uploaded_batch_block: Mutex<u64>,
 
@@ -180,7 +180,7 @@ impl Batcher {
         let deployment_output =
             ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
 
-        log::info!(
+        info!(
             "Starting metrics server on port {}",
             config.batcher.metrics_port
         );
@@ -261,7 +261,7 @@ impl Batcher {
         .await
         .expect("Failed to get fallback Service Manager contract");
 
-        let user_states = Arc::new(tokio::sync::RwLock::new(HashMap::new()));
+        let user_states = Arc::new(RwLock::new(HashMap::new()));
         let batch_state = BatchState::new(config.batcher.max_queue_size);
         let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
             warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
@@ -391,7 +391,7 @@ impl Batcher {
 
     fn calculate_new_user_states_data(
         &self,
-        batch_queue: &types::batch_queue::BatchQueue,
+        batch_queue: &batch_queue::BatchQueue,
     ) -> HashMap<Address, (usize, U256, U256)> {
         let mut updated_user_states = HashMap::new();
         for (entry, _) in batch_queue.iter() {
@@ -847,7 +847,7 @@ impl Batcher {
             return Ok(());
         };
         
-        warn!("Message validations completed for {:?} in {:?}", addr_in_msg, validation_start.elapsed());
+        debug!("Message validations completed for {:?} in {:?}", addr_in_msg, validation_start.elapsed());
 
         let addr;
         let signature = client_msg.signature;
@@ -883,12 +883,12 @@ impl Batcher {
         let is_user_in_state = self.user_states.read().await.contains_key(&addr);
 
         if !is_user_in_state {
-            warn!("User state for address {addr:?} not found, creating a new one");
+            debug!("User state for address {addr:?} not found, creating a new one");
             // We add a dummy user state to grab a lock on the user state
             let dummy_user_state = UserState::new(U256::zero());
             self.user_states
                 .write().await.insert(addr, Arc::new(Mutex::new(dummy_user_state)));
-            warn!("Dummy user state for address {addr:?} created");
+            debug!("Dummy user state for address {addr:?} created");
         }
 
         let Some(user_state_ref) = self.user_states.read().await.get(&addr).cloned() else {
@@ -911,7 +911,7 @@ impl Batcher {
             return Ok(());
         };
         
-        warn!("User lock acquired for {:?} in {:?}", addr, user_state_start.elapsed());
+        debug!("User lock acquired for {:?} in {:?}", addr, user_state_start.elapsed());
 
         // If the user state was not present, we need to get the nonce from the Ethereum contract and update the dummy user state
         if !is_user_in_state {
@@ -1011,8 +1011,8 @@ impl Batcher {
             self.metrics.user_error(&["invalid_max_fee", ""]);
             return Ok(());
         }
-        
-        warn!("Balance and nonce validations completed for {:?} in {:?}", addr, balance_validation_start.elapsed());
+
+        debug!("Balance and nonce validations completed for {:?} in {:?}", addr, balance_validation_start.elapsed());
 
         let proof_verification_start = std::time::Instant::now();
         if !self
@@ -1024,7 +1024,7 @@ impl Batcher {
         {
             return Ok(());
         }
-        warn!("Proof verification completed for {:?} in {:?}", addr, proof_verification_start.elapsed());
+        debug!("Proof verification completed for {:?} in {:?}", addr, proof_verification_start.elapsed());
 
         // * ---------------------------------------------------------------------*
         // *        Perform validation over batcher queue                         *
@@ -1134,8 +1134,8 @@ impl Batcher {
                 return Ok(());
             }
         }
-        
-        warn!("Queue management and eviction logic completed for {:?} in {:?}", addr, queue_management_start.elapsed());
+
+        debug!("Queue management and eviction logic completed for {:?} in {:?}", addr, queue_management_start.elapsed());
 
         // * ---------------------------------------------------------------------*
         // *        Add message data into the queue and update user state         *
@@ -1165,10 +1165,9 @@ impl Batcher {
         user_state_guard.last_max_fee_limit = max_fee;
         user_state_guard.proofs_in_batch += 1;
         user_state_guard.total_fees_in_queue += max_fee;
-        
-        warn!("Add to batch and user state update completed for {:?} in {:?}", addr, add_to_batch_start.elapsed());
+        debug!("Add to batch and user state update completed for {:?} in {:?}", addr, add_to_batch_start.elapsed());
 
-        warn!("Verification data message handled for {:?} - total time: {:?}", addr, start_time.elapsed());
+        debug!("Verification data message handled for {:?} - total time: {:?}", addr, start_time.elapsed());
         Ok(())
     }
 
