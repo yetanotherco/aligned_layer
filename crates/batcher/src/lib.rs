@@ -1430,7 +1430,7 @@ impl Batcher {
 
         // Update metrics
         let queue_len = batch_state_lock.batch_queue.len();
-        let queue_size_bytes: i64= 100;
+        let queue_size_bytes: i64= 0;
         // let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
         self.metrics
             .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
