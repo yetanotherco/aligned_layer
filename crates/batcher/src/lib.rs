@@ -821,7 +821,7 @@ impl Batcher {
         // if they return false
 
         let validation_start = std::time::Instant::now();
-        
+
         if !self.msg_chain_id_is_valid(&client_msg, &ws_conn_sink).await {
             return Ok(());
         }
@@ -846,8 +846,12 @@ impl Batcher {
         else {
             return Ok(());
         };
-        
-        debug!("Message validations completed for {:?} in {:?}", addr_in_msg, validation_start.elapsed());
+
+        debug!(
+            "Message validations completed for {:?} in {:?}",
+            addr_in_msg,
+            validation_start.elapsed()
+        );
 
         let addr;
         let signature = client_msg.signature;
@@ -887,7 +891,9 @@ impl Batcher {
             // We add a dummy user state to grab a lock on the user state
             let dummy_user_state = UserState::new(U256::zero());
             self.user_states
-                .write().await.insert(addr, Arc::new(Mutex::new(dummy_user_state)));
+                .write()
+                .await
+                .insert(addr, Arc::new(Mutex::new(dummy_user_state)));
             debug!("Dummy user state for address {addr:?} created");
         }
 
@@ -910,8 +916,12 @@ impl Batcher {
             send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
             return Ok(());
         };
-        
-        debug!("User lock acquired for {:?} in {:?}", addr, user_state_start.elapsed());
+
+        debug!(
+            "User lock acquired for {:?} in {:?}",
+            addr,
+            user_state_start.elapsed()
+        );
 
         // If the user state was not present, we need to get the nonce from the Ethereum contract and update the dummy user state
         if !is_user_in_state {
@@ -931,7 +941,11 @@ impl Batcher {
                     return Ok(());
                 }
             };
-            warn!("Ethereum nonce fetched for {:?} in {:?}", addr, nonce_fetch_start.elapsed());
+            warn!(
+                "Ethereum nonce fetched for {:?} in {:?}",
+                addr,
+                nonce_fetch_start.elapsed()
+            );
             // Update the dummy user state with the correct nonce
             user_state_guard.nonce = ethereum_user_nonce;
         }
@@ -1012,7 +1026,11 @@ impl Batcher {
             return Ok(());
         }
 
-        debug!("Balance and nonce validations completed for {:?} in {:?}", addr, balance_validation_start.elapsed());
+        debug!(
+            "Balance and nonce validations completed for {:?} in {:?}",
+            addr,
+            balance_validation_start.elapsed()
+        );
 
         let proof_verification_start = std::time::Instant::now();
         if !self
@@ -1024,7 +1042,11 @@ impl Batcher {
         {
             return Ok(());
         }
-        debug!("Proof verification completed for {:?} in {:?}", addr, proof_verification_start.elapsed());
+        debug!(
+            "Proof verification completed for {:?} in {:?}",
+            addr,
+            proof_verification_start.elapsed()
+        );
 
         // * ---------------------------------------------------------------------*
         // *        Perform validation over batcher queue                         *
@@ -1059,7 +1081,9 @@ impl Batcher {
 
             // Try to find any candidate whose lock we can acquire and immediately process them
             for candidate_addr in eviction_candidates {
-                if let Some(user_state_arc) = self.user_states.read().await.get(&candidate_addr).cloned() {
+                if let Some(user_state_arc) =
+                    self.user_states.read().await.get(&candidate_addr).cloned()
+                {
                     if let Ok(mut user_guard) = user_state_arc.try_lock() {
                         // Found someone whose lock we can get - now find and remove their entry
                         let entries_to_check: Vec<_> = batch_state_lock
@@ -1093,7 +1117,8 @@ impl Batcher {
                                     &removed,
                                     &batch_state_lock.batch_queue,
                                     &mut user_guard,
-                                ).await;
+                                )
+                                .await;
 
                                 if let Some(ref removed_entry_ws) = removed.messaging_sink {
                                     let ws_sink = removed_entry_ws.clone();
@@ -1135,7 +1160,11 @@ impl Batcher {
             }
         }
 
-        debug!("Queue management and eviction logic completed for {:?} in {:?}", addr, queue_management_start.elapsed());
+        debug!(
+            "Queue management and eviction logic completed for {:?} in {:?}",
+            addr,
+            queue_management_start.elapsed()
+        );
 
         // * ---------------------------------------------------------------------*
         // *        Add message data into the queue and update user state         *
@@ -1165,9 +1194,17 @@ impl Batcher {
         user_state_guard.last_max_fee_limit = max_fee;
         user_state_guard.proofs_in_batch += 1;
         user_state_guard.total_fees_in_queue += max_fee;
-        debug!("Add to batch and user state update completed for {:?} in {:?}", addr, add_to_batch_start.elapsed());
+        debug!(
+            "Add to batch and user state update completed for {:?} in {:?}",
+            addr,
+            add_to_batch_start.elapsed()
+        );
 
-        debug!("Verification data message handled for {:?} - total time: {:?}", addr, start_time.elapsed());
+        debug!(
+            "Verification data message handled for {:?} - total time: {:?}",
+            addr,
+            start_time.elapsed()
+        );
         Ok(())
     }
 
@@ -1429,10 +1466,10 @@ impl Batcher {
 
         // Update metrics
         let queue_len = batch_state_lock.batch_queue.len();
-        let queue_size_bytes: i64= 0;
+        let queue_size_bytes: i64 = 0;
         // let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
         self.metrics
-            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+            .update_queue_metrics(queue_len as i64, queue_size_bytes);
 
         info!("Current batch queue length: {}", queue_len);
 
@@ -1587,7 +1624,10 @@ impl Batcher {
     /// Cleans up user states after successful batch submission.
     /// Resets last_max_fee_limit to U256::MAX for users who had proofs in the submitted batch
     /// but now have no proofs left in the queue.
-    async fn cleanup_user_states_after_successful_submission(&self, finalized_batch: &[BatchQueueEntry]) {
+    async fn cleanup_user_states_after_successful_submission(
+        &self,
+        finalized_batch: &[BatchQueueEntry],
+    ) {
         use std::collections::HashSet;
 
         // Get unique users from the submitted batch
@@ -1611,7 +1651,8 @@ impl Batcher {
         for user_addr in users_in_batch {
             if !current_user_states.contains_key(&user_addr) {
                 // User has no proofs left in queue - reset their max_fee_limit
-                if let Some(user_state_ref) = self.user_states.read().await.get(&user_addr).cloned() {
+                if let Some(user_state_ref) = self.user_states.read().await.get(&user_addr).cloned()
+                {
                     if let Ok(mut user_state_guard) = user_state_ref.try_lock() {
                         user_state_guard.last_max_fee_limit = U256::max_value();
                     }
@@ -1832,7 +1873,8 @@ impl Batcher {
         }
 
         // Clean up user states for users who had proofs in this batch but now have no proofs left
-        self.cleanup_user_states_after_successful_submission(finalized_batch).await;
+        self.cleanup_user_states_after_successful_submission(finalized_batch)
+            .await;
 
         connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
     }
