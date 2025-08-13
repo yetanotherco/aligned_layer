@@ -178,6 +178,7 @@ impl BatcherMetrics {
 
     pub fn update_queue_metrics(&self, queue_len: i64, queue_size: i64) {
         self.queue_len.set(queue_len);
+        println!("Queue length: {:?}", self.queue_len);
         self.queue_size_bytes.set(queue_size);
     }
 
