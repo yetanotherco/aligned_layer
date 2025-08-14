@@ -793,7 +793,6 @@ impl Batcher {
         client_msg: Box<SubmitProofMessage>,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
-        let start_time = std::time::Instant::now();
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}");
         self.metrics.received_proofs.inc();
@@ -820,8 +819,6 @@ impl Batcher {
         // All check functions sends the error to the metrics server and logs it
         // if they return false
 
-        let validation_start = std::time::Instant::now();
-
         if !self.msg_chain_id_is_valid(&client_msg, &ws_conn_sink).await {
             return Ok(());
         }
@@ -847,11 +844,6 @@ impl Batcher {
             return Ok(());
         };
 
-        debug!(
-            "Message validations completed for {:?} in {:?}",
-            addr_in_msg,
-            validation_start.elapsed()
-        );
 
         let addr;
         let signature = client_msg.signature;
@@ -878,7 +870,6 @@ impl Batcher {
         }
 
         info!("Handling message, locking user state");
-        let user_state_start = std::time::Instant::now();
 
         // We acquire the lock first only to query if the user is already present and the lock is dropped.
         // If it was not present, then the user nonce is queried to the Aligned contract.
@@ -917,15 +908,9 @@ impl Batcher {
             return Ok(());
         };
 
-        debug!(
-            "User lock acquired for {:?} in {:?}",
-            addr,
-            user_state_start.elapsed()
-        );
 
         // If the user state was not present, we need to get the nonce from the Ethereum contract and update the dummy user state
         if !is_user_in_state {
-            let nonce_fetch_start = std::time::Instant::now();
             let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
                 Ok(ethereum_user_nonce) => ethereum_user_nonce,
                 Err(e) => {
@@ -941,11 +926,6 @@ impl Batcher {
                     return Ok(());
                 }
             };
-            warn!(
-                "Ethereum nonce fetched for {:?} in {:?}",
-                addr,
-                nonce_fetch_start.elapsed()
-            );
             // Update the dummy user state with the correct nonce
             user_state_guard.nonce = ethereum_user_nonce;
         }
@@ -954,7 +934,6 @@ impl Batcher {
         // *        Perform validations over user state         *
         // * ---------------------------------------------------*
 
-        let balance_validation_start = std::time::Instant::now();
         let Some(user_balance) = self.get_user_balance(&addr).await else {
             error!("Could not get balance for address {addr:?}");
             send_message(
@@ -1026,13 +1005,7 @@ impl Batcher {
             return Ok(());
         }
 
-        debug!(
-            "Balance and nonce validations completed for {:?} in {:?}",
-            addr,
-            balance_validation_start.elapsed()
-        );
 
-        let proof_verification_start = std::time::Instant::now();
         if !self
             .verify_proof_if_enabled(
                 &nonced_verification_data.verification_data,
@@ -1042,17 +1015,11 @@ impl Batcher {
         {
             return Ok(());
         }
-        debug!(
-            "Proof verification completed for {:?} in {:?}",
-            addr,
-            proof_verification_start.elapsed()
-        );
 
         // * ---------------------------------------------------------------------*
         // *        Perform validation over batcher queue                         *
         // * ---------------------------------------------------------------------*
 
-        let queue_management_start = std::time::Instant::now();
         let Some(mut batch_state_lock) = self
             .try_batch_lock_with_timeout(self.batch_state.lock())
             .await
@@ -1160,17 +1127,11 @@ impl Batcher {
             }
         }
 
-        debug!(
-            "Queue management and eviction logic completed for {:?} in {:?}",
-            addr,
-            queue_management_start.elapsed()
-        );
 
         // * ---------------------------------------------------------------------*
         // *        Add message data into the queue and update user state         *
         // * ---------------------------------------------------------------------*
 
-        let add_to_batch_start = std::time::Instant::now();
         if let Err(e) = self
             .add_to_batch(
                 batch_state_lock,
@@ -1194,17 +1155,6 @@ impl Batcher {
         user_state_guard.last_max_fee_limit = max_fee;
         user_state_guard.proofs_in_batch += 1;
         user_state_guard.total_fees_in_queue += max_fee;
-        debug!(
-            "Add to batch and user state update completed for {:?} in {:?}",
-            addr,
-            add_to_batch_start.elapsed()
-        );
-
-        debug!(
-            "Verification data message handled for {:?} - total time: {:?}",
-            addr,
-            start_time.elapsed()
-        );
         Ok(())
     }
 
