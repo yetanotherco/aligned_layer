@@ -72,7 +72,6 @@ pub struct VerificationData {
     pub proof_generator_addr: Address,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
@@ -104,25 +103,25 @@ impl NoncedVerificationData {
     pub fn cbor_size_upper_bound(&self) -> usize {
         const CBOR_OVERHEAD_BYTES: usize = 256;
         let mut total_size = 0;
-        
+
         // Add length of proof Vec<u8>
         total_size += self.verification_data.proof.len();
-        
+
         // Add length of pub_input Option<Vec<u8>>
         if let Some(ref pub_input) = self.verification_data.pub_input {
             total_size += pub_input.len();
         }
-        
+
         // Add length of verification_key Option<Vec<u8>>
         if let Some(ref verification_key) = self.verification_data.verification_key {
             total_size += verification_key.len();
         }
-        
+
         // Add length of vm_program_code Option<Vec<u8>>
         if let Some(ref vm_program_code) = self.verification_data.vm_program_code {
             total_size += vm_program_code.len();
         }
-        
+
         // Add overhead bytes for the full NoncedVerificationData structure
         total_size + CBOR_OVERHEAD_BYTES
     }
