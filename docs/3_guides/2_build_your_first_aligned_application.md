@@ -96,7 +96,7 @@ ZkQuiz has three main components:
 The user interacts with ZkQuiz App to solve a trivia challenge answering questions. Then, the App generates a Zk Proof with the Program generated using SP1.
 
 {% hint style="info" %}
-The ZkQuiz Program is built using SP1 following the [quickstart guide](https://docs.succinct.xyz/getting-started/quickstart.html#project-overview). For your projects, you can user any of the [prooving systems supported by Aligned](../2_architecture/0_supported_verifiers.md).
+The ZkQuiz Program is built using SP1 following the [quickstart guide](https://docs.succinct.xyz/docs/sp1/getting-started/quickstart). For your projects, you can user any of the [prooving systems supported by Aligned](../2_architecture/0_supported_verifiers.md).
 {% endhint %}
 
 Once the proof is generated, the App sends the proof to Aligned, and once it is verified, the App calls to the ZkQuiz Verifier Contract to check the proof verification and send an NFT to the user is the proof was verified in Aligned.
