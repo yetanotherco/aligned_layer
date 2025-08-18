@@ -123,7 +123,7 @@ pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, Ba
     let folded_result = batch_queue.iter().try_fold(0, |acc, (entry, _)| {
         let verification_data_size = entry.nonced_verification_data.cbor_size_upper_bound();
         let current_batch_size = acc + verification_data_size;
-        ControlFlow::Continue(current_batch_size)
+        ControlFlow::<usize, usize>::Continue(current_batch_size)
     });
 
     if let ControlFlow::Continue(batch_size) = folded_result {
