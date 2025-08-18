@@ -864,7 +864,7 @@ impl Batcher {
                         ws_conn_sink.clone(),
                         SubmitProofResponseMessage::EthRpcError,
                     )
-                    .await;
+                        .await;
                     self.metrics.user_error(&["eth_rpc_error", ""]);
                     return Ok(());
                 }
