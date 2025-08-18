@@ -97,6 +97,34 @@ impl NoncedVerificationData {
             payment_service_addr,
         }
     }
+
+    /// Returns an upper bound for the CBOR encoding size without performing serialization.
+    /// Sums the length of all Vec<u8> fields in the inner VerificationData and adds 1024 bytes as overhead. This covers the constant size data and extra headers
+    pub fn cbor_size_upper_bound(&self) -> usize {
+        const CBOR_OVERHEAD_BYTES: usize = 1024;
+        let mut total_size = 0;
+
+        // Add length of proof Vec<u8>
+        total_size += self.verification_data.proof.len();
+
+        // Add length of pub_input Option<Vec<u8>>
+        if let Some(ref pub_input) = self.verification_data.pub_input {
+            total_size += pub_input.len();
+        }
+
+        // Add length of verification_key Option<Vec<u8>>
+        if let Some(ref verification_key) = self.verification_data.verification_key {
+            total_size += verification_key.len();
+        }
+
+        // Add length of vm_program_code Option<Vec<u8>>
+        if let Some(ref vm_program_code) = self.verification_data.vm_program_code {
+            total_size += vm_program_code.len();
+        }
+
+        // Add overhead bytes for the full NoncedVerificationData structure
+        total_size + CBOR_OVERHEAD_BYTES
+    }
 }
 
 // Defines a price estimate type for the user.

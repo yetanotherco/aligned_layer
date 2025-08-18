@@ -2050,22 +2050,9 @@ impl Batcher {
         client_msg: &SubmitProofMessage,
         ws_conn_sink: &WsMessageSink,
     ) -> bool {
-        let verification_data = match cbor_serialize(&client_msg.verification_data) {
-            Ok(data) => data,
-            // This should never happened, the user sent all his data serialized
-            Err(_) => {
-                error!("Proof serialization error");
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::Error("Proof serialization error".to_string()),
-                )
-                .await;
-                self.metrics.user_error(&["proof_serialization_error", ""]);
-                return false;
-            }
-        };
+        let verification_data_size = client_msg.verification_data.cbor_size_upper_bound();
 
-        if verification_data.len() > self.max_proof_size {
+        if verification_data_size > self.max_proof_size {
             error!("Proof size exceeds the maximum allowed size.");
             send_message(
                 ws_conn_sink.clone(),
