@@ -98,7 +98,6 @@ pub struct Batcher {
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
 
-
     // Shared state access:
     // Two kinds of threads interact with the shared state:
     //   1. User message processing threads (run in parallel)
