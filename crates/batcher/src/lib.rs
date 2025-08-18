@@ -844,7 +844,6 @@ impl Batcher {
             return Ok(());
         };
 
-
         let addr;
         let signature = client_msg.signature;
         let nonced_verification_data;
@@ -907,7 +906,6 @@ impl Batcher {
             send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
             return Ok(());
         };
-
 
         // If the user state was not present, we need to get the nonce from the Ethereum contract and update the dummy user state
         if !is_user_in_state {
@@ -1004,7 +1002,6 @@ impl Batcher {
             self.metrics.user_error(&["invalid_max_fee", ""]);
             return Ok(());
         }
-
 
         if !self
             .verify_proof_if_enabled(
@@ -1126,7 +1123,6 @@ impl Batcher {
                 return Ok(());
             }
         }
-
 
         // * ---------------------------------------------------------------------*
         // *        Add message data into the queue and update user state         *
