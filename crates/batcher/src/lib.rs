@@ -431,7 +431,7 @@ impl Batcher {
     where
         F: std::future::Future<Output = T>,
     {
-        match timeout(Duration::from_secs(150), lock_future).await {
+        match timeout(Duration::from_secs(15), lock_future).await {
             Ok(result) => Some(result),
             Err(_) => {
                 warn!("Batch lock acquisition timed out");
