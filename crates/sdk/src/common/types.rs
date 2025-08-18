@@ -99,9 +99,9 @@ impl NoncedVerificationData {
     }
 
     /// Returns an upper bound for the CBOR encoding size without performing serialization.
-    /// Sums the length of all Vec<u8> fields in the inner VerificationData and adds 256 bytes as overhead.
+    /// Sums the length of all Vec<u8> fields in the inner VerificationData and adds 1024 bytes as overhead. This covers the constant size data and extra headers
     pub fn cbor_size_upper_bound(&self) -> usize {
-        const CBOR_OVERHEAD_BYTES: usize = 256;
+        const CBOR_OVERHEAD_BYTES: usize = 1024;
         let mut total_size = 0;
 
         // Add length of proof Vec<u8>
