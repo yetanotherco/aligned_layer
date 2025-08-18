@@ -852,26 +852,9 @@ impl Batcher {
         let is_user_in_state = self.user_states.read().await.contains_key(&addr);
 
         if !is_user_in_state {
-            // If the user state was not present,
-            // we need to get the nonce from the Ethereum contract
-            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
-                Ok(ethereum_user_nonce) => ethereum_user_nonce,
-                Err(e) => {
-                    error!(
-                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
-                    );
-                    send_message(
-                        ws_conn_sink.clone(),
-                        SubmitProofResponseMessage::EthRpcError,
-                    )
-                        .await;
-                    self.metrics.user_error(&["eth_rpc_error", ""]);
-                    return Ok(());
-                }
-            };
             debug!("User state for address {addr:?} not found, creating a new one");
             // We add a dummy user state to grab a lock on the user state
-            let dummy_user_state = UserState::new(ethereum_user_nonce);
+            let dummy_user_state = UserState::new(U256::zero());
             self.user_states
                 .write()
                 .await
@@ -898,6 +881,27 @@ impl Batcher {
             send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
             return Ok(());
         };
+
+        // If the user state was not present, we need to get the nonce from the Ethereum contract and update the dummy user state
+        if !is_user_in_state {
+            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+                Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                Err(e) => {
+                    error!(
+                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
+                    );
+                    send_message(
+                        ws_conn_sink.clone(),
+                        SubmitProofResponseMessage::EthRpcError,
+                    )
+                    .await;
+                    self.metrics.user_error(&["eth_rpc_error", ""]);
+                    return Ok(());
+                }
+            };
+            // Update the dummy user state with the correct nonce
+            user_state_guard.nonce = ethereum_user_nonce;
+        }
 
         // * ---------------------------------------------------*
         // *        Perform validations over user state         *
@@ -992,10 +996,6 @@ impl Batcher {
             .try_batch_lock_with_timeout(self.batch_state.lock())
             .await
         else {
-            if !is_user_in_state {
-                // If the user state was not present before, we remove it since we couldn't process the message
-                self.user_states.write().await.remove(&addr);
-            }
             send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
             return Ok(());
         };
