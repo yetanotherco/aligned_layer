@@ -891,10 +891,17 @@ impl Batcher {
             debug!("User state for address {addr:?} not found, creating a new one");
             // We add a dummy user state to grab a lock on the user state
             let dummy_user_state = UserState::new(ethereum_user_nonce);
-            self.user_states
-                .write()
-                .await
-                .insert(addr, Arc::new(Mutex::new(dummy_user_state)));
+            match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.write()).await {
+                Ok(mut user_states_guard) => {
+                    user_states_guard.insert(addr, Arc::new(Mutex::new(dummy_user_state)));
+                }
+                Err(_) => {
+                    warn!("User states write lock acquisition timed out");
+                    self.metrics.inc_message_handler_user_states_lock_timeouts();
+                    send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                    return Ok(());
+                }
+            };
             debug!("Dummy user state for address {addr:?} created");
         }
 
