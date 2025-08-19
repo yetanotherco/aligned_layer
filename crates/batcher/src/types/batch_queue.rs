@@ -170,7 +170,9 @@ pub(crate) fn extract_batch_directly(
             let (rejected_entry, rejected_priority) = batch_queue.pop().unwrap();
 
             // Update batch size
-            let verification_data_size = rejected_entry.nonced_verification_data.cbor_size_upper_bound();
+            let verification_data_size = rejected_entry
+                .nonced_verification_data
+                .cbor_size_upper_bound();
             batch_size -= verification_data_size;
 
             rejected_entries.push((rejected_entry, rejected_priority));

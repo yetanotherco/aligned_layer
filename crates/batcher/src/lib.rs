@@ -727,7 +727,12 @@ impl Batcher {
         }
 
         let cached_user_nonce = {
-            let user_states_guard = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
+            let user_states_guard = match timeout(
+                MESSAGE_HANDLER_LOCK_TIMEOUT,
+                self.user_states.read(),
+            )
+            .await
+            {
                 Ok(guard) => guard,
                 Err(_) => {
                     warn!("User states read lock acquisition timed out in handle_get_nonce_for_address_msg");
@@ -861,7 +866,9 @@ impl Batcher {
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
 
-        let is_user_in_state = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
+        let is_user_in_state = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read())
+            .await
+        {
             Ok(user_states_guard) => user_states_guard.contains_key(&addr),
             Err(_) => {
                 warn!("User states read lock acquisition timed out in handle_submit_proof_msg (user check)");
@@ -905,7 +912,9 @@ impl Batcher {
             debug!("Dummy user state for address {addr:?} created");
         }
 
-        let user_state_ref = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
+        let user_state_ref = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read())
+            .await
+        {
             Ok(user_states_guard) => user_states_guard.get(&addr).cloned(),
             Err(_) => {
                 warn!("User states read lock acquisition timed out in handle_submit_proof_msg (user retrieval)");
