@@ -47,6 +47,9 @@ use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
+
+// Message handler lock timeout
+const MESSAGE_HANDLER_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, TransactionSendError};
@@ -417,7 +420,7 @@ impl Batcher {
     where
         F: std::future::Future<Output = T>,
     {
-        match timeout(Duration::from_secs(15), lock_future).await {
+        match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, lock_future).await {
             Ok(result) => Some(result),
             Err(_) => {
                 warn!("User lock acquisition timed out for address {}", addr);
@@ -432,7 +435,7 @@ impl Batcher {
     where
         F: std::future::Future<Output = T>,
     {
-        match timeout(Duration::from_secs(15), lock_future).await {
+        match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, lock_future).await {
             Ok(result) => Some(result),
             Err(_) => {
                 warn!("Batch lock acquisition timed out");
@@ -724,7 +727,16 @@ impl Batcher {
         }
 
         let cached_user_nonce = {
-            let user_state_ref = self.user_states.read().await.get(&address).cloned();
+            let user_states_guard = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
+                Ok(guard) => guard,
+                Err(_) => {
+                    warn!("User states read lock acquisition timed out");
+                    self.metrics.inc_message_handler_user_states_lock_timeouts();
+                    send_message(ws_conn_sink, GetNonceResponseMessage::ServerBusy).await;
+                    return Ok(());
+                }
+            };
+            let user_state_ref = user_states_guard.get(&address).cloned();
             match user_state_ref {
                 Some(user_state_ref) => {
                     let Some(user_state_guard) = self
@@ -849,7 +861,15 @@ impl Batcher {
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
 
-        let is_user_in_state = self.user_states.read().await.contains_key(&addr);
+        let is_user_in_state = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
+            Ok(user_states_guard) => user_states_guard.contains_key(&addr),
+            Err(_) => {
+                warn!("User states read lock acquisition timed out");
+                self.metrics.inc_message_handler_user_states_lock_timeouts();
+                send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                return Ok(());
+            }
+        };
 
         if !is_user_in_state {
             // If the user state was not present, we need to get the nonce from the Ethereum contract
@@ -878,7 +898,16 @@ impl Batcher {
             debug!("Dummy user state for address {addr:?} created");
         }
 
-        let Some(user_state_ref) = self.user_states.read().await.get(&addr).cloned() else {
+        let user_state_ref = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
+            Ok(user_states_guard) => user_states_guard.get(&addr).cloned(),
+            Err(_) => {
+                warn!("User states read lock acquisition timed out");
+                self.metrics.inc_message_handler_user_states_lock_timeouts();
+                send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                return Ok(());
+            }
+        };
+        let Some(user_state_ref) = user_state_ref else {
             error!("This should never happen, user state has previously been inserted if it didn't exist");
             send_message(
                 ws_conn_sink.clone(),
