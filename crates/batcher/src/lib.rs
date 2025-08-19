@@ -1587,7 +1587,7 @@ impl Batcher {
             failed_batch.len()
         );
 
-        let user_states_lock = self.user_states.blocking_write();
+        let user_states_lock = self.user_states.write().await;
         let mut batch_state_lock = self.batch_state.lock().await;
         let mut restored_entries = Vec::new();
 
