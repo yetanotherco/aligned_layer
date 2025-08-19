@@ -98,11 +98,18 @@ pub struct Batcher {
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
 
-    // Shared state (Mutex)
-    /// The general business rule is:
-    /// - User processing can be done in parallel unless a batch creation is happening
-    /// - Batch creation needs to be able to change all the states, so all processing
-    ///   needs to be stopped, and all user_states locks need to be taken
+    // Shared state access:
+    // Two kinds of threads interact with the shared state:
+    //   1. User message processing threads (run in parallel)
+    //   2. Batch creation thread (runs sequentially, includes failure recovery)
+    //
+    // Locking rules:
+    // - To avoid deadlocks, always acquire `user_states` before `batch_state`.
+    // - During failure recovery, restoring a valid state may require breaking this rule:
+    //   additional user locks might be acquired *after* the batch lock.
+    //   (See the `restore` algorithm in the `batch_queue` module.)
+    //
+    // Because of this exception, user message handling uses lock acquisition with timeouts.
     batch_state: Mutex<BatchState>,
 
     /// Flag to indicate when recovery is in progress
