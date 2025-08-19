@@ -730,7 +730,7 @@ impl Batcher {
             let user_states_guard = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
                 Ok(guard) => guard,
                 Err(_) => {
-                    warn!("User states read lock acquisition timed out");
+                    warn!("User states read lock acquisition timed out in handle_get_nonce_for_address_msg");
                     self.metrics.inc_message_handler_user_states_lock_timeouts();
                     send_message(ws_conn_sink, GetNonceResponseMessage::ServerBusy).await;
                     return Ok(());
@@ -864,7 +864,7 @@ impl Batcher {
         let is_user_in_state = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
             Ok(user_states_guard) => user_states_guard.contains_key(&addr),
             Err(_) => {
-                warn!("User states read lock acquisition timed out");
+                warn!("User states read lock acquisition timed out in handle_submit_proof_msg (user check)");
                 self.metrics.inc_message_handler_user_states_lock_timeouts();
                 send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
                 return Ok(());
@@ -896,7 +896,7 @@ impl Batcher {
                     user_states_guard.insert(addr, Arc::new(Mutex::new(dummy_user_state)));
                 }
                 Err(_) => {
-                    warn!("User states write lock acquisition timed out");
+                    warn!("User states write lock acquisition timed out in handle_submit_proof_msg (user creation)");
                     self.metrics.inc_message_handler_user_states_lock_timeouts();
                     send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
                     return Ok(());
@@ -908,7 +908,7 @@ impl Batcher {
         let user_state_ref = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read()).await {
             Ok(user_states_guard) => user_states_guard.get(&addr).cloned(),
             Err(_) => {
-                warn!("User states read lock acquisition timed out");
+                warn!("User states read lock acquisition timed out in handle_submit_proof_msg (user retrieval)");
                 self.metrics.inc_message_handler_user_states_lock_timeouts();
                 send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
                 return Ok(());
