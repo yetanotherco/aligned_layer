@@ -98,11 +98,18 @@ pub struct Batcher {
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
 
-    // Shared state (Mutex)
-    /// The general business rule is:
-    /// - User processing can be done in parallel unless a batch creation is happening
-    /// - Batch creation needs to be able to change all the states, so all processing
-    ///   needs to be stopped, and all user_states locks need to be taken
+    // Shared state access:
+    // Two kinds of threads interact with the shared state:
+    //   1. User message processing threads (run in parallel)
+    //   2. Batch creation thread (runs sequentially, includes failure recovery)
+    //
+    // Locking rules:
+    // - To avoid deadlocks, always acquire `user_states` before `batch_state`.
+    // - During failure recovery, restoring a valid state may require breaking this rule:
+    //   additional user locks might be acquired *after* the batch lock.
+    //   (See the `restore` algorithm in the `batch_queue` module.)
+    //
+    // Because of this exception, user message handling uses lock acquisition with timeouts.
     batch_state: Mutex<BatchState>,
 
     user_states: Arc<RwLock<HashMap<Address, Arc<Mutex<UserState>>>>>,
@@ -845,9 +852,25 @@ impl Batcher {
         let is_user_in_state = self.user_states.read().await.contains_key(&addr);
 
         if !is_user_in_state {
+            // If the user state was not present, we need to get the nonce from the Ethereum contract
+            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+                Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                Err(e) => {
+                    error!(
+                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
+                    );
+                    send_message(
+                        ws_conn_sink.clone(),
+                        SubmitProofResponseMessage::EthRpcError,
+                    )
+                    .await;
+                    self.metrics.user_error(&["eth_rpc_error", ""]);
+                    return Ok(());
+                }
+            };
             debug!("User state for address {addr:?} not found, creating a new one");
             // We add a dummy user state to grab a lock on the user state
-            let dummy_user_state = UserState::new(U256::zero());
+            let dummy_user_state = UserState::new(ethereum_user_nonce);
             self.user_states
                 .write()
                 .await
@@ -874,27 +897,6 @@ impl Batcher {
             send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
             return Ok(());
         };
-
-        // If the user state was not present, we need to get the nonce from the Ethereum contract and update the dummy user state
-        if !is_user_in_state {
-            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
-                Ok(ethereum_user_nonce) => ethereum_user_nonce,
-                Err(e) => {
-                    error!(
-                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
-                    );
-                    send_message(
-                        ws_conn_sink.clone(),
-                        SubmitProofResponseMessage::EthRpcError,
-                    )
-                    .await;
-                    self.metrics.user_error(&["eth_rpc_error", ""]);
-                    return Ok(());
-                }
-            };
-            // Update the dummy user state with the correct nonce
-            user_state_guard.nonce = ethereum_user_nonce;
-        }
 
         // * ---------------------------------------------------*
         // *        Perform validations over user state         *
