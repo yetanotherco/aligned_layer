@@ -1,9 +1,6 @@
-use aligned_sdk::{
-    common::{
-        constants::CBOR_ARRAY_MAX_OVERHEAD,
-        types::{NoncedVerificationData, VerificationDataCommitment},
-    },
-    communication::serialization::cbor_serialize,
+use aligned_sdk::common::{
+    constants::CBOR_ARRAY_MAX_OVERHEAD,
+    types::{NoncedVerificationData, VerificationDataCommitment},
 };
 use ethers::types::{Address, Signature, U256};
 use priority_queue::PriorityQueue;
@@ -124,14 +121,9 @@ pub(crate) type BatchQueue = PriorityQueue<BatchQueueEntry, BatchQueueEntryPrior
 /// Calculates the size of the batch represented by the given batch queue.
 pub(crate) fn calculate_batch_size(batch_queue: &BatchQueue) -> Result<usize, BatcherError> {
     let folded_result = batch_queue.iter().try_fold(0, |acc, (entry, _)| {
-        if let Ok(verification_data_bytes) =
-            cbor_serialize(&entry.nonced_verification_data.verification_data)
-        {
-            let current_batch_size = acc + verification_data_bytes.len();
-            ControlFlow::Continue(current_batch_size)
-        } else {
-            ControlFlow::Break(())
-        }
+        let verification_data_size = entry.nonced_verification_data.cbor_size_upper_bound();
+        let current_batch_size = acc + verification_data_size;
+        ControlFlow::<usize, usize>::Continue(current_batch_size)
     });
 
     if let ControlFlow::Continue(batch_size) = folded_result {
@@ -178,12 +170,7 @@ pub(crate) fn try_build_batch(
             // * Subtract this entry size to the size of the batch size.
             // * Push the current entry to the resulting batch queue.
 
-            // It is safe to call `.unwrap()` here since any serialization error should have been caught
-            // when calculating the total size of the batch with the `calculate_batch_size` function
-            let verification_data_size =
-                cbor_serialize(&entry.nonced_verification_data.verification_data)
-                    .unwrap()
-                    .len();
+            let verification_data_size = entry.nonced_verification_data.cbor_size_upper_bound();
             batch_size -= verification_data_size;
 
             finalized_batch.pop();

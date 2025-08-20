@@ -20,7 +20,12 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
                 warn!("Trying to verify SP1 proof but ELF was not provided. Returning invalid");
                 return false;
             };
-            verify_sp1_proof(verification_data.proof.as_slice(), elf.as_slice())
+            let pub_inputs = &verification_data.pub_input.clone().unwrap_or_default();
+            verify_sp1_proof(
+                verification_data.proof.as_slice(),
+                pub_inputs.as_slice(),
+                elf.as_slice(),
+            )
         }
         ProvingSystemId::Risc0 => {
             let Some(image_id_slice) = &verification_data.vm_program_code else {

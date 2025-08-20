@@ -7,7 +7,7 @@ use std::str::FromStr;
 use aligned_sdk::common::errors::SubmitError;
 use aligned_sdk::common::types::Network;
 use aligned_sdk::common::types::{AlignedVerificationData, ProvingSystemId, VerificationData};
-use aligned_sdk::verification_layer::{get_nonce_from_ethereum, submit_and_wait_verification};
+use aligned_sdk::verification_layer::{get_nonce_from_batcher, submit_and_wait_verification};
 use clap::Parser;
 use clap::ValueEnum;
 use env_logger::Env;
@@ -20,11 +20,11 @@ use log::info;
 use serde_json::json;
 
 const PROOF_FILE_RISC0_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.proof";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof";
 const PUB_INPUT_RISC0_FILE_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_0.pub";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub";
 const IMAGE_ID_RISC0_PATH: &str =
-    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id_2_0.bin";
+    "../risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_id.bin";
 const PROOF_SP1_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.proof";
 const PUB_INPUT_SP1_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.pub";
 const ELF_FILE_PATH: &str = "../sp1/fibonacci/sp1_fibonacci.elf";
@@ -215,7 +215,7 @@ async fn main() -> Result<(), SubmitError> {
     // Set a fee of 0.01 Eth
     let max_fee = U256::from(100_000_000_000_000u128);
 
-    let nonce = get_nonce_from_ethereum(&args.rpc_url, wallet.address(), network.clone())
+    let nonce = get_nonce_from_batcher(network.clone(), wallet.address())
         .await
         .expect("Failed to get next nonce");
 

@@ -541,33 +541,33 @@ async fn main() -> Result<(), AlignedError> {
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
 
+            let used_network: Network = submit_args.network.clone().into();
+
             let nonce = match &submit_args.nonce {
                 Some(nonce) => U256::from_dec_str(nonce).map_err(|_| SubmitError::InvalidNonce)?,
-                None => {
-                    get_nonce_from_batcher(submit_args.network.clone().into(), wallet.address())
-                        .await
-                        .map_err(|e| match e {
-                            aligned_sdk::common::errors::GetNonceError::EthRpcError(e) => {
-                                SubmitError::GetNonceError(e)
-                            }
-                            aligned_sdk::common::errors::GetNonceError::ConnectionFailed(e) => {
-                                SubmitError::GenericError(e)
-                            }
-                            aligned_sdk::common::errors::GetNonceError::InvalidRequest(e) => {
-                                SubmitError::GenericError(e)
-                            }
-                            aligned_sdk::common::errors::GetNonceError::SerializationError(e) => {
-                                SubmitError::GenericError(e)
-                            }
-                            aligned_sdk::common::errors::GetNonceError::ProtocolMismatch {
-                                current,
-                                expected,
-                            } => SubmitError::ProtocolVersionMismatch { current, expected },
-                            aligned_sdk::common::errors::GetNonceError::UnexpectedResponse(e) => {
-                                SubmitError::UnexpectedBatcherResponse(e)
-                            }
-                        })?
-                }
+                None => get_nonce_from_batcher(used_network.clone(), wallet.address())
+                    .await
+                    .map_err(|e| match e {
+                        aligned_sdk::common::errors::GetNonceError::EthRpcError(e) => {
+                            SubmitError::GetNonceError(e)
+                        }
+                        aligned_sdk::common::errors::GetNonceError::ConnectionFailed(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::common::errors::GetNonceError::InvalidRequest(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::common::errors::GetNonceError::SerializationError(e) => {
+                            SubmitError::GenericError(e)
+                        }
+                        aligned_sdk::common::errors::GetNonceError::ProtocolMismatch {
+                            current,
+                            expected,
+                        } => SubmitError::ProtocolVersionMismatch { current, expected },
+                        aligned_sdk::common::errors::GetNonceError::UnexpectedResponse(e) => {
+                            SubmitError::UnexpectedBatcherResponse(e)
+                        }
+                    })?,
             };
 
             warn!("Nonce: {nonce}");
@@ -587,10 +587,10 @@ async fn main() -> Result<(), AlignedError> {
             info!("Submitting proofs to the Aligned batcher...");
 
             let aligned_verification_data_vec = submit_multiple(
-                submit_args.network.clone().into(),
+                used_network.clone(),
                 &verification_data_arr,
                 max_fee_wei,
-                wallet.clone(),
+                wallet,
                 nonce,
             )
             .await;
@@ -625,7 +625,7 @@ async fn main() -> Result<(), AlignedError> {
             }
 
             for batch_merkle_root in unique_batch_merkle_roots {
-                let base_url = match submit_args.network.clone().into() {
+                let base_url = match used_network {
                     Network::Holesky => "https://holesky.explorer.alignedlayer.com/batches/0x",
                     Network::HoleskyStage => "https://stage.explorer.alignedlayer.com/batches/0x",
                     Network::Mainnet => "https://explorer.alignedlayer.com/batches/0x",
@@ -725,7 +725,7 @@ async fn main() -> Result<(), AlignedError> {
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
 
-            let client = SignerMiddleware::new(eth_rpc_provider.clone(), wallet.clone());
+            let client = SignerMiddleware::new(eth_rpc_provider, wallet);
 
             match deposit_to_aligned(amount_wei, client, deposit_to_batcher_args.network.into())
                 .await
@@ -777,8 +777,7 @@ async fn main() -> Result<(), AlignedError> {
         }
         GetUserNonceFromEthereum(args) => {
             let address = H160::from_str(&args.address).unwrap();
-            let network = args.network.into();
-            match get_nonce_from_ethereum(&args.eth_rpc_url, address, network).await {
+            match get_nonce_from_ethereum(&args.eth_rpc_url, address, args.network.into()).await {
                 Ok(nonce) => {
                     info!(
                         "Nonce for address {} in BatcherPaymentService contract is {}",
@@ -878,7 +877,7 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
     // Read proof file
     let proof = read_file(args.proof_file_name.clone())?;
 
-    let mut pub_input: Option<Vec<u8>> = None;
+    let pub_input: Option<Vec<u8>>;
     let mut verification_key: Option<Vec<u8>> = None;
     let mut vm_program_code: Option<Vec<u8>> = None;
 
@@ -888,6 +887,11 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
                 "--vm_program",
                 args.vm_program_code_file_name.clone(),
             )?);
+            pub_input = args
+                .pub_input_file_name
+                .clone()
+                .map(read_file)
+                .transpose()?;
         }
         ProvingSystemId::Risc0 => {
             vm_program_code = Some(read_file_option(

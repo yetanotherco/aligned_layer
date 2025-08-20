@@ -6,8 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	rapidsnark_types "github.com/iden3/go-rapidsnark/types"
-	"github.com/iden3/go-rapidsnark/verifier"
 	"log"
 	"math/big"
 	"net/http"
@@ -15,6 +13,9 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	rapidsnark_types "github.com/iden3/go-rapidsnark/types"
+	"github.com/iden3/go-rapidsnark/verifier"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
@@ -64,8 +65,10 @@ type Operator struct {
 }
 
 const (
-	BatchDownloadTimeout    = 1 * time.Minute
-	BatchDownloadMaxRetries = 3
+	// This time out will even kill the retries, so it should be enough
+	// for them to be completed in most cases
+	BatchDownloadTimeout    = 3 * time.Minute
+	BatchDownloadMaxRetries = 4
 	BatchDownloadRetryDelay = 5 * time.Second
 	UnverifiedBatchOffset   = 100
 )
@@ -349,7 +352,7 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
 	defer cancel()
 
-	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
+	verificationDataBatch, err := o.getBatchFromDataServiceWithMultipleURLs(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
@@ -430,7 +433,7 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
 	defer cancel()
 
-	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
+	verificationDataBatch, err := o.getBatchFromDataServiceWithMultipleURLs(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
@@ -507,7 +510,7 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		results <- verificationResult
 
 	case common.SP1:
-		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.VmProgramCode)
+		verificationResult, err := sp1.VerifySp1Proof(verificationData.Proof, verificationData.PubInput, verificationData.VmProgramCode)
 		o.Logger.Infof("SP1 proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, err, "SP1 proof verification")
 

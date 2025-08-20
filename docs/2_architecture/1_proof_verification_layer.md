@@ -1,6 +1,6 @@
-## Fast mode in a nutshell
+## Aligned's Proof Verification Layer in a nutshell
 
-The fast mode works using a subset of Ethereum’s validators via restaking.
+Aligned's Proof Verification Layer works using a subset of Ethereum’s validators via restaking.
 Validators (also called Operators) receive proofs, verify them using the verification code written in Rust or another
 higher-level language, and sign messages with BLS signatures.
 If a two-thirds majority agrees, the results are posted to Ethereum.
@@ -9,7 +9,7 @@ If a two-thirds majority agrees, the results are posted to Ethereum.
 
 The proof submission can be simplified as follows:
 
-![Figure 1: Simplified Architecture.png](../images/simplified_architecture.png)
+![Figure 1: Simplified Architecture](../images/simplified_architecture.png)
 
 1. The users submit proofs to the batcher through the CLI or SDK.
 2. The batcher accumulates proofs, and then sends the batch to some Data Service and posts the merkle root and data to
@@ -23,7 +23,7 @@ The proof submission can be simplified as follows:
 
 Aligned’s architecture is shown in the figure below:
 
-![Figure 2: Architecture fast mode](../images/aligned_architecture.png)
+![Figure 2: Proof Verification Layer Architecture](../images/aligned_architecture.png)
 
 The validators/AVS operators are the ones responsible for proof verification.
 They fetch the proof data from the data service and verify it using the different proving systems supported by Aligned.

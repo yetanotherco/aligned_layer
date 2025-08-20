@@ -34,7 +34,8 @@ if [[ $PROOF_TYPE == "sp1" ]]; then
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
-    --random_address \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
+		--random_address \
     --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
 		--network $NETWORK
@@ -64,9 +65,9 @@ elif [[ $PROOF_TYPE == "gnark_plonk" ]]; then
 elif [[ $PROOF_TYPE == "risc0" ]]; then
 	aligned submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
-    --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
-    --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
+    --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
+    --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
 		--random_address \
     --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \

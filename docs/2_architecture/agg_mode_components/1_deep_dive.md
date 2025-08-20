@@ -1,6 +1,6 @@
-# Aggregation Mode Deep Dive
+# Proof Aggregation Service Deep Dive
 
-The Aggregation Mode runs **once every 24 hours** and performs the following steps:
+The Proof Aggregation Service runs **once every 24 hours** and performs the following steps:
 
 1. **Fetch Proofs from the Verification Layer**  
    Queries `NewBatchV3` events from the `AlignedLayerServiceManager` and downloads the batches from `S3`, starting from the last processed block of the previous run.
@@ -18,7 +18,7 @@ The Aggregation Mode runs **once every 24 hours** and performs the following ste
    The final aggregated proof and its blob are sent to the `AlignedProofAggregationService` contract for verification.
 
 > [Note]
-> Currently if you want your proof to be verified in the `AggregationMode` you need to submit it via the `VerificationLayer`. In the future, users will be able to decide if they want to use any of the modes in particular or both of them
+> Currently if you want your proof to be verified in the `AggregationMode` you need to submit it via the `VerificationLayer`. In the future, users will have the option to choose whether they want to continue using this method or switch to using only the Aggregation service.
 
 ## Aggregators and Supported Proof Types
 

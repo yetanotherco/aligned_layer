@@ -7,6 +7,13 @@ services:
     profiles:
       - base
 
+  localstack2:
+    extends:
+      file: storage-docker-compose.yaml
+      service: localstack2
+    profiles:
+      - base
+
   anvil:
     image: ghcr.io/yetanotherco/aligned_layer/anvil:latest
     build:
@@ -110,6 +117,12 @@ services:
       AWS_BUCKET_NAME: aligned.storage
       UPLOAD_ENDPOINT: http://localstack:4566
       DOWNLOAD_ENDPOINT: http://localstack:4566/aligned.storage
+      AWS_SECRET_ACCESS_KEY_SECONDARY: test2
+      AWS_REGION_SECONDARY: us-west-1
+      AWS_ACCESS_KEY_ID_SECONDARY: test2
+      AWS_BUCKET_NAME_SECONDARY: aligned.storage
+      UPLOAD_ENDPOINT_SECONDARY: http://localstack2:4567
+      DOWNLOAD_ENDPOINT_SECONDARY: http://localstack2:4567/aligned.storage.secondary
       RUST_LOG: info
       RUST_BACKTRACE: 1
     build:

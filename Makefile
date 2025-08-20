@@ -19,7 +19,7 @@ CONFIG_FILE?=config-files/config.yaml
 export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.17.0
+OPERATOR_VERSION=v0.18.0
 EIGEN_SDK_GO_VERSION_DEVNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
@@ -292,13 +292,13 @@ verify_aggregated_proof_risc0:
 		--network $(NETWORK) \
 		--from-block $(FROM_BLOCK) \
 		--proving_system Risc0 \
-		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
-		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
+		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
+		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
 		--beacon_url $(BEACON_URL) \
 		--rpc_url $(RPC_URL)
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
-	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator --locked
+	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator_gpu --locked
 
 proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
 	@cd aggregation_mode && ./scripts/build_programs.sh
@@ -381,7 +381,7 @@ operator_update: ## Update the Operator to the latest version and build it. Para
 	$(GET_SDK_VERSION)
 	@echo "Updating Operator..."
 	@./scripts/fetch_latest_release.sh
-	@make build_operator
+	@make operator_build
 	@./operator/build/aligned-operator --version
 
 operator_valid_marshall_fuzz_macos:
@@ -515,6 +515,9 @@ aligned_uninstall: ## Uninstall Aligned CLI
 aligned_install_compiling: ## Install Aligned CLI by compiling from source
 	@cargo install --path crates/cli
 
+build_batcher_client:
+	@cd crates/cli && cargo build --release
+
 __SEND_PROOFS__: ## ____
 
 crates/target/release/aligned:
@@ -526,6 +529,7 @@ batcher_send_sp1_task: ## Send a SP1 fibonacci proof to Batcher. Parameters: RPC
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -536,6 +540,7 @@ batcher_send_sp1_burst: ## Send a burst of SP1 fibonacci proofs to Batcher. Para
 		--proving_system SP1 \
 		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
@@ -549,9 +554,9 @@ batcher_send_risc0_task: ## Send a Risc0 fibonacci proof to Batcher. Parameters:
 	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -560,8 +565,8 @@ batcher_send_risc0_task_no_pub_input: ## Send a Risc0 proof without public input
 	@echo "Sending Risc0 no pub input proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_1_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_id_2_1_0.bin \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_2_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_id_2_2_0.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -570,9 +575,9 @@ batcher_send_risc0_burst: ## Send a burst of Risc0 fibonacci proofs to Batcher. 
 	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
         --repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
@@ -759,6 +764,10 @@ __GENERATE_PROOFS__: ## ____
 generate_sp1_fibonacci_proof: ## Run the SP1 Fibonacci proof generator script
 	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
+
+generate_sp1_fibonacci_proof_no_pub_input: ## Run the SP1 Fibonacci proof generator script with empty journal
+	@cd scripts/test_files/sp1/no_public_inputs/script && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF with no public inputs generated in scripts/test_files/sp1 folder"
 
 generate_risc_zero_fibonacci_proof: ## Run the Risc0 Fibonacci proof generator script
 	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
@@ -1070,6 +1079,7 @@ docker_batcher_send_sp1_burst:
               --proving_system SP1 \
               --proof ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
               --vm_program ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+              --public_input ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -1080,9 +1090,9 @@ docker_batcher_send_risc0_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system Risc0 \
-              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.proof \
-              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_1_0.bin \
-              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_1_0.pub \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \

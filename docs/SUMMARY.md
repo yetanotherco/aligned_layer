@@ -12,15 +12,16 @@
 
 * [Supported Verifiers](2_architecture/0_supported_verifiers.md)
 * [Key Terms](2_architecture/0b_key_terms.md)
-* [Fast mode](2_architecture/1_fast_mode.md)
+* [Proof Verification Layer](2_architecture/1_proof_verification_layer.md)
     * [Batcher](./2_architecture/components/1_batcher.md)
     * [Payment Service Contract](./2_architecture/components/2_payment_service_contract.md)
     * [Service Manager Contract](./2_architecture/components/3_service_manager_contract.md)
     * [Operator](./2_architecture/components/4_operator.md)
     * [Aggregator](./2_architecture/components/5_aggregator.md)
     * [Explorer](./2_architecture/components/6_explorer.md)
-* [Aggregation mode](2_architecture/2_aggregation_mode.md)
+* [Proof Aggregation Service](2_architecture/2_aggregation_mode.md)
     * [Deep Dive](2_architecture/agg_mode_components/1_deep_dive.md)
+* [Rollup-as-a-Service Platform](3_raas_platform.md)
 
 ## Guides
 
@@ -28,7 +29,7 @@
 * [Build your first Aligned Application](3_guides/2_build_your_first_aligned_application.md)
     * [Modify ZkQuiz Questions](3_guides/2.2_modify_zkquiz_questions.md)
 * [Validating public input](3_guides/3_validating_public_input.md)
-* [Aggregation Mode](3_guides/3.1_aggregation_mode.md)
+* [Proof Aggregation Service](3_guides/3.1_aggregation_mode.md)
 * [SDK Intro](3_guides/1_SDK_how_to.md)
 * [SDK API Reference](3_guides/1.2_SDK_api_reference.md)
 * [Generating proofs for Aligned](3_guides/4_generating_proofs.md)
@@ -52,7 +53,7 @@
 
 * [Mainnet Explorer](https://explorer.alignedlayer.com)
 * [Holesky Explorer](https://holesky.explorer.alignedlayer.com)
-* [All the proof aggregation solutions will use RISC-V zkvms](https://blog.alignedlayer.com/all-the-proof-aggregation-solutions-will-use-risc-v-zkvms/)
+* [All the proof aggregation solutions will use RISC-V zkVMs](https://blog.alignedlayer.com/all-the-proof-aggregation-solutions-will-use-risc-v-zkvms/)
 * [Manifesto](https://blog.alignedlayer.com/aligned-manifesto/)
 
 ## Socials

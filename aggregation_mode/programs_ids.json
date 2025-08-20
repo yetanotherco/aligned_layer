@@ -1,7 +1,7 @@
 {
-  "risc0_chunk_aggregator_image_id": "0xc898d738ac9d00f9ae46452b737f40926ddd67d595f3548aeb378cd43331e5a5",
-  "risc0_user_proofs_aggregator_image_id": "0xaf91ee2ba2caa0bf068f758a74fc8dbe8ecf37f4c3618884251d7b8857812e85",
-  "risc0_user_proofs_aggregator_image_id_bytes": "[175, 145, 238, 43, 162, 202, 160, 191, 6, 143, 117, 138, 116, 252, 141, 190, 142, 207, 55, 244, 195, 97, 136, 132, 37, 29, 123, 136, 87, 129, 46, 133]",
+  "risc0_chunk_aggregator_image_id": "0x4121299f6bc60c97cee65caf19677339c07134d14807b01fe88e4d42789d4ef4",
+  "risc0_user_proofs_aggregator_image_id": "0xa5ec99b8eb45d8eaf08ab5e891c82bfb9d701249f14e4db412bb585ccfc81001",
+  "risc0_user_proofs_aggregator_image_id_bytes": "[165, 236, 153, 184, 235, 69, 216, 234, 240, 138, 181, 232, 145, 200, 43, 251, 157, 112, 18, 73, 241, 78, 77, 180, 18, 187, 88, 92, 207, 200, 16, 1]",
   "sp1_chunk_aggregator_vk_hash": "0x00856d1f422b7919a4c37d912033a3a8404d2a19688769ad7b6095e16b3d7448",
   "sp1_user_proofs_aggregator_vk_hash": "0x00511b21fa98ed8cd719c1fa227b7c67635ca2fae4513da6a6c76453ba3dece8",
   "sp1_user_proofs_aggregator_vk_hash_words": "[680366333, 641426229, 1664630596, 666355318, 451221463, 289732250, 1301203111, 977136872]"

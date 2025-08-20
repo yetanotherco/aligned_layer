@@ -8,9 +8,11 @@ CURRENT_TAG=$(curl -s -L \
 
 SP1_ELF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/$CURRENT_TAG/scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf"
 SP1_PROOF_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/$CURRENT_TAG/scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof"
+SP1_PUBLIC_INPUT_URL="https://raw.githubusercontent.com/yetanotherco/aligned_layer/$CURRENT_TAG/scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub"
 
 SP1_ELF_NAME="sp1_fibonacci_5_0_0.elf"
 SP1_PROOF_NAME="sp1_fibonacci_5_0_0.proof"
+SP1_PUBLIC_INPUT_NAME="sp1_fibonacci_5_0_0.pub"
 
 BASE_DIR=$HOME
 ALIGNED_DIR="${ALIGNED_DIR-"$BASE_DIR/.aligned"}"
@@ -36,7 +38,17 @@ else
     exit 1
 fi
 
+echo "Downloading SP1 public inputs file..."
+
+if curl -sSf -L "$SP1_PUBLIC_INPUT_NAME" -o "$ALIGNED_TEST_FILES_DIR/$SP1_PUBLIC_INPUT_NAME"; then
+    echo "SP1 public inputs downloaded successful"
+else
+    echo "Error: Failed to downloaded $SP1_PUBLIC_INPUT_NAME"
+    exit 1
+fi
+
 chmod +x "$ALIGNED_TEST_FILES_DIR/$SP1_ELF_NAME"
 chmod +x "$ALIGNED_TEST_FILES_DIR/$SP1_PROOF_NAME"
+chmod +x "$ALIGNED_TEST_FILES_DIR/$SP1_PUBLIC_INPUT_NAME"
 
-echo "SP1 ELF and proof files downloaded successfully in $ALIGNED_TEST_FILES_DIR"
+echo "SP1 ELF, proof and public inputs files downloaded successfully in $ALIGNED_TEST_FILES_DIR"

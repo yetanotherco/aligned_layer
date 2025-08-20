@@ -83,9 +83,6 @@ Block: 2963688
 Paid: 0.000727925005095475 ETH (727925 gas * 1.000000007 gwei)
 ```
 
-> [NOTE]  
-> The `Contract Address` listed above corresponds to a current valid deployment of the examples contract on the `holesky` testnet.
-
 save the contract address for the next command.
 
 4. `make verify_sp1_batch_inclusion_devnet FIBONACCI_VALIDATOR_ADDRESS=<FIBONACCI_VALIDATOR_ADDRESS> DATA_FILE_NAME=<DATA_FILE_NAME>`
