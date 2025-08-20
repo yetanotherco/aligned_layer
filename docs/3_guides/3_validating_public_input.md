@@ -7,7 +7,7 @@ This guide demonstrates how to validate Risc0 and SP1 proofs using the Aligned S
 In this case, the Fibonacci number to be calculated is **500** and the last two numbers of the sequence modulo 7919 are **1268** and **1926**.
 
 ## Requirements
-- [SP1](https://docs.succinct.xyz/getting-started/install.html)
+- [SP1](https://docs.succinct.xyz/docs/sp1/getting-started/install)
 - [Risc0](https://dev.risczero.com/api/zkvm/install)
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
@@ -29,7 +29,7 @@ For `SP1`, the Fibonacci program is located in `examples/validating-public-input
 
 > [!IMPORTANT]
 > To generate the proof ensure you have [docker](https://www.docker.com/get-started/) installed and the docker daemon running.
-> This is necessary to ensure deterministic builds of the binary we want to generate a proof of. If not used, builds may differ depending on the system you are running on. To know more about this, check [this link](https://dev.risczero.com/terminology#deterministic-builds) from RiscZero docs or [this](https://docs.succinct.xyz/writing-programs/compiling.html#advanced-build-options-1) from SP1.
+> This is necessary to ensure deterministic builds of the binary we want to generate a proof of. If not used, builds may differ depending on the system you are running on. To know more about this, check [this link](https://dev.risczero.com/terminology#deterministic-builds) from RiscZero docs or [this](https://docs.succinct.xyz/docs/sp1/writing-programs/compiling) from SP1.
 
 To submit proofs to **Aligned** and get them verified, you first need to generate those proofs. Every proving system has its own method for generating proofs.
 

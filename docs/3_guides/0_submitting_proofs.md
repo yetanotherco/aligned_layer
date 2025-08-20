@@ -61,7 +61,7 @@ This will create the ECDSA keystore file in `~/.aligned_keystore/keystore0`
 
 ### Alternative 2: With EigenLayer CLI
 
-- If you have the EigenLayer CLI installed, the keystore can be generated following [these](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation#import-keys) instructions. The key will be stored into `~/.eigenlayer/operator_keys`.
+- If you have the EigenLayer CLI installed, the keystore can be generated following [these](https://docs.eigencloud.xyz/products/eigenlayer/operators/howto/operator-installation) instructions. The key will be stored into `~/.eigenlayer/operator_keys`.
 
 ## 2. Send funds to Aligned
 
