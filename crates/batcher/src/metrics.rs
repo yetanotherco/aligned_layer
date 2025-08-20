@@ -29,6 +29,7 @@ pub struct BatcherMetrics {
     pub batcher_gas_cost_cancel_task_total: GenericCounter<AtomicF64>,
     pub message_handler_user_lock_timeouts: IntCounter,
     pub message_handler_batch_lock_timeouts: IntCounter,
+    pub message_handler_user_states_lock_timeouts: IntCounter,
     pub available_data_services: IntGauge,
 }
 
@@ -97,6 +98,11 @@ impl BatcherMetrics {
             "Message Handler Batch Lock Timeouts"
         ))?;
 
+        let message_handler_user_states_lock_timeouts = register_int_counter!(opts!(
+            "message_handler_user_states_lock_timeouts_count",
+            "Message Handler User States Lock Timeouts"
+        ))?;
+
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
         registry.register(Box::new(sent_batches.clone()))?;
@@ -115,6 +121,7 @@ impl BatcherMetrics {
         registry.register(Box::new(batcher_gas_cost_cancel_task_total.clone()))?;
         registry.register(Box::new(message_handler_user_lock_timeouts.clone()))?;
         registry.register(Box::new(message_handler_batch_lock_timeouts.clone()))?;
+        registry.register(Box::new(message_handler_user_states_lock_timeouts.clone()))?;
         registry.register(Box::new(available_data_services.clone()))?;
 
         let metrics_route = warp::path!("metrics")
@@ -146,6 +153,7 @@ impl BatcherMetrics {
             batcher_gas_cost_cancel_task_total,
             message_handler_user_lock_timeouts,
             message_handler_batch_lock_timeouts,
+            message_handler_user_states_lock_timeouts,
             available_data_services,
         })
     }
@@ -187,5 +195,9 @@ impl BatcherMetrics {
 
     pub fn inc_message_handler_batch_lock_timeout(&self) {
         self.message_handler_batch_lock_timeouts.inc();
+    }
+
+    pub fn inc_message_handler_user_states_lock_timeouts(&self) {
+        self.message_handler_user_states_lock_timeouts.inc();
     }
 }

@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 4,
+  "id": 2,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -4018,9 +4018,26 @@
           "range": true,
           "refId": "B",
           "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": " floor(increase(message_handler_user_states_lock_timeouts_count{job=\"aligned-batcher\"}[$__range]))",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C",
+          "useBackend": false
         }
       ],
-      "title": "Message Handler - (Batch | User) Lock Timeout",
+      "title": "Message Handler - (Batch | User | User State Map) Lock Timeout",
       "type": "stat"
     },
     {
@@ -4287,7 +4304,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4418,7 +4436,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4483,6 +4502,6 @@
   "timezone": "browser",
   "title": "System Data",
   "uid": "aggregator",
-  "version": 20,
+  "version": 9,
   "weekStart": ""
 }

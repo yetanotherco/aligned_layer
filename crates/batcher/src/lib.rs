@@ -47,6 +47,9 @@ use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use log::{debug, error, info, warn};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, MutexGuard, RwLock};
+
+// Message handler lock timeout
+const MESSAGE_HANDLER_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, TransactionSendError};
@@ -112,11 +115,6 @@ pub struct Batcher {
     // Because of this exception, user message handling uses lock acquisition with timeouts.
     batch_state: Mutex<BatchState>,
 
-    /// Flag to indicate when recovery is in progress
-    /// When true, message handlers will return ServerBusy responses
-    /// It's used a way to "lock" all the user_states at the same time
-    /// If one needed is taken in the handle message it will time out
-    is_recovering_from_submission_failure: RwLock<bool>,
     user_states: Arc<RwLock<HashMap<Address, Arc<Mutex<UserState>>>>>,
 
     last_uploaded_batch_block: Mutex<u64>,
@@ -335,7 +333,6 @@ impl Batcher {
             batch_state: Mutex::new(batch_state),
             user_states,
             disabled_verifiers: Mutex::new(disabled_verifiers),
-            is_recovering_from_submission_failure: RwLock::new(false),
             metrics,
             telemetry,
         }
@@ -423,7 +420,7 @@ impl Batcher {
     where
         F: std::future::Future<Output = T>,
     {
-        match timeout(Duration::from_secs(15), lock_future).await {
+        match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, lock_future).await {
             Ok(result) => Some(result),
             Err(_) => {
                 warn!("User lock acquisition timed out for address {}", addr);
@@ -438,7 +435,7 @@ impl Batcher {
     where
         F: std::future::Future<Output = T>,
     {
-        match timeout(Duration::from_secs(15), lock_future).await {
+        match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, lock_future).await {
             Ok(result) => Some(result),
             Err(_) => {
                 warn!("Batch lock acquisition timed out");
@@ -709,17 +706,6 @@ impl Batcher {
         mut address: Address,
         ws_conn_sink: WsMessageSink,
     ) -> Result<(), Error> {
-        // Check if restoration is in progress
-        if *self.is_recovering_from_submission_failure.read().await {
-            warn!(
-                "Rejecting nonce request from {} during restoration",
-                address
-            );
-            let response = GetNonceResponseMessage::ServerBusy;
-            send_message(ws_conn_sink, response).await;
-            return Ok(());
-        }
-
         // If the address is not paying, we will return the nonce of the aligned_payment_address
         if !self.has_to_pay(&address) {
             info!("Handling nonpaying message");
@@ -741,7 +727,21 @@ impl Batcher {
         }
 
         let cached_user_nonce = {
-            let user_state_ref = self.user_states.read().await.get(&address).cloned();
+            let user_states_guard = match timeout(
+                MESSAGE_HANDLER_LOCK_TIMEOUT,
+                self.user_states.read(),
+            )
+            .await
+            {
+                Ok(guard) => guard,
+                Err(_) => {
+                    warn!("User states read lock acquisition timed out in handle_get_nonce_for_address_msg");
+                    self.metrics.inc_message_handler_user_states_lock_timeouts();
+                    send_message(ws_conn_sink, GetNonceResponseMessage::ServerBusy).await;
+                    return Ok(());
+                }
+            };
+            let user_state_ref = user_states_guard.get(&address).cloned();
             match user_state_ref {
                 Some(user_state_ref) => {
                     let Some(user_state_guard) = self
@@ -803,21 +803,6 @@ impl Batcher {
         let msg_nonce = client_msg.verification_data.nonce;
         debug!("Received message with nonce: {msg_nonce:?}");
         self.metrics.received_proofs.inc();
-
-        // Check if restoration is in progress
-        if *self.is_recovering_from_submission_failure.read().await {
-            warn!(
-                "Rejecting proof submission from {} during restoration (nonce: {})",
-                client_msg
-                    .verification_data
-                    .verification_data
-                    .proof_generator_addr,
-                msg_nonce
-            );
-            let response = SubmitProofResponseMessage::ServerBusy;
-            send_message(ws_conn_sink, response).await;
-            return Ok(());
-        }
 
         // * ---------------------------------------------------*
         // *        Perform validations over the message        *
@@ -881,7 +866,17 @@ impl Batcher {
         // If it was not present, then the user nonce is queried to the Aligned contract.
         // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
 
-        let is_user_in_state = self.user_states.read().await.contains_key(&addr);
+        let is_user_in_state = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read())
+            .await
+        {
+            Ok(user_states_guard) => user_states_guard.contains_key(&addr),
+            Err(_) => {
+                warn!("User states read lock acquisition timed out in handle_submit_proof_msg (user check)");
+                self.metrics.inc_message_handler_user_states_lock_timeouts();
+                send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                return Ok(());
+            }
+        };
 
         if !is_user_in_state {
             // If the user state was not present, we need to get the nonce from the Ethereum contract
@@ -903,14 +898,32 @@ impl Batcher {
             debug!("User state for address {addr:?} not found, creating a new one");
             // We add a dummy user state to grab a lock on the user state
             let dummy_user_state = UserState::new(ethereum_user_nonce);
-            self.user_states
-                .write()
-                .await
-                .insert(addr, Arc::new(Mutex::new(dummy_user_state)));
+            match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.write()).await {
+                Ok(mut user_states_guard) => {
+                    user_states_guard.insert(addr, Arc::new(Mutex::new(dummy_user_state)));
+                }
+                Err(_) => {
+                    warn!("User states write lock acquisition timed out in handle_submit_proof_msg (user creation)");
+                    self.metrics.inc_message_handler_user_states_lock_timeouts();
+                    send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                    return Ok(());
+                }
+            };
             debug!("Dummy user state for address {addr:?} created");
         }
 
-        let Some(user_state_ref) = self.user_states.read().await.get(&addr).cloned() else {
+        let user_state_ref = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read())
+            .await
+        {
+            Ok(user_states_guard) => user_states_guard.get(&addr).cloned(),
+            Err(_) => {
+                warn!("User states read lock acquisition timed out in handle_submit_proof_msg (user retrieval)");
+                self.metrics.inc_message_handler_user_states_lock_timeouts();
+                send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                return Ok(());
+            }
+        };
+        let Some(user_state_ref) = user_state_ref else {
             error!("This should never happen, user state has previously been inserted if it didn't exist");
             send_message(
                 ws_conn_sink.clone(),
@@ -1621,9 +1634,7 @@ impl Batcher {
             failed_batch.len()
         );
 
-        // Set restoration flag to stop handling new user messages
-        *self.is_recovering_from_submission_failure.write().await = true;
-
+        let user_states_lock = self.user_states.write().await;
         let mut batch_state_lock = self.batch_state.lock().await;
         let mut restored_entries = Vec::new();
 
@@ -1689,8 +1700,8 @@ impl Batcher {
         // Only auxiliary user data (max_min_fee) can be "inconsistent"
         // but we can keep updating it without locking the queue
         info!("Queue recovered from submission failure, resuming user processing and updating user states metadata");
+        std::mem::drop(user_states_lock);
         std::mem::drop(batch_state_lock);
-        *self.is_recovering_from_submission_failure.write().await = false;
 
         info!("Updating user states after proof restoration...");
         if let Err(e) = self
