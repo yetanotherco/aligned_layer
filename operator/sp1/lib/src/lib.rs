@@ -3,7 +3,11 @@ use log::{error, warn};
 use sp1_sdk::{ProverClient, EnvProver, SP1ProofWithPublicValues};
 
 lazy_static! {
-    static ref PROVER_CLIENT: EnvProver = ProverClient::from_env();
+    static ref PROVER_CLIENT: EnvProver = unsafe{
+        std::env::set_var("SP1_DISABLE_PROGRAM_CACHE", "1");
+        std::env::set_var("PROVER_CORE_CACHE_SIZE", "1");
+        ProverClient::from_env()
+    };
 }
 
 fn inner_verify_sp1_proof_ffi(
