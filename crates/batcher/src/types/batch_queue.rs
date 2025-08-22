@@ -885,8 +885,8 @@ mod test {
 
     #[test]
     fn test_batch_size_limit_enforcement_with_real_sp1_proofs() {
-        use aligned_sdk::communication::serialization::cbor_serialize;
         use aligned_sdk::common::types::VerificationData;
+        use aligned_sdk::communication::serialization::cbor_serialize;
         use std::fs;
 
         let proof_generator_addr = Address::random();
@@ -934,7 +934,7 @@ mod test {
         for i in 0..10 {
             let sender_addr = Address::random();
             let nonce = U256::from(i + 1);
-            
+
             let nonced_verification_data = NoncedVerificationData::new(
                 verification_data.clone(),
                 nonce,
@@ -957,14 +957,15 @@ mod test {
         // Test with a 5MB batch size limit
         let batch_size_limit = 5_000_000; // 5MB
         let gas_price = U256::from(1);
-        
+
         let finalized_batch = try_build_batch(
             batch_queue.clone(),
             gas_price,
             batch_size_limit,
             50, // max proof qty
             DEFAULT_CONSTANT_GAS_COST,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Verify the finalized batch respects the size limit
         let finalized_verification_data: Vec<VerificationData> = finalized_batch
@@ -976,20 +977,27 @@ mod test {
         let finalized_actual_size = finalized_serialized.len();
 
         // Assert the batch respects the limit
-        assert!(finalized_actual_size <= batch_size_limit, 
-            "Finalized batch size {} exceeds limit {}", finalized_actual_size, batch_size_limit);
-        
+        assert!(
+            finalized_actual_size <= batch_size_limit,
+            "Finalized batch size {} exceeds limit {}",
+            finalized_actual_size,
+            batch_size_limit
+        );
+
         // Verify some entries were included (not empty batch)
         assert!(!finalized_batch.is_empty(), "Batch should not be empty");
-        
+
         // Verify not all entries were included (some should be rejected due to size limit)
-        assert!(finalized_batch.len() < 10, "Batch should not include all entries due to size limit");
+        assert!(
+            finalized_batch.len() < 10,
+            "Batch should not include all entries due to size limit"
+        );
     }
 
     #[test]
     fn test_cbor_size_upper_bound_accuracy() {
-        use aligned_sdk::communication::serialization::cbor_serialize;
         use aligned_sdk::common::types::VerificationData;
+        use aligned_sdk::communication::serialization::cbor_serialize;
         use std::fs;
 
         let proof_generator_addr = Address::random();
@@ -1035,7 +1043,7 @@ mod test {
 
         // Test cbor_size_upper_bound() accuracy
         let estimated_size = nonced_verification_data.cbor_size_upper_bound();
-        
+
         // Compare with actual CBOR serialization of the inner VerificationData
         let actual_serialized = cbor_serialize(&verification_data).unwrap();
         let actual_size = actual_serialized.len();
@@ -1045,33 +1053,44 @@ mod test {
         let actual_nonced_size = actual_nonced_serialized.len();
 
         // Verify CBOR encodes binary data efficiently (with serde_bytes fix)
-        let raw_total = verification_data.proof.len() + 
-                       verification_data.vm_program_code.as_ref().unwrap().len() + 
-                       verification_data.pub_input.as_ref().unwrap().len();
-        
+        let raw_total = verification_data.proof.len()
+            + verification_data.vm_program_code.as_ref().unwrap().len()
+            + verification_data.pub_input.as_ref().unwrap().len();
+
         let cbor_efficiency_ratio = actual_size as f64 / raw_total as f64;
-        
+
         // With serde_bytes, CBOR should be very efficient (close to 1.0x)
-        assert!(cbor_efficiency_ratio < 1.1, 
-            "CBOR serialization should be efficient with serde_bytes. Ratio: {:.3}x", 
-            cbor_efficiency_ratio);
+        assert!(
+            cbor_efficiency_ratio < 1.1,
+            "CBOR serialization should be efficient with serde_bytes. Ratio: {:.3}x",
+            cbor_efficiency_ratio
+        );
 
         // Verify CBOR uses byte strings, not arrays
         let proof_cbor = cbor_serialize(&verification_data.proof).unwrap();
         let first_byte = proof_cbor[0];
         let major_type = (first_byte >> 5) & 0x07;
-        
-        assert_eq!(major_type, 2, "Proof should be encoded as CBOR byte string (major type 2), got {}", major_type);
+
+        assert_eq!(
+            major_type, 2,
+            "Proof should be encoded as CBOR byte string (major type 2), got {}",
+            major_type
+        );
 
         // The estimation should be an upper bound
-        assert!(estimated_size >= actual_size, 
-            "cbor_size_upper_bound() should be an upper bound. Estimated: {}, Actual: {}", 
-            estimated_size, actual_size);
-        
+        assert!(
+            estimated_size >= actual_size,
+            "cbor_size_upper_bound() should be an upper bound. Estimated: {}, Actual: {}",
+            estimated_size,
+            actual_size
+        );
+
         // The estimation should also be reasonable (not wildly over-estimated)
         let estimation_overhead = estimated_size as f64 / actual_size as f64;
-        assert!(estimation_overhead < 2.0, 
-            "Estimation should be reasonable, not wildly over-estimated. Overhead: {:.3}x", 
-            estimation_overhead);
+        assert!(
+            estimation_overhead < 2.0,
+            "Estimation should be reasonable, not wildly over-estimated. Overhead: {:.3}x",
+            estimation_overhead
+        );
     }
 }

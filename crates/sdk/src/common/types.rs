@@ -68,13 +68,22 @@ pub struct VerificationData {
     #[serde(with = "serde_bytes")]
     pub proof: Vec<u8>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[serde(deserialize_with = "deserialize_option_bytes", serialize_with = "serialize_option_bytes")]
+    #[serde(
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub pub_input: Option<Vec<u8>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[serde(deserialize_with = "deserialize_option_bytes", serialize_with = "serialize_option_bytes")]
+    #[serde(
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub verification_key: Option<Vec<u8>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[serde(deserialize_with = "deserialize_option_bytes", serialize_with = "serialize_option_bytes")]
+    #[serde(
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub vm_program_code: Option<Vec<u8>>,
     pub proof_generator_addr: Address,
 }
@@ -510,10 +519,7 @@ impl Network {
 }
 
 // Helper functions for serializing Option<Vec<u8>> with serde_bytes
-fn serialize_option_bytes<S>(
-    value: &Option<Vec<u8>>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
+fn serialize_option_bytes<S>(value: &Option<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
@@ -523,9 +529,7 @@ where
     }
 }
 
-fn deserialize_option_bytes<'de, D>(
-    deserializer: D,
-) -> Result<Option<Vec<u8>>, D::Error>
+fn deserialize_option_bytes<'de, D>(deserializer: D) -> Result<Option<Vec<u8>>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
