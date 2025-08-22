@@ -1902,7 +1902,6 @@ impl Batcher {
         let modified_gas_price = gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER)
             / U256::from(PERCENTAGE_DIVIDER);
 
-        // TODO (Mauro): Take all the user locks here
         if let Some(finalized_batch) = self
             .extract_batch_if_ready(block_number, modified_gas_price)
             .await
