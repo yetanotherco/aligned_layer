@@ -1,6 +1,6 @@
 # Operator FAQ
 
-The EigenLayer Operator FAQ is available [here](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-faq).
+The EigenLayer Operator installation guide is available [here](https://docs.eigencloud.xyz/products/eigenlayer/operators/howto/operator-installation).
 
 ### How do I get whitelisted to run an operator?
 

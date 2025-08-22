@@ -4,8 +4,8 @@
 
 These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
-- [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json)
-- [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/Mainnet_current_deployment.config.json)
+- [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/main/script/configs/holesky.json)
+- [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/main/script/configs/mainnet.json)
 
 ## Aligned Contracts: Holesky/Mainnet
 

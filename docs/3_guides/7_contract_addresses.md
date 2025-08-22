@@ -32,7 +32,7 @@ Below is the list of supported strategies available on Aligned Mainnet:
 | [lsETH](https://app.eigenlayer.xyz/restake/lsETH)          | [0xAe60d8180437b5C34bB956822ac2710972584473](https://etherscan.io/address/0xAe60d8180437b5C34bB956822ac2710972584473) |
 | [mETH](https://app.eigenlayer.xyz/restake/mETH)            | [0x298aFB19A105D59E74658C4C334Ff360BadE6dd2](https://etherscan.io/address/0x298aFB19A105D59E74658C4C334Ff360BadE6dd2) |
 
-For additional details, refer to the [official EigenLayer documentation](https://github.com/Layr-Labs/eigenlayer-contracts/tree/mainnet?tab=readme-ov-file#strategies).
+For additional details, refer to the [official EigenLayer documentation](https://github.com/Layr-Labs/eigenlayer-contracts).
 
 
 ## Holesky Deployments
