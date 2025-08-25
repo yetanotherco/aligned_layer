@@ -567,9 +567,6 @@ async fn main() -> Result<(), AlignedError> {
                         aligned_sdk::common::errors::GetNonceError::UnexpectedResponse(e) => {
                             SubmitError::UnexpectedBatcherResponse(e)
                         }
-                        aligned_sdk::common::errors::GetNonceError::GenericError(e) => {
-                            SubmitError::GenericError(e)
-                        }
                     })?,
             };
 

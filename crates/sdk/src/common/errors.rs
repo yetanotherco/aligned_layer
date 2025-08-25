@@ -251,7 +251,6 @@ pub enum GetNonceError {
     UnexpectedResponse(String),
     InvalidRequest(String),
     ProtocolMismatch { current: u16, expected: u16 },
-    GenericError(String),
 }
 
 #[derive(Debug)]
