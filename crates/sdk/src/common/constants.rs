@@ -61,6 +61,8 @@ pub const BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET: &str =
     "0xb0567184A52cB40956df6333510d6eF35B89C8de";
 pub const BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE: &str =
     "0x88ad27EfBeF16b6fC5b2E40c5155d61876f847c5";
+pub const BATCHER_PAYMENT_SERVICE_ADDRESS_SEPOLIA: &str =
+    "0x403dE630751e148bD71BFFcE762E5667C0825399";
 
 /// AlignedServiceManager
 pub const ALIGNED_SERVICE_MANAGER_DEVNET: &str = "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8";
@@ -70,6 +72,7 @@ pub const ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE: &str =
 pub const ALIGNED_SERVICE_MANAGER_MAINNET: &str = "0xeF2A435e5EE44B2041100EF8cbC8ae035166606c";
 pub const ALIGNED_SERVICE_MANAGER_MAINNET_STAGE: &str =
     "0x96b6a29D7B98519Ae66E6398BD27A76B30a5dC3f";
+pub const ALIGNED_SERVICE_MANAGER_SEPOLIA: &str = "0xFf731AB7b3653dc66878DC77E851D174f472d137";
 
 // AlignedProofAggregationService
 pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET: &str = "0x0";
@@ -80,6 +83,7 @@ pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY: &str =
     "0xe84CD4084d8131841CE6DC265361f81F4C59a1d4";
 pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET: &str =
     "0xFD471836031dc5108809D173A067e8486B9047A3";
+pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_SEPOLIA: &str = "0x0";
 
 /// Batcher URL's
 pub const BATCHER_URL_DEVNET: &str = "ws://localhost:8080";
@@ -87,3 +91,4 @@ pub const BATCHER_URL_HOLESKY: &str = "wss://batcher.alignedlayer.com";
 pub const BATCHER_URL_HOLESKY_STAGE: &str = "wss://stage.batcher.alignedlayer.com";
 pub const BATCHER_URL_MAINNET: &str = "wss://mainnet.batcher.alignedlayer.com";
 pub const BATCHER_URL_MAINNET_STAGE: &str = "wss://mainnetstage.batcher.alignedlayer.com";
+pub const BATCHER_URL_SEPOLIA: &str = "wss://sepolia.batcher.alignedlayer.com";

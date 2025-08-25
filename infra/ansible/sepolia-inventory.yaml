@@ -1,0 +1,31 @@
+aggregator:
+  hosts:
+    aligned-sepolia-aggregator:
+      ansible_host: aligned-sepolia-aggregator
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+batcher:
+  hosts:
+    aligned-sepolia-batcher:
+      ansible_host: aligned-sepolia-batcher
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+explorer:
+  hosts:
+    aligned-sepolia-explorer:
+      ansible_host: aligned-sepolia-explorer
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+telemetry:
+  hosts:
+    aligned-sepolia-telemetry:
+      ansible_host: aligned-sepolia-telemetry
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3

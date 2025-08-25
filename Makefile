@@ -1349,14 +1349,13 @@ ansible_batcher_create_env: ## Create empty variables files for the Batcher depl
 	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
 	@echo "Please complete the values and run make ansible_batcher_deploy"
 
-ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
-		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
-		-i $(INVENTORY) \
-		-e "keystore_path=$(KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
 	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini

@@ -21,13 +21,15 @@ use sha3::{Digest, Keccak256};
 use super::constants::{
     ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY,
     ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY_STAGE, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET,
-    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE, ALIGNED_SERVICE_MANAGER_DEVNET,
-    ALIGNED_SERVICE_MANAGER_HOLESKY, ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE,
-    ALIGNED_SERVICE_MANAGER_MAINNET, ALIGNED_SERVICE_MANAGER_MAINNET_STAGE,
+    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_SEPOLIA,
+    ALIGNED_SERVICE_MANAGER_DEVNET, ALIGNED_SERVICE_MANAGER_HOLESKY,
+    ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE, ALIGNED_SERVICE_MANAGER_MAINNET,
+    ALIGNED_SERVICE_MANAGER_MAINNET_STAGE, ALIGNED_SERVICE_MANAGER_SEPOLIA,
     BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY,
     BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET,
-    BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE, BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY,
-    BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_MAINNET, BATCHER_URL_MAINNET_STAGE,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_SEPOLIA,
+    BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_MAINNET,
+    BATCHER_URL_MAINNET_STAGE, BATCHER_URL_SEPOLIA,
 };
 use super::errors::VerifySignatureError;
 
@@ -447,6 +449,7 @@ pub enum Network {
     HoleskyStage,
     Mainnet,
     MainnetStage,
+    Sepolia,
     Custom(String, String, String),
 }
 
@@ -458,6 +461,7 @@ impl Network {
             Self::HoleskyStage => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE).unwrap(),
             Self::Mainnet => H160::from_str(ALIGNED_SERVICE_MANAGER_MAINNET).unwrap(),
             Self::MainnetStage => H160::from_str(ALIGNED_SERVICE_MANAGER_MAINNET_STAGE).unwrap(),
+            Self::Sepolia => H160::from_str(ALIGNED_SERVICE_MANAGER_SEPOLIA).unwrap(),
             Self::Custom(s, _, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
@@ -473,6 +477,7 @@ impl Network {
             Self::MainnetStage => {
                 H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE).unwrap()
             }
+            Self::Sepolia => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_SEPOLIA).unwrap(),
             Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
@@ -488,6 +493,7 @@ impl Network {
             Self::MainnetStage => {
                 H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE).unwrap()
             }
+            Self::Sepolia => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_SEPOLIA).unwrap(),
             Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
@@ -499,6 +505,7 @@ impl Network {
             Self::HoleskyStage => BATCHER_URL_HOLESKY_STAGE,
             Self::Mainnet => BATCHER_URL_MAINNET,
             Self::MainnetStage => BATCHER_URL_MAINNET_STAGE,
+            Self::Sepolia => BATCHER_URL_SEPOLIA,
             Self::Custom(_, _, s) => s.as_str(),
         }
     }

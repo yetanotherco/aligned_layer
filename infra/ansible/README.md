@@ -57,7 +57,7 @@ The `caddy-batcher.ini` contains the following variables:
 Deploy the Batcher:
 
 ```shell
-make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/keystore/in/your/local>
+make ansible_batcher_deploy INVENTORY=</path/to/inventory>
 ```
 
 ## Operator
