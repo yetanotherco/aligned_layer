@@ -448,6 +448,7 @@ pub enum SubmitProofResponseMessage {
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
     UnderpricedProof,
+    ServerBusy,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -455,6 +456,7 @@ pub enum GetNonceResponseMessage {
     Nonce(U256),
     EthRpcError(String),
     InvalidRequest(String),
+    ServerBusy,
 }
 
 #[derive(Debug, Clone)]
