@@ -206,8 +206,8 @@ mod test {
     use aligned_sdk::common::types::VerificationData;
     use ethers::types::Address;
 
-    use super::*;
     use super::try_build_batch;
+    use super::*;
 
     #[test]
     fn batch_finalization_algorithm_works_from_same_sender() {
