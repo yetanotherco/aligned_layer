@@ -7,6 +7,7 @@ cache
 **/build
 **/target
 **/CLAUDE.md
+CLAUDE.md
 scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/**
 crates/cli/batch_inclusion_responses/*
 **/aligned_verification_data
@@ -38,5 +39,5 @@ witness.wtns
 circuit_cpp/
 circuit_js
 
-# Link checker results
+# Reports
 docs/dead_links_report.txt
