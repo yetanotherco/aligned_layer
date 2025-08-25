@@ -215,7 +215,9 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
 
 #[cfg(test)]
 mod test {
-    use super::{try_build_batch, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
+    use crate::types::batch_queue::extract_batch_directly;
+
+    use super::{BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
     use aligned_sdk::common::constants::DEFAULT_CONSTANT_GAS_COST;
     use aligned_sdk::common::types::{
         NoncedVerificationData, ProvingSystemId, VerificationData, VerificationDataCommitment,
@@ -1047,8 +1049,8 @@ mod test {
         let batch_size_limit = 5_000_000; // 5MB
         let gas_price = U256::from(1);
 
-        let finalized_batch = try_build_batch(
-            batch_queue.clone(),
+        let finalized_batch = extract_batch_directly(
+            &mut batch_queue,
             gas_price,
             batch_size_limit,
             50, // max proof qty
