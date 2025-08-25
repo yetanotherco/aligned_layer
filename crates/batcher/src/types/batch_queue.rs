@@ -206,7 +206,6 @@ mod test {
     use aligned_sdk::common::types::VerificationData;
     use ethers::types::Address;
 
-    use super::try_build_batch;
     use super::*;
 
     #[test]
