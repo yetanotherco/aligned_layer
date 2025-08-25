@@ -191,6 +191,8 @@ pub(crate) fn try_build_batch(
     Ok(finalized_batch.clone().into_sorted_vec())
 }
 
+pub(crate) use try_build_batch as __exposed_try_build_batch_for_tests;
+
 fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost: u128) -> U256 {
     let gas_per_proof = (constant_gas_cost
         + crate::ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
@@ -207,7 +209,8 @@ mod test {
     use aligned_sdk::common::types::VerificationData;
     use ethers::types::Address;
 
-    use super::try_build_batch;
+    use super::__exposed_try_build_batch_for_tests as try_build_batch;
+
     use super::*;
 
     #[test]
