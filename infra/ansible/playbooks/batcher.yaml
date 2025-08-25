@@ -118,13 +118,6 @@
         ansible_ssh_user: "{{ admin_user }}"
         batcher_domain: "{{ lookup('ini', 'batcher_domain', file='ini/caddy-batcher.ini') }}"
 
-#    - name: Copy keystore to server
-#      ansible.builtin.copy:
-#        src: '{{ keystore_path }}'
-#        dest: /home/{{ ansible_user }}/.keystores/batcher
-#        owner: '{{ ansible_user }}'
-#        group: '{{ ansible_user }}'
-
     - name: Start Batcher service
       ansible.builtin.systemd_service:
         name: batcher
@@ -139,8 +132,3 @@
         state: restarted
       vars:
         ansible_ssh_user: "{{ admin_user }}"
-
-#    - name: Run node_exporter playbook
-#      ansible.builtin.import_playbook: node_exporter.yaml
-#      vars:
-#        host: batcher
