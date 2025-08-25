@@ -1044,20 +1044,21 @@ mod test {
         // Test cbor_size_upper_bound() accuracy
         let estimated_size = nonced_verification_data.cbor_size_upper_bound();
 
-        // Compare with actual CBOR serialization of the inner VerificationData
-        let actual_serialized = cbor_serialize(&verification_data).unwrap();
-        let actual_size = actual_serialized.len();
-
-        // Also test serializing the NoncedVerificationData
+        // Compare with actual CBOR serialization of the full NoncedVerificationData
         let actual_nonced_serialized = cbor_serialize(&nonced_verification_data).unwrap();
         let actual_nonced_size = actual_nonced_serialized.len();
 
-        // Verify CBOR encodes binary data efficiently (with serde_bytes fix)
+        // Also test the inner VerificationData for additional validation
+        let actual_inner_serialized = cbor_serialize(&verification_data).unwrap();
+        let actual_inner_size = actual_inner_serialized.len();
+
+        // Verify CBOR encodes binary data efficiently (with serde_bytes fix), this misses some overhead but the proof is big enough as to not matter
+
         let raw_total = verification_data.proof.len()
             + verification_data.vm_program_code.as_ref().unwrap().len()
             + verification_data.pub_input.as_ref().unwrap().len();
 
-        let cbor_efficiency_ratio = actual_size as f64 / raw_total as f64;
+        let cbor_efficiency_ratio = actual_inner_size as f64 / raw_total as f64;
 
         // With serde_bytes, CBOR should be very efficient (close to 1.0x)
         assert!(
@@ -1066,29 +1067,22 @@ mod test {
             cbor_efficiency_ratio
         );
 
-        // Verify CBOR uses byte strings, not arrays
-        let proof_cbor = cbor_serialize(&verification_data.proof).unwrap();
-        let first_byte = proof_cbor[0];
-        let major_type = (first_byte >> 5) & 0x07;
-
-        assert_eq!(
-            major_type, 2,
-            "Proof should be encoded as CBOR byte string (major type 2), got {}",
-            major_type
-        );
+        // Verify CBOR uses byte strings, not arrays by checking the whole struct efficiency
+        // If serde_bytes is working, the struct should be encoded efficiently
+        // (Individual Vec<u8> serialization bypasses struct annotations)
 
         // The estimation should be an upper bound
         assert!(
-            estimated_size >= actual_size,
+            estimated_size >= actual_nonced_size,
             "cbor_size_upper_bound() should be an upper bound. Estimated: {}, Actual: {}",
             estimated_size,
-            actual_size
+            actual_nonced_size
         );
 
         // The estimation should also be reasonable (not wildly over-estimated)
-        let estimation_overhead = estimated_size as f64 / actual_size as f64;
+        let estimation_overhead = estimated_size as f64 / actual_nonced_size as f64;
         assert!(
-            estimation_overhead < 2.0,
+            estimation_overhead < 1.1,
             "Estimation should be reasonable, not wildly over-estimated. Overhead: {:.3}x",
             estimation_overhead
         );
