@@ -12,6 +12,9 @@ use std::{
 use super::errors::BatcherError;
 use crate::connection::WsMessageSink;
 
+#[cfg(test)]
+const _TRY_BUILD_BATCH_VISIBLE_UNDER_TEST: fn() = try_build_batch;
+
 #[derive(Clone)]
 pub(crate) struct BatchQueueEntry {
     pub(crate) nonced_verification_data: NoncedVerificationData,
@@ -201,13 +204,24 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
 
 #[cfg(test)]
 mod test {
+
+    #[test]
+    fn print_parent_info() {
+        // Should compile if test’s parent is the module that defines the function
+        let _f: fn(_, _, _) = super::try_build_batch;
+
+        // Print the path rustc believes this module is
+        eprintln!("module_path: {}", module_path!());
+        eprintln!("file!: {}", file!());
+    }
+
     use aligned_sdk::common::constants::DEFAULT_CONSTANT_GAS_COST;
     use aligned_sdk::common::types::ProvingSystemId;
     use aligned_sdk::common::types::VerificationData;
     use ethers::types::Address;
 
     use super::*;
-    use crate::types::batch_queue::try_build_batch;
+    use super::try_build_batch;
 
     #[test]
     fn batch_finalization_algorithm_works_from_same_sender() {

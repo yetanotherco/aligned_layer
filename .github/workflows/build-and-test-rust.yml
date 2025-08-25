@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: aligned-runner
+    env:
+      CARGO_INCREMENTAL: 0
 
     steps:
       - uses: actions/checkout@v4
@@ -26,12 +28,11 @@ jobs:
           components: rustfmt, clippy
           override: true
 
-      # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
       - name: Install sp1 toolchain
         run: |
           curl -L https://sp1.succinct.xyz | bash
           source /home/runner/.bashrc
-           ~/.sp1/bin/sp1up
+          ~/.sp1/bin/sp1up
 
       - name: Install risc0 toolchain
         run: |
@@ -45,10 +46,12 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            crates/target
           key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
+
+      - name: Clean build dir
+        run: rm -rf crates/target
 
       - name: Check formatting
         run: |
@@ -63,40 +66,40 @@ jobs:
       - name: Build Batcher
         run: |
           cd crates
-          cargo build --all
+          cargo build --all -vv
 
       - name: Check formatting of AggregationMode
         run: |
           cd aggregation_mode
           cargo fmt --all -- --check
 
-      - name: Build AggregationMode # We build before clippy to generate the ELF
+      - name: Build AggregationMode
         run: |
           cd aggregation_mode
-          cargo build --all
+          cargo build --all -vv
 
       - name: Run Clippy on AggregationMode
         run: |
           cd aggregation_mode
-          # We need to skip the build as clippy does not support the riscv32im-risc0-zkvm-elf target
           RISC0_SKIP_BUILD=1 cargo clippy --all -- -D warnings
 
   test:
     runs-on: aligned-runner
     needs: build
+    env:
+      CARGO_INCREMENTAL: 0
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
 
-      # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
       - name: Install sp1 toolchain
         run: |
           curl -L https://sp1.succinct.xyz | bash
           source /home/runner/.bashrc
-           ~/.sp1/bin/sp1up
+          ~/.sp1/bin/sp1up
 
       - name: Install risc0 toolchain
         run: |
@@ -110,17 +113,19 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            crates/target
           key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
 
+      - name: Clean build dir
+        run: rm -rf crates/target
+
       - name: Run Batcher tests
         run: |
           cd crates
-          cargo test --all
+          cargo test --all -vv
 
       - name: Run AggregationMode tests
         run: |
           cd aggregation_mode
-          cargo test --all
+          cargo test --all -vv
