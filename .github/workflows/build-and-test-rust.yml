@@ -17,7 +17,7 @@ jobs:
     runs-on: aligned-runner
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
