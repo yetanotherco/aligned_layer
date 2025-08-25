@@ -1062,14 +1062,13 @@ mod test {
 
         // With serde_bytes, CBOR should be very efficient (close to 1.0x)
         assert!(
-            cbor_efficiency_ratio < 1.1,
+            cbor_efficiency_ratio < 1.01,
             "CBOR serialization should be efficient with serde_bytes. Ratio: {:.3}x",
             cbor_efficiency_ratio
         );
 
-        // Verify CBOR uses byte strings, not arrays by checking the whole struct efficiency
-        // If serde_bytes is working, the struct should be encoded efficiently
-        // (Individual Vec<u8> serialization bypasses struct annotations)
+        // Verify CBOR encodes binary data efficiently with serde_bytes
+        // Should be close to 1.0x overhead (raw data size vs CBOR size)
 
         // The estimation should be an upper bound
         assert!(
