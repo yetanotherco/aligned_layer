@@ -191,8 +191,6 @@ pub(crate) fn try_build_batch(
     Ok(finalized_batch.clone().into_sorted_vec())
 }
 
-pub(crate) use self::try_build_batch as __exposed_try_build_batch_for_tests;
-
 fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost: u128) -> U256 {
     let gas_per_proof = (constant_gas_cost
         + crate::ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * batch_len as u128)
@@ -203,15 +201,14 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
 
 #[cfg(test)]
 mod test {
-
+    use super::{try_build_batch, BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
     use aligned_sdk::common::constants::DEFAULT_CONSTANT_GAS_COST;
-    use aligned_sdk::common::types::ProvingSystemId;
-    use aligned_sdk::common::types::VerificationData;
-    use ethers::types::Address;
-
-    use super::__exposed_try_build_batch_for_tests as try_build_batch;
-
-    use super::*;
+    use aligned_sdk::common::types::{
+        NoncedVerificationData, ProvingSystemId, VerificationData, VerificationDataCommitment,
+    };
+    use aligned_sdk::communication::serialization::cbor_serialize;
+    use ethers::types::{Address, Signature, U256};
+    use std::fs;
 
     #[test]
     fn batch_finalization_algorithm_works_from_same_sender() {
@@ -890,10 +887,6 @@ mod test {
 
     #[test]
     fn test_batch_size_limit_enforcement_with_real_sp1_proofs() {
-        use aligned_sdk::common::types::VerificationData;
-        use aligned_sdk::communication::serialization::cbor_serialize;
-        use std::fs;
-
         let proof_generator_addr = Address::random();
         let payment_service_addr = Address::random();
         let chain_id = U256::from(42);
@@ -1001,10 +994,6 @@ mod test {
 
     #[test]
     fn test_cbor_size_upper_bound_accuracy() {
-        use aligned_sdk::common::types::VerificationData;
-        use aligned_sdk::communication::serialization::cbor_serialize;
-        use std::fs;
-
         let proof_generator_addr = Address::random();
         let payment_service_addr = Address::random();
         let chain_id = U256::from(42);
