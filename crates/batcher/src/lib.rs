@@ -1017,11 +1017,6 @@ impl Batcher {
             return Ok(());
         };
 
-        // For now on until the message is fully processed, the batch state is locked
-        // This is needed because we need to query the user state to make validations and
-        // finally add the proof to the batch queue.
-
-        let _batch_state_lock = self.batch_state.lock().await;
 
 
         let msg_max_fee = nonced_verification_data.max_fee;
