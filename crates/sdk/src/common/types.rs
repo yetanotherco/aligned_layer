@@ -67,20 +67,23 @@ pub struct VerificationData {
     pub proving_system: ProvingSystemId,
     #[serde(with = "serde_bytes")]
     pub proof: Vec<u8>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
         deserialize_with = "deserialize_option_bytes",
         serialize_with = "serialize_option_bytes"
     )]
     pub pub_input: Option<Vec<u8>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
         deserialize_with = "deserialize_option_bytes",
         serialize_with = "serialize_option_bytes"
     )]
     pub verification_key: Option<Vec<u8>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
         deserialize_with = "deserialize_option_bytes",
         serialize_with = "serialize_option_bytes"
     )]
