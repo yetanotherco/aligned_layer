@@ -13,22 +13,8 @@ on:
       - ".github/workflows/build-and-test-rust.yml"
 
 jobs:
-  build:
-    runs-on: aligned-runner
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.86.0
-          components: rustfmt, clippy
-          override: true
-
   test:
     runs-on: aligned-runner
-    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,16 +33,6 @@ jobs:
           key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-rust-
-
-      - name: Debug — dump expanded lib with #[cfg(test)]
-        working-directory: crates
-        env:
-          RUSTFLAGS: --cfg test
-        run: |
-          cargo rustc -p aligned-batcher --lib -- -Zunstable-options --pretty=expanded > expanded.rs
-          echo "=== searching for try_build_batch in expanded.rs ==="
-          rg -n 'fn\s+try_build_batch' expanded.rs || true
-          rg -n '__exposed_try_build_batch_for_tests' expanded.rs || true
           
       - name: Run Batcher tests
         run: |
