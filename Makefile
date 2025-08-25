@@ -1363,14 +1363,12 @@ ansible_aggregator_create_env: ## Create empty variables files for the Aggregato
 	@echo "Please complete the values and run make ansible_aggregator_deploy"
 
 ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
