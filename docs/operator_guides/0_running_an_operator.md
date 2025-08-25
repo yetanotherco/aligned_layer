@@ -8,7 +8,7 @@
 
 ## Requirements
 
-This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigenlayer.xyz/eigenlayer/operator-guides/operator-installation).
+This guide assumes you are already [registered as an operator with EigenLayer](https://docs.eigencloud.xyz/products/eigenlayer/operators/howto/operator-installation).
 
 ## Hardware Requirements
 
@@ -289,7 +289,7 @@ You will need to stake a minimum of 1000 WEI in WETH. We recommend to stake a ma
 
 ### Option 1
 
-EigenLayer's guide can be found [here](https://docs.eigenlayer.xyz/eigenlayer/restaking-guides/restaking-user-guide/liquid-restaking/restake-lsts).
+EigenLayer's restaking documentation can be found [here](https://docs.eigencloud.xyz/products/eigenlayer/restakers/concepts/overview) (general restaking overview).
 
 ### Option 2
 

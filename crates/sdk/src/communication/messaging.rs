@@ -269,6 +269,12 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             error!("Batcher responded with error: proof underpriced. Funds have not been spent.");
             Err(SubmitError::InvalidMaxFee)
         }
+        Ok(SubmitProofResponseMessage::ServerBusy) => {
+            error!("Server is busy processing requests, please retry. Funds have not been spent.");
+            Err(SubmitError::GenericError(
+                "Server is busy processing requests, please retry".to_string(),
+            ))
+        }
         Err(e) => {
             error!(
                 "Error while deserializing batch inclusion data: {}. Funds have not been spent.",
