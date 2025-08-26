@@ -38,7 +38,7 @@
       git:
         repo: https://github.com/yetanotherco/aligned_layer.git
         dest: /home/{{ ansible_user }}/repos/{{ service }}/aligned_layer
-        version: v0.10.2
+        version: 2065-feat-sepolia-deployment
       loop:
         - aggregator
 
@@ -49,20 +49,6 @@
         owner: '{{ ansible_user }}'
         group: '{{ ansible_user }}'
         recurse: yes
-
-    - name: Copy ECDSA keystore to server
-      copy:
-        src: '{{ ecdsa_keystore_path }}'
-        dest: /home/{{ ansible_user }}/.keystores/aggregator.ecdsa
-        owner: '{{ ansible_user }}'
-        group: '{{ ansible_user }}'
-
-    - name: Copy BLS keystore to server
-      copy:
-        src: '{{ bls_keystore_path }}'
-        dest: /home/{{ ansible_user }}/.keystores/aggregator.bls
-        owner: '{{ ansible_user }}'
-        group: '{{ ansible_user }}'
 
     - name: Build aggregator
       shell:
@@ -114,8 +100,3 @@
         state: started
         enabled: true
         scope: user
-
-    - name: Run node_exporter playbook
-      ansible.builtin.import_playbook: node_exporter.yaml
-      vars:
-        host: aggregator
