@@ -29,3 +29,11 @@ telemetry:
       admin_user: admin
       ansible_user: app
       ansible_python_interpreter: /usr/bin/python3
+
+operator:
+  hosts:
+    aligned-sepolia-operator-1:
+      ansible_host: aligned-sepolia-operator-1
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
