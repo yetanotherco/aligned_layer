@@ -88,6 +88,8 @@
         BATCH_TTL_MINUTES: "{{ lookup('ini', 'BATCH_TTL_MINUTES file=ini/config-explorer.ini') }}"
         SCHEDULED_BATCH_INTERVAL_MINUTES: "{{ lookup('ini', 'SCHEDULED_BATCH_INTERVAL_MINUTES file=ini/config-explorer.ini') }}"
         LATEST_RELEASE: "{{ lookup('ini', 'LATEST_RELEASE file=ini/config-explorer.ini') }}"
+        BEACON_CLIENT: "{{ lookup('ini', 'BEACON_CLIENT file=ini/config-explorer.ini') }}"
+        ALIGNED_PROOF_AGG_CONFIG_FILE: "{{ lookup('ini', 'ALIGNED_PROOF_AGG_CONFIG_FILE file=ini/config-explorer.ini') }}"
 
     - name: Build the explorer release
       args:
