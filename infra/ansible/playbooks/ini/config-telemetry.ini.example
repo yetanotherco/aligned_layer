@@ -20,6 +20,8 @@ postgresql_telemetry_pass=
 cassandra_telemetry_user=
 cassandra_telemetry_pass=
 
+environment=
+aligned_config_file=
 telemetry_aligned_rpc=
 telemetry_api_phx_host=
 telemetry_api_elixir_hostname=
