@@ -382,6 +382,7 @@ enum NetworkNameArg {
     HoleskyStage,
     Mainnet,
     MainnetStage,
+    Sepolia,
 }
 
 impl FromStr for NetworkNameArg {
@@ -394,8 +395,9 @@ impl FromStr for NetworkNameArg {
             "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
             "mainnet" => Ok(NetworkNameArg::Mainnet),
             "mainnet-stage" => Ok(NetworkNameArg::MainnetStage),
+            "sepolia" => Ok(NetworkNameArg::Sepolia),
             _ => Err(
-                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet, mainnet-stage"
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet, mainnet-stage, sepolia"
                     .to_string(),
             ),
         }
@@ -408,7 +410,7 @@ struct NetworkArg {
         name = "The working network's name",
         long = "network",
         default_value = "devnet",
-        help = "[possible values: devnet, holesky, holesky-stage, mainnet, mainnet-stage]"
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet, mainnet-stage, sepolia]"
     )]
     network: Option<NetworkNameArg>,
 
@@ -462,6 +464,7 @@ impl From<NetworkArg> for Network {
             Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
             Some(NetworkNameArg::Mainnet) => Network::Mainnet,
             Some(NetworkNameArg::MainnetStage) => Network::MainnetStage,
+            Some(NetworkNameArg::Sepolia) => Network::Sepolia,
         }
     }
 }
@@ -635,6 +638,7 @@ async fn main() -> Result<(), AlignedError> {
                     Network::MainnetStage => {
                         "https://mainnetstage.explorer.alignedlayer.com/batches/0x"
                     }
+                    Network::Sepolia => "https://sepolia.explorer.alignedlayer.com/batches/0x",
                     Network::Devnet => "http://localhost:4000/batches/0x",
                     _ => "http://localhost:4000/batches/0x",
                 };
