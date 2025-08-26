@@ -47,7 +47,6 @@
         dest: "/home/{{ ansible_user }}/repos/explorer/aligned_layer"
         version: 2065-feat-sepolia-deployment
         recursive: false
-        update: yes
 
     - name: Create .ssl directory
       file:
