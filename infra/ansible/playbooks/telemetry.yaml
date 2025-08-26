@@ -59,6 +59,11 @@
   vars:
     host: telemetry
 
+- name: Run webserver playbook
+  ansible.builtin.import_playbook: webserver.yaml
+  vars:
+    host: telemetry
+
 - name: Setup Telemetry
   hosts: telemetry
 

@@ -63,7 +63,7 @@
     git:
       repo: https://github.com/yetanotherco/aligned_layer.git
       dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
-      version: v0.12.1
+      version: 2065-feat-sepolia-deployment
       recursive: false
 
   - name: Ensure /etc/grafana/provisioning directory exists
