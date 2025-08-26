@@ -123,6 +123,7 @@ defmodule ExplorerWeb.Helpers do
     case prefix do
       "holesky" -> "https://holesky.eigenlayer.xyz"
       "mainnet" -> "https://app.eigenlayer.xyz"
+      "sepolia" -> "https://sepolia.eigenlayer.xyz"
       _ -> "http://localhost:4000"
     end
   end
@@ -134,6 +135,7 @@ defmodule ExplorerWeb.Helpers do
     [
       {"Mainnet", "https://explorer.alignedlayer.com"},
       {"Holesky", "https://holesky.explorer.alignedlayer.com"},
+      {"Sepolia", "https://sepolia.explorer.alignedlayer.com"},
       {"Stage", "https://stage.explorer.alignedlayer.com"},
       {"Devnet", "http://localhost:4000/"}
     ]
@@ -143,6 +145,7 @@ defmodule ExplorerWeb.Helpers do
     case host do
       "explorer.alignedlayer.com" -> "Mainnet"
       "holesky.explorer.alignedlayer.com" -> "Holesky"
+      "sepolia.explorer.alignedlayer.com" -> "Sepolia"
       "stage.explorer.alignedlayer.com" -> "Stage"
       _ -> "Devnet"
     end
@@ -160,6 +163,7 @@ defmodule ExplorerWeb.Helpers do
     case prefix do
       "mainnet" -> "https://etherscan.io"
       "holesky" -> "https://holesky.etherscan.io"
+      "sepolia" -> "https://sepolia.etherscan.io"
       _ -> "http://localhost:4000"
     end
   end
@@ -176,6 +180,7 @@ defmodule ExplorerWeb.Helpers do
     case prefix do
       "mainnet" -> "https://blobscan.com/"
       "holesky" -> "https://holesky.blobscan.com/"
+      "sepolia" -> "https://sepolia.blobscan.com/"
       _ -> "http://localhost:4000"
     end
   end
