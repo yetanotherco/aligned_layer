@@ -34,7 +34,7 @@
   vars:
     host: telemetry
     ini_file: ini/config-telemetry.ini
-    cassandra_version: 5.0.2
+    cassandra_version: 5.0.5
 
 - name: Run Jaeger playbook
   ansible.builtin.import_playbook: jaeger.yaml
