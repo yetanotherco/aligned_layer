@@ -85,11 +85,11 @@
       prepend_newline: true
     vars:
       ansible_ssh_user: "{{ admin_user }}"
-      caddy_metrics_url: "{{ lookup('ini', 'caddy_metrics_url', file=ini_file) }}"
+      caddy_metrics_url: "{{ lookup('ini', 'caddy_metrics_url file=ini/config-telemetry.ini') }}"
       caddy_metrics_port: 3000
-      caddy_telemetry_url: "{{ lookup('ini', 'caddy_telemetry_url', file=ini_file) }}"
+      caddy_telemetry_url: "{{ lookup('ini', 'caddy_telemetry_url file=ini/config-telemetry.ini') }}"
       caddy_telemetry_port: 4001
-      caddy_jaeger_url: "{{ lookup('ini', 'caddy_jaeger_url', file=ini_file) }}"
+      caddy_jaeger_url: "{{ lookup('ini', 'caddy_jaeger_url file=ini/config-telemetry.ini') }}"
       caddy_jaeger_port: 16686
 
   - name: Make sure /etc/default/tailscaled exists
@@ -134,9 +134,9 @@
       postgresql_telemetry_db_name: "{{ lookup('ini', 'postgresql_telemetry_db_name file=ini/config-telemetry.ini') }}"
       postgresql_telemetry_user: "{{ lookup('ini', 'postgresql_telemetry_user file=ini/config-telemetry.ini') }}"
       postgresql_telemetry_pass: "{{ lookup('ini', 'postgresql_telemetry_pass file=ini/config-telemetry.ini') }}"
-      environment: "{{ lookup('ini', 'environment file=ini/config-telemetry.ini') }}"
+      telemetry_environment: "{{ lookup('ini', 'telemetry_environment file=ini/config-telemetry.ini') }}"
       telemetry_aligned_rpc: "{{ lookup('ini', 'telemetry_aligned_rpc file=ini/config-telemetry.ini') }}"
-      aligned_config_file: "{{ lookup('ini', 'aligned_config_file file=ini/config-telemetry.ini') }}"
+      telemetry_aligned_config_file: "{{ lookup('ini', 'telemetry_aligned_config_file file=ini/config-telemetry.ini') }}"
       telemetry_api_phx_host: "{{ lookup('ini', 'telemetry_api_phx_host file=ini/config-telemetry.ini') }}"
       telemetry_api_elixir_hostname: "{{ lookup('ini', 'telemetry_api_elixir_hostname file=ini/config-telemetry.ini') }}"
       telemetry_api_secret_key_base: "{{ lookup('ini', 'telemetry_api_secret_key_base file=ini/config-telemetry.ini') }}"
