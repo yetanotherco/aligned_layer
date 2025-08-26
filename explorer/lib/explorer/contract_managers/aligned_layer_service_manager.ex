@@ -8,6 +8,7 @@ defmodule AlignedLayerServiceManager do
     "devnet" -> Logger.debug("Running on devnet")
     "holesky" -> Logger.debug("Running on holesky")
     "mainnet" -> Logger.debug("Running on mainnet")
+    "sepolia" -> Logger.debug("Running on sepolia")
     _ -> Logger.debug("Invalid ENVIRONMENT var in .env")
     nil -> raise("Invalid ENVIRONMENT var in .env")
   end
@@ -38,6 +39,7 @@ defmodule AlignedLayerServiceManager do
                   "devnet" -> 0
                   "holesky" -> 1_728_056
                   "mainnet" -> 19_000_000
+                  "sepolia" -> 9_062_616
                   _ -> raise("Invalid environment")
                 end)
 
