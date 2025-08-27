@@ -74,13 +74,13 @@ func main() {
 	// This proof should be serialized for testing in the operator
 	proof, err := plonk.Prove(ccs, pk, fullWitness)
 	if err != nil {
-		panic("PLONK proof generation error")
+		log.Fatalf("PLONK proof generation failed: %v", err)
 	}
 
 	// The proof is verified before writing it into a file to make sure it is valid.
 	err = plonk.Verify(proof, vk, publicWitness)
 	if err != nil {
-		panic("PLONK proof not verified")
+		log.Fatalf("PLONK proof verification failed: %v", err)
 	}
 
 	// Open files for writing the proof, the verification key and the public witness
