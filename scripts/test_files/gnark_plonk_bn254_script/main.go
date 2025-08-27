@@ -117,15 +117,15 @@ func main() {
 
 	_, err = proof.WriteTo(proofFile)
 	if err != nil {
-		panic("could not serialize proof into file")
+		log.Fatalf("Failed to write proof: %v", err)
 	}
 	_, err = vk.WriteTo(vkFile)
 	if err != nil {
-		panic("could not serialize verification key into file")
+		log.Fatalf("Failed to write verification key: %v", err)
 	}
 	_, err = publicWitness.WriteTo(witnessFile)
 	if err != nil {
-		panic("could not serialize proof into file")
+		log.Fatalf("Failed to write witness: %v", err)
 	}
 
 	fmt.Println("Proof written into " + outputDir + "gnark_plonk_" + gnarkVersion + ".proof")
