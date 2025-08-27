@@ -1912,7 +1912,7 @@ impl Batcher {
         let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
 
         // compute the new min max fee
-        let min_max_fee = aligned_sdk::verification_layer::compute_fee_per_proof_formula(
+        let min_max_fee = aligned_sdk::verification_layer::calculate_fee_per_proof_with_gas_price(
             self.amount_of_proofs_for_min_max_fee,
             gas_price,
         );

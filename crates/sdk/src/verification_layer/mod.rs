@@ -135,13 +135,13 @@ pub async fn estimate_fee(
 ) -> Result<U256, errors::FeeEstimateError> {
     match fee_estimation_type {
         FeeEstimationType::Default => {
-            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, DEFAULT_MAX_FEE_BATCH_SIZE).await
+            estimate_fee_per_proof_with_rpc(DEFAULT_MAX_FEE_BATCH_SIZE, eth_rpc_url).await
         }
         FeeEstimationType::Instant => {
-            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, INSTANT_MAX_FEE_BATCH_SIZE).await
+            estimate_fee_per_proof_with_rpc(INSTANT_MAX_FEE_BATCH_SIZE, eth_rpc_url).await
         }
         FeeEstimationType::Custom(n) => {
-            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, n).await
+            estimate_fee_per_proof_with_rpc(n, eth_rpc_url).await
         }
     }
 }
@@ -161,9 +161,9 @@ pub async fn estimate_fee(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn calculate_fee_per_proof_for_batch_of_size(
-    eth_rpc_url: &str,
+pub async fn estimate_fee_per_proof_with_rpc(
     num_proofs_in_batch: usize,
+    eth_rpc_url: &str,
 ) -> Result<U256, errors::FeeEstimateError> {
     let eth_rpc_provider =
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
@@ -171,7 +171,7 @@ pub async fn calculate_fee_per_proof_for_batch_of_size(
         })?;
     let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
-    let fee_per_proof = compute_fee_per_proof_formula(num_proofs_in_batch, gas_price);
+    let fee_per_proof = calculate_fee_per_proof_with_gas_price(num_proofs_in_batch, gas_price);
     Ok(fee_per_proof)
 }
 
@@ -196,7 +196,7 @@ pub async fn calculate_fee_per_proof_for_batch_of_size(
 ///
 /// # Panics
 /// This function panics if `num_proofs_in_batch` is 0 due to division by zero.
-pub fn compute_fee_per_proof_formula(num_proofs_in_batch: usize, gas_price: U256) -> U256 {
+pub fn calculate_fee_per_proof_with_gas_price(num_proofs_in_batch: usize, gas_price: U256) -> U256 {
     // Gas cost for `num_proofs_per_batch` proofs
     let estimated_gas_per_proof = (DEFAULT_CONSTANT_GAS_COST
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
@@ -839,10 +839,10 @@ mod test {
 
     #[tokio::test]
     async fn computed_max_fee_for_larger_batch_is_smaller() {
-        let small_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 5)
+        let small_fee = estimate_fee_per_proof_with_rpc(5, HOLESKY_PUBLIC_RPC_URL)
             .await
             .unwrap();
-        let large_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 2)
+        let large_fee = estimate_fee_per_proof_with_rpc(2, HOLESKY_PUBLIC_RPC_URL)
             .await
             .unwrap();
 
@@ -851,10 +851,10 @@ mod test {
 
     #[tokio::test]
     async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
-        let small_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 20)
+        let small_fee = estimate_fee_per_proof_with_rpc(20, HOLESKY_PUBLIC_RPC_URL)
             .await
             .unwrap();
-        let large_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 10)
+        let large_fee = estimate_fee_per_proof_with_rpc(10, HOLESKY_PUBLIC_RPC_URL)
             .await
             .unwrap();
 
