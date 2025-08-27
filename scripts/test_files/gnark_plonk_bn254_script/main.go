@@ -42,7 +42,7 @@ func main() {
 	// use scs.NewBuilder instead of r1cs.NewBuilder (groth16)
 	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), scs.NewBuilder, &circuit)
 	if err != nil {
-		panic("circuit compilation error")
+		log.Fatalf("Circuit compilation failed: %v", err)
 	}
 
 	// use unsafekzg.NewSRS to generate the SRS and the Lagrange interpolation of the SRS
@@ -54,7 +54,7 @@ func main() {
 	srs, srsLagrangeInterpolation, err := unsafekzg.NewSRS(r1cs)
 	// srs, err := test.NewKZGSRS(r1cs)
 	if err != nil {
-		panic("KZG setup error")
+		log.Fatalf("KZG setup failed: %v", err)
 	}
 	// add srsLagrangeInterpolation to the Setup function
 	pk, vk, _ := plonk.Setup(ccs, srs, srsLagrangeInterpolation)
