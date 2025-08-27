@@ -872,45 +872,6 @@ impl Batcher {
             return Ok(());
         };
 
-        // When pre-verification is enabled, batcher will verify proofs for faster feedback with clients
-        if self.pre_verification_is_enabled {
-            let verification_data = &nonced_verification_data.verification_data;
-            if self
-                .is_verifier_disabled(verification_data.proving_system)
-                .await
-            {
-                warn!(
-                    "Verifier for proving system {} is disabled, skipping verification",
-                    verification_data.proving_system
-                );
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
-                        verification_data.proving_system,
-                    )),
-                )
-                .await;
-                self.metrics.user_error(&[
-                    "disabled_verifier",
-                    &format!("{}", verification_data.proving_system),
-                ]);
-                return Ok(());
-            }
-
-            if !zk_utils::verify(verification_data).await {
-                error!("Invalid proof detected. Verification failed");
-                send_message(
-                    ws_conn_sink.clone(),
-                    SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
-                )
-                .await;
-                self.metrics.user_error(&[
-                    "rejected_proof",
-                    &format!("{}", verification_data.proving_system),
-                ]);
-                return Ok(());
-            }
-        }
 
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
