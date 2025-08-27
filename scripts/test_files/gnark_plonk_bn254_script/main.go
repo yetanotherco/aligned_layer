@@ -86,15 +86,15 @@ func main() {
 	// Open files for writing the proof, the verification key and the public witness
 	proofFile, err := os.Create(outputDir + "gnark_plonk_" + gnarkVersion + ".proof")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to create proof file: %v", err)
 	}
 	vkFile, err := os.Create(outputDir + "gnark_plonk_" + gnarkVersion + ".vk")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to create vk file: %v", err)
 	}
 	witnessFile, err := os.Create(outputDir + "gnark_plonk_pub_input_" + gnarkVersion + ".pub")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to create witness file: %v", err)
 	}
 	defer func(proofFile *os.File) {
 		err := proofFile.Close()
