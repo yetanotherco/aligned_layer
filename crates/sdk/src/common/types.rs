@@ -65,9 +65,28 @@ impl Display for ProvingSystemId {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationData {
     pub proving_system: ProvingSystemId,
+    #[serde(with = "serde_bytes")]
     pub proof: Vec<u8>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub pub_input: Option<Vec<u8>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub verification_key: Option<Vec<u8>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub vm_program_code: Option<Vec<u8>>,
     pub proof_generator_addr: Address,
 }
@@ -502,6 +521,25 @@ impl Network {
             Self::Custom(_, _, s) => s.as_str(),
         }
     }
+}
+
+// Helper functions for serializing Option<Vec<u8>> with serde_bytes
+fn serialize_option_bytes<S>(value: &Option<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value {
+        Some(bytes) => serde_bytes::serialize(bytes, serializer),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_option_bytes<'de, D>(deserializer: D) -> Result<Option<Vec<u8>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt: Option<serde_bytes::ByteBuf> = Option::deserialize(deserializer)?;
+    Ok(opt.map(|buf| buf.into_vec()))
 }
 
 #[cfg(test)]

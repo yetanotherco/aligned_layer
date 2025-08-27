@@ -215,12 +215,16 @@ fn calculate_fee_per_proof(batch_len: usize, gas_price: U256, constant_gas_cost:
 
 #[cfg(test)]
 mod test {
-    use aligned_sdk::common::constants::DEFAULT_CONSTANT_GAS_COST;
-    use aligned_sdk::common::types::ProvingSystemId;
-    use aligned_sdk::common::types::VerificationData;
-    use ethers::types::Address;
+    use crate::types::batch_queue::extract_batch_directly;
 
-    use super::*;
+    use super::{BatchQueue, BatchQueueEntry, BatchQueueEntryPriority};
+    use aligned_sdk::common::constants::DEFAULT_CONSTANT_GAS_COST;
+    use aligned_sdk::common::types::{
+        NoncedVerificationData, ProvingSystemId, VerificationData, VerificationDataCommitment,
+    };
+    use aligned_sdk::communication::serialization::cbor_serialize;
+    use ethers::types::{Address, Signature, U256};
+    use std::fs;
 
     #[test]
     fn batch_finalization_algorithm_works_from_same_sender() {
@@ -971,6 +975,202 @@ mod test {
         assert_eq!(
             finalized_batch[1].nonced_verification_data.max_fee,
             max_fee_1
+        );
+    }
+
+    #[test]
+    fn test_batch_size_limit_enforcement_with_real_sp1_proofs() {
+        let proof_generator_addr = Address::random();
+        let payment_service_addr = Address::random();
+        let chain_id = U256::from(42);
+        let dummy_signature = Signature {
+            r: U256::from(1),
+            s: U256::from(2),
+            v: 3,
+        };
+
+        // Load actual SP1 proof files
+        let proof_path = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof";
+        let elf_path = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf";
+        let pub_input_path = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub";
+
+        let proof_data = match fs::read(proof_path) {
+            Ok(data) => data,
+            Err(_) => return, // Skip test if files not found
+        };
+
+        let elf_data = match fs::read(elf_path) {
+            Ok(data) => data,
+            Err(_) => return,
+        };
+
+        let pub_input_data = match fs::read(pub_input_path) {
+            Ok(data) => data,
+            Err(_) => return,
+        };
+
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::SP1,
+            proof: proof_data,
+            pub_input: Some(pub_input_data),
+            verification_key: None,
+            vm_program_code: Some(elf_data),
+            proof_generator_addr,
+        };
+
+        // Create 10 entries using the same SP1 proof data
+        let mut batch_queue = BatchQueue::new();
+        let max_fee = U256::from(1_000_000_000_000_000u128);
+
+        for i in 0..10 {
+            let sender_addr = Address::random();
+            let nonce = U256::from(i + 1);
+
+            let nonced_verification_data = NoncedVerificationData::new(
+                verification_data.clone(),
+                nonce,
+                max_fee,
+                chain_id,
+                payment_service_addr,
+            );
+
+            let vd_commitment: VerificationDataCommitment = nonced_verification_data.clone().into();
+            let entry = BatchQueueEntry::new_for_testing(
+                nonced_verification_data,
+                vd_commitment,
+                dummy_signature,
+                sender_addr,
+            );
+            let batch_priority = BatchQueueEntryPriority::new(max_fee, nonce);
+            batch_queue.push(entry, batch_priority);
+        }
+
+        // Test with a 5MB batch size limit
+        let batch_size_limit = 5_000_000; // 5MB
+        let gas_price = U256::from(1);
+
+        let finalized_batch = extract_batch_directly(
+            &mut batch_queue,
+            gas_price,
+            batch_size_limit,
+            50, // max proof qty
+            DEFAULT_CONSTANT_GAS_COST,
+        )
+        .unwrap();
+
+        // Verify the finalized batch respects the size limit
+        let finalized_verification_data: Vec<VerificationData> = finalized_batch
+            .iter()
+            .map(|entry| entry.nonced_verification_data.verification_data.clone())
+            .collect();
+
+        let finalized_serialized = cbor_serialize(&finalized_verification_data).unwrap();
+        let finalized_actual_size = finalized_serialized.len();
+
+        // Assert the batch respects the limit
+        assert!(
+            finalized_actual_size <= batch_size_limit,
+            "Finalized batch size {} exceeds limit {}",
+            finalized_actual_size,
+            batch_size_limit
+        );
+
+        // Verify some entries were included (not empty batch)
+        assert!(!finalized_batch.is_empty(), "Batch should not be empty");
+
+        // Verify not all entries were included (some should be rejected due to size limit)
+        assert!(
+            finalized_batch.len() < 10,
+            "Batch should not include all entries due to size limit"
+        );
+    }
+
+    #[test]
+    fn test_cbor_size_upper_bound_accuracy() {
+        let proof_generator_addr = Address::random();
+        let payment_service_addr = Address::random();
+        let chain_id = U256::from(42);
+
+        // Load actual SP1 proof files
+        let proof_path = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof";
+        let elf_path = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf";
+        let pub_input_path = "../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub";
+
+        let proof_data = match fs::read(proof_path) {
+            Ok(data) => data,
+            Err(_) => return, // Skip test if files not found
+        };
+
+        let elf_data = match fs::read(elf_path) {
+            Ok(data) => data,
+            Err(_) => return,
+        };
+
+        let pub_input_data = match fs::read(pub_input_path) {
+            Ok(data) => data,
+            Err(_) => return,
+        };
+
+        let verification_data = VerificationData {
+            proving_system: ProvingSystemId::SP1,
+            proof: proof_data,
+            pub_input: Some(pub_input_data),
+            verification_key: None,
+            vm_program_code: Some(elf_data),
+            proof_generator_addr,
+        };
+
+        let nonced_verification_data = NoncedVerificationData::new(
+            verification_data.clone(),
+            U256::from(1),
+            U256::from(1_000_000_000_000_000u128),
+            chain_id,
+            payment_service_addr,
+        );
+
+        // Test cbor_size_upper_bound() accuracy
+        let estimated_size = nonced_verification_data.cbor_size_upper_bound();
+
+        // Compare with actual CBOR serialization of the full NoncedVerificationData
+        let actual_nonced_serialized = cbor_serialize(&nonced_verification_data).unwrap();
+        let actual_nonced_size = actual_nonced_serialized.len();
+
+        // Also test the inner VerificationData for additional validation
+        let actual_inner_serialized = cbor_serialize(&verification_data).unwrap();
+        let actual_inner_size = actual_inner_serialized.len();
+
+        // Verify CBOR encodes binary data efficiently (with serde_bytes fix), this misses some overhead but the proof is big enough as to not matter
+
+        let raw_total = verification_data.proof.len()
+            + verification_data.vm_program_code.as_ref().unwrap().len()
+            + verification_data.pub_input.as_ref().unwrap().len();
+
+        let cbor_efficiency_ratio = actual_inner_size as f64 / raw_total as f64;
+
+        // With serde_bytes, CBOR should be very efficient (close to 1.0x)
+        assert!(
+            cbor_efficiency_ratio < 1.01,
+            "CBOR serialization should be efficient with serde_bytes. Ratio: {:.3}x",
+            cbor_efficiency_ratio
+        );
+
+        // Verify CBOR encodes binary data efficiently with serde_bytes
+        // Should be close to 1.0x overhead (raw data size vs CBOR size)
+
+        // The estimation should be an upper bound
+        assert!(
+            estimated_size >= actual_nonced_size,
+            "cbor_size_upper_bound() should be an upper bound. Estimated: {}, Actual: {}",
+            estimated_size,
+            actual_nonced_size
+        );
+
+        // The estimation should also be reasonable (not wildly over-estimated)
+        let estimation_overhead = estimated_size as f64 / actual_nonced_size as f64;
+        assert!(
+            estimation_overhead < 1.1,
+            "Estimation should be reasonable, not wildly over-estimated. Overhead: {:.3}x",
+            estimation_overhead
         );
     }
 }

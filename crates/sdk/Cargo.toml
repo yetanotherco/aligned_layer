@@ -19,6 +19,7 @@ tokio = { version = "1.37.0", features = [
 ] }
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
 serde = { version = "1.0.201", features = ["derive"] }
+serde_bytes = "0.11"
 sha3 = { version = "0.10.8" }
 url = "2.5.0"
 hex = "0.4.3"
