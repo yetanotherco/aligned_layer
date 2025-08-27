@@ -978,8 +978,6 @@ impl Batcher {
             return Ok(());
         };
 
-
-
         let msg_max_fee = nonced_verification_data.max_fee;
         let user_last_max_fee_limit = user_state_guard.last_max_fee_limit;
 
