@@ -45,7 +45,7 @@
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer
         dest: "/home/{{ ansible_user }}/repos/explorer/aligned_layer"
-        version: 2065-feat-sepolia-deployment
+        version: 2075-feat-hoodi-deployment
         recursive: false
 
     - name: Create .ssl directory

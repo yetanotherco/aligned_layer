@@ -121,7 +121,7 @@
     ansible.builtin.git:
       repo: https://github.com/yetanotherco/aligned_layer.git
       dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
-      version: 2065-feat-sepolia-deployment
+      version: 2075-feat-hoodi-deployment
       recursive: false
 
   - name: Run telemetry_compile_bls_verifier target

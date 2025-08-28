@@ -32,7 +32,7 @@
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer.git
         dest: /home/{{ user }}/repos/{{ item }}/aligned_layer
-        version: v0.10.2
+        version: 2075-feat-hoodi-deployment
       become_user: "{{ user }}"
       loop:
         - metrics
