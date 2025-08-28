@@ -14,8 +14,7 @@ import "C"
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/iden3/go-rapidsnark/types"
-	"github.com/iden3/go-rapidsnark/verifier"
+	"math/big"
 
 	"log"
 	"unsafe"
@@ -24,6 +23,8 @@ import (
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/backend/plonk"
 	"github.com/consensys/gnark/backend/witness"
+	"github.com/iden3/go-rapidsnark/types"
+	"github.com/iden3/go-rapidsnark/verifier"
 )
 
 func listRefToBytes(listRef C.ListRef) []byte {
@@ -122,6 +123,20 @@ func verifyGnarkGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef
 	return err == nil
 }
 
+func bytesToBigInts32(b []byte) []*big.Int {
+	if len(b)%32 != 0 {
+		panic("pubInputBytes length is not a multiple of 32")
+	}
+
+	inputs := make([]*big.Int, 0, len(b)/32)
+	for i := 0; i < len(b); i += 32 {
+		chunk := b[i : i+32]
+		bi := new(big.Int).SetBytes(chunk)
+		inputs = append(inputs, bi)
+	}
+	return inputs
+}
+
 //export VerifyCircomGroth16ProofBN256
 func VerifyCircomGroth16ProofBN256(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef) bool {
 	proofBytes := listRefToBytes(proofBytesRef)
@@ -131,26 +146,36 @@ func VerifyCircomGroth16ProofBN256(proofBytesRef C.ListRef, pubInputBytesRef C.L
 	proofData := &types.ProofData{}
 	err := json.Unmarshal(proofBytes, proofData)
 	if err != nil {
-		log.Printf("Could not marshal proof: %v", err)
+		log.Printf("Could not unmarshal proof: %v", err)
 		return false
 	}
 
-	var pubSignals []string
-	err = json.Unmarshal(pubInputBytes, &pubSignals)
+	parsedProofData, err := verifier.ParseProofData(*proofData)
 	if err != nil {
-		log.Printf("Error unmarshaling JSON: %v", err)
+		log.Printf("Could not parse proof: %v", err)
 		return false
 	}
 
-	zkProof := types.ZKProof{
-		Proof:      proofData,
-		PubSignals: pubSignals,
+	var vkStr verifier.VkJSON
+	err = json.Unmarshal(verificationKeyBytes, &vkStr)
+	if err != nil {
+		log.Printf("Could not unmarshal vk: %v", err)
+		return false
 	}
 
-	err = verifier.VerifyGroth16(zkProof, verificationKeyBytes)
+	vk, err := verifier.ParseVK(vkStr)
+	if err != nil {
+		log.Printf("Could not parse vk: %v", err)
+		return false
+	}
+
+	inputs := bytesToBigInts32(pubInputBytes)
+
+	err = verifier.VerifyRaw(vk, parsedProofData, inputs)
 	if err != nil {
 		log.Printf("Could not verify Groth16 proof: %v", err)
 		return false
 	}
+
 	return true
 }

@@ -2,6 +2,12 @@ module verifier
 
 go 1.22.3
 
+replace github.com/iden3/go-rapidsnark => github.com/MarcosNicolau/go-rapidsnark v0.0.0-20250828172020-87df0a23ada4
+
+replace github.com/iden3/go-rapidsnark/types => github.com/MarcosNicolau/go-rapidsnark/types v0.0.0-20250828172020-87df0a23ada4
+
+replace github.com/iden3/go-rapidsnark/verifier => github.com/MarcosNicolau/go-rapidsnark/verifier v0.0.0-20250828172020-87df0a23ada4
+
 require (
 	github.com/consensys/gnark v0.12.0
 	github.com/consensys/gnark-crypto v0.17.0
