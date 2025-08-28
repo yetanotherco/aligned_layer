@@ -926,10 +926,17 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
                 "--vk",
                 args.verification_key_file_name.clone(),
             )?);
-            pub_input = Some(read_file_option(
-                "--public_input",
-                args.pub_input_file_name.clone(),
-            )?);
+            let pub_input_file =
+                read_file_option("--public_input", args.pub_input_file_name.clone())?;
+            let pub_inputs: Vec<String> = serde_json::from_slice(&pub_input_file)
+                .map_err(|e| SubmitError::MissingRequiredParameter(e.to_string()))?;
+
+            let decode_inputs = aligned_sdk::common::utils::encode_circom_pub_inputs(&pub_inputs)
+                .map_err(|_| {
+                SubmitError::MissingRequiredParameter("Invalid public inputs".into())
+            })?;
+
+            pub_input = Some(decode_inputs);
         }
     }
 
