@@ -107,6 +107,7 @@
         access_key_id: "{{ lookup('ini', 'access_key_id', file='ini/env-batcher.ini') }}"
         bucket_name: "{{ lookup('ini', 'bucket_name', file='ini/env-batcher.ini') }}"
         download_endpoint: "{{ lookup('ini', 'download_endpoint', file='ini/env-batcher.ini') }}"
+        upload_endpoint: "{{ lookup('ini', 'upload_endpoint', file='ini/env-batcher.ini') }}"
         log_level: "{{ lookup('ini', 'log_level', file='ini/env-batcher.ini') }}"
 
     - name: Add reverse proxy to Caddy
