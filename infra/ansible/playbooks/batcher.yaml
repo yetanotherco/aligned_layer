@@ -92,7 +92,7 @@
         eth_rpc_url_fallback: "{{ lookup('ini', 'eth_rpc_url_fallback', file='ini/config-batcher.ini') }}"
         eth_ws_url: "{{ lookup('ini', 'eth_ws_url', file='ini/config-batcher.ini') }}"
         eth_ws_url_fallback: "{{ lookup('ini', 'eth_ws_url_fallback', file='ini/config-batcher.ini') }}"
-        ecdsa_private_key_store_path: "/home/{{ ansible_user }}/.keystores/batcher"
+        ecdsa_private_key_store_path: "{{ lookup('ini', 'ecdsa_private_key_store_path', file='ini/config-batcher.ini') }}"
         ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-batcher.ini') }}"
         telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-batcher.ini') }}"
         batcher_replacement_private_key: "{{ lookup('ini', 'batcher_replacement_private_key', file='ini/config-batcher.ini') }}"
