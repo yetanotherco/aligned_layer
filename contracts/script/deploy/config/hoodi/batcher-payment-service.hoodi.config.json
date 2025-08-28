@@ -1,7 +1,7 @@
 {
   "address": {
     "batcherWallet": "0x03D284fDf9a80A71C98107B59c35A0E493D69Fae",
-    "alignedLayerServiceManager": ""
+    "alignedLayerServiceManager": "0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c"
   },
   "permissions": {
     "owner": "0xF138043AC49a0cbB1C8fF03433B51861eA0AE927"
