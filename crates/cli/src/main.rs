@@ -380,6 +380,7 @@ enum NetworkNameArg {
     Devnet,
     Holesky,
     HoleskyStage,
+    Hoodi,
     Mainnet,
     MainnetStage,
     Sepolia,
@@ -393,11 +394,12 @@ impl FromStr for NetworkNameArg {
             "devnet" => Ok(NetworkNameArg::Devnet),
             "holesky" => Ok(NetworkNameArg::Holesky),
             "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
+            "hoodi" => Ok(NetworkNameArg::Hoodi),
             "mainnet" => Ok(NetworkNameArg::Mainnet),
             "mainnet-stage" => Ok(NetworkNameArg::MainnetStage),
             "sepolia" => Ok(NetworkNameArg::Sepolia),
             _ => Err(
-                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet, mainnet-stage, sepolia"
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, hoodi, mainnet, mainnet-stage, sepolia"
                     .to_string(),
             ),
         }
@@ -410,7 +412,7 @@ struct NetworkArg {
         name = "The working network's name",
         long = "network",
         default_value = "devnet",
-        help = "[possible values: devnet, holesky, holesky-stage, mainnet, mainnet-stage, sepolia]"
+        help = "[possible values: devnet, holesky, holesky-stage, hoodi, mainnet, mainnet-stage, sepolia]"
     )]
     network: Option<NetworkNameArg>,
 
@@ -462,6 +464,7 @@ impl From<NetworkArg> for Network {
             Some(NetworkNameArg::Devnet) => Network::Devnet,
             Some(NetworkNameArg::Holesky) => Network::Holesky,
             Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
+            Some(NetworkNameArg::Hoodi) => Network::Hoodi,
             Some(NetworkNameArg::Mainnet) => Network::Mainnet,
             Some(NetworkNameArg::MainnetStage) => Network::MainnetStage,
             Some(NetworkNameArg::Sepolia) => Network::Sepolia,
@@ -634,6 +637,7 @@ async fn main() -> Result<(), AlignedError> {
                 let base_url = match used_network {
                     Network::Holesky => "https://holesky.explorer.alignedlayer.com/batches/0x",
                     Network::HoleskyStage => "https://stage.explorer.alignedlayer.com/batches/0x",
+                    Network::Hoodi => "https://hoodi.explorer.alignedlayer.com/batches/0x",
                     Network::Mainnet => "https://explorer.alignedlayer.com/batches/0x",
                     Network::MainnetStage => {
                         "https://mainnetstage.explorer.alignedlayer.com/batches/0x"
