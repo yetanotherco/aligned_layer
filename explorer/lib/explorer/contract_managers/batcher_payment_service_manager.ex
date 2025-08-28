@@ -9,6 +9,7 @@ defmodule BatcherPaymentServiceManager do
                   "holesky" -> 1_728_056
                   "mainnet" -> 19_000_000
                   "sepolia" -> 9_062_616
+                  "hoodi" -> 1_093_860
                   _ -> raise("Invalid environment")
                 end)
 

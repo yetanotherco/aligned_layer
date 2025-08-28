@@ -124,6 +124,7 @@ defmodule ExplorerWeb.Helpers do
       "holesky" -> "https://holesky.eigenlayer.xyz"
       "mainnet" -> "https://app.eigenlayer.xyz"
       "sepolia" -> "https://sepolia.eigenlayer.xyz"
+      "hoodi" -> "https://hoodi.eigenlayer.xyz"
       _ -> "http://localhost:4000"
     end
   end
@@ -136,6 +137,7 @@ defmodule ExplorerWeb.Helpers do
       {"Mainnet", "https://explorer.alignedlayer.com"},
       {"Holesky", "https://holesky.explorer.alignedlayer.com"},
       {"Sepolia", "https://sepolia.explorer.alignedlayer.com"},
+      {"Hoodi", "https://hoodi.explorer.alignedlayer.com"},
       {"Stage", "https://stage.explorer.alignedlayer.com"},
       {"Devnet", "http://localhost:4000/"}
     ]
@@ -146,6 +148,7 @@ defmodule ExplorerWeb.Helpers do
       "explorer.alignedlayer.com" -> "Mainnet"
       "holesky.explorer.alignedlayer.com" -> "Holesky"
       "sepolia.explorer.alignedlayer.com" -> "Sepolia"
+      "hoodi.explorer.alignedlayer.com" -> "Hoodi"
       "stage.explorer.alignedlayer.com" -> "Stage"
       _ -> "Devnet"
     end
@@ -164,6 +167,7 @@ defmodule ExplorerWeb.Helpers do
       "mainnet" -> "https://etherscan.io"
       "holesky" -> "https://holesky.etherscan.io"
       "sepolia" -> "https://sepolia.etherscan.io"
+      "hoodi" -> "https://hoodi.etherscan.io"
       _ -> "http://localhost:4000"
     end
   end
@@ -181,6 +185,7 @@ defmodule ExplorerWeb.Helpers do
       "mainnet" -> "https://blobscan.com/"
       "holesky" -> "https://holesky.blobscan.com/"
       "sepolia" -> "https://sepolia.blobscan.com/"
+      "hoodi" -> "https://hoodi.blobscan.com/"
       _ -> "http://localhost:4000"
     end
   end
