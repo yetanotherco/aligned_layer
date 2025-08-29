@@ -1182,7 +1182,7 @@ docker_batcher_send_circom_groth16_bn256_burst:
 			  --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
 
-docker_batcher_send_circom_groth16_bn256_burst:
+docker_batcher_send_circom_groth16_bn256_no_pub_input_burst:
 	@echo "Sending Circom Groth16 BN256 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
 			  --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
