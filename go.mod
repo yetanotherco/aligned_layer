@@ -4,11 +4,11 @@ go 1.22.3
 
 toolchain go1.23.4
 
-replace github.com/iden3/go-rapidsnark => github.com/yetanotherco/go-rapidsnark v0.0.0-20250828172020-87df0a23ada4
+replace github.com/iden3/go-rapidsnark => github.com/yetanotherco/go-rapidsnark v0.0.0-20250829135025-99f9f6b11ecc
 
-replace github.com/iden3/go-rapidsnark/types => github.com/yetanotherco/go-rapidsnark/types v0.0.0-20250828172020-87df0a23ada4
+replace github.com/iden3/go-rapidsnark/types => github.com/yetanotherco/go-rapidsnark/types v0.0.0-20250829135025-99f9f6b11ecc
 
-replace github.com/iden3/go-rapidsnark/verifier => github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250828172020-87df0a23ada4
+replace github.com/iden3/go-rapidsnark/verifier => github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250829135025-99f9f6b11ecc
 
 require (
 	github.com/Layr-Labs/eigensdk-go v0.2.0-beta.1
