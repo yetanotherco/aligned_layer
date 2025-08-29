@@ -1,8 +1,8 @@
 {
   "address": {
-    "sp1VerifierAddress": "",
+    "sp1VerifierAddress": "0xe1D19B93F2052d42967bCe42e6d4125A31A0e9ef",
     "risc0VerifierAddress": "0x32Db7dc407AC886807277636a1633A1381748DD8",
-    "alignedAggregatorAddress": ""
+    "alignedAggregatorAddress": "0x7EB3B63A4F3e7810Cc9bbc346749E2491Da4D7Cc"
   },
   "programs_id": {
     "sp1AggregationProgramVKHash": "0x00856d1f422b7919a4c37d912033a3a8404d2a19688769ad7b6095e16b3d7448",
