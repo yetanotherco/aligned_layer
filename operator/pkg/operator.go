@@ -361,6 +361,7 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 
 	verificationDataBatchLen := len(verificationDataBatch)
 	results := make(chan bool, verificationDataBatchLen)
+	jobs := make(chan VerificationData, verificationDataBatchLen)
 
 	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
 	if err != nil {
@@ -373,21 +374,23 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 	if maxWorkers < 1 {
 		maxWorkers = 1
 	}
-	semaphore := make(chan struct{}, maxWorkers)
+	
 	var wg sync.WaitGroup
-	wg.Add(verificationDataBatchLen)
+	for i := 0; i < maxWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for data := range jobs {
+				o.verify(data, disabledVerifiersBitmap, results)
+				o.metrics.IncOperatorTaskResponses()
+			}
+		}()
+	}
 
 	for _, verificationData := range verificationDataBatch {
-		go func(data VerificationData) {
-			semaphore <- struct{}{}
-			defer func() {
-				<-semaphore
-				wg.Done()
-			}()
-			o.verify(data, disabledVerifiersBitmap, results)
-			o.metrics.IncOperatorTaskResponses()
-		}(verificationData)
+		jobs <- verificationData
 	}
+	close(jobs)
 
 	go func() {
 		wg.Wait()
@@ -452,6 +455,7 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 
 	verificationDataBatchLen := len(verificationDataBatch)
 	results := make(chan bool, verificationDataBatchLen)
+	jobs := make(chan VerificationData, verificationDataBatchLen)
 
 	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
 	if err != nil {
@@ -464,21 +468,23 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	if maxWorkers < 1 {
 		maxWorkers = 1
 	}
-	semaphore := make(chan struct{}, maxWorkers)
+	
 	var wg sync.WaitGroup
-	wg.Add(verificationDataBatchLen)
+	for i := 0; i < maxWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for data := range jobs {
+				o.verify(data, disabledVerifiersBitmap, results)
+				o.metrics.IncOperatorTaskResponses()
+			}
+		}()
+	}
 
 	for _, verificationData := range verificationDataBatch {
-		go func(data VerificationData) {
-			semaphore <- struct{}{}
-			defer func() {
-				<-semaphore
-				wg.Done()
-			}()
-			o.verify(data, disabledVerifiersBitmap, results)
-			o.metrics.IncOperatorTaskResponses()
-		}(verificationData)
+		jobs <- verificationData
 	}
+	close(jobs)
 
 	go func() {
 		wg.Wait()
