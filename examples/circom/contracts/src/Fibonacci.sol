@@ -5,15 +5,16 @@ contract FibonacciValidator {
     address public alignedServiceManager;
     address public paymentServiceAddr;
 
-    bytes32 public fibonacciProgramVk = 0xc91d23fc3b1d24ecb241fbd501162734584f7c9f15ee5c95c712419206797a61;
+    bytes32 public fibonacciProgramVk;
 
     error ProofVerificationFailed();
 
     uint256 fibonacciNumber = 0;
 
-    constructor(address _alignedServiceManager, address _paymentServiceAddr) {
+    constructor(address _alignedServiceManager, address _paymentServiceAddr, bytes32 programVk) {
         alignedServiceManager = _alignedServiceManager;
         paymentServiceAddr = _paymentServiceAddr;
+        fibonacciProgramVk = programVk;
     }
 
     function setNewNumber(
