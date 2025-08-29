@@ -24,7 +24,6 @@ const (
 	MaxRetries                        = 100
 	RetryInterval                     = 1 * time.Second
 	BlockInterval              uint64 = 1000
-	PollLatestBatchInterval           = 5 * time.Second
 	RemoveBatchFromSetInterval        = 5 * time.Minute
 )
 
@@ -68,7 +67,7 @@ func NewAvsSubscriberFromConfig(baseConfig *config.BaseConfig) (*AvsSubscriber, 
 	}, nil
 }
 
-func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, errorPairChannel chan ErrorPair) *ErrorPair {
+func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, errorPairChannel chan ErrorPair, pollInterval time.Duration) *ErrorPair {
 	// Create a new channel to receive new tasks
 	internalChannel := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
@@ -91,7 +90,7 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 
 	s.logger.Info("Subscribed to new AlignedLayer V3 tasks")
 
-	pollLatestBatchTicker := time.NewTicker(PollLatestBatchInterval)
+	pollLatestBatchTicker := time.NewTicker(pollInterval)
 
 	// Forward the new tasks to the provided channel
 	go func() {

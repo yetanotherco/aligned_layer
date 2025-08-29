@@ -45,21 +45,4 @@ aggregator:
   # The Gas formula is percentage (gas_base_bump_percentage + gas_bump_incremental_percentage * i) / 100) is checked against this value
   # If it is higher, it will default to `gas_bump_percentage_limit`
   time_to_wait_before_bump: 72s # The time to wait for the receipt when responding to task. Suggested value 72 seconds (6 blocks)
-
-## Operator Configurations
-# operator:
-#   aggregator_rpc_server_ip_port_address: localhost:8090
-#   address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
-#   earnings_receiver_address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
-#   delegation_approver_address: "0x0000000000000000000000000000000000000000"
-#   staker_opt_out_window_blocks: 0
-#   metadata_url: "https://yetanotherco.github.io/operator_metadata/metadata.json"
-#   enable_metrics: true
-#   metrics_ip_port_address: localhost:9092
-#   max_batch_size: 268435456 # 256 MiB
-# # Operators variables needed for register it in EigenLayer
-# el_delegation_manager_address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
-# private_key_store_path: config-files/anvil.ecdsa.key.json
-# bls_private_key_store_path: config-files/anvil.bls.key.json
-# signer_type: local_keystore
-# chain_id: 31337
+  poll_latest_batch_interval: 20s # The interval to poll for latest batches. Default: 20s

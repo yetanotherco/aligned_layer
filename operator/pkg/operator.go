@@ -141,7 +141,7 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 }
 
 func (o *Operator) SubscribeToNewTasksV3(errorPairChan chan chainio.ErrorPair) *chainio.ErrorPair {
-	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3, errorPairChan)
+	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3, errorPairChan, o.Config.Operator.PollLatestBatchInterval)
 }
 
 type OperatorLastProcessedBatch struct {

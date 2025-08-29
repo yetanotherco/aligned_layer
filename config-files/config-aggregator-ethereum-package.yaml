@@ -34,3 +34,4 @@ aggregator:
   gas_base_bump_percentage: 10 # How much to bump gas price when responding to task. Suggested value 10%
   gas_bump_incremental_percentage: 2 # An extra percentage to bump every retry i*2 when responding to task. Suggested value 2%
   time_to_wait_before_bump: 36s # The time to wait for the receipt when responding to task. Suggested value 36 seconds (3 blocks)
+  poll_latest_batch_interval: 20s # The interval to poll for latest batches. Default: 20s
