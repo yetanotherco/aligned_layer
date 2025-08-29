@@ -23,11 +23,8 @@ pub async fn update_number_on_contract(
     aligned_verification_data: AlignedVerificationData,
 ) -> String {
     let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
-    let signer = LocalSigner::decrypt_keystore(
-        &config.private_key_store_path,
-        &config.private_key_store_password,
-    )
-    .expect("Keystore signer should be `cast wallet` compliant");
+    let signer = LocalSigner::from_str(&config.private_key)
+        .expect("Keystore signer should be `cast wallet` compliant");
     let wallet = EthereumWallet::from(signer);
 
     let rpc_provider = ProviderBuilder::new()

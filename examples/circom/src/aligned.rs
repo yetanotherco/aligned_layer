@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use aligned_sdk::{
     common::types::{AlignedVerificationData, Signer, VerificationData, Wallet},
     verification_layer::{estimate_fee, get_chain_id},
@@ -14,12 +16,9 @@ pub async fn submit_proof_to_aligned(
     let chain_id = get_chain_id(&config.eth_rpc_url)
         .await
         .expect("To query chain id from rpc");
-    let wallet = Wallet::decrypt_keystore(
-        &config.private_key_store_path,
-        &config.private_key_store_password,
-    )
-    .expect("Keystore to be `cast wallet` compliant")
-    .with_chain_id(chain_id);
+    let wallet = Wallet::from_str(&config.private_key)
+        .expect("Keystore to be `cast wallet` compliant")
+        .with_chain_id(chain_id);
 
     let verification_data = VerificationData {
         proof_generator_addr: wallet.address(),
