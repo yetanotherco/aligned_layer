@@ -14,6 +14,7 @@ import "C"
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"log"
@@ -123,9 +124,9 @@ func verifyGnarkGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef
 	return err == nil
 }
 
-func bytesToBigInts32(b []byte) []*big.Int {
+func bytesToBigInts32(b []byte) ([]*big.Int, error) {
 	if len(b)%32 != 0 {
-		panic("pubInputBytes length is not a multiple of 32")
+		return nil, fmt.Errorf("invalid length")
 	}
 
 	inputs := make([]*big.Int, 0, len(b)/32)
@@ -134,7 +135,7 @@ func bytesToBigInts32(b []byte) []*big.Int {
 		bi := new(big.Int).SetBytes(chunk)
 		inputs = append(inputs, bi)
 	}
-	return inputs
+	return inputs, nil
 }
 
 //export VerifyCircomGroth16ProofBN256
@@ -169,7 +170,11 @@ func VerifyCircomGroth16ProofBN256(proofBytesRef C.ListRef, pubInputBytesRef C.L
 		return false
 	}
 
-	inputs := bytesToBigInts32(pubInputBytes)
+	inputs, err := bytesToBigInts32(pubInputBytes)
+	if err != nil {
+		log.Printf("Could not parse pub inputs: %v", err)
+		return false
+	}
 
 	err = verifier.VerifyRaw(vk, parsedProofData, inputs)
 	if err != nil {
