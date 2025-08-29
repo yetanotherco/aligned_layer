@@ -621,9 +621,9 @@ func (o *Operator) verifyGnarkGroth16Proof(proofBytes []byte, pubInputBytes []by
 
 // verifyCircomGroth16Bn256Proof verifies a Circom Groth16 proof using BN256 curve.
 func (o *Operator) verifyCircomGroth16Bn256Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
-	bytesToBigInts32 := func(b []byte) []*big.Int {
+	bytesToBigInts32 := func(b []byte) ([]*big.Int, error) {
 		if len(b)%32 != 0 {
-			panic("pubInputBytes length is not a multiple of 32")
+			return nil, fmt.Errorf("invalid length")
 		}
 
 		inputs := make([]*big.Int, 0, len(b)/32)
@@ -632,7 +632,7 @@ func (o *Operator) verifyCircomGroth16Bn256Proof(proofBytes []byte, pubInputByte
 			bi := new(big.Int).SetBytes(chunk)
 			inputs = append(inputs, bi)
 		}
-		return inputs
+		return inputs, nil
 	}
 
 	proofData := &rapidsnark_types.ProofData{}
@@ -661,7 +661,11 @@ func (o *Operator) verifyCircomGroth16Bn256Proof(proofBytes []byte, pubInputByte
 		return false
 	}
 
-	inputs := bytesToBigInts32(pubInputBytes)
+	inputs, err := bytesToBigInts32(pubInputBytes)
+	if err != nil {
+		log.Printf("Could not parse pub inputs: %v", err)
+		return false
+	}
 
 	err = rapidsnark_verifier.VerifyRaw(vk, parsedProofData, inputs)
 	if err != nil {

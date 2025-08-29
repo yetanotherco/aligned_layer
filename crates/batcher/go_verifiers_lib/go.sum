@@ -1,7 +1,3 @@
-github.com/MarcosNicolau/go-rapidsnark/types v0.0.0-20250828172020-87df0a23ada4 h1:NAZOH8mk5hgWpxf1ujVw+uggsRBMcXiiC7R7sZXVfW0=
-github.com/MarcosNicolau/go-rapidsnark/types v0.0.0-20250828172020-87df0a23ada4/go.mod h1:ApgcaUxKIgSRA6fAeFxK7p+lgXXfG4oA2HN5DhFlfF4=
-github.com/MarcosNicolau/go-rapidsnark/verifier v0.0.0-20250828172020-87df0a23ada4 h1:Sz8H0fl9kjg8iZmaHT8pyCx4Smy5JJtq0OyKfz8iXls=
-github.com/MarcosNicolau/go-rapidsnark/verifier v0.0.0-20250828172020-87df0a23ada4/go.mod h1:KgL3Yr9NehlFDI4EIWVLE3UDUi8ulyjbp7HcXSBfiGI=
 github.com/bits-and-blooms/bitset v1.20.0 h1:2F+rfL86jE2d/bmw7OhqUg2Sj/1rURkBn3MdfoPyRVU=
 github.com/bits-and-blooms/bitset v1.20.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
@@ -50,6 +46,10 @@ github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOf
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
+github.com/yetanotherco/go-rapidsnark/types v0.0.0-20250829135025-99f9f6b11ecc h1:9d0e1bmYz6pv0p1V8zrx7jALDdgAIZ8bZWSCDxemgE4=
+github.com/yetanotherco/go-rapidsnark/types v0.0.0-20250829135025-99f9f6b11ecc/go.mod h1:ApgcaUxKIgSRA6fAeFxK7p+lgXXfG4oA2HN5DhFlfF4=
+github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250829135025-99f9f6b11ecc h1:JLSkcXpSuKb4fzYMF1qNM0nO2oysvOkpNeCSQunTtUA=
+github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250829135025-99f9f6b11ecc/go.mod h1:KgL3Yr9NehlFDI4EIWVLE3UDUi8ulyjbp7HcXSBfiGI=
 golang.org/x/crypto v0.33.0 h1:IOBPskki6Lysi0lo9qQvbxiQ+FvsCC/YWOecCHAixus=
 golang.org/x/crypto v0.33.0/go.mod h1:bVdXmD7IV/4GdElGPozy6U7lWdRXA4qyRVGJV57uQ5M=
 golang.org/x/sync v0.11.0 h1:GGz8+XQP4FvTTrjZPzNKTMFtSXH80RAzG+5ghFPgK9w=
