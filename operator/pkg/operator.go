@@ -15,7 +15,7 @@ import (
 	"time"
 
 	rapidsnark_types "github.com/iden3/go-rapidsnark/types"
-	"github.com/iden3/go-rapidsnark/verifier"
+	rapidsnark_verifier "github.com/iden3/go-rapidsnark/verifier"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
@@ -621,30 +621,58 @@ func (o *Operator) verifyGnarkGroth16Proof(proofBytes []byte, pubInputBytes []by
 
 // verifyCircomGroth16Bn256Proof verifies a Circom Groth16 proof using BN256 curve.
 func (o *Operator) verifyCircomGroth16Bn256Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	bytesToBigInts32 := func(b []byte) ([]*big.Int, error) {
+		if len(b)%32 != 0 {
+			return nil, fmt.Errorf("invalid length")
+		}
+
+		inputs := make([]*big.Int, 0, len(b)/32)
+		for i := 0; i < len(b); i += 32 {
+			chunk := b[i : i+32]
+			bi := new(big.Int).SetBytes(chunk)
+			inputs = append(inputs, bi)
+		}
+		return inputs, nil
+	}
+
 	proofData := &rapidsnark_types.ProofData{}
 	err := json.Unmarshal(proofBytes, proofData)
 	if err != nil {
-		o.Logger.Infof("Could not marshal proof: %v", err)
+		log.Printf("Could not unmarshal proof: %v", err)
 		return false
 	}
 
-	var pubSignals []string
-	err = json.Unmarshal(pubInputBytes, &pubSignals)
+	parsedProofData, err := rapidsnark_verifier.ParseProofData(*proofData)
 	if err != nil {
-		o.Logger.Infof("Could not marshal public signals: %v", err)
+		log.Printf("Could not parse proof: %v", err)
 		return false
 	}
 
-	zkProof := rapidsnark_types.ZKProof{
-		Proof:      proofData,
-		PubSignals: pubSignals,
-	}
-
-	err = verifier.VerifyGroth16(zkProof, verificationKeyBytes)
+	var vkStr rapidsnark_verifier.VkJSON
+	err = json.Unmarshal(verificationKeyBytes, &vkStr)
 	if err != nil {
-		o.Logger.Infof("Could not verify Circom Groth16 BN256 proof: %v", err)
+		log.Printf("Could not unmarshal vk: %v", err)
 		return false
 	}
+
+	vk, err := rapidsnark_verifier.ParseVK(vkStr)
+	if err != nil {
+		log.Printf("Could not parse vk: %v", err)
+		return false
+	}
+
+	inputs, err := bytesToBigInts32(pubInputBytes)
+	if err != nil {
+		log.Printf("Could not parse pub inputs: %v", err)
+		return false
+	}
+
+	err = rapidsnark_verifier.VerifyRaw(vk, parsedProofData, inputs)
+	if err != nil {
+		log.Printf("Could not verify Groth16 proof: %v", err)
+		return false
+	}
+
 	return true
 }
 

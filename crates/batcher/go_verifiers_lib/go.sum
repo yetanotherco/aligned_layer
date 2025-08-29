@@ -21,10 +21,6 @@ github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8/go.mod h1:K1liHPHnj73
 github.com/google/subcommands v1.2.0/go.mod h1:ZjhPrFU+Olkh9WazFPsl27BQ4UPiG37m3yTrtFlrHVk=
 github.com/iden3/go-iden3-crypto v0.0.17 h1:NdkceRLJo/pI4UpcjVah4lN/a3yzxRUGXqxbWcYh9mY=
 github.com/iden3/go-iden3-crypto v0.0.17/go.mod h1:dLpM4vEPJ3nDHzhWFXDjzkn1qHoBeOT/3UEhXsEsP3E=
-github.com/iden3/go-rapidsnark/types v0.0.3 h1:f0s1Qdut1qHe1O67+m+xUVRBPwSXnq5j0xSrBi0jqM4=
-github.com/iden3/go-rapidsnark/types v0.0.3/go.mod h1:ApgcaUxKIgSRA6fAeFxK7p+lgXXfG4oA2HN5DhFlfF4=
-github.com/iden3/go-rapidsnark/verifier v0.0.5 h1:J7y0ovrEjDQoWtZmlrp4tgGng1A9faMeYsQH4igAEqA=
-github.com/iden3/go-rapidsnark/verifier v0.0.5/go.mod h1:KgL3Yr9NehlFDI4EIWVLE3UDUi8ulyjbp7HcXSBfiGI=
 github.com/ingonyama-zk/icicle/v3 v3.1.1-0.20241118092657-fccdb2f0921b h1:AvQTK7l0PTHODD06PVQX1Tn2o29sRIaKIDOvTJmKurY=
 github.com/ingonyama-zk/icicle/v3 v3.1.1-0.20241118092657-fccdb2f0921b/go.mod h1:e0JHb27/P6WorCJS3YolbY5XffS4PGBuoW38OthLkDs=
 github.com/leanovate/gopter v0.2.11 h1:vRjThO1EKPb/1NsDXuDrzldR28RLkBflWYcU9CvzWu4=
@@ -50,6 +46,10 @@ github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOf
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
+github.com/yetanotherco/go-rapidsnark/types v0.0.0-20250829135025-99f9f6b11ecc h1:9d0e1bmYz6pv0p1V8zrx7jALDdgAIZ8bZWSCDxemgE4=
+github.com/yetanotherco/go-rapidsnark/types v0.0.0-20250829135025-99f9f6b11ecc/go.mod h1:ApgcaUxKIgSRA6fAeFxK7p+lgXXfG4oA2HN5DhFlfF4=
+github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250829135025-99f9f6b11ecc h1:JLSkcXpSuKb4fzYMF1qNM0nO2oysvOkpNeCSQunTtUA=
+github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250829135025-99f9f6b11ecc/go.mod h1:KgL3Yr9NehlFDI4EIWVLE3UDUi8ulyjbp7HcXSBfiGI=
 golang.org/x/crypto v0.33.0 h1:IOBPskki6Lysi0lo9qQvbxiQ+FvsCC/YWOecCHAixus=
 golang.org/x/crypto v0.33.0/go.mod h1:bVdXmD7IV/4GdElGPozy6U7lWdRXA4qyRVGJV57uQ5M=
 golang.org/x/sync v0.11.0 h1:GGz8+XQP4FvTTrjZPzNKTMFtSXH80RAzG+5ghFPgK9w=
