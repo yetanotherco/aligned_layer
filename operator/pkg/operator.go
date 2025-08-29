@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -360,8 +361,6 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 
 	verificationDataBatchLen := len(verificationDataBatch)
 	results := make(chan bool, verificationDataBatchLen)
-	var wg sync.WaitGroup
-	wg.Add(verificationDataBatchLen)
 
 	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
 	if err != nil {
@@ -370,9 +369,21 @@ func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlig
 		return err
 	}
 
+	maxWorkers := runtime.NumCPU() - 1
+	if maxWorkers < 1 {
+		maxWorkers = 1
+	}
+	semaphore := make(chan struct{}, maxWorkers)
+	var wg sync.WaitGroup
+	wg.Add(verificationDataBatchLen)
+
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
-			defer wg.Done()
+			semaphore <- struct{}{}
+			defer func() {
+				<-semaphore
+				wg.Done()
+			}()
 			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
@@ -441,17 +452,29 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 
 	verificationDataBatchLen := len(verificationDataBatch)
 	results := make(chan bool, verificationDataBatchLen)
-	var wg sync.WaitGroup
-	wg.Add(verificationDataBatchLen)
+
 	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
 	if err != nil {
 		o.Logger.Errorf("Could not check verifiers status: %s", err)
 		results <- false
 		return err
 	}
+
+	maxWorkers := runtime.NumCPU() - 1
+	if maxWorkers < 1 {
+		maxWorkers = 1
+	}
+	semaphore := make(chan struct{}, maxWorkers)
+	var wg sync.WaitGroup
+	wg.Add(verificationDataBatchLen)
+
 	for _, verificationData := range verificationDataBatch {
 		go func(data VerificationData) {
-			defer wg.Done()
+			semaphore <- struct{}{}
+			defer func() {
+				<-semaphore
+				wg.Done()
+			}()
 			o.verify(data, disabledVerifiersBitmap, results)
 			o.metrics.IncOperatorTaskResponses()
 		}(verificationData)
