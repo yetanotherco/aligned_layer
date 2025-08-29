@@ -33,3 +33,77 @@ A Rust program is used to:
 -   [circom compiler](https://docs.circom.io/)
 
 ## How to run it
+
+1.  Generate the trusted setup:
+
+```shell
+make generate_circom_groth16_bn256_setup
+```
+
+This command will output the vk commitment like this:
+
+```shell
+VK COMMITMENT IS: `0xd8aeedbdfc90bfc0f61d81efdd23bcf119d7825f74d2af7071fee8fa144a3cb1`
+```
+
+2. Fill the `.env` variables in `contracts/.env`
+
+Follow the `contracts/.env.example`.
+
+3. Deploy the contract
+
+```shell
+make deploy_contract
+```
+
+4. Fill the program env variable:
+
+Follow the `contracts/.env.example`.
+
+5. Run the program:
+
+```shell
+make run
+```
+
+## How to run it locally
+
+Set up all the components of aligned locally following the [aligned setup guide](../../docs/3_guides/6_setup_aligned.md).
+
+1.  Generate the trusted setup:
+
+```shell
+make generate_circom_groth16_bn256_setup
+```
+
+This command will output the vk commitment like this:
+
+```shell
+VK COMMITMENT IS: `0xd8aeedbdfc90bfc0f61d81efdd23bcf119d7825f74d2af7071fee8fa144a3cb1`
+```
+
+2. Complete the `VK_COMMITMENT` variables in `contracts/.env.example`
+
+3. Deploy the contract
+
+```shell
+make deploy_contract_devnet
+```
+
+This command will output the contract address like this:
+
+```shell
+##### anvil-hardhat
+✅  [Success] Hash: 0x37679e098b58e952f3e4ec7f228f6a2b95d62608bcaa54585d1be2ef71ddc9ff
+Contract Address: 0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD
+Block: 2001
+Paid: 0.000000000005023288 ETH (627911 gas * 0.000000008 gwei)
+```
+
+4. Complete the `FIBONACCI_CONTRACT_ADDRESS` variable in the program env at `.env.devnet`:
+
+5. Run the program:
+
+```shell
+make run_devnet
+```
