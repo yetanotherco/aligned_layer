@@ -4,11 +4,11 @@ go 1.22.3
 
 toolchain go1.23.4
 
-replace github.com/iden3/go-rapidsnark => github.com/MarcosNicolau/go-rapidsnark v0.0.0-20250828172020-87df0a23ada4
+replace github.com/iden3/go-rapidsnark => github.com/yetanotherco/go-rapidsnark v0.0.0-20250828172020-87df0a23ada4
 
-replace github.com/iden3/go-rapidsnark/types => github.com/MarcosNicolau/go-rapidsnark/types v0.0.0-20250828172020-87df0a23ada4
+replace github.com/iden3/go-rapidsnark/types => github.com/yetanotherco/go-rapidsnark/types v0.0.0-20250828172020-87df0a23ada4
 
-replace github.com/iden3/go-rapidsnark/verifier => github.com/MarcosNicolau/go-rapidsnark/verifier v0.0.0-20250828172020-87df0a23ada4
+replace github.com/iden3/go-rapidsnark/verifier => github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250828172020-87df0a23ada4
 
 require (
 	github.com/Layr-Labs/eigensdk-go v0.2.0-beta.1
@@ -24,6 +24,7 @@ require (
 	github.com/consensys/gnark v0.12.0
 	github.com/consensys/gnark-crypto v0.17.0
 	github.com/fxamacker/cbor/v2 v2.7.0
+	github.com/iden3/go-rapidsnark/types v0.0.3
 	github.com/iden3/go-rapidsnark/verifier v0.0.5
 	github.com/rs/zerolog v1.33.0
 	github.com/ugorji/go/codec v1.2.12
@@ -68,7 +69,6 @@ require (
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/iden3/go-iden3-crypto v0.0.17 // indirect
-	github.com/iden3/go-rapidsnark/types v0.0.3 // indirect
 	github.com/ingonyama-zk/icicle/v3 v3.1.1-0.20241118092657-fccdb2f0921b // indirect
 	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/lmittmann/tint v1.0.4 // indirect
