@@ -34,4 +34,4 @@ forge script script/FibonacciDeployer.s.sol \
     --rpc-url "$RPC_URL" \
     --private-key "$PRIVATE_KEY" \
     --broadcast \
-    --sig "run(address _alignedServiceManager,address _paymentServiceAddr)"
+    --sig "run(address _alignedServiceManager,address _paymentServiceAddr,bytes32 _vkCommitment)"
