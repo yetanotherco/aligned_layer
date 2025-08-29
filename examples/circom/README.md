@@ -11,12 +11,6 @@ A Rust program is used to:
 3. Once verified, send the verification data to the smart contract
 4. Update the contract state using the proof’s public input
 
-## What this example showcases
-
--   How to create a circuit in **Circom**
--   How to verify a Circom proof with **Aligned**
--   How to read and verify **public inputs** on-chain
-
 ## Project structure
 
 -   **`circuits/`**: the Circom circuit (Fibonacci example)
@@ -56,7 +50,19 @@ Follow the `contracts/.env.example`.
 make deploy_contract
 ```
 
-4. Fill the program env variable:
+This command will output the contract address like this:
+
+```shell
+##### anvil-hardhat
+✅  [Success] Hash: 0x37679e098b58e952f3e4ec7f228f6a2b95d62608bcaa54585d1be2ef71ddc9ff
+Contract Address: 0xDC11f7E700A4c898AE5CAddB1082cFfa76512aDD
+Block: 2001
+Paid: 0.000000000005023288 ETH (627911 gas * 0.000000008 gwei)
+```
+
+Save it for the next step.
+
+4. Fill the program `.env` variable:
 
 Follow the `contracts/.env.example`.
 
