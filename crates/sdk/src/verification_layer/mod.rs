@@ -140,9 +140,7 @@ pub async fn estimate_fee(
         FeeEstimationType::Instant => {
             estimate_fee_per_proof_with_rpc(INSTANT_MAX_FEE_BATCH_SIZE, eth_rpc_url).await
         }
-        FeeEstimationType::Custom(n) => {
-            estimate_fee_per_proof_with_rpc(n, eth_rpc_url).await
-        }
+        FeeEstimationType::Custom(n) => estimate_fee_per_proof_with_rpc(n, eth_rpc_url).await,
     }
 }
 

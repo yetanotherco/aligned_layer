@@ -872,7 +872,6 @@ impl Batcher {
             return Ok(());
         };
 
-
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
         // It is safe to do just do this here.
