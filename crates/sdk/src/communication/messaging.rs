@@ -266,8 +266,8 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             Err(SubmitError::GenericError(e))
         }
         Ok(SubmitProofResponseMessage::UnderpricedProof) => {
-            error!("Batcher responded with error: queue limit has been exceeded. Funds have not been spent.");
-            Err(SubmitError::BatchQueueLimitExceededError)
+            error!("Batcher responded with error: proof underpriced. Funds have not been spent.");
+            Err(SubmitError::InvalidMaxFee)
         }
         Ok(SubmitProofResponseMessage::ServerBusy) => {
             error!("Server is busy processing requests, please retry. Funds have not been spent.");

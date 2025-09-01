@@ -51,6 +51,8 @@ pub struct BatcherConfigFromYaml {
     pub metrics_port: u16,
     pub telemetry_ip_port_address: String,
     pub non_paying: Option<NonPayingConfigFromYaml>,
+    pub amount_of_proofs_for_min_max_fee: usize,
+    pub min_bump_percentage: u64,
 }
 
 #[derive(Debug, Deserialize)]
