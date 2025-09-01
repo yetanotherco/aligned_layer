@@ -3,7 +3,7 @@ use crate::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, DEFAULT_CONSTANT_GAS_COST,
             DEFAULT_MAX_FEE_BATCH_SIZE, GAS_PRICE_PERCENTAGE_MULTIPLIER,
-            PERCENTAGE_DIVIDER, INSTANT_MAX_FEE_BATCH_SIZE
+            INSTANT_MAX_FEE_BATCH_SIZE, PERCENTAGE_DIVIDER,
         },
         errors::{self, GetNonceError},
         types::{
