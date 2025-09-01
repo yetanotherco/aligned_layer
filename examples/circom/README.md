@@ -64,7 +64,7 @@ Save it for the next step.
 
 4. Fill the program `.env` variable:
 
-Follow the `contracts/.env.example`.
+Follow the `.env.example`.
 
 5. Run the program:
 
@@ -88,7 +88,7 @@ This command will output the vk commitment like this:
 VK COMMITMENT IS: `0xd8aeedbdfc90bfc0f61d81efdd23bcf119d7825f74d2af7071fee8fa144a3cb1`
 ```
 
-2. Complete the `VK_COMMITMENT` variables in `contracts/.env.example`
+2. Complete the `VK_COMMITMENT` variable in `contracts/.env.devnet`
 
 3. Deploy the contract
 
