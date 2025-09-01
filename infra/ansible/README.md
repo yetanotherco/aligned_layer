@@ -57,7 +57,7 @@ The `caddy-batcher.ini` contains the following variables:
 Deploy the Batcher:
 
 ```shell
-make ansible_batcher_deploy INVENTORY=</path/to/inventory> KEYSTORE=<path/to/keystore/in/your/local>
+make ansible_batcher_deploy INVENTORY=</path/to/inventory>
 ```
 
 ## Operator
@@ -160,10 +160,8 @@ The `config-aggregator.ini` contains the variables to run the Operator in Aligne
 Deploy the Aggregator:
 
 ```shell
-make ansible_aggregator_deploy INVENTORY=</path/to/inventory> ECDSA_KEYSTORE=<path/to/keystore> BLS_KEYSTORE=</path/to/bls/keystore>
+make ansible_aggregator_deploy INVENTORY=</path/to/inventory>
 ```
-> [!Note]
-> ECDSA_KEYSTORE and BLS_KEYSTORE are the paths of the keystores in your machine.
 
 ## Telemetry
 To deploy the Telemetry Services you need to set some variables and then run the Telemetry playbook

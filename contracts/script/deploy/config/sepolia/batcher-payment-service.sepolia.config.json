@@ -1,10 +1,10 @@
 {
   "address": {
-    "batcherWallet": "<batcher_wallet_address>",
-    "alignedLayerServiceManager": "<aligned_layer_service_manager_address>"
+    "batcherWallet": "0xBd924Fd31b960C2a1fd261F952B304b13A6922F1",
+    "alignedLayerServiceManager": "0xFf731AB7b3653dc66878DC77E851D174f472d137"
   },
   "permissions": {
-    "owner": "<owner_address>"
+    "owner": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106"
   },
   "eip712": {
     "noncedVerificationDataTypeHash": "0x41817b5c5b0c3dcda70ccb43ba175fdcd7e586f9e0484422a2c6bba678fdf4a3"

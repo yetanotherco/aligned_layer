@@ -437,8 +437,8 @@ operator_remove_from_whitelist_devnet:
 	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_whitelist:
-	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+	@echo "Whitelisting operator $(OPERATOR_ADDRESS) on $(NETWORK)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_remove_from_whitelist:
 	@echo "Removing operator $(OPERATOR_ADDRESS)"
@@ -837,7 +837,7 @@ generate_circom_groth16_bn256_no_pub_input_setup: ## Run the circom_groth16_bn25
 __CONTRACTS_DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
-	@. co	ntracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
@@ -1395,14 +1395,13 @@ ansible_batcher_create_env: ## Create empty variables files for the Batcher depl
 	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
 	@echo "Please complete the values and run make ansible_batcher_deploy"
 
-ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
-		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
-		-i $(INVENTORY) \
-		-e "keystore_path=$(KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
 	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
@@ -1410,14 +1409,12 @@ ansible_aggregator_create_env: ## Create empty variables files for the Aggregato
 	@echo "Please complete the values and run make ansible_aggregator_deploy"
 
 ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
@@ -1426,14 +1423,12 @@ ansible_operator_create_env: ## Create empty variables files for the Operator de
 	@echo "Please complete the values and run make ansible_operator_deploy"
 
 ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ]  || [ -z "$(ECDSA_KEYSTORE)" ]  || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/operator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_explorer_deploy: ## Deploy the Explorer. Parameters: INVENTORY
 	@ansible-playbook infra/ansible/playbooks/explorer.yaml \

@@ -5,10 +5,12 @@
 # PROOF_AGGREGATOR_DEPLOY_CONFIG_PATH: Path to the proof aggregator deploy config file
 #   - Holesky Stage: ./script/deploy/config/holesky/proof-aggregator-service.holesky.config.stage.json
 #   - Holesky Prod: ./script/deploy/config/holesky/proof-aggregator-service.holesky.config.json
+#   - Sepolia: ./script/deploy/config/sepolia/proof-aggregator-service.sepolia.config.json
 #
 # PROOF_AGGREGATOR_OUTPUT_PATH: Path to the proof aggregator output file
 #   - Holesky Stage: ./script/output/holesky/proof_aggregation_service_deployment_output.stage.json
 #   - Holesky Prod: ./script/output/holesky/proof_aggregation_service_deployment_output.json
+#   - Sepolia: ./script/output/sepolia/proof_aggregation_service_deployment_output.json
 #
 # RPC_URL: The RPC URL to connect to the Ethereum network
 #

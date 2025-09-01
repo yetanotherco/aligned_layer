@@ -1,7 +1,7 @@
 # Network
 export RPC_URL="{{ telemetry_aligned_rpc }}"
-export ENVIRONMENT=holesky
-export ALIGNED_CONFIG_FILE="/home/{{ ansible_user }}/repos/telemetry/aligned_layer/contracts/script/output/mainnet/alignedlayer_deployment_output.json"
+export ENVIRONMENT="{{ telemetry_environment }}"
+export ALIGNED_CONFIG_FILE="{{ telemetry_aligned_config_file }}"
 # Elixir
 export PHX_HOST="{{ telemetry_api_phx_host }}"
 export ELIXIR_HOSTNAME="{{ telemetry_api_elixir_hostname }}"

@@ -3,7 +3,7 @@ use crate::{
         constants::{
             ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, DEFAULT_CONSTANT_GAS_COST,
             DEFAULT_MAX_FEE_BATCH_SIZE, GAS_PRICE_PERCENTAGE_MULTIPLIER,
-            INSTANT_MAX_FEE_BATCH_SIZE, PERCENTAGE_DIVIDER,
+            PERCENTAGE_DIVIDER, INSTANT_MAX_FEE_BATCH_SIZE
         },
         errors::{self, GetNonceError},
         types::{
@@ -140,9 +140,7 @@ pub async fn estimate_fee(
         FeeEstimationType::Instant => {
             estimate_fee_per_proof_with_rpc(INSTANT_MAX_FEE_BATCH_SIZE, eth_rpc_url).await
         }
-        FeeEstimationType::Custom(n) => {
-            estimate_fee_per_proof_with_rpc(n, eth_rpc_url).await
-        }
+        FeeEstimationType::Custom(n) => estimate_fee_per_proof_with_rpc(n, eth_rpc_url).await,
     }
 }
 

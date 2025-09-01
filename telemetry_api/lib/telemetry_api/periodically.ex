@@ -9,7 +9,7 @@ defmodule TelemetryApi.Periodically do
   @registered 1
   @deregistered 2
 
-  @wait_time_str System.get_env("OPERATOR_FETCHER_WAIT_TIME_MS") ||
+  @wait_time_str "60000" ||
     raise """
     environment variable OPERATOR_FETCHER_WAIT_TIME_MS is missing.
     """

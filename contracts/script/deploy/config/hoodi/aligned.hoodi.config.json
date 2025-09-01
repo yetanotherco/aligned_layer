@@ -1,0 +1,42 @@
+{
+    "chainInfo": {
+      "chainId": 560048
+    },
+    "permissions" : {
+      "aggregator": "0x30f21BE6E79a32dEee382AD47987d43B68a28244",
+      "deployer": "0xF138043AC49a0cbB1C8fF03433B51861eA0AE927",
+      "owner": "0xF138043AC49a0cbB1C8fF03433B51861eA0AE927",
+      "upgrader": "0xF138043AC49a0cbB1C8fF03433B51861eA0AE927",
+      "churner": "0xF138043AC49a0cbB1C8fF03433B51861eA0AE927",
+      "ejector": "0xF138043AC49a0cbB1C8fF03433B51861eA0AE927",
+      "pauser": "0xF138043AC49a0cbB1C8fF03433B51861eA0AE927",
+      "initalPausedStatus": 0
+    },
+    "minimumStakes": [
+      1
+    ],
+    "strategyWeights": [
+      [
+        {
+          "0_strategy": "0x24579aD4fe83aC53546E5c2D3dF5F85D6383420d",
+          "1_multiplier": 1e+18
+        },
+        {
+          "0_strategy": "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
+          "1_multiplier": 1e+18
+        },
+        {
+          "0_strategy": "0x19536FAd6Eb831e8211B316177979161BBdb2c2B",
+          "1_multiplier": 1e+18
+        }
+      ]
+    ],
+    "operatorSetParams": [
+      {
+        "0_maxOperatorCount": 200,
+        "1_kickBIPsOfOperatorStake": 11000,
+        "2_kickBIPsOfTotalStake": 50
+      }
+    ],
+    "uri": ""
+  }
