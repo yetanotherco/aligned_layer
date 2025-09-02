@@ -681,18 +681,6 @@ batcher_send_circom_groth16_bn256_burst: crates/target/release/aligned ## Send a
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_circom_groth16_bn256_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN256 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
-	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
-	@cd crates/cli/ && cargo run --release -- submit \
-		--proving_system CircomGroth16Bn256 \
-		--proof ../../scripts/test_files/circom_groth16_bn256_script/proof.json \
-		--public_input ../../scripts/test_files/circom_groth16_bn256_script/public.json \
-		--vk ../../scripts/test_files/circom_groth16_bn256_script/verification_key.json \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--repetitions $(BURST_SIZE) \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
 batcher_send_circom_groth16_bn256_no_pub_input_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN256 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
 	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
