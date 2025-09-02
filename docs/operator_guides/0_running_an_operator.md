@@ -55,7 +55,7 @@ make foundry_install
 foundryup
 ```
 
-To build the operator binary for **Testnet**, run:
+To build the operator binary for **Hoodi** or **Holesky**, run:
 
 ```bash
 make operator_build ENVIRONMENT=testnet
@@ -69,7 +69,7 @@ make operator_build ENVIRONMENT=mainnet
 
 ### Upgrading the Operator
 
-If you want to upgrade the operator in **Testnet**, run:
+If you want to upgrade the operator in **Hoodi** or **Holesky**, run:
 
 ```bash
 make operator_update ENVIRONMENT=testnet
@@ -101,6 +101,7 @@ Locate the appropiate `operator_config_file`:
 
 - Mainnet: `./config-files/config-operator-mainnet.yaml`.
 - Holesky: `./config-files/config-operator-holesky.yaml`.
+- Hoodi: `./config-files/config-operator-hoodi.yaml`.
 
 Update the following placeholders:
 
@@ -162,6 +163,12 @@ Then you must register as an Operator on AlignedLayer. To do this, you must run:
     ```bash
     make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-holesky.yaml
     ```
+  
+- Hoodi:
+
+    ```bash
+    make operator_register_with_aligned_layer CONFIG_FILE=./config-files/config-operator-hoodi.yaml
+    ```
 
 {% hint style="danger" %}
 If you are going to run the server in this machine, 
@@ -180,6 +187,12 @@ delete the operator key
 
     ```bash
     ./operator/build/aligned-operator start --config ./config-files/config-operator-holesky.yaml
+    ```
+  
+- Hoodi:
+
+    ```bash
+    ./operator/build/aligned-operator start --config ./config-files/config-operator-hoodi.yaml
     ```
 
 ### Run Operator using Systemd
@@ -275,11 +288,17 @@ To unregister the Aligned operator, run:
     ```bash
     cast send --rpc-url https://ethereum-holesky-rpc.publicnode.com --private-key <private_key> 0x3aD77134c986193c9ef98e55e800B71e72835b62 'deregisterOperator(bytes)' 0x00
     ```
+  
+- Hoodi:
+
+    ```bash
+    cast send --rpc-url https://ethereum-hoodi-rpc.publicnode.com --private-key <private_key> 0xD06AAf23d136ECBfb5Bdb349Dd7a87aDc74673Dd 'deregisterOperator(bytes)' 0x00
+    ```
 
  `<private_key>` is the one specified in the output when generating your keys with the EigenLayer CLI.
 
 
-##   Deposit Strategy Tokens in Testnet
+##   Deposit Strategy Tokens in Holesky
 
 We are using [WETH](https://holesky.eigenlayer.xyz/restake/WETH) as the strategy token.
 
@@ -322,3 +341,32 @@ If you don't have Holesky ETH, these are some useful faucets:
 - [Google Cloud for Web3 Holesky Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
 - [Holesky PoW Faucet](https://holesky-faucet.pk910.de/)
 
+## Deposit Strategy Tokens in Hoodi
+
+You can restake [stETH](https://hoodi.eigenlayer.xyz/token/stETH) as the strategy token.
+
+You will need to stake a minimum of 1000 WEI in stETH. We recommend to stake a maximum amount of 10 stETH. If you are staking more than 10 stETH please unstake any surplus over 10.
+
+If you already have ETH and need to convert it to stETH, you can get it from [Lido Website](https://stake-hoodi.testnet.fi/).
+
+Finally, to end the staking process, you need to deposit into the stETH strategy,
+
+There are two options, either doing it through EigenLayer's website, or running the commands specified by us below.
+
+### Option 1
+
+To restake through EigenLayer's website, go to [stETH strategy](https://hoodi.eigenlayer.xyz/token/stETH).
+
+### Option 2
+
+To deposit one stETH using the Operator CLI, run the following command:
+
+```bash
+./operator/build/aligned-operator deposit-into-strategy --config ./config-files/config-operator.yaml --strategy-address 0x19536FAd6Eb831e8211B316177979161BBdb2c2B --amount 1000000000000000000
+```
+
+Where [`0x19536FAd6Eb831e8211B316177979161BBdb2c2B`](https://hoodi.etherscan.io/address/0x19536FAd6Eb831e8211B316177979161BBdb2c2B) is the stETH strategy address in Hoodi.
+
+If you don't have Hoodi ETH, these are some useful faucets:
+
+- [Hoodi PoW Faucet](https://hoodi-faucet.pk910.de/)
