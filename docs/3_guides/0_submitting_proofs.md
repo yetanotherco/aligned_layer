@@ -13,7 +13,7 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: gnark - Groth16 (with BN254) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
 - :white_check_mark: SP1 [(v5.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v5.0.0)
-- :white_check_mark: Risc0 [(v2.3.0)](https://github.com/risc0/risc0/releases/tag/v2.3.0). Risc0 [v2.2.0](https://github.com/risc0/risc0/releases/tag/v2.2.0) is also compatible. 
+- :white_check_mark: Risc0 [(v3.0.3)](https://github.com/risc0/risc0/releases/tag/v3.0.3). Previous versions are also compatible. 
 - :white_check_mark: Circom [(v2.2.2)](https://github.com/iden3/circom/releases/tag/v2.2.2)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
@@ -158,7 +158,7 @@ aligned submit \
 
 ### Risc0 proof
 
-The current Risc0 version used in Aligned is `v2.0.0`.
+The current Risc0 version used in Aligned is `v3.0.3`.
 
 The Risc0 proof needs the proof file and the vm program file (vm program file is the image id).
 
@@ -176,12 +176,12 @@ aligned submit \
 --rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
-**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v2.0.0`. For generating proofs using `cargo risc-zero` please ensure you are using `v2.0.0` or your proof will not be verified. 
+**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v3.0.3`. For generating proofs using `cargo risc-zero` please ensure you are using `v3.0.3` or your proof will not be verified. 
 
-If you can't install `cargo-risczero` `v2.0.0`, you can manually modify your `cargo.toml` on the host project to point to `v2.0.0`:
+If you can't install `cargo-risczero` `v3.0.3`, you can manually modify your `cargo.toml` on the host project to point to `v3.0.3`:
 
 ```toml
-risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v2.0.0", default-features = false, features = [
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v3.0.3", default-features = false, features = [
     "prove",
 ] }
 ```
@@ -193,9 +193,9 @@ risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v2.0.0", default-f
 rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system Risc0 \
---proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
---vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
---public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network holesky \

@@ -76,9 +76,9 @@ cargo run --release -- send-infinite-proofs \
         --burst-time-secs <BURST_TIME_SECS> \
         --network <NETWORK> \
         risc0 \
-            --proof-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
-            --bin-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
-            --pub-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub
+            --proof-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+            --bin-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+            --pub-path ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub
 ```
 
 ### Gnark Groth16 Proofs

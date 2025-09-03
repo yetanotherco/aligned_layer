@@ -65,9 +65,9 @@ elif [[ $PROOF_TYPE == "gnark_plonk" ]]; then
 elif [[ $PROOF_TYPE == "risc0" ]]; then
 	aligned submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
-    --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
-    --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+    --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+    --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
 		--random_address \
     --repetitions $REPETITIONS \
 		--rpc_url $RPC_URL \
