@@ -347,7 +347,7 @@ defmodule Utils do
   def calculate_proof_hashes(deserialized_batch) do
     deserialized_batch
     |> Enum.map(fn s3_object ->
-      ExKeccak.hash_256(:erlang.list_to_binary(s3_object["proof"]))
+      ExKeccak.hash_256(s3_object["proof"].value)
     end)
   end
 
@@ -378,9 +378,9 @@ defmodule Utils do
   def fetch_batch_data_pointer_with_multiple_urls(batch_data_pointers) do
     # Parse comma-separated URLs and limit to max 5
     urls = parse_batch_urls(batch_data_pointers)
-    
+
     errors = []
-    
+
     # Try each URL until first successful response
     try_urls(urls, errors)
   end
