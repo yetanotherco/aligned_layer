@@ -4,7 +4,7 @@ Make sure you have Aligned installed as specified [here](../1_introduction/1_try
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
-You can check your submitted proofs on [Mainnet Explorer](https://explorer.alignedlayer.com) and [Holesky Explorer](https://holesky.explorer.alignedlayer.com).
+You can check your submitted proofs on [Mainnet Explorer](https://explorer.alignedlayer.com), [Holesky Explorer](https://holesky.explorer.alignedlayer.com), and [Hoodi Explorer](https://hoodi.explorer.alignedlayer.com).
 
 ## Supported Verifiers
 
@@ -80,7 +80,7 @@ aligned deposit-to-batcher \
 This command allows the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky`, `mainnet`, or `hoodi`.
 - `--keystore_path` the path to the keystore.
 - `--amount` the number of ethers to transfer to the Batcher.
 - Note: `--amount` flag parameter must be with the shown format, `XX.XXether`.
@@ -97,7 +97,7 @@ aligned get-user-balance \
 These commands allow the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky`, `mainnet`, or `hoodi`.
 - `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Submit your proof to the batcher
@@ -113,7 +113,7 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.
     - Default: `devnet`
-    - Possible values: `devnet`, `holesky`, `mainnet`
+    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
