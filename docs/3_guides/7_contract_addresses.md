@@ -47,3 +47,26 @@ For additional details, refer to the [official EigenLayer documentation](https:/
 | RegistryCoordinator        | [0x3aD77134c986193c9ef98e55e800B71e72835b62](https://holesky.etherscan.io/address/0x3aD77134c986193c9ef98e55e800B71e72835b62) |
 | StakeRegistry              | [0x51462D5511563A0F97Bb3Ce5475E1c3905b83F4b](https://holesky.etherscan.io/address/0x51462D5511563A0F97Bb3Ce5475E1c3905b83F4b) |
 | BatcherPaymentService      | [0x815aeCA64a974297942D2Bbf034ABEe22a38A003](https://holesky.etherscan.io/address/0x815aeCA64a974297942D2Bbf034ABEe22a38A003) |
+
+## Hoodi Deployments
+
+| Contract                       | Address                                                                                                                     |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| AlignedProofAggregationService | [0xEFeD2fd949995BE1a1C7f61AbFC0A33412c37f95](https://hoodi.etherscan.io/address/0xEFeD2fd949995BE1a1C7f61AbFC0A33412c37f95) |
+| AlignedLayerServiceManager     | [0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c](https://hoodi.etherscan.io/address/0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c) |
+| BlsApkRegistry                 | [0xa7Fc4D0Ad59593fB93B39c3353B4144Ea179f61e](https://hoodi.etherscan.io/address/0xa7Fc4D0Ad59593fB93B39c3353B4144Ea179f61e) |
+| IndexRegistry                  | [0x85e972915Ca1FeDF6Ad8361cC1F78211bd3cA6a1](https://hoodi.etherscan.io/address/0x85e972915Ca1FeDF6Ad8361cC1F78211bd3cA6a1) |
+| OperatorStateRetriever         | [0x9B0062e85c7d5f7c195b7Ef351A377dd81e9E055](https://hoodi.etherscan.io/address/0x9B0062e85c7d5f7c195b7Ef351A377dd81e9E055) |
+| RegistryCoordinator            | [0xD06AAf23d136ECBfb5Bdb349Dd7a87aDc74673Dd](https://hoodi.etherscan.io/address/0xD06AAf23d136ECBfb5Bdb349Dd7a87aDc74673Dd) |
+| StakeRegistry                  | [0xCe3DFA29Ce371ccE673E631213d827157cfe67e0](https://hoodi.etherscan.io/address/0xCe3DFA29Ce371ccE673E631213d827157cfe67e0) |
+| BatcherPaymentService          | [0x041af25Fce2413570aaa0029D36DeA1eFdeff083](https://hoodi.etherscan.io/address/0x041af25Fce2413570aaa0029D36DeA1eFdeff083) |
+
+### Strategies
+
+Below is the list of supported strategies available on Aligned Hoodi:
+
+| Name                                                       | Address                                                                                                                     |
+|------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| [Beacon Chain ETH](https://hoodi.eigenlayer.xyz/token/ETH) | [0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0](https://hoodi.etherscan.io/address/0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0) |  
+| [stETH](https://hoodi.eigenlayer.xyz/token/stETH)          | [0x19536FAd6Eb831e8211B316177979161BBdb2c2B](https://hoodi.etherscan.io/address/0x19536FAd6Eb831e8211B316177979161BBdb2c2B) |
+| [WETH](https://hoodi.eigenlayer.xyz/token/WETH)            | [0x24579aD4fe83aC53546E5c2D3dF5F85D6383420d](https://hoodi.etherscan.io/address/0x24579aD4fe83aC53546E5c2D3dF5F85D6383420d) |
