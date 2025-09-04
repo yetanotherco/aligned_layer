@@ -53,6 +53,7 @@
 
 * [Mainnet Explorer](https://explorer.alignedlayer.com)
 * [Holesky Explorer](https://holesky.explorer.alignedlayer.com)
+* [Hoodi Explorer](https://hoodi.explorer.alignedlayer.com)
 * [All the proof aggregation solutions will use RISC-V zkVMs](https://blog.alignedlayer.com/all-the-proof-aggregation-solutions-will-use-risc-v-zkvms/)
 * [Manifesto](https://blog.alignedlayer.com/aligned-manifesto/)
 
