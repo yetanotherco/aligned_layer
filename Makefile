@@ -437,8 +437,8 @@ operator_remove_from_whitelist_devnet:
 	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_whitelist:
-	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+	@echo "Whitelisting operator $(OPERATOR_ADDRESS) on $(NETWORK)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
 
 operator_remove_from_whitelist:
 	@echo "Removing operator $(OPERATOR_ADDRESS)"
@@ -681,6 +681,30 @@ batcher_send_circom_groth16_bn256_burst: crates/target/release/aligned ## Send a
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
+batcher_send_circom_groth16_bn256_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN256 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system CircomGroth16Bn256 \
+		--proof ../../scripts/test_files/circom_groth16_bn256_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn256_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn256_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_circom_groth16_bn256_no_pub_input_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN256 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system CircomGroth16Bn256 \
+		--proof ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
 batcher_send_proof_with_random_address: ## Send a proof with a random address to Batcher. Parameters: RPC_URL, NETWORK, PROOF_TYPE, REPETITIONS
 	@cd crates/cli/ && ./send_proof_with_random_address.sh
 
@@ -802,10 +826,18 @@ generate_circom_groth16_bn256_setup: ## Run the circom_groth16_bn256_script setu
 	@echo "Running circom_groth16_bn256 script setup..."
 	@cd scripts/test_files/circom_groth16_bn256_script && ./generate_setup.sh
 
+generate_circom_groth16_bn256_no_pub_input_proof: ## Run the circom_groth16_bn256_script
+	@echo "Running circom_groth16_bn256 script..."
+	@cd scripts/test_files/circom_groth16_bn256_no_pub_input_script && ./generate_proof.sh
+
+generate_circom_groth16_bn256_no_pub_input_setup: ## Run the circom_groth16_bn256_script setup
+	@echo "Running circom_groth16_bn256_no_pub_input_script setup..."
+	@cd scripts/test_files/circom_groth16_bn256_no_pub_input_script && ./generate_setup.sh
+
 __CONTRACTS_DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
-	@. co	ntracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
@@ -1150,6 +1182,19 @@ docker_batcher_send_circom_groth16_bn256_burst:
 			  --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
 
+docker_batcher_send_circom_groth16_bn256_no_pub_input_burst:
+	@echo "Sending Circom Groth16 BN256 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+			  --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			  --proving_system CircomGroth16Bn256 \
+			  --proof ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/proof.json \
+			  --public_input ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/public.json \
+			  --vk ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/verification_key.json \
+			  --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			  --repetitions $(DOCKER_BURST_SIZE) \
+			  --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_sp1_burst
@@ -1158,6 +1203,7 @@ docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_gnark_plonk_bls12_381_burst
 	@$(MAKE) docker_batcher_send_gnark_groth16_burst
 	@$(MAKE) docker_batcher_send_circom_groth16_bn256_burst
+	@$(MAKE) docker_batcher_send_circom_groth16_bn256_no_pub_input_burst
 
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
@@ -1195,7 +1241,7 @@ docker_verify_proofs_onchain:
 	  '
 
 DOCKER_PROOFS_WAIT_TIME=60
-DOCKER_SENT_PROOFS=6
+DOCKER_SENT_PROOFS=7
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
@@ -1349,14 +1395,13 @@ ansible_batcher_create_env: ## Create empty variables files for the Batcher depl
 	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
 	@echo "Please complete the values and run make ansible_batcher_deploy"
 
-ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
-		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
-		-i $(INVENTORY) \
-		-e "keystore_path=$(KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
 	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
@@ -1364,14 +1409,12 @@ ansible_aggregator_create_env: ## Create empty variables files for the Aggregato
 	@echo "Please complete the values and run make ansible_aggregator_deploy"
 
 ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
@@ -1380,14 +1423,12 @@ ansible_operator_create_env: ## Create empty variables files for the Operator de
 	@echo "Please complete the values and run make ansible_operator_deploy"
 
 ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ]  || [ -z "$(ECDSA_KEYSTORE)" ]  || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/operator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_explorer_deploy: ## Deploy the Explorer. Parameters: INVENTORY
 	@ansible-playbook infra/ansible/playbooks/explorer.yaml \
@@ -1405,7 +1446,7 @@ ansible_telemetry_deploy: ## Deploy the Telemetry. Parameters: INVENTORY
 __ETHEREUM_PACKAGE__:  ## ____
 
 ethereum_package_start: ## Starts the ethereum_package environment
-	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package@5.0.1 --args-file network_params.yaml
 
 ethereum_package_inspect: ## Prints detailed information about the net
 	kurtosis enclave inspect aligned

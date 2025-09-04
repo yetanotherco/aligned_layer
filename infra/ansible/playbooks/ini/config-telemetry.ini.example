@@ -20,9 +20,15 @@ postgresql_telemetry_pass=
 cassandra_telemetry_user=
 cassandra_telemetry_pass=
 
+telemetry_environment=
+telemetry_aligned_config_file=
 telemetry_aligned_rpc=
 telemetry_api_phx_host=
 telemetry_api_elixir_hostname=
 telemetry_api_secret_key_base=
 
 pagerduty_routing_key=
+
+caddy_metrics_url=
+caddy_telemetry_url=
+caddy_jaeger_url=

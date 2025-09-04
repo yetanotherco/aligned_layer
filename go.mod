@@ -4,6 +4,15 @@ go 1.22.3
 
 toolchain go1.23.4
 
+// Replace with fork that exposes VerifyRaw function for raw byte public inputs.
+// The official iden3/go-rapidsnark only provides VerifyGroth16 which expects JSON string
+// public inputs, but we need to commit to the raw bytes and VerifyRaw simplifies this work.
+replace github.com/iden3/go-rapidsnark => github.com/yetanotherco/go-rapidsnark v0.0.0-20250829135025-99f9f6b11ecc
+
+replace github.com/iden3/go-rapidsnark/types => github.com/yetanotherco/go-rapidsnark/types v0.0.0-20250829135025-99f9f6b11ecc
+
+replace github.com/iden3/go-rapidsnark/verifier => github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250829135025-99f9f6b11ecc
+
 require (
 	github.com/Layr-Labs/eigensdk-go v0.2.0-beta.1
 	github.com/ethereum/go-ethereum v1.14.0

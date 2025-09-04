@@ -52,7 +52,7 @@
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer.git
         dest: /home/{{ ansible_user }}/repos/batcher/aligned_layer
-        version: v0.10.2
+        version: 2075-feat-hoodi-deployment
         recursive: false
 
     # Build the batcher
@@ -66,7 +66,7 @@
     - name: Install batcher
       make:
         chdir: /home/{{ ansible_user }}/repos/batcher/aligned_layer
-        target: install_batcher
+        target: batcher_install
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin:/home/{{ ansible_user }}/.cargo/bin"
 
@@ -92,7 +92,7 @@
         eth_rpc_url_fallback: "{{ lookup('ini', 'eth_rpc_url_fallback', file='ini/config-batcher.ini') }}"
         eth_ws_url: "{{ lookup('ini', 'eth_ws_url', file='ini/config-batcher.ini') }}"
         eth_ws_url_fallback: "{{ lookup('ini', 'eth_ws_url_fallback', file='ini/config-batcher.ini') }}"
-        ecdsa_private_key_store_path: "/home/{{ ansible_user }}/.keystores/batcher"
+        ecdsa_private_key_store_path: "{{ lookup('ini', 'ecdsa_private_key_store_path', file='ini/config-batcher.ini') }}"
         ecdsa_private_key_store_password: "{{ lookup('ini', 'ecdsa_private_key_store_password', file='ini/config-batcher.ini') }}"
         telemetry_ip_port_address: "{{ lookup('ini', 'telemetry_ip_port_address', file='ini/config-batcher.ini') }}"
         batcher_replacement_private_key: "{{ lookup('ini', 'batcher_replacement_private_key', file='ini/config-batcher.ini') }}"
@@ -107,6 +107,7 @@
         access_key_id: "{{ lookup('ini', 'access_key_id', file='ini/env-batcher.ini') }}"
         bucket_name: "{{ lookup('ini', 'bucket_name', file='ini/env-batcher.ini') }}"
         download_endpoint: "{{ lookup('ini', 'download_endpoint', file='ini/env-batcher.ini') }}"
+        upload_endpoint: "{{ lookup('ini', 'upload_endpoint', file='ini/env-batcher.ini') }}"
         log_level: "{{ lookup('ini', 'log_level', file='ini/env-batcher.ini') }}"
 
     - name: Add reverse proxy to Caddy
@@ -117,13 +118,6 @@
       vars:
         ansible_ssh_user: "{{ admin_user }}"
         batcher_domain: "{{ lookup('ini', 'batcher_domain', file='ini/caddy-batcher.ini') }}"
-
-    - name: Copy keystore to server
-      ansible.builtin.copy:
-        src: '{{ keystore_path }}'
-        dest: /home/{{ ansible_user }}/.keystores/batcher
-        owner: '{{ ansible_user }}'
-        group: '{{ ansible_user }}'
 
     - name: Start Batcher service
       ansible.builtin.systemd_service:
@@ -139,8 +133,3 @@
         state: restarted
       vars:
         ansible_ssh_user: "{{ admin_user }}"
-
-    - name: Run node_exporter playbook
-      ansible.builtin.import_playbook: node_exporter.yaml
-      vars:
-        host: batcher

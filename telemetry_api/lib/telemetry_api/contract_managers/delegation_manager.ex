@@ -8,6 +8,8 @@ defmodule TelemetryApi.ContractManagers.DelegationManager do
                   "devnet" -> 0
                   "holesky" -> 1_210_000
                   "mainnet" -> 19_000_000
+                  "sepolia" -> 9_062_616
+                  "hoodi" -> 1_093_860
                   _ -> raise("Invalid environment")
                 end)
 

@@ -5,9 +5,11 @@ defmodule NavComponent do
     Helpers.get_aligned_networks()
     |> Enum.filter(fn {name, _link} ->
       case current_network do
-        # Filter dev networks if we are in mainnet or holesky
-        "Mainnet" -> name in ["Mainnet", "Holesky"]
-        "Holesky" -> name in ["Mainnet", "Holesky"]
+        # Filter dev networks if we are in mainnet, holesky, sepolia, or hoodi
+        "Mainnet" -> name in ["Mainnet", "Holesky", "Sepolia", "Hoodi"]
+        "Holesky" -> name in ["Mainnet", "Holesky", "Sepolia", "Hoodi"]
+        "Sepolia" -> name in ["Mainnet", "Holesky", "Sepolia", "Hoodi"]
+        "Hoodi" -> name in ["Mainnet", "Holesky", "Sepolia", "Hoodi"]
         _ -> true
       end
     end)

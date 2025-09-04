@@ -109,7 +109,7 @@ read -p "Enter a block number for SP1 (last_aggregated_block): " num && echo "{\
 read -p "Enter a block number for Risc0 (last_aggregated_block): " num && echo "{\"last_aggregated_block\":$num}" > $HOME/config/proof-aggregator-risc0.last_aggregated_block.json
 
 # Build the proof_aggregator
-make install_aggregation_mode
+make proof_aggregator_install
 
 # Copy run script
 cp ./infra/aggregation_mode/run.sh $HOME/run.sh

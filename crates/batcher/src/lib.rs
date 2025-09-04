@@ -100,6 +100,9 @@ pub struct Batcher {
     non_paying_config: Option<NonPayingConfig>,
     aggregator_fee_percentage_multiplier: u128,
     aggregator_gas_cost: u128,
+    current_min_max_fee: RwLock<U256>,
+    amount_of_proofs_for_min_max_fee: usize,
+    min_bump_percentage: U256,
 
     // Shared state access:
     // Two kinds of threads interact with the shared state:
@@ -322,6 +325,8 @@ impl Batcher {
             max_proof_size: config.batcher.max_proof_size,
             max_batch_byte_size: config.batcher.max_batch_byte_size,
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
+            amount_of_proofs_for_min_max_fee: config.batcher.amount_of_proofs_for_min_max_fee,
+            min_bump_percentage: U256::from(config.batcher.min_bump_percentage),
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -333,6 +338,7 @@ impl Batcher {
             batch_state: Mutex::new(batch_state),
             user_states,
             disabled_verifiers: Mutex::new(disabled_verifiers),
+            current_min_max_fee: RwLock::new(U256::zero()),
             metrics,
             telemetry,
         }
@@ -853,6 +859,19 @@ impl Batcher {
             nonced_verification_data = aux_verification_data
         }
 
+        // Before moving on to process the message, verify that the max fee covers the
+        // minimum max fee allowed. This prevents users from spamming with very low max fees
+        // the min max fee is enforced by checking if it can cover a batch of [`amount_of_proofs_for_min_max_fee`]
+        let msg_max_fee = nonced_verification_data.max_fee;
+        if !self.msg_covers_minimum_max_fee(msg_max_fee).await {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::UnderpricedProof,
+            )
+            .await;
+            return Ok(());
+        };
+
         // We don't need a batch state lock here, since if the user locks its funds
         // after the check, some blocks should pass until he can withdraw.
         // It is safe to do just do this here.
@@ -1223,17 +1242,18 @@ impl Batcher {
             return;
         };
 
+        // Validate that the max fee is at least higher or equal to the original fee + a configurable min_bump_percentage
         let original_max_fee = entry.nonced_verification_data.max_fee;
-        // Require 10% fee increase to prevent DoS attacks. While this could theoretically overflow,
-        // it would require an attacker to have an impractical amount of Ethereum to reach U256::MAX
-        let min_required_fee = original_max_fee + (original_max_fee / U256::from(10)); // 10% increase (1.1x)
-        if replacement_max_fee < min_required_fee {
+        let min_bump =
+            original_max_fee + (original_max_fee * self.min_bump_percentage) / U256::from(100);
+
+        if replacement_max_fee < min_bump {
             drop(batch_state_guard);
             drop(user_state_guard);
-            info!("Replacement message fee increase too small for address {addr}. Original: {original_max_fee:?}, received: {replacement_max_fee:?}, minimum required: {min_required_fee:?}");
+            info!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}, minimum required: {min_bump:?}");
             send_message(
                 ws_conn_sink.clone(),
-                SubmitProofResponseMessage::InvalidReplacementMessage,
+                SubmitProofResponseMessage::UnderpricedProof,
             )
             .await;
             self.metrics.user_error(&["insufficient_fee_increase", ""]);
@@ -1887,7 +1907,22 @@ impl Batcher {
 
         let (gas_price, disable_verifiers) =
             tokio::join!(gas_price_future, disabled_verifiers_future);
+
         let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
+
+        // compute the new min max fee
+        let min_max_fee = aligned_sdk::verification_layer::calculate_fee_per_proof_with_gas_price(
+            self.amount_of_proofs_for_min_max_fee,
+            gas_price,
+        );
+        // Acquire a write lock to update the latest gas price.
+        // The lock is dropped immediately after this assignment completes.
+        *self.current_min_max_fee.write().await = min_max_fee;
+        info!(
+            "Updated min max-fee: {} ETH per proof (batch size: {})",
+            ethers::utils::format_ether(min_max_fee),
+            self.amount_of_proofs_for_min_max_fee
+        );
 
         {
             let new_disable_verifiers = disable_verifiers
@@ -2483,6 +2518,11 @@ impl Batcher {
         }
 
         true
+    }
+
+    async fn msg_covers_minimum_max_fee(&self, msg_max_fee: U256) -> bool {
+        let min_max_fee_per_proof = self.current_min_max_fee.read().await;
+        msg_max_fee >= *min_max_fee_per_proof
     }
 
     /// Checks if the user's balance is unlocked

@@ -24,7 +24,7 @@ func (agg *Aggregator) SubscribeToNewTasks() *chainio.ErrorPair {
 }
 
 func (agg *Aggregator) subscribeToNewTasks() *chainio.ErrorPair {
-	errorPair := agg.avsSubscriber.SubscribeToNewTasksV3(agg.NewBatchChan, agg.taskSubscriber)
+	errorPair := agg.avsSubscriber.SubscribeToNewTasksV3(agg.NewBatchChan, agg.taskSubscriber, agg.AggregatorConfig.Aggregator.PollLatestBatchInterval)
 
 	if errorPair != nil {
 		agg.AggregatorConfig.BaseConfig.Logger.Info("Failed to create task subscriber", "err", errorPair)

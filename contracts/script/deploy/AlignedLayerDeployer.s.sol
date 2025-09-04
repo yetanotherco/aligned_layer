@@ -107,6 +107,9 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
 
         vm.startBroadcast();
 
+        // Empty contract to use as initial implementation for proxies
+        EmptyContract emptyContract = new EmptyContract();
+
         // deploy proxy admin for ability to upgrade proxy contracts
         alignedLayerProxyAdmin = new ProxyAdmin();
 
@@ -302,239 +305,239 @@ contract AlignedLayerDeployer is ExistingDeploymentParser {
         _writeOutput(config_data, outputPath);
     }
 
-    function xtest(
-        string memory existingDeploymentInfoPath,
-        string memory deployConfigPath
-    ) external {
-        // get info on all the already-deployed contracts
-        _parseDeployedContracts(existingDeploymentInfoPath);
-
-        // READ JSON CONFIG DATA
-        string memory config_data = vm.readFile(deployConfigPath);
-
-        // check that the chainID matches the one in the config
-        uint256 currentChainId = block.chainid;
-        uint256 configChainId = stdJson.readUint(
-            config_data,
-            ".chainInfo.chainId"
-        );
-        emit log_named_uint("You are deploying on ChainID", currentChainId);
-        require(
-            configChainId == currentChainId,
-            "You are on the wrong chain for this config"
-        );
-
-        // parse the addresses of permissioned roles
-        alignedLayerOwner = stdJson.readAddress(
-            config_data,
-            ".permissions.owner"
-        );
-        alignedLayerUpgrader = stdJson.readAddress(
-            config_data,
-            ".permissions.upgrader"
-        );
-        alignedLayerPauser = stdJson.readAddress(
-            config_data,
-            ".permissions.pauser"
-        );
-        initalPausedStatus = stdJson.readUint(
-            config_data,
-            ".permissions.initalPausedStatus"
-        );
-
-        deployer = stdJson.readAddress(config_data, ".permissions.deployer");
-        vm.startPrank(deployer);
-
-        // deploy proxy admin for ability to upgrade proxy contracts
-        alignedLayerProxyAdmin = new ProxyAdmin();
-
-        //deploy pauser registry
-        {
-            address[] memory pausers = new address[](1);
-            pausers[0] = alignedLayerPauser;
-            pauserRegistry = new PauserRegistry(pausers, alignedLayerPauser); // (pausers, unpauser)
-        }
-
-        //deploy service manager router
-        serviceManagerRouter = new ServiceManagerRouter();
-
-        /**
-         * First, deploy upgradeable proxy contracts that **will point** to the implementations. Since the implementation contracts are
-         * not yet deployed, we give these proxies an empty contract as the initial implementation, to act as if they have no code.
-         */
-        alignedLayerServiceManager = AlignedLayerServiceManager(
-            payable(
-                new TransparentUpgradeableProxy(
-                    address(emptyContract),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
-            )
-        );
-        registryCoordinator = RegistryCoordinator(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(emptyContract),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
-            )
-        );
-        indexRegistry = IndexRegistry(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(emptyContract),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
-            )
-        );
-        stakeRegistry = StakeRegistry(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(emptyContract),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
-            )
-        );
-        apkRegistry = BLSApkRegistry(
-            address(
-                new TransparentUpgradeableProxy(
-                    address(emptyContract),
-                    address(alignedLayerProxyAdmin),
-                    ""
-                )
-            )
-        );
-
-        //deploy index registry implementation
-        indexRegistryImplementation = new IndexRegistry(registryCoordinator);
-
-        //upgrade index registry proxy to implementation
-        alignedLayerProxyAdmin.upgrade(
-            TransparentUpgradeableProxy(payable(address(indexRegistry))),
-            address(indexRegistryImplementation)
-        );
-
-        //deploy stake registry implementation
-        stakeRegistryImplementation = new StakeRegistry(
-            registryCoordinator,
-            delegationManager
-        );
-
-        //upgrade stake registry proxy to implementation
-        alignedLayerProxyAdmin.upgrade(
-            TransparentUpgradeableProxy(payable(address(stakeRegistry))),
-            address(stakeRegistryImplementation)
-        );
-
-        //deploy apk registry implementation
-        apkRegistryImplementation = new BLSApkRegistry(registryCoordinator);
-
-        //upgrade apk registry proxy to implementation
-        alignedLayerProxyAdmin.upgrade(
-            TransparentUpgradeableProxy(payable(address(apkRegistry))),
-            address(apkRegistryImplementation)
-        );
-
-        //deploy the registry coordinator implementation.
-        registryCoordinatorImplementation = new RegistryCoordinator(
-            IServiceManager(address(alignedLayerServiceManager)),
-            stakeRegistry,
-            apkRegistry,
-            indexRegistry
-        );
-
-        {
-            // parse initalization params and permissions from config data
-            (
-                uint96[] memory minimumStakeForQuourm,
-                IStakeRegistry.StrategyParams[][]
-                    memory strategyAndWeightingMultipliers
-            ) = _parseStakeRegistryParams(config_data);
-            (
-                IRegistryCoordinator.OperatorSetParam[]
-                    memory operatorSetParams,
-                address churner,
-                address ejector
-            ) = _parseRegistryCoordinatorParams(config_data);
-
-            //upgrade the registry coordinator proxy to implementation
-            alignedLayerProxyAdmin.upgradeAndCall(
-                TransparentUpgradeableProxy(
-                    payable(address(registryCoordinator))
-                ),
-                address(registryCoordinatorImplementation),
-                abi.encodeWithSelector(
-                    RegistryCoordinator.initialize.selector,
-                    alignedLayerOwner,
-                    churner,
-                    ejector,
-                    pauserRegistry,
-                    initalPausedStatus,
-                    operatorSetParams,
-                    minimumStakeForQuourm,
-                    strategyAndWeightingMultipliers
-                )
-            );
-        }
-
-        //deploy the alignedLayer service manager implementation
-        alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
-            avsDirectory,
-            rewardsCoordinator,
-            registryCoordinator,
-            stakeRegistry
-        );
-
-        //upgrade the alignedLayer service manager proxy to implementation
-        alignedLayerProxyAdmin.upgradeAndCall(
-            TransparentUpgradeableProxy(
-                payable(address(alignedLayerServiceManager))
-            ),
-            address(alignedLayerServiceManagerImplementation),
-            abi.encodeWithSelector(
-                AlignedLayerServiceManager.initialize.selector,
-                deployer,
-                deployer,
-                pauserRegistry,
-                initalPausedStatus
-            )
-        );
-
-        string memory metadataURI = stdJson.readString(config_data, ".uri");
-        alignedLayerServiceManager.updateAVSMetadataURI(metadataURI);
-        alignedLayerServiceManager.transferOwnership(alignedLayerOwner);
-
-        //deploy the operator state retriever
-        operatorStateRetriever = new OperatorStateRetriever();
-
-        // transfer ownership of proxy admin to upgrader
-        alignedLayerProxyAdmin.transferOwnership(alignedLayerUpgrader);
-
-        vm.stopPrank();
-
-        // sanity checks
-        __verifyContractPointers(
-            apkRegistry,
-            alignedLayerServiceManager,
-            registryCoordinator,
-            indexRegistry,
-            stakeRegistry
-        );
-
-        __verifyContractPointers(
-            apkRegistryImplementation,
-            alignedLayerServiceManagerImplementation,
-            registryCoordinatorImplementation,
-            indexRegistryImplementation,
-            stakeRegistryImplementation
-        );
-
-        __verifyImplementations();
-        __verifyInitalizations(config_data);
-    }
+//    function xtest(
+//        string memory existingDeploymentInfoPath,
+//        string memory deployConfigPath
+//    ) external {
+//        // get info on all the already-deployed contracts
+//        _parseDeployedContracts(existingDeploymentInfoPath);
+//
+//        // READ JSON CONFIG DATA
+//        string memory config_data = vm.readFile(deployConfigPath);
+//
+//        // check that the chainID matches the one in the config
+//        uint256 currentChainId = block.chainid;
+//        uint256 configChainId = stdJson.readUint(
+//            config_data,
+//            ".chainInfo.chainId"
+//        );
+//        emit log_named_uint("You are deploying on ChainID", currentChainId);
+//        require(
+//            configChainId == currentChainId,
+//            "You are on the wrong chain for this config"
+//        );
+//
+//        // parse the addresses of permissioned roles
+//        alignedLayerOwner = stdJson.readAddress(
+//            config_data,
+//            ".permissions.owner"
+//        );
+//        alignedLayerUpgrader = stdJson.readAddress(
+//            config_data,
+//            ".permissions.upgrader"
+//        );
+//        alignedLayerPauser = stdJson.readAddress(
+//            config_data,
+//            ".permissions.pauser"
+//        );
+//        initalPausedStatus = stdJson.readUint(
+//            config_data,
+//            ".permissions.initalPausedStatus"
+//        );
+//
+//        deployer = stdJson.readAddress(config_data, ".permissions.deployer");
+//        vm.startPrank(deployer);
+//
+//        // deploy proxy admin for ability to upgrade proxy contracts
+//        alignedLayerProxyAdmin = new ProxyAdmin();
+//
+//        //deploy pauser registry
+//        {
+//            address[] memory pausers = new address[](1);
+//            pausers[0] = alignedLayerPauser;
+//            pauserRegistry = new PauserRegistry(pausers, alignedLayerPauser); // (pausers, unpauser)
+//        }
+//
+//        //deploy service manager router
+//        serviceManagerRouter = new ServiceManagerRouter();
+//
+//        /**
+//         * First, deploy upgradeable proxy contracts that **will point** to the implementations. Since the implementation contracts are
+//         * not yet deployed, we give these proxies an empty contract as the initial implementation, to act as if they have no code.
+//         */
+//        alignedLayerServiceManager = AlignedLayerServiceManager(
+//            payable(
+//                new TransparentUpgradeableProxy(
+//                    address(emptyContract),
+//                    address(alignedLayerProxyAdmin),
+//                    ""
+//                )
+//            )
+//        );
+//        registryCoordinator = RegistryCoordinator(
+//            address(
+//                new TransparentUpgradeableProxy(
+//                    address(emptyContract),
+//                    address(alignedLayerProxyAdmin),
+//                    ""
+//                )
+//            )
+//        );
+//        indexRegistry = IndexRegistry(
+//            address(
+//                new TransparentUpgradeableProxy(
+//                    address(emptyContract),
+//                    address(alignedLayerProxyAdmin),
+//                    ""
+//                )
+//            )
+//        );
+//        stakeRegistry = StakeRegistry(
+//            address(
+//                new TransparentUpgradeableProxy(
+//                    address(emptyContract),
+//                    address(alignedLayerProxyAdmin),
+//                    ""
+//                )
+//            )
+//        );
+//        apkRegistry = BLSApkRegistry(
+//            address(
+//                new TransparentUpgradeableProxy(
+//                    address(emptyContract),
+//                    address(alignedLayerProxyAdmin),
+//                    ""
+//                )
+//            )
+//        );
+//
+//        //deploy index registry implementation
+//        indexRegistryImplementation = new IndexRegistry(registryCoordinator);
+//
+//        //upgrade index registry proxy to implementation
+//        alignedLayerProxyAdmin.upgrade(
+//            TransparentUpgradeableProxy(payable(address(indexRegistry))),
+//            address(indexRegistryImplementation)
+//        );
+//
+//        //deploy stake registry implementation
+//        stakeRegistryImplementation = new StakeRegistry(
+//            registryCoordinator,
+//            delegationManager
+//        );
+//
+//        //upgrade stake registry proxy to implementation
+//        alignedLayerProxyAdmin.upgrade(
+//            TransparentUpgradeableProxy(payable(address(stakeRegistry))),
+//            address(stakeRegistryImplementation)
+//        );
+//
+//        //deploy apk registry implementation
+//        apkRegistryImplementation = new BLSApkRegistry(registryCoordinator);
+//
+//        //upgrade apk registry proxy to implementation
+//        alignedLayerProxyAdmin.upgrade(
+//            TransparentUpgradeableProxy(payable(address(apkRegistry))),
+//            address(apkRegistryImplementation)
+//        );
+//
+//        //deploy the registry coordinator implementation.
+//        registryCoordinatorImplementation = new RegistryCoordinator(
+//            IServiceManager(address(alignedLayerServiceManager)),
+//            stakeRegistry,
+//            apkRegistry,
+//            indexRegistry
+//        );
+//
+//        {
+//            // parse initalization params and permissions from config data
+//            (
+//                uint96[] memory minimumStakeForQuourm,
+//                IStakeRegistry.StrategyParams[][]
+//                    memory strategyAndWeightingMultipliers
+//            ) = _parseStakeRegistryParams(config_data);
+//            (
+//                IRegistryCoordinator.OperatorSetParam[]
+//                    memory operatorSetParams,
+//                address churner,
+//                address ejector
+//            ) = _parseRegistryCoordinatorParams(config_data);
+//
+//            //upgrade the registry coordinator proxy to implementation
+//            alignedLayerProxyAdmin.upgradeAndCall(
+//                TransparentUpgradeableProxy(
+//                    payable(address(registryCoordinator))
+//                ),
+//                address(registryCoordinatorImplementation),
+//                abi.encodeWithSelector(
+//                    RegistryCoordinator.initialize.selector,
+//                    alignedLayerOwner,
+//                    churner,
+//                    ejector,
+//                    pauserRegistry,
+//                    initalPausedStatus,
+//                    operatorSetParams,
+//                    minimumStakeForQuourm,
+//                    strategyAndWeightingMultipliers
+//                )
+//            );
+//        }
+//
+//        //deploy the alignedLayer service manager implementation
+//        alignedLayerServiceManagerImplementation = new AlignedLayerServiceManager(
+//            avsDirectory,
+//            rewardsCoordinator,
+//            registryCoordinator,
+//            stakeRegistry
+//        );
+//
+//        //upgrade the alignedLayer service manager proxy to implementation
+//        alignedLayerProxyAdmin.upgradeAndCall(
+//            TransparentUpgradeableProxy(
+//                payable(address(alignedLayerServiceManager))
+//            ),
+//            address(alignedLayerServiceManagerImplementation),
+//            abi.encodeWithSelector(
+//                AlignedLayerServiceManager.initialize.selector,
+//                deployer,
+//                deployer,
+//                pauserRegistry,
+//                initalPausedStatus
+//            )
+//        );
+//
+//        string memory metadataURI = stdJson.readString(config_data, ".uri");
+//        alignedLayerServiceManager.updateAVSMetadataURI(metadataURI);
+//        alignedLayerServiceManager.transferOwnership(alignedLayerOwner);
+//
+//        //deploy the operator state retriever
+//        operatorStateRetriever = new OperatorStateRetriever();
+//
+//        // transfer ownership of proxy admin to upgrader
+//        alignedLayerProxyAdmin.transferOwnership(alignedLayerUpgrader);
+//
+//        vm.stopPrank();
+//
+//        // sanity checks
+//        __verifyContractPointers(
+//            apkRegistry,
+//            alignedLayerServiceManager,
+//            registryCoordinator,
+//            indexRegistry,
+//            stakeRegistry
+//        );
+//
+//        __verifyContractPointers(
+//            apkRegistryImplementation,
+//            alignedLayerServiceManagerImplementation,
+//            registryCoordinatorImplementation,
+//            indexRegistryImplementation,
+//            stakeRegistryImplementation
+//        );
+//
+//        __verifyImplementations();
+//        __verifyInitalizations(config_data);
+//    }
 
     function __verifyContractPointers(
         BLSApkRegistry _apkRegistry,

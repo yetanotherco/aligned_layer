@@ -1,0 +1,39 @@
+{
+  "addresses": {
+    "avsDirectory": "0xD58f6844f79eB1fbd9f7091d05f7cb30d3363926",
+    "avsDirectoryImplementation": "0xd2905B858cA5Ded115B61dd9E98F7dcF9aEE2d5c",
+    "baseStrategyImplementation": "0x65147e9916152C1EbdBaD8A6f3e145b4BDeE2D6F",
+    "beaconOracle": "",
+    "delayedWithdrawalRouter": "",
+    "delayedWithdrawalRouterImplementation": "",
+    "delegationManager": "0x867837a9722C512e0862d8c2E15b8bE220E8b87d",
+    "delegationManagerImplementation": "0xcC305562B01bec562D13A40ef8781e313AFE7940",
+    "eigenLayerPauserReg": "0x64D78399B0fa32EA72959f33edCF313159F3c13D",
+    "eigenLayerProxyAdmin": "0xE7f4E30D2619273468afe9EC0Acf805E55532257",
+    "eigenPodBeacon": "0x5e1577f8efB21b229cD5Eb4C5Aa3d6C4b228f650",
+    "eigenPodImplementation": "0x2D6c7f9862BD80Cf0d9d93FC6b513D69E7Db7869",
+    "eigenPodManager": "0xcd1442415Fc5C29Aa848A49d2e232720BE07976c",
+    "eigenPodManagerImplementation": "0x59B11b191B572888703E150E45F5015e0fFcf525",
+    "emptyContract": "",
+    "rewardsCoordinator": "0x29e8572678e0c272350aa0b4B8f304E47EBcd5e7",
+    "rewardsCoordinatorImplementation": "0xe786FD0dE8a6001772386700318187Dc438a2832",
+    "strategies": "",
+    "strategyManager": "0xeE45e76ddbEDdA2918b8C7E3035cd37Eab3b5D41",
+    "strategyManagerImplementation": "0x742A228482701d693061BfE9C5B3Eb3959Ea927b",
+    "allocationManager": "0x95a7431400F362F3647a69535C5666cA0133CAA0",
+    "allocationManagerImplementation": "0x8b1DBbAa79507CD6b6e1d9FBe90E3FB18EFf11a0",
+    "permissionController": "0xdcCF401fD121d8C542E96BC1d0078884422aFAD2",
+    "permissionControllerImplementation": "0x2D731E7993a100afd19454B98eEEC7b90366eA27",
+    "keyRegistrar": "",
+    "keyRegistrarImplementation": ""
+  },
+  "chainInfo": {
+    "chainId": 560048,
+    "deploymentBlock": 164921
+  },
+  "parameters": {
+    "executorMultisig": "0x58c468A9A50673693D0f0e1DfBf5DF280b99b36E",
+    "operationsMultisig": "0xfB7d94501E4d4ACC264833Ef4ede70a11517422B",
+    "pauserMultisig": "0x58c468A9A50673693D0f0e1DfBf5DF280b99b36E"
+  }
+}

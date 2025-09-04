@@ -72,7 +72,7 @@ Submit a proof to the Aligned Layer batcher.
 - `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
 - `--private_key <private_key>`: User's wallet private key.
 - `--nonce <n>`: Proof nonce.
-  - By default, the nonce is set automatically. By setting the nonce manually, you can perform a proof replacement.
+  - By default, the nonce is set automatically. By setting the nonce manually, you can perform a proof replacement. To perform a valid replacement, the new proof must have a max_fee 10% higher than the previous one.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
