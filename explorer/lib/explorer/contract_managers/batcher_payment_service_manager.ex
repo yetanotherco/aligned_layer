@@ -43,12 +43,13 @@ defmodule BatcherPaymentServiceManager do
     @batcher_payment_service_address
   end
 
-  def get_fee_per_proof(%{merkle_root: merkle_root}) do
+  def get_fee_per_proof(%{merkle_root: merkle_root, fromBlock: fromBlock}) do
+    Logger.info("Getting fee per proof for merkle_root: #{merkle_root}, fromBlock: #{fromBlock}")
     BatcherPaymentServiceManager.EventFilters.task_created(
       merkle_root
       |> Utils.string_to_bytes32()
     )
-    |> Ethers.get_logs(fromBlock: @first_block)
+    |> Ethers.get_logs(fromBlock: fromBlock)
     |> case do
       {:ok, []} ->
         Logger.warning("No fee per proof events found for merkle root: #{merkle_root}.")
@@ -57,7 +58,7 @@ defmodule BatcherPaymentServiceManager do
       {:ok, events} ->
         event = events |> hd()
         fee_per_proof = event.data |> hd()
-        Logger.debug("Fee per proof of #{merkle_root}: #{fee_per_proof} WEI.")
+        Logger.info("Fee per proof of #{merkle_root}: #{fee_per_proof} WEI.")
 
         fee_per_proof
 
