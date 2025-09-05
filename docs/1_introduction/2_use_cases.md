@@ -126,7 +126,7 @@ _**Coming soon:**_ Our **ZK Arcade** (launching 2025 Q3) will let users verify p
 
 In the current Holesky testnet deployment of the Proof Aggregation Service, supported Risc Zero and SP1 zkVM proofs that are submitted to the Proof Verification Layer are aggregated and verified through the Aggregation Service several times per day. The mainnet version will allow users to choose either the Verification Layer or Aggregation Service (or both) when submitting proofs.
 
-![Comparison between the Proof Verification Layer and Proof Aggregation Service (_August 2025_)](../images/verification layer vs agg service FEATURE COMPARISON.png)
+![Comparison between the Proof Verification Layer and Proof Aggregation Service (_August 2025_)](../images/pvl_vs_pas_comp_table.png)
 
 ## Supported proof systems
 
