@@ -137,7 +137,7 @@ defmodule AlignedLayerServiceManager do
   def extract_batch_response({_status, %NewBatchInfo{} = batch_creation}) do
     created_batch = batch_creation.new_batch
     Logger.info("Extracting batch response for new batch: #{created_batch.batchMerkleRoot}")
-    was_batch_responded = is_batch_responded(created_batch.batchMerkleRoot, fromBlock: batch_creation.block_number)
+    was_batch_responded = is_batch_responded(created_batch.batchMerkleRoot, batch_creation.block_number)
 
     batch_response =
       case was_batch_responded do
