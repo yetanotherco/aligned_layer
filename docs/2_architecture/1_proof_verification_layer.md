@@ -9,7 +9,7 @@ If a two-thirds majority agrees, the results are posted to Ethereum.
 
 The proof submission can be simplified as follows:
 
-![Figure 1: Simplified Architecture](../images/simplified_architecture.png)
+![Figure 1: Simplified Architecture](../images/pvl_simple_architecture.png)
 
 1. The users submit proofs to the batcher through the CLI or SDK.
 2. The batcher accumulates proofs, and then sends the batch to some Data Service and posts the merkle root and data to
