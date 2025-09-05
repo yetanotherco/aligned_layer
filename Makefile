@@ -16,7 +16,6 @@ else
 endif
 
 CONFIG_FILE?=config-files/config.yaml
-export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
 OPERATOR_VERSION=v0.18.0
@@ -356,11 +355,16 @@ operator_set_eigen_sdk_go_version_error:
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer ## Register the operator in EigenLayer and AlignedLayer. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 
-operator_full_registration_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start ## Register the operator in EigenLayer and AlignedLayer, then start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
+operator_full_registration_and_start:
+	@echo "Operator address: $$(yq -r '.operator.address' $$CONFIG_FILE)" && \
+	$(MAKE) operator_full_registration CONFIG_FILE=$(CONFIG_FILE) && \
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=$(CONFIG_FILE)
 
 operator_full_registration_and_start_ethereum_package: ## Register the operator in EigenLayer and AlignedLayer, then start the Operator with Ethereum package config
-	$(MAKE) operator_full_registration CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
-	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	@export CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml && \
+	echo "Operator address: $$(yq -r '.operator.address' $$CONFIG_FILE)" && \
+	$(MAKE) operator_full_registration CONFIG_FILE=$$CONFIG_FILE && \
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=$$CONFIG_FILE
 
 
 operator_build: deps ## Build the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
@@ -416,7 +420,8 @@ operator_generate_config:
 
 operator_get_eth:
 	@echo "Sending funds to operator address on devnet"
-	@. ./scripts/fund_operator_devnet.sh
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	. ./scripts/fund_operator_devnet.sh
 
 operator_register_with_eigen_layer:
 	@echo "Registering operator with EigenLayer"
@@ -424,25 +429,30 @@ operator_register_with_eigen_layer:
 
 operator_mint_mock_tokens:
 	@echo "Minting tokens"
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
 	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 100000000000000000
 
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
-	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Operator address: $$OPERATOR_ADDRESS" && \
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_remove_from_whitelist_devnet:
 	@echo "Removing operator"
-	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Operator address: $$OPERATOR_ADDRESS" && \
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_whitelist:
-	@echo "Whitelisting operator $(OPERATOR_ADDRESS) on $(NETWORK)"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Whitelisting operator $$OPERATOR_ADDRESS on $(NETWORK)" && \
+	. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/operator_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_remove_from_whitelist:
-	@echo "Removing operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Removing operator $$OPERATOR_ADDRESS" && \
+	. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"
