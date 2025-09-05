@@ -19,7 +19,9 @@ Rollups produce ZK proofs of state transitions and need to verify (settle) those
 - **Verification Layer (low latency, high volume):** live on mainnet; ideal for the fastest confirmations and very high proof volumes. Economic security with nearly 3 million restaked ETH (>$12B USD value).  
 - **Aggregation Service (highest security):** recursively compresses many proofs into one proof verified on L1; great when you can trade latency for full Ethereum security.
 
-_**Related:**_ Our RaaS makes launching [based ZK-rollups](https://blog.alignedlayer.com/aligned-raas-based-rollups-to-build-the-future-of-ethereum/) (Ethrex stack) possible in one click and is integrated with our ZK verification layer to reduce costs.
+{% hint style="success" %}
+Our RaaS makes launching [based ZK-rollups](https://blog.alignedlayer.com/aligned-raas-based-rollups-to-build-the-future-of-ethereum/) (Ethrex stack) possible in one click and is integrated with our ZK verification layer to reduce costs.
+{% endhint %}
 
 ## Fast, trust-minimized bridging & interoperability
 
@@ -35,7 +37,9 @@ Bridges and cross-chain systems verify source chain state/account proofs on the 
 - **Verification Layer** for quick attestations and user UX.  
 - **Aggregation Service** for periodic consolidated checkpoints to L1.
 
-_**Example:**_ The Mina ↔ Ethereum bridge uses Aligned to verify Mina’s Kimchi proofs on Ethereum ([blog post](https://blog.alignedlayer.com/mina-to-ethereum-bridge/)).
+{% hint style="success" %}
+The Mina ↔ Ethereum bridge uses Aligned to verify Mina’s Kimchi proofs on Ethereum ([blog post](https://blog.alignedlayer.com/mina-to-ethereum-bridge/)).
+{% endhint %}
 
 ## zkTLS & web2-to-web3 data credentials
 
@@ -65,7 +69,9 @@ To make AI verifiable, prove that model inference (or parts of a pipeline) ran c
 - **Verification Layer** for per-inference confirmations and low cost at scale.  
 - **Aggregation Service** for periodic, L1-final attestations (e.g., job batches, epoch summaries).
 
-_**Learn more:**_ See our [blog post](https://blog.alignedlayer.com/the-era-of-ai-needs-ethereum-and-zk/) that expands on why we believe ZK and Ethereum will play a major role in the future of AI.
+{% hint style="success" %}
+See our [blog post](https://blog.alignedlayer.com/the-era-of-ai-needs-ethereum-and-zk/) that expands on why we believe ZK and Ethereum will play a major role in the future of AI.
+{% endhint %}
 
 ## Identity & verifiable credentials
 
@@ -104,14 +110,19 @@ Games and interactive dapps that prove game validity, scores/results, or anti-ch
 - Low-latency verification makes regular and frequent proving economical.  
 - We’ve highlighted early builders in our [hackathon spotlights](https://blog.alignedlayer.com/tag/hackathons/).
 
+{% hint style="success" %}
 _**Coming soon:**_ Our **ZK Arcade** (launching 2025 Q3) will let users verify proofs of game results using Aligned.
+{% endhint %}
 
 ## Which mode should I pick?
 
-- **Need the lowest cost and fastest confirmations?** Start with the [Proof Verification Layer](https://docs.alignedlayer.com/architecture/1_proof_verification_layer). It’s live on mainnet, secured by 52 restaked operators, and can verify thousands of proofs per second with results readable on Ethereum within blocks (cryptoeconomic security derived from Ethereum).  
-- **Need full L1 finality in one transaction?** Use the [Proof Aggregation Service](https://docs.alignedlayer.com/architecture/2_aggregation_mode). It recursively compresses many proofs into one that’s verified directly on Ethereum, trading minutes of latency for the strongest security (full cryptographic security of Ethereum).
+**Need the lowest cost and fastest confirmations?**
+- Start with the [Proof Verification Layer](https://docs.alignedlayer.com/architecture/1_proof_verification_layer). It’s live on mainnet, secured by 52 restaked operators, and can verify thousands of proofs per second with results readable on Ethereum within blocks (cryptoeconomic security derived from Ethereum).
 
-You can also combine both: use the Verification Layer for UX and fast exits, then periodically post aggregated checkpoints for L1 finality.
+**Need full L1 finality in one transaction?**
+- Use the [Proof Aggregation Service](https://docs.alignedlayer.com/architecture/2_aggregation_mode). It recursively compresses many proofs into one that’s verified directly on Ethereum, trading minutes of latency for the strongest security (full cryptographic security of Ethereum).
+
+***You can also combine both:*** use the Verification Layer for UX and fast exits, then periodically post aggregated checkpoints for L1 finality.
 
 In the current Holesky testnet deployment of the Proof Aggregation Service, supported Risc Zero and SP1 zkVM proofs that are submitted to the Proof Verification Layer are aggregated and verified through the Aggregation Service several times per day. The mainnet version will allow users to choose either the Verification Layer or Aggregation Service (or both) when submitting proofs.
 
