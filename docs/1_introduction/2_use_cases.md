@@ -138,3 +138,10 @@ Aligned supports multiple verifiers (today: Risc0, SP1, gnark Groth16/Plonk, Cir
 - [Aligned RaaS: Based ZK-rollups using Ethrex](https://blog.alignedlayer.com/why-is-aligned-using-ethrex-for-based-zk-rollups/)  
 - [Mina ↔ Ethereum bridge](https://blog.alignedlayer.com/mina-to-ethereum-bridge/)  
 - [Why based rollups?](https://blog.alignedlayer.com/aligned-raas-based-rollups-to-build-the-future-of-ethereum/)
+
+## Future additions
+
+- Use cases: Aligned RaaS
+- Use cases: Meta-proving services
+- Use cases: Aligned Wallets-as-a-Service
+- Use cases: Aligned Interoperability protocol
