@@ -512,14 +512,14 @@ mod tests {
         let verification_key = Some([8, 8, 8, 8].to_vec());
         let proving_system = ProvingSystemId::GnarkGroth16Bn254;
 
-        let verification_data = VerificationData {
+        let verification_data = VerificationData::new(
             proving_system,
             proof,
             pub_input,
             verification_key,
-            vm_program_code: None,
-            proof_generator_addr: wallet.address(),
-        };
+            None,
+            wallet.address(),
+        );
 
         let nonced_verification_data = NoncedVerificationData::new(
             verification_data,
