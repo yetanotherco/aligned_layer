@@ -45,7 +45,6 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_latest_block_number() do
-    Logger.info("Fetching latest block number")
     {:ok, num} = Ethers.current_block_number()
     Logger.info("Latest block number: #{num}")
     num
@@ -104,8 +103,6 @@ defmodule AlignedLayerServiceManager do
   end
 
   def is_batch_responded(merkle_root, fromBlock) do
-    Logger.info("Checking if batch is responded for merkle_root: #{merkle_root}, fromBlock: #{fromBlock}")
-
     event =
       Utils.string_to_bytes32(merkle_root)
       |> AlignedLayerServiceManager.EventFilters.batch_verified()
@@ -116,10 +113,8 @@ defmodule AlignedLayerServiceManager do
         Logger.error("Error checking batch response for #{merkle_root}: #{inspect(reason)}")
         {:error, reason}
       {_, []} ->
-        Logger.info("Batch #{merkle_root} not responded yet")
         false
-      {:ok, events} ->
-        Logger.info("Batch #{merkle_root} responded, found #{length(events)} verification events")
+      {:ok, _events} ->
         true
     end
   end
@@ -127,7 +122,6 @@ defmodule AlignedLayerServiceManager do
   # for new batches
   def extract_batch_response({_status, %NewBatchInfo{} = batch_creation}) do
     created_batch = batch_creation.new_batch
-    Logger.info("Extracting batch response for new batch: #{created_batch.batchMerkleRoot}")
     was_batch_responded = is_batch_responded(created_batch.batchMerkleRoot, batch_creation.block_number)
 
     batch_response =
@@ -162,7 +156,6 @@ defmodule AlignedLayerServiceManager do
 
   # for existing but unverified batches
   def extract_batch_response(%Batches{} = unverified_batch) do
-    Logger.info("Extracting batch response for existing unverified batch: #{unverified_batch.merkle_root}")
     was_batch_responded = is_batch_responded(unverified_batch.merkle_root, unverified_batch.submission_block_number)
 
     case was_batch_responded do
@@ -196,7 +189,6 @@ defmodule AlignedLayerServiceManager do
   end
 
   def fetch_batch_response(merkle_root, fromBlock) do
-    Logger.info("Fetching batch response for merkle_root: #{merkle_root}, fromBlock: #{fromBlock}")
     case get_batch_verified_events(%{merkle_root: merkle_root, fromBlock: fromBlock}) do
       {:ok, batch_verified_info} ->
         Logger.info("Successfully fetched batch response for #{merkle_root}")
@@ -211,7 +203,6 @@ defmodule AlignedLayerServiceManager do
   end
 
   def get_batch_verified_events(%{merkle_root: merkle_root, fromBlock: fromBlock}) do
-    Logger.info("Getting batch verified events for merkle_root: #{merkle_root}, fromBlock: #{fromBlock}")
     event =
       AlignedLayerServiceManager.EventFilters.batch_verified(Utils.string_to_bytes32(merkle_root))
       |> Ethers.get_logs(fromBlock: fromBlock)
@@ -230,30 +221,23 @@ defmodule AlignedLayerServiceManager do
   end
 
   defp extract_batch_verified_event_info(event) do
-    batch_merkle_root = event |> Map.get(:topics_raw) |> Enum.at(1)
-    sender_address = event |> Map.get(:data) |> Enum.at(0)
     block_number = event |> Map.get(:block_number)
-    tx_hash = event |> Map.get(:transaction_hash)
-    Logger.info("Extracting batch verified event info for block #{block_number}, tx: #{tx_hash}, merkle_root: #{batch_merkle_root}")
 
     {:ok,
      %BatchVerifiedInfo{
        address: event |> Map.get(:address),
-       block_number: event |> Map.get(:block_number),
-       block_timestamp: get_block_timestamp(event |> Map.get(:block_number)),
+       block_number: block_number,
+       block_timestamp: get_block_timestamp(block_number),
        transaction_hash: event |> Map.get(:transaction_hash),
-       batch_merkle_root: batch_merkle_root,
-       sender_address: sender_address
+       batch_merkle_root: event |> Map.get(:topics_raw) |> Enum.at(1),
+       sender_address: event |> Map.get(:data) |> Enum.at(0)
      }}
   end
 
   def get_block_timestamp(block_number) do
-    Logger.info("Fetching block timestamp for block #{block_number}")
     case Ethers.Utils.get_block_timestamp(block_number) do
       {:ok, timestamp} ->
-        datetime = DateTime.from_unix!(timestamp)
-        Logger.info("Block #{block_number} timestamp: #{datetime}")
-        datetime
+        DateTime.from_unix!(timestamp)
       {:error, error} ->
         Logger.error("Error fetching block timestamp for block #{block_number}: #{error}")
         raise("Error fetching block timestamp: #{error}")

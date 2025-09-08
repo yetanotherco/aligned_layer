@@ -34,7 +34,6 @@ defmodule BatcherPaymentServiceManager do
   end
 
   def get_fee_per_proof(%{merkle_root: merkle_root, fromBlock: fromBlock}) do
-    Logger.info("Getting fee per proof for merkle_root: #{merkle_root}, fromBlock: #{fromBlock}")
     BatcherPaymentServiceManager.EventFilters.task_created(
       merkle_root
       |> Utils.string_to_bytes32()
