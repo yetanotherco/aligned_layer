@@ -355,7 +355,7 @@ operator_set_eigen_sdk_go_version_error:
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer ## Register the operator in EigenLayer and AlignedLayer. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 
-operator_full_registration_and_start:
+operator_full_registration_and_start: ## Register the operator in EigenLayer and AlignedLayer, then start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 	@echo "Operator address: $$(yq -r '.operator.address' $$CONFIG_FILE)" && \
 	$(MAKE) operator_full_registration CONFIG_FILE=$(CONFIG_FILE) && \
 	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=$(CONFIG_FILE)
