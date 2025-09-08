@@ -3,16 +3,6 @@ defmodule BatcherPaymentServiceManager do
 
   @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")
 
-  @environment System.get_env("ENVIRONMENT")
-  @first_block (case @environment do
-                  "devnet" -> 0
-                  "holesky" -> 1_728_056
-                  "mainnet" -> 19_000_000
-                  "sepolia" -> 9_062_616
-                  "hoodi" -> 1_093_860
-                  _ -> raise("Invalid environment")
-                end)
-
   config_file_path =
     case @aligned_config_file do
       nil -> raise("ALIGNED_CONFIG_FILE not set in .env")

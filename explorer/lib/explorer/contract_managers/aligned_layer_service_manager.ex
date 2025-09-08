@@ -36,15 +36,6 @@ defmodule AlignedLayerServiceManager do
                                          |> Map.get("addresses")
                                          |> Map.get("alignedLayerServiceManager")
 
-  @first_block (case @environment do
-                  "devnet" -> 0
-                  "holesky" -> 1_728_056
-                  "mainnet" -> 19_000_000
-                  "sepolia" -> 9_062_616
-                  "hoodi" -> 1_093_860
-                  _ -> raise("Invalid environment")
-                end)
-
   use Ethers.Contract,
     abi_file: "lib/abi/AlignedLayerServiceManager.json",
     default_address: @aligned_layer_service_manager_address
@@ -85,7 +76,7 @@ defmodule AlignedLayerServiceManager do
     block_number = event |> Map.get(:block_number)
     tx_hash = event |> Map.get(:transaction_hash)
     Logger.info("Extracting new batch event info for block #{block_number}, tx: #{tx_hash}")
-    
+
     new_batch = parse_new_batch_event(event)
     Logger.info("New batch event parsed: #{inspect(new_batch)}")
 
@@ -114,20 +105,20 @@ defmodule AlignedLayerServiceManager do
 
   def is_batch_responded(merkle_root, fromBlock) do
     Logger.info("Checking if batch is responded for merkle_root: #{merkle_root}, fromBlock: #{fromBlock}")
-    
+
     event =
       Utils.string_to_bytes32(merkle_root)
       |> AlignedLayerServiceManager.EventFilters.batch_verified()
       |> Ethers.get_logs(fromBlock: fromBlock)
 
     case event do
-      {:error, reason} -> 
+      {:error, reason} ->
         Logger.error("Error checking batch response for #{merkle_root}: #{inspect(reason)}")
         {:error, reason}
-      {_, []} -> 
+      {_, []} ->
         Logger.info("Batch #{merkle_root} not responded yet")
         false
-      {:ok, events} -> 
+      {:ok, events} ->
         Logger.info("Batch #{merkle_root} responded, found #{length(events)} verification events")
         true
     end
@@ -141,11 +132,11 @@ defmodule AlignedLayerServiceManager do
 
     batch_response =
       case was_batch_responded do
-        true -> 
+        true ->
           Logger.info("Batch #{created_batch.batchMerkleRoot} was responded, fetching response details")
           fetch_batch_response(created_batch.batchMerkleRoot, batch_creation.block_number)
         # was not verified, fill with nils
-        false -> 
+        false ->
           Logger.info("Batch #{created_batch.batchMerkleRoot} was not responded yet")
           %{block_number: nil, transaction_hash: nil, block_timestamp: nil}
       end
@@ -204,16 +195,16 @@ defmodule AlignedLayerServiceManager do
     end
   end
 
-  def fetch_batch_response(merkle_root, fromBlock \\ @first_block) do
+  def fetch_batch_response(merkle_root, fromBlock) do
     Logger.info("Fetching batch response for merkle_root: #{merkle_root}, fromBlock: #{fromBlock}")
     case get_batch_verified_events(%{merkle_root: merkle_root, fromBlock: fromBlock}) do
-      {:ok, batch_verified_info} -> 
+      {:ok, batch_verified_info} ->
         Logger.info("Successfully fetched batch response for #{merkle_root}")
         batch_verified_info
-      {:empty, _} -> 
+      {:empty, _} ->
         Logger.info("No batch verified events found for #{merkle_root}")
         nil
-      {:error, error} -> 
+      {:error, error} ->
         Logger.error("Error fetching batch response for #{merkle_root}: #{error}")
         raise("Error fetching batch response: #{error}")
     end
@@ -226,13 +217,13 @@ defmodule AlignedLayerServiceManager do
       |> Ethers.get_logs(fromBlock: fromBlock)
 
     case event do
-      {:error, reason} -> 
+      {:error, reason} ->
         Logger.error("Error getting batch verified events for #{merkle_root}: #{inspect(reason)}")
         {:error, reason}
-      {_, []} -> 
+      {_, []} ->
         Logger.info("No batch verified events found for #{merkle_root}")
         {:empty, "No task found"}
-      {:ok, events} -> 
+      {:ok, events} ->
         Logger.info("Found #{length(events)} batch verified events for #{merkle_root}")
         extract_batch_verified_event_info(events |> List.first())
     end
@@ -259,11 +250,11 @@ defmodule AlignedLayerServiceManager do
   def get_block_timestamp(block_number) do
     Logger.info("Fetching block timestamp for block #{block_number}")
     case Ethers.Utils.get_block_timestamp(block_number) do
-      {:ok, timestamp} -> 
+      {:ok, timestamp} ->
         datetime = DateTime.from_unix!(timestamp)
         Logger.info("Block #{block_number} timestamp: #{datetime}")
         datetime
-      {:error, error} -> 
+      {:error, error} ->
         Logger.error("Error fetching block timestamp for block #{block_number}: #{error}")
         raise("Error fetching block timestamp: #{error}")
     end

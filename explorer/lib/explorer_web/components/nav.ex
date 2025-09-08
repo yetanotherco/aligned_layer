@@ -199,9 +199,9 @@ defmodule NavComponent do
   @doc """
     Renders a dropdown on hover component with links.
   """
-  attr(:title, :list, doc: "the selector title")
+  attr(:title, :string, doc: "the selector title")
   attr(:class, :list, doc: "class for selector")
-  attr(:links, :string, doc: "the links to render: (name, link, class)")
+  attr(:links, :list, doc: "the links to render: (name, link, class)")
 
   def nav_links_dropdown(assigns) do
     ~H"""

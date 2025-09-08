@@ -6,7 +6,7 @@ defmodule ExplorerWeb.AggProofsTable do
 
   def agg_proofs_table(assigns) do
     ~H"""
-    <.table id="agg_proofs" rows={@proofs}>
+    <.table id="agg_proofs" rows={@agg_proofs}>
       <:col :let={proof} label="Merkle root" class="text-left">
         <.link navigate={~p"/aggregated_proofs/#{proof.id}"}>
           <span class="inline-flex gap-x-3 items-center group-hover:text-foreground/80">

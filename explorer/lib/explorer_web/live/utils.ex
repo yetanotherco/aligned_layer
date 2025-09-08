@@ -191,19 +191,19 @@ defmodule ExplorerWeb.Helpers do
   end
 
   def get_aligned_contracts_addresses() do
-    Map.merge(get_batcher_service_addresses(), get_proof_aggregation_addresses())
+    Map.merge(get_verification_layer_addresses(), get_proof_aggregation_addresses())
   end
 
   defp get_proof_aggregation_addresses() do
     proof_agg_config_file = System.get_env("ALIGNED_PROOF_AGG_CONFIG_FILE")
     {_, config_json_string} = File.read(proof_agg_config_file)
-    proof_agg_service_addresses = Jason.decode!(config_json_string) |> Map.get("addresses")
+    Jason.decode!(config_json_string) |> Map.get("addresses")
   end
 
-  defp get_batcher_service_addresses() do
+  defp get_verification_layer_addresses() do
     aligned_config_file = System.get_env("ALIGNED_CONFIG_FILE")
     {_, config_json_string} = File.read(aligned_config_file)
-    agg_service_addresses = Jason.decode!(config_json_string) |> Map.get("addresses")
+    Jason.decode!(config_json_string) |> Map.get("addresses")
   end
 
   def binary_to_hex_string(binary) do
