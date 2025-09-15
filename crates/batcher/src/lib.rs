@@ -1827,10 +1827,10 @@ impl Batcher {
                     // For now, we flush everything as a safety measure
                     self.flush_queue_and_clear_nonce_cache().await;
                     
-                    // Return a different error that indicates state was corrupted and flushed
-                    return Err(BatcherError::StateCorruptedAndFlushed(
-                        format!("Queue and user states flushed due to insufficient balance for user {:?}", address)
-                    ));
+                    return Err(BatcherError::StateCorruptedAndFlushed(format!(
+                        "Queue and user states flushed due to insufficient balance for user {:?}",
+                        address
+                    )));
                 }
                 _ => {
                     // Add more cases here if we want in the future
