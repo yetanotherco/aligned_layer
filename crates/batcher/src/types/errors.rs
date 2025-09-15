@@ -164,7 +164,11 @@ impl fmt::Display for TransactionSendError {
                 write!(f, "Insufficient fee for aggregator")
             }
             TransactionSendError::SubmissionInsufficientBalance(address) => {
-                write!(f, "Submission insufficient balance for address: {:?}", address)
+                write!(
+                    f,
+                    "Submission insufficient balance for address: {:?}",
+                    address
+                )
             }
             TransactionSendError::BatchAlreadySubmitted => {
                 write!(f, "Batch already submitted")
