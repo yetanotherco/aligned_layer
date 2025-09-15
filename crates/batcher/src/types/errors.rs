@@ -66,6 +66,7 @@ pub enum BatcherError {
     WsSinkEmpty,
     AddressNotFoundInUserStates(Address),
     QueueRemoveError(String),
+    StateCorruptedAndFlushed(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -146,6 +147,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::QueueRemoveError(e) => {
                 write!(f, "Error while removing entry from queue: {}", e)
+            }
+            BatcherError::StateCorruptedAndFlushed(reason) => {
+                write!(f, "Batcher state was corrupted and flushed: {}", reason)
             }
         }
     }
