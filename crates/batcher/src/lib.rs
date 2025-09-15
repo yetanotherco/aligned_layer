@@ -1820,8 +1820,9 @@ impl Batcher {
             // decide if i want to flush the queue:
             match e {
                 BatcherError::TransactionSendError(
-                    TransactionSendError::SubmissionInsufficientBalance,
+                    TransactionSendError::SubmissionInsufficientBalance(address),
                 ) => {
+                    warn!("User {:?} has insufficient balance, flushing entire queue as safety measure", address);
                     // TODO: In the future, we should re-add the failed batch back to the queue
                     // For now, we flush everything as a safety measure
                     self.flush_queue_and_clear_nonce_cache().await;
