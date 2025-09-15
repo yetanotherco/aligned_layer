@@ -1826,6 +1826,11 @@ impl Batcher {
                     // TODO: In the future, we should re-add the failed batch back to the queue
                     // For now, we flush everything as a safety measure
                     self.flush_queue_and_clear_nonce_cache().await;
+                    
+                    // Return a different error that indicates state was corrupted and flushed
+                    return Err(BatcherError::StateCorruptedAndFlushed(
+                        format!("Queue and user states flushed due to insufficient balance for user {:?}", address)
+                    ));
                 }
                 _ => {
                     // Add more cases here if we want in the future
@@ -1954,14 +1959,10 @@ impl Batcher {
             if let Err(e) = batch_finalization_result {
                 error!("Batch finalization failed: {:?}", e);
 
-                // Don't restore proofs for insufficient balance errors - the queue was already flushed
+                // If the queue was flushed, don't recover
                 match &e {
-                    BatcherError::TransactionSendError(
-                        TransactionSendError::SubmissionInsufficientBalance(_),
-                    ) => {
-                        info!(
-                            "Queue was flushed due to insufficient balance - not restoring proofs"
-                        );
+                    BatcherError::StateCorruptedAndFlushed(_) => {
+                        info!("State was corrupted and flushed - not restoring proofs");
                     }
                     _ => {
                         info!("Restoring proofs to queue after batch failure");
