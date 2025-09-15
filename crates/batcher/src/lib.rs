@@ -1952,12 +1952,23 @@ impl Batcher {
 
             // If batch finalization failed, restore the proofs to the queue
             if let Err(e) = batch_finalization_result {
-                error!(
-                    "Batch finalization failed, restoring proofs to queue: {:?}",
-                    e
-                );
-                self.restore_proofs_after_batch_failure(&finalized_batch)
-                    .await;
+                error!("Batch finalization failed: {:?}", e);
+
+                // Don't restore proofs for insufficient balance errors - the queue was already flushed
+                match &e {
+                    BatcherError::TransactionSendError(
+                        TransactionSendError::SubmissionInsufficientBalance(_),
+                    ) => {
+                        info!(
+                            "Queue was flushed due to insufficient balance - not restoring proofs"
+                        );
+                    }
+                    _ => {
+                        info!("Restoring proofs to queue after batch failure");
+                        self.restore_proofs_after_batch_failure(&finalized_batch)
+                            .await;
+                    }
+                }
                 return Err(e);
             }
         }
