@@ -217,7 +217,10 @@ impl fmt::Display for SubmitError {
             }
 
             SubmitError::GetNonceError(e) => write!(f, "Error while getting nonce {}", e),
-            SubmitError::UserFundsUnlocked => write!(f, "User funds have been unlocked and proofs removed from queue"),
+            SubmitError::UserFundsUnlocked => write!(
+                f,
+                "User funds have been unlocked and proofs removed from queue"
+            ),
         }
     }
 }

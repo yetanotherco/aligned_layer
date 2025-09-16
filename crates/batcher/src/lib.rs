@@ -7,10 +7,10 @@ use eth::utils::{calculate_bumped_gas_price, get_batcher_signer, get_gas_price};
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::batcher_retryables::{
-    cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
-    get_user_nonce_from_ethereum_retryable, simulate_create_new_task_retryable,
-    user_balance_is_unlocked_retryable, get_current_block_number_retryable,
-    query_balance_unlocked_events_retryable,
+    cancel_create_new_task_retryable, create_new_task_retryable,
+    get_current_block_number_retryable, get_user_balance_retryable,
+    get_user_nonce_from_ethereum_retryable, query_balance_unlocked_events_retryable,
+    simulate_create_new_task_retryable, user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
 use tokio::time::{timeout, Instant};
@@ -40,7 +40,7 @@ use aligned_sdk::common::types::{
 
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
-use ethers::prelude::{Middleware, Provider, Http};
+use ethers::prelude::{Http, Middleware, Provider};
 use ethers::types::{Address, Signature, TransactionReceipt, U256, U64};
 use futures_util::{future, join, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
@@ -333,7 +333,9 @@ impl Batcher {
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
             amount_of_proofs_for_min_max_fee: config.batcher.amount_of_proofs_for_min_max_fee,
             min_bump_percentage: U256::from(config.batcher.min_bump_percentage),
-            balance_unlock_polling_interval_seconds: config.batcher.balance_unlock_polling_interval_seconds,
+            balance_unlock_polling_interval_seconds: config
+                .batcher
+                .balance_unlock_polling_interval_seconds,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -502,11 +504,13 @@ impl Batcher {
     /// Runs at configurable intervals and checks recent blocks for events (2x the polling interval).
     /// When an event is detected, removes user's proofs from queue and resets UserState.
     pub async fn poll_balance_unlocked_events(self: Arc<Self>) -> Result<(), BatcherError> {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(self.balance_unlock_polling_interval_seconds));
-        
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(
+            self.balance_unlock_polling_interval_seconds,
+        ));
+
         loop {
             interval.tick().await;
-            
+
             if let Err(e) = self.process_balance_unlocked_events().await {
                 error!("Error processing BalanceUnlocked events: {:?}", e);
                 // Continue polling even if there's an error
@@ -528,37 +532,59 @@ impl Batcher {
         // Formula: interval / 12 * 2 (assuming 12-second block times, look back 2x the interval)
         let block_range = (self.balance_unlock_polling_interval_seconds / 12) * 2;
         let from_block = current_block.saturating_sub(U64::from(block_range));
-        
+
         // Query events with retry logic
-        let events = match self.query_balance_unlocked_events(from_block, current_block).await {
+        let events = match self
+            .query_balance_unlocked_events(from_block, current_block)
+            .await
+        {
             Ok(events) => events,
             Err(e) => {
-                warn!("Failed to query BalanceUnlocked events after retries: {:?}", e);
+                warn!(
+                    "Failed to query BalanceUnlocked events after retries: {:?}",
+                    e
+                );
                 return Ok(());
             }
         };
 
-        info!("Found {} BalanceUnlocked events in blocks {} to {}", 
-              events.len(), from_block, current_block);
+        info!(
+            "Found {} BalanceUnlocked events in blocks {} to {}",
+            events.len(),
+            from_block,
+            current_block
+        );
 
         // Process each event
         for event in events {
             let user_address = event.user;
-            info!("Processing BalanceUnlocked event for user: {:?}", user_address);
-            
+            info!(
+                "Processing BalanceUnlocked event for user: {:?}",
+                user_address
+            );
+
             // Check if user has proofs in queue
             if self.user_has_proofs_in_queue(user_address).await {
-                info!("User {:?} has proofs in queue, verifying funds are still unlocked", user_address);
-                
+                info!(
+                    "User {:?} has proofs in queue, verifying funds are still unlocked",
+                    user_address
+                );
+
                 // Double-check that funds are still unlocked by calling the contract
                 if self.user_balance_is_unlocked(&user_address).await {
                     info!("User {:?} funds confirmed unlocked, removing proofs and resetting UserState", user_address);
                     self.remove_user_proofs_and_reset_state(user_address).await;
                 } else {
-                    info!("User {:?} funds are now locked, ignoring stale unlock event", user_address);
+                    info!(
+                        "User {:?} funds are now locked, ignoring stale unlock event",
+                        user_address
+                    );
                 }
             } else {
-                info!("User {:?} has no proofs in queue, ignoring event", user_address);
+                info!(
+                    "User {:?} has no proofs in queue, ignoring event",
+                    user_address
+                );
             }
         }
 
@@ -591,7 +617,12 @@ impl Batcher {
     /// Queries BalanceUnlocked events from the BatcherPaymentService contract.
     /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
     /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
-    async fn query_balance_unlocked_events(&self, from_block: U64, to_block: U64) -> Result<Vec<aligned_sdk::eth::batcher_payment_service::BalanceUnlockedFilter>, BatcherError> {
+    async fn query_balance_unlocked_events(
+        &self,
+        from_block: U64,
+        to_block: U64,
+    ) -> Result<Vec<aligned_sdk::eth::batcher_payment_service::BalanceUnlockedFilter>, BatcherError>
+    {
         retry_function(
             || {
                 query_balance_unlocked_events_retryable(
@@ -616,7 +647,10 @@ impl Batcher {
     async fn user_has_proofs_in_queue(&self, user_address: Address) -> bool {
         let user_states = self.user_states.read().await;
         if let Some(user_state) = user_states.get(&user_address) {
-            if let Some(user_state_guard) = self.try_user_lock_with_timeout(user_address, user_state.lock()).await {
+            if let Some(user_state_guard) = self
+                .try_user_lock_with_timeout(user_address, user_state.lock())
+                .await
+            {
                 user_state_guard.proofs_in_batch > 0
             } else {
                 false
@@ -629,20 +663,28 @@ impl Batcher {
     async fn remove_user_proofs_and_reset_state(&self, user_address: Address) {
         // Follow locking rules: acquire user_states before batch_state to avoid deadlocks
         let user_states = self.user_states.write().await;
-        
+
         // Use timeout for batch lock
-        let batch_state_guard = match self.try_batch_lock_with_timeout(self.batch_state.lock()).await {
+        let batch_state_guard = match self
+            .try_batch_lock_with_timeout(self.batch_state.lock())
+            .await
+        {
             Some(guard) => guard,
             None => {
-                warn!("Failed to acquire batch lock for user {:?}, skipping removal", user_address);
+                warn!(
+                    "Failed to acquire batch lock for user {:?}, skipping removal",
+                    user_address
+                );
                 return;
             }
         };
-        
+
         let mut batch_state_guard = batch_state_guard;
-        
+
         // Process all entries for this user
-        while let Some(entry) = batch_state_guard.batch_queue.iter()
+        while let Some(entry) = batch_state_guard
+            .batch_queue
+            .iter()
             .find(|(entry, _)| entry.sender == user_address)
             .map(|(entry, _)| entry.clone())
         {
@@ -651,12 +693,16 @@ impl Batcher {
                 send_message(
                     ws_sink.clone(),
                     SubmitProofResponseMessage::UserFundsUnlocked,
-                ).await;
+                )
+                .await;
 
                 // Close websocket connection
                 let mut sink_guard = ws_sink.write().await;
                 if let Err(e) = sink_guard.close().await {
-                    warn!("Error closing websocket for user {:?}: {:?}", user_address, e);
+                    warn!(
+                        "Error closing websocket for user {:?}: {:?}",
+                        user_address, e
+                    );
                 } else {
                     info!("Closed websocket connection for user {:?}", user_address);
                 }
@@ -664,19 +710,29 @@ impl Batcher {
 
             // Remove the entry from batch queue
             batch_state_guard.batch_queue.remove(&entry);
-            info!("Removed proof with nonce {} for user {:?} from batch queue", entry.nonced_verification_data.nonce, user_address);
+            info!(
+                "Removed proof with nonce {} for user {:?} from batch queue",
+                entry.nonced_verification_data.nonce, user_address
+            );
         }
 
         // Reset UserState using timeout
         if let Some(user_state) = user_states.get(&user_address) {
-            if let Some(mut user_state_guard) = self.try_user_lock_with_timeout(user_address, user_state.lock()).await {
-                user_state_guard.nonce -= U256::from(user_state_guard.proofs_in_batch);
+            if let Some(mut user_state_guard) = self
+                .try_user_lock_with_timeout(user_address, user_state.lock())
+                .await
+            {
+                let proofs_count = user_state_guard.proofs_in_batch;
+                user_state_guard.nonce -= U256::from(proofs_count);
                 user_state_guard.proofs_in_batch = 0;
                 user_state_guard.total_fees_in_queue = U256::zero();
                 user_state_guard.last_max_fee_limit = U256::max_value();
                 info!("Reset UserState for user {:?}", user_address);
             } else {
-                warn!("Failed to acquire user lock for {:?}, skipping UserState reset", user_address);
+                warn!(
+                    "Failed to acquire user lock for {:?}, skipping UserState reset",
+                    user_address
+                );
             }
         }
     }

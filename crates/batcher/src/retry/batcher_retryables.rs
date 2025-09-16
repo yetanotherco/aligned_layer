@@ -294,7 +294,7 @@ pub async fn get_current_block_number_retryable(
     if let Ok(block_number) = eth_http_provider.get_block_number().await {
         return Ok(block_number);
     }
-    
+
     eth_http_provider_fallback
         .get_block_number()
         .await
@@ -315,21 +315,18 @@ pub async fn query_balance_unlocked_events_retryable(
         .balance_unlocked_filter()
         .from_block(from_block)
         .to_block(to_block);
-    
+
     if let Ok(events) = filter.query().await {
         return Ok(events);
     }
-    
+
     let filter_fallback = payment_service_fallback
         .balance_unlocked_filter()
         .from_block(from_block)
         .to_block(to_block);
-    
-    filter_fallback
-        .query()
-        .await
-        .map_err(|e| {
-            warn!("Failed to query BalanceUnlocked events: {e}");
-            RetryError::Transient(e.to_string())
-        })
+
+    filter_fallback.query().await.map_err(|e| {
+        warn!("Failed to query BalanceUnlocked events: {e}");
+        RetryError::Transient(e.to_string())
+    })
 }
