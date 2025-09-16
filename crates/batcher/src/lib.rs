@@ -599,7 +599,7 @@ impl Batcher {
         
         let mut batch_state_guard = batch_state_guard;
         
-        // Process all entries for this user directly
+        // Process all entries for this user
         while let Some(entry) = batch_state_guard.batch_queue.iter()
             .find(|(entry, _)| entry.sender == user_address)
             .map(|(entry, _)| entry.clone())
