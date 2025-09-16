@@ -598,42 +598,31 @@ impl Batcher {
         };
         
         let mut batch_state_guard = batch_state_guard;
-        let mut proofs_to_remove = Vec::new();
-        let mut websocket_sinks = Vec::new();
         
-        // Collect all entries for this user and their websocket connections
-        for (entry, _) in batch_state_guard.batch_queue.iter() {
-            if entry.sender == user_address {
-                // Store websocket sink before removing the entry
-                if let Some(ws_sink) = entry.messaging_sink.as_ref() {
-                    websocket_sinks.push(ws_sink.clone());
+        // Process all entries for this user directly
+        while let Some(entry) = batch_state_guard.batch_queue.iter()
+            .find(|(entry, _)| entry.sender == user_address)
+            .map(|(entry, _)| entry.clone())
+        {
+            // Notify user via websocket before removing the proof
+            if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                send_message(
+                    ws_sink.clone(),
+                    SubmitProofResponseMessage::UserFundsUnlocked,
+                ).await;
+
+                // Close websocket connection
+                let mut sink_guard = ws_sink.write().await;
+                if let Err(e) = sink_guard.close().await {
+                    warn!("Error closing websocket for user {:?}: {:?}", user_address, e);
+                } else {
+                    info!("Closed websocket connection for user {:?}", user_address);
                 }
-                proofs_to_remove.push(entry.clone());
             }
-        }
 
-        // Notify users via websocket before removing their proofs
-        for ws_sink in &websocket_sinks {
-            send_message(
-                ws_sink.clone(),
-                aligned_sdk::common::types::SubmitProofResponseMessage::UserFundsUnlocked,
-            ).await;
-        }
-
-        // Remove collected entries
-        for entry in proofs_to_remove {
+            // Remove the entry from batch queue
             batch_state_guard.batch_queue.remove(&entry);
-            info!("Removed proof for user {:?} from batch queue", user_address);
-        }
-
-        // Close websocket connections
-        for ws_sink in websocket_sinks {
-            let mut sink_guard = ws_sink.write().await;
-            if let Err(e) = sink_guard.close().await {
-                warn!("Error closing websocket for user {:?}: {:?}", user_address, e);
-            } else {
-                info!("Closed websocket connection for user {:?}", user_address);
-            }
+            info!("Removed proof with nonce {} for user {:?} from batch queue", entry.nonced_verification_data.nonce, user_address);
         }
 
         // Reset UserState using timeout
