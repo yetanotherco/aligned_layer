@@ -453,6 +453,7 @@ pub enum SubmitProofResponseMessage {
     InvalidPaymentServiceAddress(Address, Address),
     UnderpricedProof,
     ServerBusy,
+    UserFundsUnlocked,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

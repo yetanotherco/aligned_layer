@@ -39,8 +39,8 @@ use aligned_sdk::common::types::{
 
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
-use ethers::prelude::{Middleware, Provider};
-use ethers::types::{Address, Signature, TransactionReceipt, U256};
+use ethers::prelude::{Middleware, Provider, Http};
+use ethers::types::{Address, Signature, TransactionReceipt, U256, U64};
 use futures_util::{future, join, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -86,6 +86,8 @@ pub struct Batcher {
     eth_ws_url_fallback: String,
     batcher_signer: Arc<SignerMiddlewareT>,
     batcher_signer_fallback: Arc<SignerMiddlewareT>,
+    eth_http_provider: Provider<Http>,
+    eth_http_provider_fallback: Provider<Http>,
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
@@ -315,6 +317,8 @@ impl Batcher {
             eth_ws_url_fallback: config.eth_ws_url_fallback,
             batcher_signer,
             batcher_signer_fallback,
+            eth_http_provider,
+            eth_http_provider_fallback,
             chain_id,
             payment_service,
             payment_service_fallback,
@@ -489,6 +493,160 @@ impl Batcher {
         )
         .await
         .map_err(|e| e.inner())
+    }
+
+    /// Poll for BalanceUnlocked events from BatcherPaymentService contract.
+    /// Runs every 10 minutes and checks the last 100 blocks for events.
+    /// When an event is detected, removes user's proofs from queue and resets UserState.
+    pub async fn poll_balance_unlocked_events(self: Arc<Self>) -> Result<(), BatcherError> {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20)); // 10 minutes
+        
+        loop {
+            interval.tick().await;
+            
+            if let Err(e) = self.process_balance_unlocked_events().await {
+                error!("Error processing BalanceUnlocked events: {:?}", e);
+                // Continue polling even if there's an error
+            }
+        }
+    }
+
+    async fn process_balance_unlocked_events(&self) -> Result<(), BatcherError> {
+        // Get current block number using HTTP providers
+        let current_block = match self.get_current_block_number().await {
+            Ok(block) => block,
+            Err(e) => {
+                warn!("Failed to get current block number: {:?}", e);
+                return Ok(());
+            }
+        };
+
+        // Calculate the block range (last 100 blocks)
+        let from_block = current_block.saturating_sub(U64::from(100));
+        
+        // Create filter for BalanceUnlocked events
+        let filter = self.payment_service
+            .balance_unlocked_filter()
+            .from_block(from_block)
+            .to_block(current_block);
+
+        // Query events
+        let events = match filter.query().await {
+            Ok(events) => events,
+            Err(e) => {
+                warn!("Failed to query BalanceUnlocked events: {:?}", e);
+                return Ok(());
+            }
+        };
+
+        info!("Found {} BalanceUnlocked events in blocks {} to {}", 
+              events.len(), from_block, current_block);
+
+        // Process each event
+        for event in events {
+            let user_address = event.user;
+            info!("Processing BalanceUnlocked event for user: {:?}", user_address);
+            
+            // Check if user has proofs in queue
+            if self.user_has_proofs_in_queue(user_address).await {
+                info!("User {:?} has proofs in queue, removing them and resetting UserState", user_address);
+                self.remove_user_proofs_and_reset_state(user_address).await;
+            } else {
+                info!("User {:?} has no proofs in queue, ignoring event", user_address);
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn get_current_block_number(&self) -> Result<U64, BatcherError> {
+        // Try primary provider first
+        match self.eth_http_provider.get_block_number().await {
+            Ok(block) => Ok(block),
+            Err(_) => {
+                // Fallback to secondary provider
+                self.eth_http_provider_fallback.get_block_number().await
+                    .map_err(|e| BatcherError::EthereumProviderError(e.to_string()))
+            }
+        }
+    }
+
+    async fn user_has_proofs_in_queue(&self, user_address: Address) -> bool {
+        let user_states = self.user_states.read().await;
+        if let Some(user_state) = user_states.get(&user_address) {
+            if let Some(user_state_guard) = self.try_user_lock_with_timeout(user_address, user_state.lock()).await {
+                user_state_guard.proofs_in_batch > 0
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    async fn remove_user_proofs_and_reset_state(&self, user_address: Address) {
+        // Follow locking rules: acquire user_states before batch_state to avoid deadlocks
+        let user_states = self.user_states.write().await;
+        
+        // Use timeout for batch lock
+        let batch_state_guard = match self.try_batch_lock_with_timeout(self.batch_state.lock()).await {
+            Some(guard) => guard,
+            None => {
+                warn!("Failed to acquire batch lock for user {:?}, skipping removal", user_address);
+                return;
+            }
+        };
+        
+        let mut batch_state_guard = batch_state_guard;
+        let mut proofs_to_remove = Vec::new();
+        let mut websocket_sinks = Vec::new();
+        
+        // Collect all entries for this user and their websocket connections
+        for (entry, _) in batch_state_guard.batch_queue.iter() {
+            if entry.sender == user_address {
+                // Store websocket sink before removing the entry
+                if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                    websocket_sinks.push(ws_sink.clone());
+                }
+                proofs_to_remove.push(entry.clone());
+            }
+        }
+
+        // Notify users via websocket before removing their proofs
+        for ws_sink in &websocket_sinks {
+            send_message(
+                ws_sink.clone(),
+                aligned_sdk::common::types::SubmitProofResponseMessage::UserFundsUnlocked,
+            ).await;
+        }
+
+        // Remove collected entries
+        for entry in proofs_to_remove {
+            batch_state_guard.batch_queue.remove(&entry);
+            info!("Removed proof for user {:?} from batch queue", user_address);
+        }
+
+        // Close websocket connections
+        for ws_sink in websocket_sinks {
+            let mut sink_guard = ws_sink.write().await;
+            if let Err(e) = sink_guard.close().await {
+                warn!("Error closing websocket for user {:?}: {:?}", user_address, e);
+            } else {
+                info!("Closed websocket connection for user {:?}", user_address);
+            }
+        }
+
+        // Reset UserState using timeout
+        if let Some(user_state) = user_states.get(&user_address) {
+            if let Some(mut user_state_guard) = self.try_user_lock_with_timeout(user_address, user_state.lock()).await {
+                user_state_guard.proofs_in_batch = 0;
+                user_state_guard.total_fees_in_queue = U256::zero();
+                user_state_guard.last_max_fee_limit = U256::max_value();
+                info!("Reset UserState for user {:?}", user_address);
+            } else {
+                warn!("Failed to acquire user lock for {:?}, skipping UserState reset", user_address);
+            }
+        }
     }
 
     pub async fn listen_new_blocks_retryable(
