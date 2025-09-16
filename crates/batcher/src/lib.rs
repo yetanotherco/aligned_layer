@@ -105,6 +105,7 @@ pub struct Batcher {
     current_min_max_fee: RwLock<U256>,
     amount_of_proofs_for_min_max_fee: usize,
     min_bump_percentage: U256,
+    balance_unlock_polling_interval_seconds: u64,
 
     // Shared state access:
     // Two kinds of threads interact with the shared state:
@@ -331,6 +332,7 @@ impl Batcher {
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
             amount_of_proofs_for_min_max_fee: config.batcher.amount_of_proofs_for_min_max_fee,
             min_bump_percentage: U256::from(config.batcher.min_bump_percentage),
+            balance_unlock_polling_interval_seconds: config.batcher.balance_unlock_polling_interval_seconds,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -496,10 +498,10 @@ impl Batcher {
     }
 
     /// Poll for BalanceUnlocked events from BatcherPaymentService contract.
-    /// Runs every 10 minutes and checks the last 100 blocks for events.
+    /// Runs at configurable intervals and checks recent blocks for events (2x the polling interval).
     /// When an event is detected, removes user's proofs from queue and resets UserState.
     pub async fn poll_balance_unlocked_events(self: Arc<Self>) -> Result<(), BatcherError> {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20)); // 10 minutes
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(self.balance_unlock_polling_interval_seconds));
         
         loop {
             interval.tick().await;
@@ -521,8 +523,10 @@ impl Batcher {
             }
         };
 
-        // Calculate the block range (last 100 blocks)
-        let from_block = current_block.saturating_sub(U64::from(100));
+        // Calculate the block range based on polling interval
+        // Formula: interval / 12 * 2 (assuming 12-second block times, look back 2x the interval)
+        let block_range = (self.balance_unlock_polling_interval_seconds / 12) * 2;
+        let from_block = current_block.saturating_sub(U64::from(block_range));
         
         // Create filter for BalanceUnlocked events
         let filter = self.payment_service
