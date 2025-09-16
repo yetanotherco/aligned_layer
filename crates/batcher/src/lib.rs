@@ -9,7 +9,8 @@ use ethers::signers::Signer;
 use retry::batcher_retryables::{
     cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
     get_user_nonce_from_ethereum_retryable, simulate_create_new_task_retryable,
-    user_balance_is_unlocked_retryable,
+    user_balance_is_unlocked_retryable, get_current_block_number_retryable,
+    query_balance_unlocked_events_retryable,
 };
 use retry::{retry_function, RetryError};
 use tokio::time::{timeout, Instant};
@@ -528,17 +529,11 @@ impl Batcher {
         let block_range = (self.balance_unlock_polling_interval_seconds / 12) * 2;
         let from_block = current_block.saturating_sub(U64::from(block_range));
         
-        // Create filter for BalanceUnlocked events
-        let filter = self.payment_service
-            .balance_unlocked_filter()
-            .from_block(from_block)
-            .to_block(current_block);
-
-        // Query events
-        let events = match filter.query().await {
+        // Query events with retry logic
+        let events = match self.query_balance_unlocked_events(from_block, current_block).await {
             Ok(events) => events,
             Err(e) => {
-                warn!("Failed to query BalanceUnlocked events: {:?}", e);
+                warn!("Failed to query BalanceUnlocked events after retries: {:?}", e);
                 return Ok(());
             }
         };
@@ -553,8 +548,15 @@ impl Batcher {
             
             // Check if user has proofs in queue
             if self.user_has_proofs_in_queue(user_address).await {
-                info!("User {:?} has proofs in queue, removing them and resetting UserState", user_address);
-                self.remove_user_proofs_and_reset_state(user_address).await;
+                info!("User {:?} has proofs in queue, verifying funds are still unlocked", user_address);
+                
+                // Double-check that funds are still unlocked by calling the contract
+                if self.user_balance_is_unlocked(&user_address).await {
+                    info!("User {:?} funds confirmed unlocked, removing proofs and resetting UserState", user_address);
+                    self.remove_user_proofs_and_reset_state(user_address).await;
+                } else {
+                    info!("User {:?} funds are now locked, ignoring stale unlock event", user_address);
+                }
             } else {
                 info!("User {:?} has no proofs in queue, ignoring event", user_address);
             }
@@ -563,16 +565,52 @@ impl Batcher {
         Ok(())
     }
 
+    /// Gets the current block number from Ethereum.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
     async fn get_current_block_number(&self) -> Result<U64, BatcherError> {
-        // Try primary provider first
-        match self.eth_http_provider.get_block_number().await {
-            Ok(block) => Ok(block),
-            Err(_) => {
-                // Fallback to secondary provider
-                self.eth_http_provider_fallback.get_block_number().await
-                    .map_err(|e| BatcherError::EthereumProviderError(e.to_string()))
-            }
-        }
+        retry_function(
+            || {
+                get_current_block_number_retryable(
+                    &self.eth_http_provider,
+                    &self.eth_http_provider_fallback,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to get current block number: {:?}", e);
+            BatcherError::EthereumProviderError(e.inner())
+        })
+    }
+
+    /// Queries BalanceUnlocked events from the BatcherPaymentService contract.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    async fn query_balance_unlocked_events(&self, from_block: U64, to_block: U64) -> Result<Vec<aligned_sdk::eth::batcher_payment_service::BalanceUnlockedFilter>, BatcherError> {
+        retry_function(
+            || {
+                query_balance_unlocked_events_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    from_block,
+                    to_block,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to query BalanceUnlocked events: {:?}", e);
+            BatcherError::EthereumProviderError(e.inner())
+        })
     }
 
     async fn user_has_proofs_in_queue(&self, user_address: Address) -> bool {
@@ -632,6 +670,7 @@ impl Batcher {
         // Reset UserState using timeout
         if let Some(user_state) = user_states.get(&user_address) {
             if let Some(mut user_state_guard) = self.try_user_lock_with_timeout(user_address, user_state.lock()).await {
+                user_state_guard.nonce -= U256::from(user_state_guard.proofs_in_batch);
                 user_state_guard.proofs_in_batch = 0;
                 user_state_guard.total_fees_in_queue = U256::zero();
                 user_state_guard.last_max_fee_limit = U256::max_value();
