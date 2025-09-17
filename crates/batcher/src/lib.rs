@@ -1826,7 +1826,7 @@ impl Batcher {
                     // TODO: In the future, we should re-add the failed batch back to the queue
                     // For now, we flush everything as a safety measure
                     self.flush_queue_and_clear_nonce_cache().await;
-                    
+
                     return Err(BatcherError::StateCorruptedAndFlushed(format!(
                         "Queue and user states flushed due to insufficient balance for user {:?}",
                         address
