@@ -504,21 +504,32 @@ impl Batcher {
     /// Runs at configurable intervals and checks recent blocks for events (2x the polling interval).
     /// When an event is detected, removes user's proofs from queue and resets UserState.
     pub async fn poll_balance_unlocked_events(self: Arc<Self>) -> Result<(), BatcherError> {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(
+        let mut interval = tokio::time::interval(Duration::from_secs(
             self.balance_unlock_polling_interval_seconds,
         ));
+        let mut from_block = self.get_current_block_number().await.map_err(|e| {
+            BatcherError::EthereumProviderError(format!(
+                "Failed to get current block number: {:?}",
+                e
+            ))
+        })?;
 
         loop {
             interval.tick().await;
 
-            if let Err(e) = self.process_balance_unlocked_events().await {
-                error!("Error processing BalanceUnlocked events: {:?}", e);
-                // Continue polling even if there's an error
+            match self.process_balance_unlocked_events(from_block).await {
+                Ok(current_block) => {
+                    from_block = current_block;
+                }
+                Err(e) => {
+                    error!("Error processing BalanceUnlocked events: {:?}", e);
+                    // On error, keep from_block unchanged to retry the same range next time
+                }
             }
         }
     }
 
-    async fn process_balance_unlocked_events(&self) -> Result<(), BatcherError> {
+    async fn process_balance_unlocked_events(&self, from_block: U64) -> Result<U64, BatcherError> {
         // Get current block number using HTTP providers
         let current_block = self.get_current_block_number().await.map_err(|e| {
             BatcherError::EthereumProviderError(format!(
@@ -526,11 +537,6 @@ impl Batcher {
                 e
             ))
         })?;
-
-        // Calculate the block range based on polling interval
-        // Formula: interval / 12 * 2 (assuming 12-second block times, look back 2x the interval)
-        let block_range = (self.balance_unlock_polling_interval_seconds / 12) * 2;
-        let from_block = current_block.saturating_sub(U64::from(block_range));
 
         // Query events with retry logic
         let events = self
@@ -574,7 +580,7 @@ impl Batcher {
             }
         }
 
-        Ok(())
+        Ok(current_block)
     }
 
     /// Gets the current block number from Ethereum.
