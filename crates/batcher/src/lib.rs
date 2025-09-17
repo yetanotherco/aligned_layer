@@ -520,8 +520,12 @@ impl Batcher {
 
     async fn process_balance_unlocked_events(&self) -> Result<(), BatcherError> {
         // Get current block number using HTTP providers
-        let current_block = self.get_current_block_number().await
-            .map_err(|e| BatcherError::EthereumProviderError(format!("Failed to get current block number: {:?}", e)))?;
+        let current_block = self.get_current_block_number().await.map_err(|e| {
+            BatcherError::EthereumProviderError(format!(
+                "Failed to get current block number: {:?}",
+                e
+            ))
+        })?;
 
         // Calculate the block range based on polling interval
         // Formula: interval / 12 * 2 (assuming 12-second block times, look back 2x the interval)
@@ -532,7 +536,12 @@ impl Batcher {
         let events = self
             .query_balance_unlocked_events(from_block, current_block)
             .await
-            .map_err(|e| BatcherError::EthereumProviderError(format!("Failed to query BalanceUnlocked events: {:?}", e)))?;
+            .map_err(|e| {
+                BatcherError::EthereumProviderError(format!(
+                    "Failed to query BalanceUnlocked events: {:?}",
+                    e
+                ))
+            })?;
 
         info!(
             "Found {} BalanceUnlocked events in blocks {} to {}",
