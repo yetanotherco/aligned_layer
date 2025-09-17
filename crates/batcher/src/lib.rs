@@ -664,7 +664,7 @@ impl Batcher {
                     "Failed to acquire batch lock when trying to remove proofs from user {:?}, skipping removal",
                     user_address
                 );
-                // TODO metrics for batch lock timeout during event processing
+                self.metrics.inc_unlocked_event_polling_batch_lock_timeout();
                 return;
             }
         };

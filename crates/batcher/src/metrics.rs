@@ -30,6 +30,7 @@ pub struct BatcherMetrics {
     pub message_handler_user_lock_timeouts: IntCounter,
     pub message_handler_batch_lock_timeouts: IntCounter,
     pub message_handler_user_states_lock_timeouts: IntCounter,
+    pub unlocked_event_polling_batch_lock_timeouts: IntCounter,
     pub available_data_services: IntGauge,
 }
 
@@ -103,6 +104,11 @@ impl BatcherMetrics {
             "Message Handler User States Lock Timeouts"
         ))?;
 
+        let unlocked_event_polling_batch_lock_timeouts = register_int_counter!(opts!(
+            "unlocked_event_polling_batch_lock_timeouts_count",
+            "Unlocked Event Polling Batch Lock Timeouts"
+        ))?;
+
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
         registry.register(Box::new(sent_batches.clone()))?;
@@ -122,6 +128,7 @@ impl BatcherMetrics {
         registry.register(Box::new(message_handler_user_lock_timeouts.clone()))?;
         registry.register(Box::new(message_handler_batch_lock_timeouts.clone()))?;
         registry.register(Box::new(message_handler_user_states_lock_timeouts.clone()))?;
+        registry.register(Box::new(unlocked_event_polling_batch_lock_timeouts.clone()))?;
         registry.register(Box::new(available_data_services.clone()))?;
 
         let metrics_route = warp::path!("metrics")
@@ -154,6 +161,7 @@ impl BatcherMetrics {
             message_handler_user_lock_timeouts,
             message_handler_batch_lock_timeouts,
             message_handler_user_states_lock_timeouts,
+            unlocked_event_polling_batch_lock_timeouts,
             available_data_services,
         })
     }
@@ -199,5 +207,9 @@ impl BatcherMetrics {
 
     pub fn inc_message_handler_user_states_lock_timeouts(&self) {
         self.message_handler_user_states_lock_timeouts.inc();
+    }
+
+    pub fn inc_unlocked_event_polling_batch_lock_timeout(&self) {
+        self.unlocked_event_polling_batch_lock_timeouts.inc();
     }
 }
