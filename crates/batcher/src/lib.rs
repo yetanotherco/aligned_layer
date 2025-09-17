@@ -51,6 +51,7 @@ use tokio::sync::{Mutex, MutexGuard, RwLock};
 
 // Message handler lock timeout
 const MESSAGE_HANDLER_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
+const POLLING_EVENTS_LOCK_TIMEOUT: Duration = Duration::from_secs(300);
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, TransactionSendError};
@@ -445,12 +446,16 @@ impl Batcher {
         }
     }
 
-    /// Helper to apply 15-second timeout to batch lock acquisition with consistent logging and metrics
-    async fn try_batch_lock_with_timeout<F, T>(&self, lock_future: F) -> Option<T>
+    /// Helper to apply `duration` timeout to batch lock acquisition with consistent logging and metrics
+    async fn try_batch_lock_with_timeout<F, T>(
+        &self,
+        lock_future: F,
+        duration: Duration,
+    ) -> Option<T>
     where
         F: std::future::Future<Output = T>,
     {
-        match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, lock_future).await {
+        match timeout(duration, lock_future).await {
             Ok(result) => Some(result),
             Err(_) => {
                 warn!("Batch lock acquisition timed out");
@@ -647,17 +652,19 @@ impl Batcher {
     }
 
     async fn remove_user_proofs_and_reset_state(&self, user_address: Address) {
-        // Use timeout for batch lock
+        let mut user_states = self.user_states.write().await;
+
         let mut batch_state_guard = match self
-            .try_batch_lock_with_timeout(self.batch_state.lock())
+            .try_batch_lock_with_timeout(self.batch_state.lock(), POLLING_EVENTS_LOCK_TIMEOUT)
             .await
         {
             Some(guard) => guard,
             None => {
-                warn!(
-                    "Failed to acquire batch lock for user {:?}, skipping removal",
+                error!(
+                    "Failed to acquire batch lock when trying to remove proofs from user {:?}, skipping removal",
                     user_address
                 );
+                // TODO metrics for batch lock timeout during event processing
                 return;
             }
         };
@@ -691,8 +698,7 @@ impl Batcher {
             );
         }
 
-        // Remove UserState entry
-        self.user_states.write().await.remove(&user_address);
+        user_states.remove(&user_address);
         info!(
             "Removed UserState entry for user {:?} after processing BalanceUnlocked event",
             user_address
@@ -1260,7 +1266,7 @@ impl Batcher {
         // * ---------------------------------------------------------------------*
 
         let Some(mut batch_state_lock) = self
-            .try_batch_lock_with_timeout(self.batch_state.lock())
+            .try_batch_lock_with_timeout(self.batch_state.lock(), MESSAGE_HANDLER_LOCK_TIMEOUT)
             .await
         else {
             send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
@@ -1430,7 +1436,7 @@ impl Batcher {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
         let Some(mut batch_state_guard) = self
-            .try_batch_lock_with_timeout(self.batch_state.lock())
+            .try_batch_lock_with_timeout(self.batch_state.lock(), MESSAGE_HANDLER_LOCK_TIMEOUT)
             .await
         else {
             drop(user_state_guard);
