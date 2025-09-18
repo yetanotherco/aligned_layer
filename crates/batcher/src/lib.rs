@@ -669,28 +669,31 @@ impl Batcher {
             }
         };
 
-        let removed_entries = batch_state_guard
+        let removed_entries: Vec<_> = batch_state_guard
             .batch_queue
-            .extract_if(|entry, _| entry.sender == user_address);
+            .extract_if(|entry, _| entry.sender == user_address)
+            .collect();
 
         // Notify user via websocket before removing the proofs
         for (entry, _) in removed_entries {
-            if let Some(ws_sink) = entry.messaging_sink.as_ref() {
-                send_message(
-                    ws_sink.clone(),
-                    SubmitProofResponseMessage::UserFundsUnlocked,
-                )
-                .await;
-                // Close websocket connection
-                let mut sink_guard = ws_sink.write().await;
-                if let Err(e) = sink_guard.close().await {
-                    warn!(
-                        "Error closing websocket for user {:?}: {:?}",
-                        user_address, e
-                    );
-                } else {
-                    info!("Closed websocket connection for user {:?}", user_address);
-                }
+            if let Some(ws_sink) = entry.messaging_sink {
+                tokio::spawn(async move {
+                    send_message(
+                        ws_sink.clone(),
+                        SubmitProofResponseMessage::UserFundsUnlocked,
+                    )
+                    .await;
+                    // Close websocket connection
+                    let mut sink_guard = ws_sink.write().await;
+                    if let Err(e) = sink_guard.close().await {
+                        warn!(
+                            "Error closing websocket for user {:?}: {:?}",
+                            user_address, e
+                        );
+                    } else {
+                        info!("Closed websocket connection for user {:?}", user_address);
+                    }
+                });
             }
             info!(
                 "Removed proof with nonce {} for user {:?} from batch queue",
