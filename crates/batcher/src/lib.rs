@@ -669,22 +669,22 @@ impl Batcher {
             }
         };
 
-        let removed_entries: Vec<_> = batch_state_guard
+        let removed_entries = batch_state_guard
             .batch_queue
-            .extract_if(|entry, _| entry.sender == user_address)
-            .collect();
+            .extract_if(|entry, _| entry.sender == user_address);
 
         // Notify user via websocket before removing the proofs
         for (entry, _) in removed_entries {
             if let Some(ws_sink) = entry.messaging_sink {
+                let ws_sink_clone = ws_sink.clone();
                 tokio::spawn(async move {
                     send_message(
-                        ws_sink.clone(),
+                        ws_sink_clone.clone(),
                         SubmitProofResponseMessage::UserFundsUnlocked,
                     )
                     .await;
                     // Close websocket connection
-                    let mut sink_guard = ws_sink.write().await;
+                    let mut sink_guard = ws_sink_clone.write().await;
                     if let Err(e) = sink_guard.close().await {
                         warn!(
                             "Error closing websocket for user {:?}: {:?}",
