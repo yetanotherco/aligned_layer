@@ -2029,14 +2029,16 @@ impl Batcher {
                 warn!("Failed to send task status to telemetry: {:?}", e);
             }
 
-            // decide if i want to flush the queue:
             match e {
+                // This should never happen, there is a task that regularly cleans up
+                // user proofs with unlocked states 
+                // (and it runs more frequently than the 1H the user needs to withdraw funds)
                 BatcherError::TransactionSendError(
                     TransactionSendError::SubmissionInsufficientBalance(address),
                 ) => {
+                    // In the future we could do a more granular recovery
                     warn!("User {:?} has insufficient balance, flushing entire queue as safety measure", address);
-                    // TODO: In the future, we should re-add the failed batch back to the queue
-                    // For now, we flush everything as a safety measure
+
                     self.flush_queue_and_clear_nonce_cache().await;
                 }
                 _ => {
