@@ -570,10 +570,15 @@ impl Batcher {
             );
 
             // Check if user has proofs in queue
+            //
             // Double-check that funds are still unlocked by calling the contract
             // This is necessary because we query events over a block range, and the
             // user’s state may have changed (e.g., funds could be locked again) after
             // the event was emitted. Verifying on-chain ensures we don’t act on stale data.
+            //
+            // There is a brief period between the checks and the removal during which the user's
+            // proofs could be sent. This is acceptable, as the removal will not fail;
+            // it will simply clear the user's state.
             if self.user_has_proofs_in_queue(user_address).await
                 && self.user_balance_is_unlocked(&user_address).await
             {
