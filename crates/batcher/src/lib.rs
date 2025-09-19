@@ -2031,7 +2031,7 @@ impl Batcher {
 
             match e {
                 // This should never happen, there is a task that regularly cleans up
-                // user proofs with unlocked states 
+                // user proofs with unlocked states
                 // (and it runs more frequently than the 1H the user needs to withdraw funds)
                 BatcherError::TransactionSendError(
                     TransactionSendError::SubmissionInsufficientBalance(address),
