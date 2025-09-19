@@ -637,18 +637,18 @@ impl Batcher {
 
     async fn user_has_proofs_in_queue(&self, user_address: Address) -> bool {
         let user_states = self.user_states.read().await;
-        if let Some(user_state) = user_states.get(&user_address) {
-            if let Some(user_state_guard) = self
-                .try_user_lock_with_timeout(user_address, user_state.lock())
-                .await
-            {
-                user_state_guard.proofs_in_batch > 0
-            } else {
-                false
-            }
-        } else {
-            false
-        }
+        let Some(user_state) = user_states.get(&user_address) else {
+            return false;
+        };
+
+        let Some(user_state_guard) = self
+            .try_user_lock_with_timeout(user_address, user_state.lock())
+            .await
+        else {
+            return false;
+        };
+
+        user_state_guard.proofs_in_batch > 0
     }
 
     async fn remove_user_proofs_and_reset_state(&self, user_address: Address) {
