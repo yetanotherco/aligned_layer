@@ -678,7 +678,7 @@ impl Batcher {
             .batch_queue
             .extract_if(|entry, _| entry.sender == user_address);
 
-        // Notify user via websocket before removing the proofs
+        // Notify user via websocket
         for (entry, _) in removed_entries {
             if let Some(ws_sink) = entry.messaging_sink {
                 let ws_sink_clone = ws_sink.clone();
