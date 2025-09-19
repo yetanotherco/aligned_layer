@@ -688,16 +688,6 @@ impl Batcher {
                         SubmitProofResponseMessage::UserFundsUnlocked,
                     )
                     .await;
-                    // Close websocket connection
-                    let mut sink_guard = ws_sink_clone.write().await;
-                    if let Err(e) = sink_guard.close().await {
-                        warn!(
-                            "Error closing websocket for user {:?}: {:?}",
-                            user_address, e
-                        );
-                    } else {
-                        info!("Closed websocket connection for user {:?}", user_address);
-                    }
                 });
             }
             info!(
