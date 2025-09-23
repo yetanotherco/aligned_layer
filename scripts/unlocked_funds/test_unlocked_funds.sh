@@ -33,7 +33,7 @@ function send_proof() {
     --proof ./scripts/test_files/circom_groth16_bn256_script/proof.json \
     --public_input ./scripts/test_files/circom_groth16_bn256_script/public.json \
     --vk ./scripts/test_files/circom_groth16_bn256_script/verification_key.json \
-    --custom_fee_estimate 128 \
+    --custom_fee_estimate 64 \
     2>&1)
   
   # Check if UserFundsUnlocked appears in the output
@@ -41,6 +41,7 @@ function send_proof() {
     log "INFO" "✅ Test successful - UserFundsUnlocked event detected"
   else
     log "ERROR" "❌ Test failed - UserFundsUnlocked event not detected"
+    log "ERROR" "Submit output: $submit"
   fi
 }
 
