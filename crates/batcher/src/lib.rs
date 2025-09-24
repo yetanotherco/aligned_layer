@@ -1048,7 +1048,6 @@ impl Batcher {
 
         let Some(usr_ref) = user_states_guard.get(&address).cloned() else {
             drop(user_states_guard);
-            // if the user isn't in the cache, return zero
             send_message(
                 ws_conn_sink.clone(),
                 GetLastMaxFeeResponseMessage::LastMaxFee(U256::MAX),
