@@ -662,9 +662,6 @@ pub async fn get_nonce_from_ethereum(
 /// # Returns
 /// * `Ok(U256)` - The `max_fee` of the proof with the highest nonce for the given user.  
 /// * `Ok(U256::MAX)` - If the user has no proofs in the queue.  
-///
-/// # Notes
-/// * Returns `U256::MAX` (2^256 - 1) when no proofs are present in the queue.
 pub async fn get_last_max_fee(
     network: Network,
     address: Address,
