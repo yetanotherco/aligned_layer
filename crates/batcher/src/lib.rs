@@ -1075,6 +1075,7 @@ impl Batcher {
             U256::MAX
         };
         drop(usr_lock);
+        drop(user_states_guard);
 
         send_message(
             ws_conn_sink.clone(),
