@@ -650,7 +650,7 @@ pub async fn get_nonce_from_ethereum(
 /// Retrieves the `max_fee` of the proof with the highest nonce in the batcher queue for a given address.
 ///
 /// This value represents the maximum fee limit that can be used when submitting the next proof.  
-/// To increase the fee limit for a new proof, you must first bump the fee of the previous proof,  
+/// To increase the fee limit for a new proof, you must first bump the fee of the previous proofs,
 /// and continue doing so recursively until you reach the proof with the highest nonce (this one).
 ///
 /// Read more here: https://docs.alignedlayer.com/architecture/1_proof_verification_layer/1_batcher#max-fee-priority-queue
