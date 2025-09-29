@@ -78,6 +78,7 @@ use std::path::PathBuf;
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
+/// * `ProofReplaced` if the proof has been replaced.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 #[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_multiple_and_wait_verification(
@@ -245,6 +246,7 @@ async fn fetch_gas_price(
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked.
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
+/// * `ProofReplaced` if the proof has been replaced.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     network: Network,
@@ -364,6 +366,7 @@ async fn _submit_multiple(
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
+/// * `ProofReplaced` if the proof has been replaced.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 #[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_and_wait_verification(
@@ -421,6 +424,7 @@ pub async fn submit_and_wait_verification(
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
+/// * `ProofReplaced` if the proof has been replaced.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     network: Network,
