@@ -1502,7 +1502,8 @@ impl Batcher {
                     send_message(
                         messaging_sink.clone(),
                         SubmitProofResponseMessage::ProofReplaced,
-                    ).await;
+                    )
+                    .await;
 
                     // Note: This shuts down the sink, but does not wait for it to close, so the other side
                     // might not receive the message. However, we don't want to wait here since it would
