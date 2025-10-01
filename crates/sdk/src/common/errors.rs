@@ -98,6 +98,7 @@ pub enum SubmitError {
     GetNonceError(String),
     BatchQueueLimitExceededError,
     GenericError(String),
+    UserFundsUnlocked,
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
@@ -216,6 +217,10 @@ impl fmt::Display for SubmitError {
             }
 
             SubmitError::GetNonceError(e) => write!(f, "Error while getting nonce {}", e),
+            SubmitError::UserFundsUnlocked => write!(
+                f,
+                "User funds have been unlocked and proofs removed from queue"
+            ),
         }
     }
 }

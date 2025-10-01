@@ -55,6 +55,16 @@ async fn main() -> Result<(), BatcherError> {
         }
     });
 
+    // spawn task to poll for BalanceUnlocked events
+    tokio::spawn({
+        let app = batcher.clone();
+        async move {
+            app.poll_balance_unlocked_events()
+                .await
+                .expect("Error polling BalanceUnlocked events")
+        }
+    });
+
     batcher.metrics.inc_batcher_restart();
 
     batcher.listen_connections(&address).await?;

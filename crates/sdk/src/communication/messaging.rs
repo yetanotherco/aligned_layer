@@ -275,6 +275,10 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
                 "Server is busy processing requests, please retry".to_string(),
             ))
         }
+        Ok(SubmitProofResponseMessage::UserFundsUnlocked) => {
+            error!("User funds have been unlocked and proofs removed from queue. Funds have not been spent.");
+            Err(SubmitError::UserFundsUnlocked)
+        }
         Err(e) => {
             error!(
                 "Error while deserializing batch inclusion data: {}. Funds have not been spent.",

@@ -35,4 +35,6 @@ batcher:
   # When replacing the message, how much higher should the max fee in comparison to the original one
   # The calculation is replacement_max_fee >= original_max_fee + original_max_fee * min_bump_percentage / 100
   min_bump_percentage: 10
+  # How often to poll for BalanceUnlocked events in seconds (default: 600 seconds = 10 minutes)
+  balance_unlock_polling_interval_seconds: 600
 

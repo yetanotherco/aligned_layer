@@ -67,6 +67,7 @@ pub enum BatcherError {
     AddressNotFoundInUserStates(Address),
     QueueRemoveError(String),
     StateCorruptedAndFlushed(String),
+    EthereumProviderError(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -150,6 +151,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::StateCorruptedAndFlushed(reason) => {
                 write!(f, "Batcher state was corrupted and flushed: {}", reason)
+            }
+            BatcherError::EthereumProviderError(e) => {
+                write!(f, "Ethereum provider error: {}", e)
             }
         }
     }
