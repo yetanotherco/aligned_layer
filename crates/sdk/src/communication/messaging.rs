@@ -280,7 +280,7 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             Err(SubmitError::UserFundsUnlocked)
         }
         Ok(SubmitProofResponseMessage::ProofReplaced) => {
-            error!("Proof has been replaced by a higher fee for the same proof. Funds have not been spent.");
+            error!("Proof has been replaced by a higher fee for the same nonce. Funds have not been spent.");
             Err(SubmitError::ProofReplaced)
         }
         Err(e) => {

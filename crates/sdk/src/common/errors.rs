@@ -221,7 +221,7 @@ impl fmt::Display for SubmitError {
             }
             SubmitError::ProofReplaced => write!(
                 f,
-                "Proof has been replaced by a higher fee for the same proof"
+                "Proof has been replaced by a higher fee for the same nonce"
             ),
             SubmitError::GetNonceError(e) => write!(f, "Error while getting nonce {}", e),
             SubmitError::UserFundsUnlocked => write!(
