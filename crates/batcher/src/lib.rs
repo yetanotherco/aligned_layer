@@ -2041,6 +2041,19 @@ impl Batcher {
 
                     self.flush_queue_and_clear_nonce_cache().await;
 
+                    for entry in finalized_batch {
+                        if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                            tokio::spawn(send_message(
+                                ws_sink.clone(),
+                                SubmitProofResponseMessage::BatchReset,
+                            ));
+                        } else {
+                            warn!(
+                                "Websocket sink was found empty. This should only happen in tests"
+                            );
+                        }
+                    }
+
                     return Err(BatcherError::StateCorruptedAndFlushed(format!(
                         "Queue and user states flushed due to insufficient balance for user {:?}",
                         address
@@ -2082,7 +2095,10 @@ impl Batcher {
         let mut batch_state_lock = self.batch_state.lock().await;
         for (entry, _) in batch_state_lock.batch_queue.iter() {
             if let Some(ws_sink) = entry.messaging_sink.as_ref() {
-                send_message(ws_sink.clone(), SubmitProofResponseMessage::BatchReset).await;
+                tokio::spawn(send_message(
+                    ws_sink.clone(),
+                    SubmitProofResponseMessage::BatchReset,
+                ));
             } else {
                 warn!("Websocket sink was found empty. This should only happen in tests");
             }
