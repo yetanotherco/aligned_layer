@@ -3,13 +3,13 @@
 In this tutorial, you will learn how to send your first SP1 proofs to get verified in Aligned in under 3 minutes.
 
 {% hint style="warning" %}
-This tutorial is for sending proofs on Holesky network.
+This tutorial is for sending proofs on Hoodi network.
 To send proofs on Mainnet, please refer to the [submitting proofs](../3_guides/0_submitting_proofs.md) guide.
 {% endhint %}
 
 ## Quickstart
 
-We will download a previously generated SP1 proof, send it to Aligned for verification, and retrieve the results from Ethereum Holesky testnet.
+We will download a previously generated SP1 proof, send it to Aligned for verification, and retrieve the results from Ethereum Hoodi testnet.
 
 1. Download and install Aligned to send proofs in the testnet:
 
@@ -35,8 +35,8 @@ aligned submit \
 --vm_program ~/.aligned/test_files/sp1_fibonacci_5_0_0.elf \
 --public_input ~/.aligned/test_files/sp1_fibonacci_5_0_0.pub \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 5. You should get a response like this:
@@ -56,8 +56,8 @@ Use the link in the response to check the status of your transaction in the Alig
 ```bash
 aligned verify-proof-onchain \
 --aligned-verification-data ~/.aligned/aligned_verification_data/*.cbor \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---network holesky
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--network hoodi
 ```
 
 This is reading the result of the proof verification in Ethereum.
