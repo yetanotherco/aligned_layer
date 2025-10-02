@@ -40,10 +40,10 @@ fi
 
 echo "Downloading SP1 public inputs file..."
 
-if curl -sSf -L "$SP1_PUBLIC_INPUT_NAME" -o "$ALIGNED_TEST_FILES_DIR/$SP1_PUBLIC_INPUT_NAME"; then
+if curl -sSf -L "$SP1_PUBLIC_INPUT_URL" -o "$ALIGNED_TEST_FILES_DIR/$SP1_PUBLIC_INPUT_NAME"; then
     echo "SP1 public inputs downloaded successful"
 else
-    echo "Error: Failed to downloaded $SP1_PUBLIC_INPUT_NAME"
+    echo "Error: Failed to downloaded $SP1_PUBLIC_INPUT_URL"
     exit 1
 fi
 
