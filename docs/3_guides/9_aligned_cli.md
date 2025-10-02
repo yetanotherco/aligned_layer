@@ -102,8 +102,8 @@ aligned submit  \
 --repetitions <BURST_SIZE> \
 --keystore_path <KEYSTORE_PATH> \
 --batcher_url wss://batcher.alignedlayer.com \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
 --max_fee 0.0013ether
 ```
 
@@ -141,8 +141,8 @@ Check if a proof was verified by Aligned on Ethereum.
 ```bash
 aligned verify-proof-onchain \
 --aligned-verification-data ./aligned_verification_data/<VERIFICATION_DATA_FILE> \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 ---
@@ -200,8 +200,8 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
 
 ```bash
 aligned deposit-to-batcher \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
 --amount 0.5ether \
 --keystore_path <KEYSTORE_PATH>
 ```
@@ -242,8 +242,8 @@ Retrieves the user's balance in the Aligned Layer's contract.
 ```bash
 aligned get-user-balance \
 --user_addr <WALLET_ADDRESS> \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 ---
@@ -275,7 +275,7 @@ Retrieves the user's current nonce from the Batcher.
 ```bash
 aligned get-user-nonce \
 --user_addr <USER_ETH_ADDRESS> \
---network holesky
+--network hoodi
 ```
 
 ---
@@ -313,8 +313,8 @@ Retrieves the user's current nonce from the Blockhain, in the Batcher Payment Se
 ```bash
 aligned get-user-nonce-from-ethereum \
 --user_addr <USER_ETH_ADDRESS> \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 ---
@@ -352,8 +352,8 @@ Retrieves the number of proofs currently queued for a given user in the Batcher.
 ```bash
 aligned get-user-amount-of-queued-proofs  \
 --user_addr <USER_ETH_ADDRESS> \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 
@@ -377,7 +377,7 @@ Verifies if your proof has been verified by the `Aggregation Mode`.
 - `--network <working_network_name>`: Network name to interact with.  
   - Default: `devnet`  
   - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
-- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address.
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
   - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
@@ -385,17 +385,15 @@ Verifies if your proof has been verified by the `Aggregation Mode`.
   - Also, you can use your own Ethereum RPC providers.
 - `--beacon_client_url <BEACON_CLIENT_URL>`: User's Ethereum Consensus provider connection address. Public nodes don't support this method.
 
-
-
 #### Example:
 
 ```bash
 aligned verify-agg-proof \
-  --network holesky \
+  --network hoodi \
   --from-block 3638552 \
   --proving_system SP1 \
   --public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
   --vk ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
   --beacon_url <YOUR_BEACON_CLIENT> \
-  --rpc_url https://ethereum-holesky-rpc.publicnode.com
+  --rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
