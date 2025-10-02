@@ -279,6 +279,10 @@ async fn handle_batcher_response(msg: Message) -> Result<BatchInclusionData, Sub
             error!("User funds have been unlocked and proofs removed from queue. Funds have not been spent.");
             Err(SubmitError::UserFundsUnlocked)
         }
+        Ok(SubmitProofResponseMessage::ProofReplaced) => {
+            error!("Proof has been replaced by a higher fee for the same nonce. Funds have not been spent.");
+            Err(SubmitError::ProofReplaced)
+        }
         Err(e) => {
             error!(
                 "Error while deserializing batch inclusion data: {}. Funds have not been spent.",

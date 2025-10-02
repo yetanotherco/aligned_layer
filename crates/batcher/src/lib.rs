@@ -1496,13 +1496,26 @@ impl Batcher {
         // Close old sink in old entry and replace it with the new one
         {
             if let Some(messaging_sink) = replacement_entry.messaging_sink {
-                let mut old_sink = messaging_sink.write().await;
-                if let Err(e) = old_sink.close().await {
-                    // we dont want to exit here, just log the error
-                    warn!("Error closing sink: {e:?}");
-                } else {
-                    info!("Old websocket sink closed");
-                }
+                tokio::spawn(async move {
+                    // Before closing the old sink, send a message to the client notifying that their proof
+                    // has been replaced
+                    send_message(
+                        messaging_sink.clone(),
+                        SubmitProofResponseMessage::ProofReplaced,
+                    )
+                    .await;
+
+                    // Note: This shuts down the sink, but does not wait for it to close, so the other side
+                    // might not receive the message. However, we don't want to wait here since it would
+                    // block the batcher.
+                    let mut old_sink = messaging_sink.write().await;
+                    if let Err(e) = old_sink.close().await {
+                        // we dont want to exit here, just log the error
+                        warn!("Error closing sink: {e:?}");
+                    } else {
+                        info!("Old websocket sink closed");
+                    }
+                });
             } else {
                 warn!(
                     "Old websocket sink was empty. This should only happen in testing environments"

@@ -78,6 +78,7 @@ use std::path::PathBuf;
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
+/// * `ProofReplaced` if the proof has been replaced.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 #[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_multiple_and_wait_verification(
@@ -245,6 +246,7 @@ async fn fetch_gas_price(
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked.
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
+/// * `ProofReplaced` if the proof has been replaced.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit_multiple(
     network: Network,
@@ -364,6 +366,7 @@ async fn _submit_multiple(
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
+/// * `ProofReplaced` if the proof has been replaced.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 #[allow(clippy::too_many_arguments)] // TODO: Refactor this function, use NoncedVerificationData
 pub async fn submit_and_wait_verification(
@@ -421,6 +424,7 @@ pub async fn submit_and_wait_verification(
 /// * `ProofTooLarge` if the proof is too large.
 /// * `InsufficientBalance` if the sender balance is insufficient or unlocked
 /// * `ProofQueueFlushed` if there is an error in the batcher and the proof queue is flushed.
+/// * `ProofReplaced` if the proof has been replaced.
 /// * `GenericError` if the error doesn't match any of the previous ones.
 pub async fn submit(
     network: Network,
@@ -832,15 +836,15 @@ fn save_response_json(
 #[cfg(test)]
 mod test {
     //Public constants for convenience
-    pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
+    pub const HOODI_PUBLIC_RPC_URL: &str = "https://ethereum-hoodi-rpc.publicnode.com";
     use super::*;
 
     #[tokio::test]
     async fn computed_max_fee_for_larger_batch_is_smaller() {
-        let small_fee = estimate_fee_per_proof_with_rpc(5, HOLESKY_PUBLIC_RPC_URL)
+        let small_fee = estimate_fee_per_proof_with_rpc(5, HOODI_PUBLIC_RPC_URL)
             .await
             .unwrap();
-        let large_fee = estimate_fee_per_proof_with_rpc(2, HOLESKY_PUBLIC_RPC_URL)
+        let large_fee = estimate_fee_per_proof_with_rpc(2, HOODI_PUBLIC_RPC_URL)
             .await
             .unwrap();
 
@@ -849,10 +853,10 @@ mod test {
 
     #[tokio::test]
     async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
-        let small_fee = estimate_fee_per_proof_with_rpc(20, HOLESKY_PUBLIC_RPC_URL)
+        let small_fee = estimate_fee_per_proof_with_rpc(20, HOODI_PUBLIC_RPC_URL)
             .await
             .unwrap();
-        let large_fee = estimate_fee_per_proof_with_rpc(10, HOLESKY_PUBLIC_RPC_URL)
+        let large_fee = estimate_fee_per_proof_with_rpc(10, HOODI_PUBLIC_RPC_URL)
             .await
             .unwrap();
 
@@ -861,13 +865,13 @@ mod test {
 
     #[tokio::test]
     async fn estimate_fee_are_larger_than_one_another() {
-        let min_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Custom(100))
+        let min_fee = estimate_fee(HOODI_PUBLIC_RPC_URL, FeeEstimationType::Custom(100))
             .await
             .unwrap();
-        let default_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Default)
+        let default_fee = estimate_fee(HOODI_PUBLIC_RPC_URL, FeeEstimationType::Default)
             .await
             .unwrap();
-        let instant_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Instant)
+        let instant_fee = estimate_fee(HOODI_PUBLIC_RPC_URL, FeeEstimationType::Instant)
             .await
             .unwrap();
 
