@@ -323,7 +323,7 @@ aligned get-user-nonce-from-ethereum \
 
 #### Description:
 
-Retrieves the user's amount of queued proofs in the Batcher.
+Retrieves the number of proofs currently queued for a given user in the Batcher.
 
 #### Command:
 
@@ -332,20 +332,20 @@ Retrieves the user's amount of queued proofs in the Batcher.
 #### Options:
 
 - `--user_addr <user_address>`: User's Ethereum address.
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
-- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+- Specify which network to interact with, using one of the following options:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+  - For a custom network, instead of `--network`, provide the following flags:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`: Address of the Aligned Service Manager contract.
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`: Address of the Batcher Payment Service contract.
+    - `--batcher_url <batcher_websocket_url>`: WebSocket URL for the Aligned batcher.
+- `--rpc_url <rpc_provider_url>`: Ethereum RPC provider URL.  
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
   - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
-  - Also, you can use your own Ethereum RPC providers.
-- `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
-  - Default: `ws://localhost:8080`  
-  - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
-  - Holesky: `wss://batcher.alignedlayer.com`
-  - Hoodi: `wss://hoodi.batcher.alignedlayer.com`
+  - You can also specify your own RPC provider URL
 
 #### Example:
 
@@ -353,7 +353,7 @@ Retrieves the user's amount of queued proofs in the Batcher.
 aligned get-user-amount-of-queued-proofs  \
 --user_addr <USER_ETH_ADDRESS> \
 --network holesky \
---batcher_url wss://batcher.alignedlayer.com
+--rpc_url https://ethereum-holesky-rpc.publicnode.com
 ```
 
 
