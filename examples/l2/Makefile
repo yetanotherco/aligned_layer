@@ -1,4 +1,4 @@
-.PHONY: gen_devnet_owner_wallet gen_env_l2_holesky gen_env_l2_devnet run_l2 generate_program_id gen_env_contract_holesky gen_env_contract_devnet deploy_contract clean_db
+.PHONY: gen_devnet_owner_wallet gen_env_l2_holesky gen_env_l2_hoodi gen_env_l2_devnet run_l2 generate_program_id gen_env_contract_holesky gen_env_contract_hoodi gen_env_contract_devnet deploy_contract clean_db
 
 SHELL := /bin/bash
 
@@ -17,6 +17,9 @@ gen_devnet_owner_wallet:
 gen_env_l2_holesky:
 	@cp .env.holesky .env
 
+gen_env_l2_hoodi:
+	@cp .env.hoodi .env
+
 gen_env_l2_devnet:
 	@cp .env.devnet .env
 
@@ -26,6 +29,9 @@ generate_program_id:
 
 gen_env_contract_holesky:
 	@cp ./contracts/.env.holesky ./contracts/.env
+
+gen_env_contract_hoodi:
+	@cp ./contracts/.env.hoodi ./contracts/.env
 
 gen_env_contract_devnet:
 	@cp ./contracts/.env.devnet ./contracts/.env
