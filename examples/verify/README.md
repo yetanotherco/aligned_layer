@@ -20,8 +20,8 @@ First create a `.env` file in the root directory of the project with the followi
 | Variable                    | Value                                                                                                                                                                                                                                   |
 |-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `PRIVATE_KEY`               | Your ethereum private key                                                                                                                                                                                                               |
-| `RPC_URL`                   | Your ethereum RPC url. You can use public node: https://ethereum-holesky-rpc.publicnode.com                                                                                                                                             |
-| `ALIGNED_DEPLOYMENT_OUTPUT` | Path to aligned layer deployment output. This is needed to get service manager address. You can get it from https://github.com/yetanotherco/aligned_layer/blob/main/contracts/script/output/holesky/alignedlayer_deployment_output.json |
+| `RPC_URL`                   | Your ethereum RPC url. You can use public node: https://ethereum-hoodi-rpc.publicnode.com                                                                                                                                             |
+| `ALIGNED_DEPLOYMENT_OUTPUT` | Path to aligned layer deployment output. This is needed to get service manager address. You can get it from https://github.com/yetanotherco/aligned_layer/blob/main/contracts/script/output/hoodi/alignedlayer_deployment_output.json |
 
 Then, you can deploy the contract by running the following command:
 
@@ -49,7 +49,7 @@ Replace `[SENDER_ADDRESS]` with the address of the `BatcherPaymentService` contr
 This will output the encoded call. You can then use this encoded call to check your submitted proof with the associated data is verified in Ethereum by running the following command:
 
 ```bash
-curl -X POST http://localhost:8545 \
+curl -X POST <RPC_URL> \
 -H "Content-Type: application/json" \
 -d '{
     "jsonrpc": "2.0",
@@ -62,8 +62,8 @@ curl -X POST http://localhost:8545 \
 }'
 ```
 
-Replace `<CONTRACT_ADDRESS>` with the address of the contract you deployed earlier (or `0x58F280BeBE9B34c9939C3C39e0890C81f163B623` for Aligned ServiceManager in Holesky), `<CALLDATA>` with the encoded call, 
-and `<RPC_URL>` with the RPC URL of the blockchain you are using.
+Replace `<CONTRACT_ADDRESS>` with the address of the contract you deployed earlier (or `0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c` for Aligned ServiceManager in Hoodi), `<CALLDATA>` with the encoded call, 
+and `<RPC_URL>` with the RPC URL of the blockchain you are using (`https://ethereum-hoodi-rpc.publicnode.com` for Hoodi).
 
 The output data should be something like this:
 
@@ -71,7 +71,7 @@ The output data should be something like this:
 {
   "jsonrpc":"2.0",
   "result":"0x0000000000000000000000000000000000000000000000000000000000000001",
-  "id":q
+  "id":1
 }
 ```
 
@@ -96,9 +96,9 @@ Replace `[CONTRACT_ADDRESS]`, `[PATH_TO_ALIGNED_VERIFICATION_DATA]` and `[SENDER
 #### Example Command
 
 ```bash
-python3 verify.py --contract-address 0x58F280BeBE9B34c9939C3C39e0890C81f163B623 --aligned-verification-data ../../aligned_verification_data/b8c17406_4.json --sender-address 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
+python3 verify.py --contract-address 0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c --aligned-verification-data ../../aligned_verification_data/b8c17406_4.json --sender-address 0x041af25Fce2413570aaa0029D36DeA1eFdeff083
 ```
 
-In this case, `--contract-address` is the address of the `AlignedLayerServiceManager` and `--sender-address` is the address of the `BatcherPaymentService` in Holesky Testnet.
+In this case, `--contract-address` is the address of the `AlignedLayerServiceManager` and `--sender-address` is the address of the `BatcherPaymentService` in Hoodi Testnet.
 
 You need to replace the `--aligned-verification-data` with the path to the JSON file containing the verification data. This is the output when submitting a proof.
