@@ -32,7 +32,6 @@ impl EnvConfig {
             "holesky-stage" => Network::HoleskyStage,
             "holesky" => Network::Holesky,
             "mainnet" => Network::Mainnet,
-            "hoodi" => Network::Hoodi,
             _ => panic!("Unsupported NETWORK value"),
         };
 
