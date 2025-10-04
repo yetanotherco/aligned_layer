@@ -142,7 +142,7 @@ cast wallet import --interactive <path_to_keystore.json>
 ```
 
 Then you need to obtain some funds to pay for gas and proof verification.
-You can do this by using this [faucet](https://cloud.google.com/application/web3/faucet/ethereum/hoodi)
+You can do this by using this [faucet](https://hoodi-faucet.pk910.de/)
 
 *This same wallet is used to send the proof via aligned, so you'll also need to fund it on aligned. Follow this [guide](https://docs.alignedlayer.com/guides/0_submitting_proofs#id-2.-send-funds-to-aligned).*
 
