@@ -18,18 +18,19 @@ reqwest = { version = "0.12" }
 ciborium = "=0.2.2"
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
 rayon = "1.10.0"
+backon = "1.2.0"
 # Necessary for the VerificationData type
 aligned-sdk = { path = "../crates/sdk/" }
 # zkvms
 sp1-sdk = "5.0.0"
 sp1_aggregation_program = { path = "./aggregation_programs/sp1" }
-risc0-zkvm = { version = "2.2.0" }
+risc0-zkvm = { version = "3.0.3" }
 risc0_aggregation_program = { path = "./aggregation_programs/risc0" }
-risc0-ethereum-contracts = { git = "https://github.com/risc0/risc0-ethereum/", tag = "v2.2.2" }
+risc0-ethereum-contracts = { git = "https://github.com/risc0/risc0-ethereum/", tag = "v3.0.0" }
 
 [build-dependencies]
 sp1-build = { version = "5.0.0" }
-risc0-build = { version = "2.2.0" }
+risc0-build = { version = "3.0.3" }
 
 [package.metadata.risc0]
 # Tell risc0 build to find method in ./aggregation_programs/risc0 package

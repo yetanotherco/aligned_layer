@@ -3,14 +3,6 @@ defmodule BatcherPaymentServiceManager do
 
   @aligned_config_file System.get_env("ALIGNED_CONFIG_FILE")
 
-  @environment System.get_env("ENVIRONMENT")
-  @first_block (case @environment do
-                  "devnet" -> 0
-                  "holesky" -> 1_728_056
-                  "mainnet" -> 19_000_000
-                  _ -> raise("Invalid environment")
-                end)
-
   config_file_path =
     case @aligned_config_file do
       nil -> raise("ALIGNED_CONFIG_FILE not set in .env")
@@ -41,12 +33,12 @@ defmodule BatcherPaymentServiceManager do
     @batcher_payment_service_address
   end
 
-  def get_fee_per_proof(%{merkle_root: merkle_root}) do
+  def get_fee_per_proof(%{merkle_root: merkle_root, fromBlock: fromBlock}) do
     BatcherPaymentServiceManager.EventFilters.task_created(
       merkle_root
       |> Utils.string_to_bytes32()
     )
-    |> Ethers.get_logs(fromBlock: @first_block)
+    |> Ethers.get_logs(fromBlock: fromBlock)
     |> case do
       {:ok, []} ->
         Logger.warning("No fee per proof events found for merkle root: #{merkle_root}.")
@@ -55,7 +47,7 @@ defmodule BatcherPaymentServiceManager do
       {:ok, events} ->
         event = events |> hd()
         fee_per_proof = event.data |> hd()
-        Logger.debug("Fee per proof of #{merkle_root}: #{fee_per_proof} WEI.")
+        Logger.info("Fee per proof of #{merkle_root}: #{fee_per_proof} WEI.")
 
         fee_per_proof
 

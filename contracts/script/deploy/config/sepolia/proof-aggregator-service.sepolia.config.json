@@ -2,13 +2,13 @@
   "address": {
     "sp1VerifierAddress": "0x397A5f7f3dBd538f23DE225B51f532c34448dA9B",
     "risc0VerifierAddress": "0x925d8331ddc0a1F0d96E68CF073DFE1d92b69187",
-    "alignedAggregatorAddress": "<aligned_aggregator_address>"
+    "alignedAggregatorAddress": "0x3602fEF708644530Fef94f86b770c0603571e98B"
   },
   "programs_id": {
-    "sp1AggregationProgramVKHash": "0x0073c64593b6224bb8059787baa93b3aa491a308e9f126788b547ca02d3d599e",
-    "risc0AggregationProgramImageId": "0xcee9c4f2e4758970c20676cc7bfd23a1640f18b8b025ed05be7330c9472aa65a"
+    "sp1AggregationProgramVKHash": "0x00a18429d092a8e1f58aea6ff650ad715ad4e6d7056600bb201d38460244507b",
+    "risc0AggregationProgramImageId": "0x4cc11a4ac146ce4fc71493d694a9707194316cbb609603a195ffbe0c4c099c97"
   },
   "permissions": {
-    "owner": "<owner_address>"
+    "owner": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106"
   }
 }

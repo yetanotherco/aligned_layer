@@ -27,6 +27,10 @@ pub struct BatcherMetrics {
     pub cancel_create_new_task_duration: IntGauge,
     pub batcher_gas_cost_create_task_total: GenericCounter<AtomicF64>,
     pub batcher_gas_cost_cancel_task_total: GenericCounter<AtomicF64>,
+    pub message_handler_user_lock_timeouts: IntCounter,
+    pub message_handler_batch_lock_timeouts: IntCounter,
+    pub message_handler_user_states_lock_timeouts: IntCounter,
+    pub available_data_services: IntGauge,
 }
 
 impl BatcherMetrics {
@@ -79,6 +83,25 @@ impl BatcherMetrics {
                 "batcher_gas_cost_cancel_task_total",
                 "Batcher Gas Cost Cancel Task Total"
             ))?;
+        let available_data_services = register_int_gauge!(opts!(
+            "available_data_services",
+            "Number of available data services (0-2)"
+        ))?;
+
+        let message_handler_user_lock_timeouts = register_int_counter!(opts!(
+            "message_handler_user_lock_timeouts_count",
+            "Message Handler User Lock Timeouts"
+        ))?;
+
+        let message_handler_batch_lock_timeouts = register_int_counter!(opts!(
+            "message_handler_batch_lock_timeouts_count",
+            "Message Handler Batch Lock Timeouts"
+        ))?;
+
+        let message_handler_user_states_lock_timeouts = register_int_counter!(opts!(
+            "message_handler_user_states_lock_timeouts_count",
+            "Message Handler User States Lock Timeouts"
+        ))?;
 
         registry.register(Box::new(open_connections.clone()))?;
         registry.register(Box::new(received_proofs.clone()))?;
@@ -96,6 +119,10 @@ impl BatcherMetrics {
         registry.register(Box::new(cancel_create_new_task_duration.clone()))?;
         registry.register(Box::new(batcher_gas_cost_create_task_total.clone()))?;
         registry.register(Box::new(batcher_gas_cost_cancel_task_total.clone()))?;
+        registry.register(Box::new(message_handler_user_lock_timeouts.clone()))?;
+        registry.register(Box::new(message_handler_batch_lock_timeouts.clone()))?;
+        registry.register(Box::new(message_handler_user_states_lock_timeouts.clone()))?;
+        registry.register(Box::new(available_data_services.clone()))?;
 
         let metrics_route = warp::path!("metrics")
             .and(warp::any().map(move || registry.clone()))
@@ -124,9 +151,12 @@ impl BatcherMetrics {
             cancel_create_new_task_duration,
             batcher_gas_cost_create_task_total,
             batcher_gas_cost_cancel_task_total,
+            message_handler_user_lock_timeouts,
+            message_handler_batch_lock_timeouts,
+            message_handler_user_states_lock_timeouts,
+            available_data_services,
         })
     }
-
     pub async fn metrics_handler(registry: prometheus::Registry) -> Result<impl Reply, Rejection> {
         use prometheus::Encoder;
         let encoder = prometheus::TextEncoder::new();
@@ -157,5 +187,17 @@ impl BatcherMetrics {
     pub fn update_queue_metrics(&self, queue_len: i64, queue_size: i64) {
         self.queue_len.set(queue_len);
         self.queue_size_bytes.set(queue_size);
+    }
+
+    pub fn inc_message_handler_user_lock_timeout(&self) {
+        self.message_handler_user_lock_timeouts.inc();
+    }
+
+    pub fn inc_message_handler_batch_lock_timeout(&self) {
+        self.message_handler_batch_lock_timeouts.inc();
+    }
+
+    pub fn inc_message_handler_user_states_lock_timeouts(&self) {
+        self.message_handler_user_states_lock_timeouts.inc();
     }
 }

@@ -135,14 +135,12 @@ pub async fn estimate_fee(
 ) -> Result<U256, errors::FeeEstimateError> {
     match fee_estimation_type {
         FeeEstimationType::Default => {
-            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, DEFAULT_MAX_FEE_BATCH_SIZE).await
+            estimate_fee_per_proof_with_rpc(DEFAULT_MAX_FEE_BATCH_SIZE, eth_rpc_url).await
         }
         FeeEstimationType::Instant => {
-            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, INSTANT_MAX_FEE_BATCH_SIZE).await
+            estimate_fee_per_proof_with_rpc(INSTANT_MAX_FEE_BATCH_SIZE, eth_rpc_url).await
         }
-        FeeEstimationType::Custom(n) => {
-            calculate_fee_per_proof_for_batch_of_size(eth_rpc_url, n).await
-        }
+        FeeEstimationType::Custom(n) => estimate_fee_per_proof_with_rpc(n, eth_rpc_url).await,
     }
 }
 
@@ -161,9 +159,9 @@ pub async fn estimate_fee(
 /// # Errors
 /// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
 /// * `EthereumGasPriceError` if there is an error retrieving the Ethereum gas price.
-pub async fn calculate_fee_per_proof_for_batch_of_size(
-    eth_rpc_url: &str,
+pub async fn estimate_fee_per_proof_with_rpc(
     num_proofs_in_batch: usize,
+    eth_rpc_url: &str,
 ) -> Result<U256, errors::FeeEstimateError> {
     let eth_rpc_provider =
         Provider::<Http>::try_from(eth_rpc_url).map_err(|e: url::ParseError| {
@@ -171,20 +169,39 @@ pub async fn calculate_fee_per_proof_for_batch_of_size(
         })?;
     let gas_price = fetch_gas_price(&eth_rpc_provider).await?;
 
-    // Cost for estimate `num_proofs_per_batch` proofs
+    let fee_per_proof = calculate_fee_per_proof_with_gas_price(num_proofs_in_batch, gas_price);
+    Ok(fee_per_proof)
+}
+
+/// Estimates the fee per proof based on the given batch size and gas price.
+///
+/// This function models the cost of submitting a batch of proofs to the network
+/// by computing an estimated gas cost per proof. The total gas cost is composed of:
+/// - a constant base gas cost for any batch submission (`DEFAULT_CONSTANT_GAS_COST`)
+/// - an additional gas cost that scales linearly with the number of proofs in the batch
+///   (`ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch`)
+///
+/// The final fee per proof is calculated by:
+///     (estimated_gas_per_proof * gas_price * GAS_PRICE_PERCENTAGE_MULTIPLIER) / PERCENTAGE_DIVIDER
+///
+///
+/// # Arguments
+/// * `num_proofs_in_batch` - Number of proofs in the batch (must be > 0).
+/// * `gas_price` - Current gas price (in wei).
+///
+/// # Returns
+/// * Estimated fee per individual proof (in wei).
+///
+/// # Panics
+/// This function panics if `num_proofs_in_batch` is 0 due to division by zero.
+pub fn calculate_fee_per_proof_with_gas_price(num_proofs_in_batch: usize, gas_price: U256) -> U256 {
+    // Gas cost for `num_proofs_per_batch` proofs
     let estimated_gas_per_proof = (DEFAULT_CONSTANT_GAS_COST
         + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
         / num_proofs_in_batch as u128;
 
-    // Price of 1 proof in a batch of size `num_proofs_in_batch` i.e. (1 / `num_proofs_in_batch`).
-    // The computed price is adjusted with respect to the percentage multiplier from:
-    // https://github.com/yetanotherco/aligned_layer/blob/staging/crates/batcher/src/lib.rs#L1401
-    let fee_per_proof = (U256::from(estimated_gas_per_proof)
-        * gas_price
-        * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))
-        / U256::from(PERCENTAGE_DIVIDER);
-
-    Ok(fee_per_proof)
+    (U256::from(estimated_gas_per_proof) * gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER))
+        / U256::from(PERCENTAGE_DIVIDER)
 }
 
 async fn fetch_gas_price(
@@ -584,6 +601,9 @@ pub async fn get_nonce_from_batcher(
         Ok(GetNonceResponseMessage::Nonce(nonce)) => Ok(nonce),
         Ok(GetNonceResponseMessage::EthRpcError(e)) => Err(GetNonceError::EthRpcError(e)),
         Ok(GetNonceResponseMessage::InvalidRequest(e)) => Err(GetNonceError::InvalidRequest(e)),
+        Ok(GetNonceResponseMessage::ServerBusy) => Err(GetNonceError::GenericError(
+            "Server is busy processing requests, please retry".to_string(),
+        )),
         Err(_) => Err(GetNonceError::SerializationError(
             "Failed to deserialize batcher message".to_string(),
         )),
@@ -812,15 +832,15 @@ fn save_response_json(
 #[cfg(test)]
 mod test {
     //Public constants for convenience
-    pub const HOLESKY_PUBLIC_RPC_URL: &str = "https://ethereum-holesky-rpc.publicnode.com";
+    pub const HOODI_PUBLIC_RPC_URL: &str = "https://ethereum-hoodi-rpc.publicnode.com";
     use super::*;
 
     #[tokio::test]
     async fn computed_max_fee_for_larger_batch_is_smaller() {
-        let small_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 5)
+        let small_fee = estimate_fee_per_proof_with_rpc(5, HOODI_PUBLIC_RPC_URL)
             .await
             .unwrap();
-        let large_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 2)
+        let large_fee = estimate_fee_per_proof_with_rpc(2, HOODI_PUBLIC_RPC_URL)
             .await
             .unwrap();
 
@@ -829,10 +849,10 @@ mod test {
 
     #[tokio::test]
     async fn computed_max_fee_for_more_proofs_larger_than_for_less_proofs() {
-        let small_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 20)
+        let small_fee = estimate_fee_per_proof_with_rpc(20, HOODI_PUBLIC_RPC_URL)
             .await
             .unwrap();
-        let large_fee = calculate_fee_per_proof_for_batch_of_size(HOLESKY_PUBLIC_RPC_URL, 10)
+        let large_fee = estimate_fee_per_proof_with_rpc(10, HOODI_PUBLIC_RPC_URL)
             .await
             .unwrap();
 
@@ -841,13 +861,13 @@ mod test {
 
     #[tokio::test]
     async fn estimate_fee_are_larger_than_one_another() {
-        let min_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Custom(100))
+        let min_fee = estimate_fee(HOODI_PUBLIC_RPC_URL, FeeEstimationType::Custom(100))
             .await
             .unwrap();
-        let default_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Default)
+        let default_fee = estimate_fee(HOODI_PUBLIC_RPC_URL, FeeEstimationType::Default)
             .await
             .unwrap();
-        let instant_fee = estimate_fee(HOLESKY_PUBLIC_RPC_URL, FeeEstimationType::Instant)
+        let instant_fee = estimate_fee(HOODI_PUBLIC_RPC_URL, FeeEstimationType::Instant)
             .await
             .unwrap();
 

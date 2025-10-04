@@ -16,10 +16,9 @@ else
 endif
 
 CONFIG_FILE?=config-files/config.yaml
-export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.18.0
+OPERATOR_VERSION=v0.19.0
 EIGEN_SDK_GO_VERSION_DEVNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
@@ -292,13 +291,13 @@ verify_aggregated_proof_risc0:
 		--network $(NETWORK) \
 		--from-block $(FROM_BLOCK) \
 		--proving_system Risc0 \
-		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
-		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
+		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
 		--beacon_url $(BEACON_URL) \
 		--rpc_url $(RPC_URL)
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
-	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator --locked
+	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator_gpu --locked
 
 proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
 	@cd aggregation_mode && ./scripts/build_programs.sh
@@ -356,11 +355,16 @@ operator_set_eigen_sdk_go_version_error:
 
 operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer ## Register the operator in EigenLayer and AlignedLayer. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 
-operator_full_registration_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start ## Register the operator in EigenLayer and AlignedLayer, then start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
+operator_full_registration_and_start: ## Register the operator in EigenLayer and AlignedLayer, then start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
+	@echo "Operator address: $$(yq -r '.operator.address' $$CONFIG_FILE)" && \
+	$(MAKE) operator_full_registration CONFIG_FILE=$(CONFIG_FILE) && \
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=$(CONFIG_FILE)
 
 operator_full_registration_and_start_ethereum_package: ## Register the operator in EigenLayer and AlignedLayer, then start the Operator with Ethereum package config
-	$(MAKE) operator_full_registration CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
-	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+	@export CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml && \
+	echo "Operator address: $$(yq -r '.operator.address' $$CONFIG_FILE)" && \
+	$(MAKE) operator_full_registration CONFIG_FILE=$$CONFIG_FILE && \
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=$$CONFIG_FILE
 
 
 operator_build: deps ## Build the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
@@ -416,7 +420,8 @@ operator_generate_config:
 
 operator_get_eth:
 	@echo "Sending funds to operator address on devnet"
-	@. ./scripts/fund_operator_devnet.sh
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	. ./scripts/fund_operator_devnet.sh
 
 operator_register_with_eigen_layer:
 	@echo "Registering operator with EigenLayer"
@@ -424,25 +429,30 @@ operator_register_with_eigen_layer:
 
 operator_mint_mock_tokens:
 	@echo "Minting tokens"
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
 	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 100000000000000000
 
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
-	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Operator address: $$OPERATOR_ADDRESS" && \
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_remove_from_whitelist_devnet:
 	@echo "Removing operator"
-	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Operator address: $$OPERATOR_ADDRESS" && \
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_whitelist:
-	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Whitelisting operator $$OPERATOR_ADDRESS on $(NETWORK)" && \
+	. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/operator_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_remove_from_whitelist:
-	@echo "Removing operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Removing operator $$OPERATOR_ADDRESS" && \
+	. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"
@@ -554,9 +564,9 @@ batcher_send_risc0_task: ## Send a Risc0 fibonacci proof to Batcher. Parameters:
 	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -565,8 +575,8 @@ batcher_send_risc0_task_no_pub_input: ## Send a Risc0 proof without public input
 	@echo "Sending Risc0 no pub input proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_2_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_id_2_2_0.bin \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_3_0_3.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_id_3_0_3.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
@@ -575,9 +585,9 @@ batcher_send_risc0_burst: ## Send a burst of Risc0 fibonacci proofs to Batcher. 
 	@echo "Sending Risc0 fibonacci proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
         --repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
@@ -676,6 +686,18 @@ batcher_send_circom_groth16_bn256_burst: crates/target/release/aligned ## Send a
 		--proof ../../scripts/test_files/circom_groth16_bn256_script/proof.json \
 		--public_input ../../scripts/test_files/circom_groth16_bn256_script/public.json \
 		--vk ../../scripts/test_files/circom_groth16_bn256_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_circom_groth16_bn256_no_pub_input_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN256 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system CircomGroth16Bn256 \
+		--proof ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/verification_key.json \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
@@ -802,10 +824,18 @@ generate_circom_groth16_bn256_setup: ## Run the circom_groth16_bn256_script setu
 	@echo "Running circom_groth16_bn256 script setup..."
 	@cd scripts/test_files/circom_groth16_bn256_script && ./generate_setup.sh
 
+generate_circom_groth16_bn256_no_pub_input_proof: ## Run the circom_groth16_bn256_script
+	@echo "Running circom_groth16_bn256 script..."
+	@cd scripts/test_files/circom_groth16_bn256_no_pub_input_script && ./generate_proof.sh
+
+generate_circom_groth16_bn256_no_pub_input_setup: ## Run the circom_groth16_bn256_script setup
+	@echo "Running circom_groth16_bn256_no_pub_input_script setup..."
+	@cd scripts/test_files/circom_groth16_bn256_no_pub_input_script && ./generate_setup.sh
+
 __CONTRACTS_DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
-	@. co	ntracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
 
 deploy_pauser_registry: ## Deploy Pauser Registry
 	@echo "Deploying Pauser Registry..."
@@ -1090,9 +1120,9 @@ docker_batcher_send_risc0_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system Risc0 \
-              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
-              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
-              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -1150,6 +1180,19 @@ docker_batcher_send_circom_groth16_bn256_burst:
 			  --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
 
+docker_batcher_send_circom_groth16_bn256_no_pub_input_burst:
+	@echo "Sending Circom Groth16 BN256 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+			  --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			  --proving_system CircomGroth16Bn256 \
+			  --proof ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/proof.json \
+			  --public_input ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/public.json \
+			  --vk ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/verification_key.json \
+			  --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			  --repetitions $(DOCKER_BURST_SIZE) \
+			  --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_sp1_burst
@@ -1158,6 +1201,7 @@ docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_gnark_plonk_bls12_381_burst
 	@$(MAKE) docker_batcher_send_gnark_groth16_burst
 	@$(MAKE) docker_batcher_send_circom_groth16_bn256_burst
+	@$(MAKE) docker_batcher_send_circom_groth16_bn256_no_pub_input_burst
 
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
@@ -1195,7 +1239,7 @@ docker_verify_proofs_onchain:
 	  '
 
 DOCKER_PROOFS_WAIT_TIME=60
-DOCKER_SENT_PROOFS=6
+DOCKER_SENT_PROOFS=7
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
@@ -1349,14 +1393,13 @@ ansible_batcher_create_env: ## Create empty variables files for the Batcher depl
 	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
 	@echo "Please complete the values and run make ansible_batcher_deploy"
 
-ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
-		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
-		-i $(INVENTORY) \
-		-e "keystore_path=$(KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
 	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
@@ -1364,14 +1407,12 @@ ansible_aggregator_create_env: ## Create empty variables files for the Aggregato
 	@echo "Please complete the values and run make ansible_aggregator_deploy"
 
 ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
@@ -1380,14 +1421,12 @@ ansible_operator_create_env: ## Create empty variables files for the Operator de
 	@echo "Please complete the values and run make ansible_operator_deploy"
 
 ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ]  || [ -z "$(ECDSA_KEYSTORE)" ]  || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/operator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_explorer_deploy: ## Deploy the Explorer. Parameters: INVENTORY
 	@ansible-playbook infra/ansible/playbooks/explorer.yaml \
@@ -1405,7 +1444,7 @@ ansible_telemetry_deploy: ## Deploy the Telemetry. Parameters: INVENTORY
 __ETHEREUM_PACKAGE__:  ## ____
 
 ethereum_package_start: ## Starts the ethereum_package environment
-	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package@5.0.1 --args-file network_params.yaml
 
 ethereum_package_inspect: ## Prints detailed information about the net
 	kurtosis enclave inspect aligned

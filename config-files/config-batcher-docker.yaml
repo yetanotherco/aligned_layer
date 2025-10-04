@@ -31,3 +31,10 @@ batcher:
   non_paying:
     address: '0xa0Ee7A142d267C1f36714E4a8F75612F20a79720' # Anvil address 9
     replacement_private_key: ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 # Anvil address 1
+  # When validating if the msg covers the minimum max fee
+  # A batch of how many proofs should it cover
+  amount_of_proofs_for_min_max_fee: 128
+  # When replacing the message, how much higher should the max fee in comparison to the original one
+  # The calculation is replacement_max_fee >= original_max_fee + original_max_fee * min_bump_percentage / 100
+  min_bump_percentage: 10
+

@@ -68,8 +68,6 @@ contract ExistingDeploymentParser is Script, Test {
     // All eigenpods is just single array list of above eigenPods
     address[] public allEigenPods;
 
-    EmptyContract public emptyContract;
-
     address executorMultisig;
     address operationsMultisig;
     address pauserMultisig;
@@ -171,7 +169,6 @@ contract ExistingDeploymentParser is Script, Test {
         baseStrategyImplementation = StrategyBase(
             stdJson.readAddress(existingDeploymentData, ".addresses.baseStrategyImplementation")
         );
-        emptyContract = EmptyContract(stdJson.readAddress(existingDeploymentData, ".addresses.emptyContract"));
     }
 
     function _parseDeployedEigenPods(string memory existingDeploymentInfoPath) internal returns (DeployedEigenPods memory) {
@@ -712,7 +709,6 @@ contract ExistingDeploymentParser is Script, Test {
         vm.serializeAddress(deployed_addresses, "eigenPodBeacon", address(eigenPodBeacon));
         vm.serializeAddress(deployed_addresses, "eigenPodImplementation", address(eigenPodImplementation));
         vm.serializeAddress(deployed_addresses, "baseStrategyImplementation", address(baseStrategyImplementation));
-        vm.serializeAddress(deployed_addresses, "emptyContract", address(emptyContract));
         string memory deployed_addresses_output = vm.serializeString(
             deployed_addresses,
             "strategies",

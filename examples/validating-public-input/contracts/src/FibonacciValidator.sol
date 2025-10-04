@@ -8,7 +8,7 @@ contract FibonacciValidator {
     bytes32 public fibonacciProgramIdCommitmentSp1 = 0xc91d23fc3b1d24ecb241fbd501162734584f7c9f15ee5c95c712419206797a61;
 
     bytes32 public fibonacciProgramIdCommitmentRisc0 =
-        0xaca1ccfd1da4139fd1f45604ffa39fd5cbb89d2b382c076143d515b2ec152173;
+        0x34fea0bbf4266e3ec6d518f685cf1e365f25228013efaaebf7648b26d14d41bb;
 
     error InvalidProgramID(string verifier, bytes32 submitted, bytes32 required); //051ce67c
 

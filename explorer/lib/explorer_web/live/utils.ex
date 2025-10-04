@@ -123,6 +123,8 @@ defmodule ExplorerWeb.Helpers do
     case prefix do
       "holesky" -> "https://holesky.eigenlayer.xyz"
       "mainnet" -> "https://app.eigenlayer.xyz"
+      "sepolia" -> "https://sepolia.eigenlayer.xyz"
+      "hoodi" -> "https://hoodi.eigenlayer.xyz"
       _ -> "http://localhost:4000"
     end
   end
@@ -134,6 +136,8 @@ defmodule ExplorerWeb.Helpers do
     [
       {"Mainnet", "https://explorer.alignedlayer.com"},
       {"Holesky", "https://holesky.explorer.alignedlayer.com"},
+      {"Sepolia", "https://sepolia.explorer.alignedlayer.com"},
+      {"Hoodi", "https://hoodi.explorer.alignedlayer.com"},
       {"Stage", "https://stage.explorer.alignedlayer.com"},
       {"Devnet", "http://localhost:4000/"}
     ]
@@ -143,6 +147,8 @@ defmodule ExplorerWeb.Helpers do
     case host do
       "explorer.alignedlayer.com" -> "Mainnet"
       "holesky.explorer.alignedlayer.com" -> "Holesky"
+      "sepolia.explorer.alignedlayer.com" -> "Sepolia"
+      "hoodi.explorer.alignedlayer.com" -> "Hoodi"
       "stage.explorer.alignedlayer.com" -> "Stage"
       _ -> "Devnet"
     end
@@ -160,6 +166,8 @@ defmodule ExplorerWeb.Helpers do
     case prefix do
       "mainnet" -> "https://etherscan.io"
       "holesky" -> "https://holesky.etherscan.io"
+      "sepolia" -> "https://sepolia.etherscan.io"
+      "hoodi" -> "https://hoodi.etherscan.io"
       _ -> "http://localhost:4000"
     end
   end
@@ -176,24 +184,26 @@ defmodule ExplorerWeb.Helpers do
     case prefix do
       "mainnet" -> "https://blobscan.com/"
       "holesky" -> "https://holesky.blobscan.com/"
+      "sepolia" -> "https://sepolia.blobscan.com/"
+      "hoodi" -> "https://hoodi.blobscan.com/"
       _ -> "http://localhost:4000"
     end
   end
 
   def get_aligned_contracts_addresses() do
-    Map.merge(get_batcher_service_addresses(), get_proof_aggregation_addresses())
+    Map.merge(get_verification_layer_addresses(), get_proof_aggregation_addresses())
   end
 
   defp get_proof_aggregation_addresses() do
     proof_agg_config_file = System.get_env("ALIGNED_PROOF_AGG_CONFIG_FILE")
     {_, config_json_string} = File.read(proof_agg_config_file)
-    proof_agg_service_addresses = Jason.decode!(config_json_string) |> Map.get("addresses")
+    Jason.decode!(config_json_string) |> Map.get("addresses")
   end
 
-  defp get_batcher_service_addresses() do
+  defp get_verification_layer_addresses() do
     aligned_config_file = System.get_env("ALIGNED_CONFIG_FILE")
     {_, config_json_string} = File.read(aligned_config_file)
-    agg_service_addresses = Jason.decode!(config_json_string) |> Map.get("addresses")
+    Jason.decode!(config_json_string) |> Map.get("addresses")
   end
 
   def binary_to_hex_string(binary) do
@@ -260,6 +270,8 @@ defmodule Utils do
                      # error
                      _ -> 268_435_456
                    end)
+
+  @max_batch_urls 5
 
   @batcher_submission_gas_cost Application.compile_env(:explorer, :batcher_submission_gas_cost)
   @aggregator_gas_cost Application.compile_env(:explorer, :aggregator_gas_cost)
@@ -335,7 +347,7 @@ defmodule Utils do
   def calculate_proof_hashes(deserialized_batch) do
     deserialized_batch
     |> Enum.map(fn s3_object ->
-      ExKeccak.hash_256(:erlang.list_to_binary(s3_object["proof"]))
+      ExKeccak.hash_256(s3_object["proof"].value)
     end)
   end
 
@@ -359,6 +371,42 @@ defmodule Utils do
       {:halt, {:error, {:invalid, :body_too_large}}}
     else
       {:cont, acc}
+    end
+  end
+
+  # fetch_batch_data_pointer_with_multiple_urls tries multiple comma-separated URLs until first successful response
+  def fetch_batch_data_pointer_with_multiple_urls(batch_data_pointers) do
+    # Parse comma-separated URLs and limit to max 5
+    urls = parse_batch_urls(batch_data_pointers)
+
+    errors = []
+
+    # Try each URL until first successful response
+    try_urls(urls, errors)
+  end
+
+  # parse_batch_urls parses comma-separated URLs and limits to max 5
+  defp parse_batch_urls(batch_data_pointers) do
+    batch_data_pointers
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.filter(fn url -> url != "" end)
+    |> Enum.take(@max_batch_urls)
+  end
+
+  # try_urls attempts to fetch from each URL until success
+  defp try_urls([], errors) do
+    # All URLs failed
+    {:error, {:all_urls_failed, Enum.reverse(errors)}}
+  end
+
+  defp try_urls([url | remaining_urls], errors) do
+    case fetch_batch_data_pointer(url) do
+      {:ok, data} ->
+        {:ok, data}
+      {:error, reason} ->
+        new_errors = ["URL #{url}: #{inspect(reason)}" | errors]
+        try_urls(remaining_urls, new_errors)
     end
   end
 
@@ -459,7 +507,7 @@ defmodule Utils do
       nil ->
         Logger.debug("Fetching from S3")
 
-        batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
+        batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer_with_multiple_urls()
 
         case batch_content do
           {:ok, batch_content} ->

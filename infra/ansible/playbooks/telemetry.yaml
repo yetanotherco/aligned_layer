@@ -34,7 +34,7 @@
   vars:
     host: telemetry
     ini_file: ini/config-telemetry.ini
-    cassandra_version: 5.0.2
+    cassandra_version: 5.0.5
 
 - name: Run Jaeger playbook
   ansible.builtin.import_playbook: jaeger.yaml
@@ -59,10 +59,43 @@
   vars:
     host: telemetry
 
+- name: Run webserver playbook
+  ansible.builtin.import_playbook: webserver.yaml
+  vars:
+    host: telemetry
+
 - name: Setup Telemetry
   hosts: telemetry
 
   tasks:
+
+  - name: Add reverse proxy configuration to Caddyfile
+    become: true
+    blockinfile:
+      path: /etc/caddy/Caddyfile
+      block: |
+        {{ caddy_metrics_url }} {
+          reverse_proxy localhost:{{ caddy_metrics_port }}
+        }
+        {{ caddy_telemetry_url }} {
+          @whitelisted {
+            path /versions*
+          }
+          reverse_proxy @whitelisted localhost:{{ caddy_telemetry_port }}
+        }
+        {{ caddy_jaeger_url }} {
+          reverse_proxy localhost:{{ caddy_jaeger_port }}
+        }
+      create: yes
+      prepend_newline: true
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+      caddy_metrics_url: "{{ lookup('ini', 'caddy_metrics_url file=ini/config-telemetry.ini') }}"
+      caddy_metrics_port: 3000
+      caddy_telemetry_url: "{{ lookup('ini', 'caddy_telemetry_url file=ini/config-telemetry.ini') }}"
+      caddy_telemetry_port: 4001
+      caddy_jaeger_url: "{{ lookup('ini', 'caddy_jaeger_url file=ini/config-telemetry.ini') }}"
+      caddy_jaeger_port: 16686
 
   - name: Make sure /etc/default/tailscaled exists
     become: true
@@ -72,11 +105,23 @@
     vars:
       ansible_ssh_user: "{{ admin_user }}"
 
+  - name: Add permit to tailscale for caddy
+    become: true
+    lineinfile:
+      path: /etc/default/tailscaled
+      line: TS_PERMIT_CERT_UID=caddy
+      state: present
+    vars:
+      ansible_ssh_user: "{{ admin_user }}"
+    notify:
+      - Restart caddy
+      - Restart tailscale
+
   - name: Clone Aligned repository
     ansible.builtin.git:
       repo: https://github.com/yetanotherco/aligned_layer.git
       dest: /home/{{ ansible_user }}/repos/telemetry/aligned_layer
-      version: v0.12.1
+      version: 2075-feat-hoodi-deployment
       recursive: false
 
   - name: Run telemetry_compile_bls_verifier target
@@ -94,7 +139,9 @@
       postgresql_telemetry_db_name: "{{ lookup('ini', 'postgresql_telemetry_db_name file=ini/config-telemetry.ini') }}"
       postgresql_telemetry_user: "{{ lookup('ini', 'postgresql_telemetry_user file=ini/config-telemetry.ini') }}"
       postgresql_telemetry_pass: "{{ lookup('ini', 'postgresql_telemetry_pass file=ini/config-telemetry.ini') }}"
+      telemetry_environment: "{{ lookup('ini', 'telemetry_environment file=ini/config-telemetry.ini') }}"
       telemetry_aligned_rpc: "{{ lookup('ini', 'telemetry_aligned_rpc file=ini/config-telemetry.ini') }}"
+      telemetry_aligned_config_file: "{{ lookup('ini', 'telemetry_aligned_config_file file=ini/config-telemetry.ini') }}"
       telemetry_api_phx_host: "{{ lookup('ini', 'telemetry_api_phx_host file=ini/config-telemetry.ini') }}"
       telemetry_api_elixir_hostname: "{{ lookup('ini', 'telemetry_api_elixir_hostname file=ini/config-telemetry.ini') }}"
       telemetry_api_secret_key_base: "{{ lookup('ini', 'telemetry_api_secret_key_base file=ini/config-telemetry.ini') }}"
@@ -147,6 +194,14 @@
       scope: user
 
   handlers:
+    - name: Restart caddy
+      become: true
+      systemd_service:
+        name: caddy
+        state: restarted
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
     - name: Restart tailscale
       become: true
       systemd_service:

@@ -6,11 +6,14 @@ out
 cache
 **/build
 **/target
+**/CLAUDE.md
+CLAUDE.md
 scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/**
 crates/cli/batch_inclusion_responses/*
 **/aligned_verification_data
 **/broadcast
 volume
+volume2
 config-files/*.last_processed_batch.json
 config-files/*.last_aggregated_block.json
 
@@ -36,5 +39,5 @@ witness.wtns
 circuit_cpp/
 circuit_js
 
-# Link checker results
+# Reports
 docs/dead_links_report.txt

@@ -29,6 +29,7 @@ type AggregatorConfig struct {
 		GasBumpIncrementalPercentage  uint
 		GasBumpPercentageLimit        uint
 		TimeToWaitBeforeBump          time.Duration
+		PollLatestBatchInterval       time.Duration
 	}
 }
 
@@ -48,6 +49,7 @@ type AggregatorConfigFromYaml struct {
 		GasBumpIncrementalPercentage  uint           `yaml:"gas_bump_incremental_percentage"`
 		GasBumpPercentageLimit        uint           `yaml:"gas_bump_percentage_limit"`
 		TimeToWaitBeforeBump          time.Duration  `yaml:"time_to_wait_before_bump"`
+		PollLatestBatchInterval       time.Duration  `yaml:"poll_latest_batch_interval"`
 	} `yaml:"aggregator"`
 }
 
@@ -97,6 +99,7 @@ func NewAggregatorConfig(configFilePath string) *AggregatorConfig {
 			GasBumpIncrementalPercentage  uint
 			GasBumpPercentageLimit        uint
 			TimeToWaitBeforeBump          time.Duration
+			PollLatestBatchInterval       time.Duration
 		}(aggregatorConfigFromYaml.Aggregator),
 	}
 }

@@ -2,7 +2,7 @@
   <.card_preheding>Aggregation</.card_preheding>
   <%= if @proofs != :empty and @proofs != [] do %>
     <.card_background class="w-full overflow-x-auto sm:col-span-2">
-      <.agg_proofs_table proofs={@proofs} />
+      <.agg_proofs_table agg_proofs={@proofs} />
     </.card_background>
   <% else %>
     <.empty_card_background text="No aggregated proofs To Display." class="sm:col-span-2" />

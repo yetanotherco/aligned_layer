@@ -1,0 +1,31 @@
+aggregator:
+  hosts:
+    aligned-mainnet-stage-aggregator:
+      ansible_host: aligned-mainnet-stage-aggregator
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+batcher:
+  hosts:
+    aligned-mainnet-stage-batcher:
+      ansible_host: aligned-mainnet-stage-batcher
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+explorer:
+  hosts:
+    aligned-mainnet-stage-explorer:
+      ansible_host: aligned-mainnet-stage-explorer
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+telemetry:
+  hosts:
+    aligned-mainnet-stage-telemetry:
+      ansible_host: aligned-mainnet-stage-telemetry
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3

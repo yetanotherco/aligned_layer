@@ -5,9 +5,11 @@ defmodule NavComponent do
     Helpers.get_aligned_networks()
     |> Enum.filter(fn {name, _link} ->
       case current_network do
-        # Filter dev networks if we are in mainnet or holesky
-        "Mainnet" -> name in ["Mainnet", "Holesky"]
-        "Holesky" -> name in ["Mainnet", "Holesky"]
+        # Filter dev networks if we are in mainnet, holesky, sepolia, or hoodi
+        "Mainnet" -> name in ["Mainnet", "Holesky", "Sepolia", "Hoodi"]
+        "Holesky" -> name in ["Mainnet", "Holesky", "Sepolia", "Hoodi"]
+        "Sepolia" -> name in ["Mainnet", "Holesky", "Sepolia", "Hoodi"]
+        "Hoodi" -> name in ["Mainnet", "Holesky", "Sepolia", "Hoodi"]
         _ -> true
       end
     end)
@@ -197,9 +199,9 @@ defmodule NavComponent do
   @doc """
     Renders a dropdown on hover component with links.
   """
-  attr(:title, :list, doc: "the selector title")
+  attr(:title, :string, doc: "the selector title")
   attr(:class, :list, doc: "class for selector")
-  attr(:links, :string, doc: "the links to render: (name, link, class)")
+  attr(:links, :list, doc: "the links to render: (name, link, class)")
 
   def nav_links_dropdown(assigns) do
     ~H"""

@@ -21,12 +21,20 @@ bls:
 
 ## Aggregator Configurations
 aggregator:
-  server_ip_port_address: localhost:8090
+  server_ip_port_address: 0.0.0.0:8090
   bls_public_key_compendium_address:
   avs_service_manager_address:
   enable_metrics: {{ enable_metrics }}
   metrics_ip_port_address: "{{ metrics_ip_port_address }}"
   telemetry_ip_port_address: "{{ telemetry_ip_port_address }}"
-  garbage_collector_period: 2m #The period of the GC process. Suggested value for Prod: '168h' (7 days)
-  garbage_collector_tasks_age: 20 #The age of tasks that will be removed by the GC, in blocks. Suggested value for prod: '216000' (30 days)
-  garbage_collector_tasks_interval: 10 #The interval of queried blocks to get an old batch. Suggested value for prod: '900' (3 hours)
+  garbage_collector_period: 168h #The period of the GC process. Suggested value for Prod: '168h' (7 days)
+  garbage_collector_tasks_age: 216000 #The age of tasks that will be removed by the GC, in blocks. Suggested value for prod: '216000' (30 days)
+  garbage_collector_tasks_interval: 900 #The interval of queried blocks to get an old batch. Suggested value for prod: '900' (3 hours)
+  bls_service_task_timeout: 168h # The timeout of bls aggregation service tasks. Suggested value for prod '168h' (7 days)
+  gas_base_bump_percentage: 25 # Percentage to overestimate gas price when sending a task
+  gas_bump_incremental_percentage: 20 # An extra percentage to overestimate in each bump of respond to task. This is additive between tries
+  # Gas used formula = est_gas_by_node * (gas_base_bump_percentage + gas_bum_incremental_percentage * i) / 100, where i is the iteration number.
+  gas_bump_percentage_limit: 150 # The max percentage to bump the gas price.
+  # The Gas formula is percentage (gas_base_bump_percentage + gas_bump_incremental_percentage * i) / 100) is checked against this value
+  # If it is higher, it will default to `gas_bump_percentage_limit`
+  time_to_wait_before_bump: 72s # The time to wait for the receipt when responding to task. Suggested value 72 seconds (6 blocks)

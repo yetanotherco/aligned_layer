@@ -1,0 +1,23 @@
+aggregator:
+  hosts:
+    aligned-mainnet-aggregator:
+      ansible_host: aligned-mainnet-aggregator
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+batcher:
+  hosts:
+    aligned-mainnet-batcher:
+      ansible_host: aligned-mainnet-batcher
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+explorer:
+  hosts:
+    aligned-mainnet-explorer:
+      ansible_host: aligned-mainnet-explorer
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3

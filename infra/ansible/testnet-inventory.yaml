@@ -1,0 +1,15 @@
+aggregator:
+  hosts:
+    aligned-holesky-aggregator:
+      ansible_host: aligned-holesky-aggregator
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+batcher:
+  hosts:
+    aligned-holesky-batcher:
+      ansible_host: aligned-holesky-batcher
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3

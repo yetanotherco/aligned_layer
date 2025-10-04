@@ -20,14 +20,18 @@ use sha3::{Digest, Keccak256};
 
 use super::constants::{
     ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY,
-    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY_STAGE, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET,
-    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE, ALIGNED_SERVICE_MANAGER_DEVNET,
+    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY_STAGE, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOODI,
+    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE,
+    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_SEPOLIA, ALIGNED_SERVICE_MANAGER_DEVNET,
     ALIGNED_SERVICE_MANAGER_HOLESKY, ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE,
-    ALIGNED_SERVICE_MANAGER_MAINNET, ALIGNED_SERVICE_MANAGER_MAINNET_STAGE,
+    ALIGNED_SERVICE_MANAGER_HOODI, ALIGNED_SERVICE_MANAGER_MAINNET,
+    ALIGNED_SERVICE_MANAGER_MAINNET_STAGE, ALIGNED_SERVICE_MANAGER_SEPOLIA,
     BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY,
-    BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET,
-    BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE, BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY,
-    BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_MAINNET, BATCHER_URL_MAINNET_STAGE,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_HOODI,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_SEPOLIA, BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY,
+    BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_HOODI, BATCHER_URL_MAINNET, BATCHER_URL_MAINNET_STAGE,
+    BATCHER_URL_SEPOLIA,
 };
 use super::errors::VerifySignatureError;
 
@@ -65,9 +69,28 @@ impl Display for ProvingSystemId {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VerificationData {
     pub proving_system: ProvingSystemId,
+    #[serde(with = "serde_bytes")]
     pub proof: Vec<u8>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub pub_input: Option<Vec<u8>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub verification_key: Option<Vec<u8>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_bytes",
+        serialize_with = "serialize_option_bytes"
+    )]
     pub vm_program_code: Option<Vec<u8>>,
     pub proof_generator_addr: Address,
 }
@@ -96,6 +119,34 @@ impl NoncedVerificationData {
             chain_id,
             payment_service_addr,
         }
+    }
+
+    /// Returns an upper bound for the CBOR encoding size without performing serialization.
+    /// Sums the length of all Vec<u8> fields in the inner VerificationData and adds 1024 bytes as overhead. This covers the constant size data and extra headers
+    pub fn cbor_size_upper_bound(&self) -> usize {
+        const CBOR_OVERHEAD_BYTES: usize = 1024;
+        let mut total_size = 0;
+
+        // Add length of proof Vec<u8>
+        total_size += self.verification_data.proof.len();
+
+        // Add length of pub_input Option<Vec<u8>>
+        if let Some(ref pub_input) = self.verification_data.pub_input {
+            total_size += pub_input.len();
+        }
+
+        // Add length of verification_key Option<Vec<u8>>
+        if let Some(ref verification_key) = self.verification_data.verification_key {
+            total_size += verification_key.len();
+        }
+
+        // Add length of vm_program_code Option<Vec<u8>>
+        if let Some(ref vm_program_code) = self.verification_data.vm_program_code {
+            total_size += vm_program_code.len();
+        }
+
+        // Add overhead bytes for the full NoncedVerificationData structure
+        total_size + CBOR_OVERHEAD_BYTES
     }
 }
 
@@ -401,6 +452,7 @@ pub enum SubmitProofResponseMessage {
     EthRpcError,
     InvalidPaymentServiceAddress(Address, Address),
     UnderpricedProof,
+    ServerBusy,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -408,6 +460,7 @@ pub enum GetNonceResponseMessage {
     Nonce(U256),
     EthRpcError(String),
     InvalidRequest(String),
+    ServerBusy,
 }
 
 #[derive(Debug, Clone)]
@@ -415,8 +468,10 @@ pub enum Network {
     Devnet,
     Holesky,
     HoleskyStage,
+    Hoodi,
     Mainnet,
     MainnetStage,
+    Sepolia,
     Custom(String, String, String),
 }
 
@@ -426,8 +481,10 @@ impl Network {
             Self::Devnet => H160::from_str(ALIGNED_SERVICE_MANAGER_DEVNET).unwrap(),
             Self::Holesky => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY).unwrap(),
             Self::HoleskyStage => H160::from_str(ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE).unwrap(),
+            Self::Hoodi => H160::from_str(ALIGNED_SERVICE_MANAGER_HOODI).unwrap(),
             Self::Mainnet => H160::from_str(ALIGNED_SERVICE_MANAGER_MAINNET).unwrap(),
             Self::MainnetStage => H160::from_str(ALIGNED_SERVICE_MANAGER_MAINNET_STAGE).unwrap(),
+            Self::Sepolia => H160::from_str(ALIGNED_SERVICE_MANAGER_SEPOLIA).unwrap(),
             Self::Custom(s, _, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
@@ -439,10 +496,12 @@ impl Network {
             Self::HoleskyStage => {
                 H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE).unwrap()
             }
+            Self::Hoodi => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_HOODI).unwrap(),
             Self::Mainnet => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET).unwrap(),
             Self::MainnetStage => {
                 H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE).unwrap()
             }
+            Self::Sepolia => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_SEPOLIA).unwrap(),
             Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
@@ -454,10 +513,12 @@ impl Network {
             Self::HoleskyStage => {
                 H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY_STAGE).unwrap()
             }
+            Self::Hoodi => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOODI).unwrap(),
             Self::Mainnet => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET).unwrap(),
             Self::MainnetStage => {
                 H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE).unwrap()
             }
+            Self::Sepolia => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_SEPOLIA).unwrap(),
             Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }
@@ -467,11 +528,32 @@ impl Network {
             Self::Devnet => BATCHER_URL_DEVNET,
             Self::Holesky => BATCHER_URL_HOLESKY,
             Self::HoleskyStage => BATCHER_URL_HOLESKY_STAGE,
+            Self::Hoodi => BATCHER_URL_HOODI,
             Self::Mainnet => BATCHER_URL_MAINNET,
             Self::MainnetStage => BATCHER_URL_MAINNET_STAGE,
+            Self::Sepolia => BATCHER_URL_SEPOLIA,
             Self::Custom(_, _, s) => s.as_str(),
         }
     }
+}
+
+// Helper functions for serializing Option<Vec<u8>> with serde_bytes
+fn serialize_option_bytes<S>(value: &Option<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value {
+        Some(bytes) => serde_bytes::serialize(bytes, serializer),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_option_bytes<'de, D>(deserializer: D) -> Result<Option<Vec<u8>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt: Option<serde_bytes::ByteBuf> = Option::deserialize(deserializer)?;
+    Ok(opt.map(|buf| buf.into_vec()))
 }
 
 #[cfg(test)]

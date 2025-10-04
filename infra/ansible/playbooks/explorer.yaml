@@ -45,7 +45,8 @@
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer
         dest: "/home/{{ ansible_user }}/repos/explorer/aligned_layer"
-        update: yes
+        version: 2075-feat-hoodi-deployment
+        recursive: false
 
     - name: Create .ssl directory
       file:
@@ -86,6 +87,8 @@
         BATCH_TTL_MINUTES: "{{ lookup('ini', 'BATCH_TTL_MINUTES file=ini/config-explorer.ini') }}"
         SCHEDULED_BATCH_INTERVAL_MINUTES: "{{ lookup('ini', 'SCHEDULED_BATCH_INTERVAL_MINUTES file=ini/config-explorer.ini') }}"
         LATEST_RELEASE: "{{ lookup('ini', 'LATEST_RELEASE file=ini/config-explorer.ini') }}"
+        BEACON_CLIENT: "{{ lookup('ini', 'BEACON_CLIENT file=ini/config-explorer.ini') }}"
+        ALIGNED_PROOF_AGG_CONFIG_FILE: "{{ lookup('ini', 'ALIGNED_PROOF_AGG_CONFIG_FILE file=ini/config-explorer.ini') }}"
 
     - name: Build the explorer release
       args:

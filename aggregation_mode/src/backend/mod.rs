@@ -1,6 +1,7 @@
 pub mod config;
 pub mod fetcher;
 mod merkle_tree;
+mod retry;
 mod s3;
 mod types;
 

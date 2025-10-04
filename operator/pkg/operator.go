@@ -11,11 +11,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
 	rapidsnark_types "github.com/iden3/go-rapidsnark/types"
-	"github.com/iden3/go-rapidsnark/verifier"
+	rapidsnark_verifier "github.com/iden3/go-rapidsnark/verifier"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
@@ -52,7 +53,6 @@ type Operator struct {
 	OperatorId                eigentypes.OperatorId
 	avsSubscriber             chainio.AvsSubscriber
 	avsReader                 chainio.AvsReader
-	NewTaskCreatedChanV2      chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2
 	NewTaskCreatedChanV3      chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3
 	Logger                    logging.Logger
 	aggRpcClient              AggregatorRpcClient
@@ -93,7 +93,6 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	if err != nil {
 		log.Fatalf("Could not create AVS subscriber")
 	}
-	newTaskCreatedChanV2 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2)
 	newTaskCreatedChanV3 := make(chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3)
 
 	rpcClient, err := NewAggregatorRpcClient(configuration.Operator.AggregatorServerIpPortAddress, logger)
@@ -119,7 +118,6 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 		avsSubscriber:             *avsSubscriber,
 		avsReader:                 *avsReader,
 		Address:                   address,
-		NewTaskCreatedChanV2:      newTaskCreatedChanV2,
 		NewTaskCreatedChanV3:      newTaskCreatedChanV3,
 		aggRpcClient:              *rpcClient,
 		OperatorId:                operatorId,
@@ -143,12 +141,8 @@ func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, erro
 	return operator, nil
 }
 
-func (o *Operator) SubscribeToNewTasksV2(errorPairChan chan chainio.ErrorPair) *chainio.ErrorPair {
-	return o.avsSubscriber.SubscribeToNewTasksV2(o.NewTaskCreatedChanV2, errorPairChan)
-}
-
 func (o *Operator) SubscribeToNewTasksV3(errorPairChan chan chainio.ErrorPair) *chainio.ErrorPair {
-	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3, errorPairChan)
+	return o.avsSubscriber.SubscribeToNewTasksV3(o.NewTaskCreatedChanV3, errorPairChan, o.Config.Operator.PollLatestBatchInterval)
 }
 
 type OperatorLastProcessedBatch struct {
@@ -209,14 +203,8 @@ func (o *Operator) UpdateLastProcessBatch(blockNumber uint32) error {
 
 func (o *Operator) Start(ctx context.Context) error {
 	// create a new channel to foward errors
-	subV2ErrorChannel := make(chan chainio.ErrorPair)
-	errorPair := o.SubscribeToNewTasksV2(subV2ErrorChannel)
-	if errorPair != nil {
-		log.Fatal("Could not subscribe to new tasks")
-	}
-
 	subV3ErrorChannel := make(chan chainio.ErrorPair)
-	errorPair = o.SubscribeToNewTasksV3(subV3ErrorChannel)
+	errorPair := o.SubscribeToNewTasksV3(subV3ErrorChannel)
 	if errorPair != nil {
 		log.Fatal("Could not subscribe to new tasks")
 	}
@@ -237,20 +225,12 @@ func (o *Operator) Start(ctx context.Context) error {
 			return nil
 		case err := <-metricsErrChan:
 			o.Logger.Errorf("Metrics server failed", "err", err)
-		case errorPair := <-subV2ErrorChannel:
-			o.Logger.Infof("Error in websocket subscription", "err", errorPair)
-			errorPairPtr := o.SubscribeToNewTasksV2(subV2ErrorChannel)
-			if errorPairPtr != nil {
-				o.Logger.Fatal("Could not subscribe to new tasks V2")
-			}
 		case errorPair := <-subV3ErrorChannel:
 			o.Logger.Infof("Error in websocket subscription", "err", errorPair)
 			errorPairPtr := o.SubscribeToNewTasksV3(subV3ErrorChannel)
 			if errorPairPtr != nil {
 				o.Logger.Fatal("Could not subscribe to new tasks V3")
 			}
-		case newBatchLogV2 := <-o.NewTaskCreatedChanV2:
-			go o.handleNewBatchLogV2(newBatchLogV2)
 		case newBatchLogV3 := <-o.NewTaskCreatedChanV3:
 			go o.handleNewBatchLogV3(newBatchLogV3)
 		case blockNumber := <-o.lastProcessedBatch.batchProcessedChan:
@@ -301,97 +281,6 @@ func (o *Operator) ProcessMissedBatchesWhileOffline() {
 	o.Logger.Info("Finished verifying all batches missed while offline")
 }
 
-// Currently, Operator can handle NewBatchV2 and NewBatchV3 events.
-
-// The difference between these events do not affect the operator
-// So if you read below, handleNewBatchLogV2 and handleNewBatchLogV3
-// are identical.
-
-// This structure may help for future upgrades. Having different logics under
-// different events enables the smooth operator upgradeability
-
-// Process of handling batches from V2 events:
-func (o *Operator) handleNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) {
-	var err error
-	defer func() { o.afterHandlingBatchV2(newBatchLog, err == nil) }()
-
-	o.Logger.Info("Received new batch log V2")
-	err = o.ProcessNewBatchLogV2(newBatchLog)
-	if err != nil {
-		o.Logger.Infof("batch %x did not verify. Err: %v", newBatchLog.BatchMerkleRoot, err)
-		return
-	}
-
-	batchIdentifier := append(newBatchLog.BatchMerkleRoot[:], newBatchLog.SenderAddress[:]...)
-	var batchIdentifierHash = *(*[32]byte)(crypto.Keccak256(batchIdentifier))
-	responseSignature := o.SignTaskResponse(batchIdentifierHash)
-	o.Logger.Debugf("responseSignature about to send: %x", responseSignature)
-
-	signedTaskResponse := types.SignedTaskResponse{
-		BatchIdentifierHash: batchIdentifierHash,
-		BatchMerkleRoot:     newBatchLog.BatchMerkleRoot,
-		SenderAddress:       newBatchLog.SenderAddress,
-		BlsSignature:        *responseSignature,
-		OperatorId:          o.OperatorId,
-	}
-	o.Logger.Infof("Signed Task Response to send: BatchIdentifierHash=%s, BatchMerkleRoot=%s, SenderAddress=%s",
-		hex.EncodeToString(signedTaskResponse.BatchIdentifierHash[:]),
-		hex.EncodeToString(signedTaskResponse.BatchMerkleRoot[:]),
-		hex.EncodeToString(signedTaskResponse.SenderAddress[:]),
-	)
-
-	o.aggRpcClient.SendSignedTaskResponseToAggregator(&signedTaskResponse)
-}
-func (o *Operator) ProcessNewBatchLogV2(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2) error {
-
-	o.Logger.Info("Received new batch with proofs to verify",
-		"batch merkle root", "0x"+hex.EncodeToString(newBatchLog.BatchMerkleRoot[:]),
-		"sender address", "0x"+hex.EncodeToString(newBatchLog.SenderAddress[:]),
-	)
-
-	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
-	defer cancel()
-
-	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
-	if err != nil {
-		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
-		return err
-	}
-
-	verificationDataBatchLen := len(verificationDataBatch)
-	results := make(chan bool, verificationDataBatchLen)
-	var wg sync.WaitGroup
-	wg.Add(verificationDataBatchLen)
-
-	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
-	if err != nil {
-		o.Logger.Errorf("Could not check verifiers status: %s", err)
-		results <- false
-		return err
-	}
-
-	for _, verificationData := range verificationDataBatch {
-		go func(data VerificationData) {
-			defer wg.Done()
-			o.verify(data, disabledVerifiersBitmap, results)
-			o.metrics.IncOperatorTaskResponses()
-		}(verificationData)
-	}
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	for result := range results {
-		if !result {
-			return fmt.Errorf("invalid proof")
-		}
-	}
-
-	return nil
-}
-
 // Process of handling batches from V3 events:
 func (o *Operator) handleNewBatchLogV3(newBatchLog *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3) {
 	var err error
@@ -433,7 +322,7 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	ctx, cancel := context.WithTimeout(context.Background(), BatchDownloadTimeout)
 	defer cancel()
 
-	verificationDataBatch, err := o.getBatchFromDataService(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
+	verificationDataBatch, err := o.getBatchFromDataServiceWithMultipleURLs(ctx, newBatchLog.BatchDataPointer, newBatchLog.BatchMerkleRoot, BatchDownloadMaxRetries, BatchDownloadRetryDelay)
 	if err != nil {
 		o.Logger.Errorf("Could not get proofs from S3 bucket: %v", err)
 		return err
@@ -441,21 +330,36 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 
 	verificationDataBatchLen := len(verificationDataBatch)
 	results := make(chan bool, verificationDataBatchLen)
-	var wg sync.WaitGroup
-	wg.Add(verificationDataBatchLen)
+	jobs := make(chan VerificationData, verificationDataBatchLen)
+
 	disabledVerifiersBitmap, err := o.avsReader.DisabledVerifiers()
 	if err != nil {
 		o.Logger.Errorf("Could not check verifiers status: %s", err)
 		results <- false
 		return err
 	}
-	for _, verificationData := range verificationDataBatch {
-		go func(data VerificationData) {
-			defer wg.Done()
-			o.verify(data, disabledVerifiersBitmap, results)
-			o.metrics.IncOperatorTaskResponses()
-		}(verificationData)
+
+	maxWorkers := runtime.NumCPU() - 1
+	if maxWorkers < 1 {
+		maxWorkers = 1
 	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < maxWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for data := range jobs {
+				o.verify(data, disabledVerifiersBitmap, results)
+				o.metrics.IncOperatorTaskResponses()
+			}
+		}()
+	}
+
+	for _, verificationData := range verificationDataBatch {
+		jobs <- verificationData
+	}
+	close(jobs)
 
 	go func() {
 		wg.Wait()
@@ -469,12 +373,6 @@ func (o *Operator) ProcessNewBatchLogV3(newBatchLog *servicemanager.ContractAlig
 	}
 
 	return nil
-}
-
-func (o *Operator) afterHandlingBatchV2(log *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2, succeeded bool) {
-	if succeeded {
-		o.lastProcessedBatch.batchProcessedChan <- uint32(log.Raw.BlockNumber)
-	}
 }
 
 func (o *Operator) afterHandlingBatchV3(log *servicemanager.ContractAlignedLayerServiceManagerNewBatchV3, succeeded bool) {
@@ -621,30 +519,58 @@ func (o *Operator) verifyGnarkGroth16Proof(proofBytes []byte, pubInputBytes []by
 
 // verifyCircomGroth16Bn256Proof verifies a Circom Groth16 proof using BN256 curve.
 func (o *Operator) verifyCircomGroth16Bn256Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte) bool {
+	bytesToBigInts32 := func(b []byte) ([]*big.Int, error) {
+		if len(b)%32 != 0 {
+			return nil, fmt.Errorf("invalid length")
+		}
+
+		inputs := make([]*big.Int, 0, len(b)/32)
+		for i := 0; i < len(b); i += 32 {
+			chunk := b[i : i+32]
+			bi := new(big.Int).SetBytes(chunk)
+			inputs = append(inputs, bi)
+		}
+		return inputs, nil
+	}
+
 	proofData := &rapidsnark_types.ProofData{}
 	err := json.Unmarshal(proofBytes, proofData)
 	if err != nil {
-		o.Logger.Infof("Could not marshal proof: %v", err)
+		log.Printf("Could not unmarshal proof: %v", err)
 		return false
 	}
 
-	var pubSignals []string
-	err = json.Unmarshal(pubInputBytes, &pubSignals)
+	parsedProofData, err := rapidsnark_verifier.ParseProofData(*proofData)
 	if err != nil {
-		o.Logger.Infof("Could not marshal public signals: %v", err)
+		log.Printf("Could not parse proof: %v", err)
 		return false
 	}
 
-	zkProof := rapidsnark_types.ZKProof{
-		Proof:      proofData,
-		PubSignals: pubSignals,
-	}
-
-	err = verifier.VerifyGroth16(zkProof, verificationKeyBytes)
+	var vkStr rapidsnark_verifier.VkJSON
+	err = json.Unmarshal(verificationKeyBytes, &vkStr)
 	if err != nil {
-		o.Logger.Infof("Could not verify Circom Groth16 BN256 proof: %v", err)
+		log.Printf("Could not unmarshal vk: %v", err)
 		return false
 	}
+
+	vk, err := rapidsnark_verifier.ParseVK(vkStr)
+	if err != nil {
+		log.Printf("Could not parse vk: %v", err)
+		return false
+	}
+
+	inputs, err := bytesToBigInts32(pubInputBytes)
+	if err != nil {
+		log.Printf("Could not parse pub inputs: %v", err)
+		return false
+	}
+
+	err = rapidsnark_verifier.VerifyRaw(vk, parsedProofData, inputs)
+	if err != nil {
+		log.Printf("Could not verify Groth16 proof: %v", err)
+		return false
+	}
+
 	return true
 }
 

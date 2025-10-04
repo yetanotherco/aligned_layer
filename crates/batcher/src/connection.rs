@@ -18,7 +18,7 @@ use tokio_tungstenite::{
 pub(crate) type WsMessageSink = Arc<RwLock<SplitSink<WebSocketStream<TcpStream>, Message>>>;
 
 pub(crate) async fn send_batch_inclusion_data_responses(
-    finalized_batch: Vec<BatchQueueEntry>,
+    finalized_batch: &[BatchQueueEntry],
     batch_merkle_tree: &MerkleTree<VerificationCommitmentBatch>,
 ) -> Result<(), BatcherError> {
     // Finalized_batch is ordered as the PriorityQueue, ordered by: ascending max_fee && if max_fee is equal, by descending nonce.

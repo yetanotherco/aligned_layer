@@ -4,7 +4,7 @@ Make sure you have Aligned installed as specified [here](../1_introduction/1_try
 
 If you run the examples below, make sure you are in Aligned's repository root.
 
-You can check your submitted proofs on [Mainnet Explorer](https://explorer.alignedlayer.com) and [Holesky Explorer](https://holesky.explorer.alignedlayer.com).
+You can check your submitted proofs on [Mainnet Explorer](https://explorer.alignedlayer.com), [Holesky Explorer](https://holesky.explorer.alignedlayer.com), and [Hoodi Explorer](https://hoodi.explorer.alignedlayer.com).
 
 ## Supported Verifiers
 
@@ -13,7 +13,7 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: gnark - Groth16 (with BN254) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
 - :white_check_mark: gnark - Plonk (with BN254 and BLS12-381) [(v0.12.0)](https://github.com/Consensys/gnark/releases/tag/v0.12.0)
 - :white_check_mark: SP1 [(v5.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v5.0.0)
-- :white_check_mark: Risc0 [(v2.3.0)](https://github.com/risc0/risc0/releases/tag/v2.3.0). Risc0 [v2.2.0](https://github.com/risc0/risc0/releases/tag/v2.2.0) is also compatible. 
+- :white_check_mark: Risc0 [(v3.0.3)](https://github.com/risc0/risc0/releases/tag/v3.0.3). Previous versions are also compatible. 
 - :white_check_mark: Circom [(v2.2.2)](https://github.com/iden3/circom/releases/tag/v2.2.2)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
@@ -71,8 +71,8 @@ To use it, you can use the `aligned` CLI, as shown with the following example:
 
 ```bash
 aligned deposit-to-batcher \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---network holesky \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--network hoodi \
 --keystore_path <keystore_path> \
 --amount 0.1ether
 ```
@@ -80,7 +80,7 @@ aligned deposit-to-batcher \
 This command allows the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky`, `mainnet`, or `hoodi`.
 - `--keystore_path` the path to the keystore.
 - `--amount` the number of ethers to transfer to the Batcher.
 - Note: `--amount` flag parameter must be with the shown format, `XX.XXether`.
@@ -89,15 +89,15 @@ After depositing funds, you can verify the Service has correctly received them b
 
 ```bash
 aligned get-user-balance \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
---network holesky \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--network hoodi \
 --user_addr <user_addr>
 ```
 
 These commands allow the usage of the following flags:
 
 - `--rpc_url` to specify the rpc url to be used.
-- `--network` to specify the network to be used. Can be `devnet`, `holesky` or `mainnet`.
+- `--network` to specify the network to be used. Can be `devnet`, `holesky`, `mainnet`, or `hoodi`.
 - `--user_addr` the address of the user that funded the Batcher.
 
 ## 3. Submit your proof to the batcher
@@ -113,7 +113,7 @@ Proof submission is done via the `submit` command of the Aligned CLI. The argume
 * One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.
     - Default: `devnet`
-    - Possible values: `devnet`, `holesky`, `mainnet`
+    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -138,8 +138,8 @@ aligned submit \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 **Example**
@@ -152,13 +152,13 @@ aligned submit \
 --vm_program ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
 --public_input ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 ### Risc0 proof
 
-The current Risc0 version used in Aligned is `v2.0.0`.
+The current Risc0 version used in Aligned is `v3.0.3`.
 
 The Risc0 proof needs the proof file and the vm program file (vm program file is the image id).
 
@@ -172,16 +172,16 @@ aligned submit \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
-**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v2.0.0`. For generating proofs using `cargo risc-zero` please ensure you are using `v2.0.0` or your proof will not be verified. 
+**NOTE**: As said above, Aligned currently supports Risc0 proofs from `risc0-zkvm` version `v3.0.3`. For generating proofs using `cargo risc-zero` please ensure you are using `v3.0.3` or your proof will not be verified. 
 
-If you can't install `cargo-risczero` `v2.0.0`, you can manually modify your `cargo.toml` on the host project to point to `v2.0.0`:
+If you can't install `cargo-risczero` `v3.0.3`, you can manually modify your `cargo.toml` on the host project to point to `v3.0.3`:
 
 ```toml
-risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v2.0.0", default-features = false, features = [
+risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v3.0.3", default-features = false, features = [
     "prove",
 ] }
 ```
@@ -193,13 +193,13 @@ risc0-zkvm = { git = "https://github.com/risc0/risc0", tag = "v2.0.0", default-f
 rm -rf ~/.aligned/aligned_verification_data/ &&
 aligned submit \
 --proving_system Risc0 \
---proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.proof \
---vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_2_2_0.bin \
---public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_2_2_0.pub \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
 --aligned_verification_data_path ~/.aligned/aligned_verification_data \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 ### GnarkPlonkBn254, GnarkPlonkBls12_381 and GnarkGroth16Bn254
@@ -216,8 +216,8 @@ aligned submit \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 **Examples**:
@@ -230,8 +230,8 @@ aligned submit \
 --public_input ./scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_pub_input_0_12_0.pub \
 --vk ./scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 ```bash
@@ -242,8 +242,8 @@ aligned submit \
 --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_pub_input_0_12_0.pub \
 --vk ./scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 ```bash
@@ -254,8 +254,8 @@ aligned submit \
 --public_input ./scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.pub \
 --vk ./scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.vk \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 
 ### CircomGroth16Bn256
@@ -272,8 +272,8 @@ aligned submit \
 --proof_generator_addr [proof_generator_addr] \
 --batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
 --keystore_path <path_to_ecdsa_keystore> \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```
 **Example**
 
@@ -285,6 +285,6 @@ aligned submit \
 --public_input ./scripts/test_files/circom_groth16_bn256_script/public.json \
 --vk ./scripts/test_files/circom_groth16_bn256_script/verification_key.json \
 --keystore_path ~/.aligned_keystore/keystore0 \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
 ```

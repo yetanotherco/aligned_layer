@@ -4,7 +4,7 @@ Aligned's RaaS platform integrates RISC-V zkVMs, the new [Ethrex execution clien
 
 Our RaaS platform will be integrated with our upcoming products to give developers all the tools they need to operate a complete ecosystem: wallet-as-a-service infrastructure for simplified onboarding, meta-proving services that give users access to provers provided by Aligned or other third-party centralized or decentralized proving services, and our interoperability protocol for efficient cross-chain liquidity access.
 
-![Figure 1: Aligned Suite of Products](../images/aligned_suite_of_products.png)
+![Figure 1: Aligned Suite of Products](../images/zk_rollups_and_aligned.png)
 
 ## What advantages will Aligned's RaaS platform offer for your project?
 
