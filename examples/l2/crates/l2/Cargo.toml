@@ -18,7 +18,7 @@ aligned-sdk = { path = "../../../../crates/sdk" }
 bincode = "1.3.3"
 futures-util = "0.3"
 tokio = "1.44"
-alloy = { version = "0.14", features = ["full", "signer-keystore", "providers"] }
+alloy = { version = "1.0.37", features = ["full", "signer-keystore", "providers"] }
 dotenv = "0.15"
 
 [[bin]]

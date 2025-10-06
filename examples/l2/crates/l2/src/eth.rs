@@ -26,7 +26,7 @@ pub async fn send_state_transition_to_chain(
     .expect("Keystore signer should be `cast wallet` compliant");
     let wallet = EthereumWallet::from(signer);
 
-    let rpc_provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url);
+    let rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
     let state_transition_contract = StateTransition::new(
         Address::from_str(&config.state_transition_contract_address)
             .expect("State transition address should be valid"),
