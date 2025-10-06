@@ -53,7 +53,7 @@ impl FromStr for NetworkNameArg {
             "hoodi" => Ok(NetworkNameArg::Hoodi),
             "mainnet" => Ok(NetworkNameArg::Mainnet),
             _ => Err(
-                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet, hoodi"
                     .to_string(),
             ),
         }
@@ -66,7 +66,7 @@ struct NetworkArg {
         name = "The working network's name",
         long = "network",
         default_value = "devnet",
-        help = "[possible values: devnet, holesky, holesky-stage, mainnet]"
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet, hoodi]",
     )]
     network: Option<NetworkNameArg>,
     #[arg(
