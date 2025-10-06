@@ -19,6 +19,8 @@ use aligned_sdk::verification_layer::estimate_fee;
 use aligned_sdk::verification_layer::get_chain_id;
 use aligned_sdk::verification_layer::get_nonce_from_batcher;
 use aligned_sdk::verification_layer::get_nonce_from_ethereum;
+use aligned_sdk::verification_layer::unlock_balance_in_aligned;
+use aligned_sdk::verification_layer::withdraw_balance_from_aligned;
 use aligned_sdk::verification_layer::{deposit_to_aligned, get_balance_in_aligned};
 use aligned_sdk::verification_layer::{get_vk_commitment, save_response, submit_multiple};
 use clap::Args;
@@ -42,7 +44,9 @@ use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserNonceFromEthereum;
 use crate::AlignedCommands::GetVkCommitment;
 use crate::AlignedCommands::Submit;
+use crate::AlignedCommands::UnlockFunds;
 use crate::AlignedCommands::VerifyProofOnchain;
+use crate::AlignedCommands::WithdrawFunds;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -65,6 +69,10 @@ pub enum AlignedCommands {
         name = "deposit-to-batcher"
     )]
     DepositToBatcher(DepositToBatcherArgs),
+    #[clap(about = "Unlocks funds from the batcher", name = "unlock-funds")]
+    UnlockFunds(UnlockFundsArgs),
+    #[clap(about = "Withdraw funds from the batcher", name = "withdraw-funds")]
+    WithdrawFunds(WithdrawFundsArgs),
     #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
     GetUserBalance(GetUserBalanceArgs),
     #[clap(
@@ -205,6 +213,38 @@ pub struct DepositToBatcherArgs {
     #[clap(flatten)]
     network: NetworkArg,
     #[arg(name = "Amount to deposit", long = "amount", required = true)]
+    amount: String,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct UnlockFundsArgs {
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[clap(flatten)]
+    network: NetworkArg,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct WithdrawFundsArgs {
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
+    #[arg(
+        name = "Ethereum RPC provider address",
+        long = "rpc_url",
+        default_value = "http://localhost:8545"
+    )]
+    eth_rpc_url: String,
+    #[clap(flatten)]
+    network: NetworkArg,
+    #[arg(name = "Amount to withdraw", long = "amount", required = true)]
     amount: String,
 }
 
@@ -744,6 +784,105 @@ async fn main() -> Result<(), AlignedError> {
                 Ok(receipt) => {
                     info!(
                         "Payment sent to the batcher successfully. Tx: 0x{:x}",
+                        receipt.transaction_hash
+                    );
+                }
+                Err(e) => {
+                    error!("Transaction failed: {:?}", e);
+                }
+            }
+        }
+        UnlockFunds(args) => {
+            let eth_rpc_url = args.eth_rpc_url;
+            let eth_rpc_provider =
+                Provider::<Http>::try_from(eth_rpc_url.clone()).map_err(|e| {
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while connecting to Ethereum: {}",
+                        e
+                    ))
+                })?;
+
+            let keystore_path = &args.private_key_type.keystore_path;
+            let private_key = &args.private_key_type.private_key;
+
+            let mut wallet = if let Some(keystore_path) = keystore_path {
+                let password = rpassword::prompt_password("Please enter your keystore password:")
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+                Wallet::decrypt_keystore(keystore_path, password)
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else if let Some(private_key) = private_key {
+                private_key
+                    .parse::<LocalWallet>()
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else {
+                warn!("Missing keystore or private key used for payment.");
+                return Ok(());
+            };
+
+            let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
+            wallet = wallet.with_chain_id(chain_id);
+
+            let client = SignerMiddleware::new(eth_rpc_provider, wallet);
+
+            match unlock_balance_in_aligned(&client, args.network.into()).await {
+                Ok(receipt) => {
+                    info!(
+                        "Funds in batcher unlocked successfully. Receipt: 0x{:x}",
+                        receipt.transaction_hash
+                    );
+                }
+                Err(e) => {
+                    error!("Transaction failed: {:?}", e);
+                }
+            }
+        }
+        WithdrawFunds(args) => {
+            if !args.amount.ends_with("ether") {
+                error!("Amount should be in the format XX.XXether");
+                return Ok(());
+            }
+
+            let amount_ether = args.amount.replace("ether", "");
+
+            let amount_wei = parse_ether(&amount_ether).map_err(|e| {
+                SubmitError::EthereumProviderError(format!("Error while parsing amount: {}", e))
+            })?;
+
+            let eth_rpc_url = args.eth_rpc_url;
+            let eth_rpc_provider =
+                Provider::<Http>::try_from(eth_rpc_url.clone()).map_err(|e| {
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while connecting to Ethereum: {}",
+                        e
+                    ))
+                })?;
+
+            let keystore_path = &args.private_key_type.keystore_path;
+            let private_key = &args.private_key_type.private_key;
+
+            let mut wallet = if let Some(keystore_path) = keystore_path {
+                let password = rpassword::prompt_password("Please enter your keystore password:")
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+                Wallet::decrypt_keystore(keystore_path, password)
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else if let Some(private_key) = private_key {
+                private_key
+                    .parse::<LocalWallet>()
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else {
+                warn!("Missing keystore or private key used for payment.");
+                return Ok(());
+            };
+
+            let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
+            wallet = wallet.with_chain_id(chain_id);
+
+            let client = SignerMiddleware::new(eth_rpc_provider, wallet);
+
+            match withdraw_balance_from_aligned(&client, args.network.into(), amount_wei).await {
+                Ok(receipt) => {
+                    info!(
+                        "Balance withdraw from batcher successfully. Receipt: 0x{:x}",
                         receipt.transaction_hash
                     );
                 }
