@@ -19,6 +19,7 @@ use aligned_sdk::verification_layer::estimate_fee;
 use aligned_sdk::verification_layer::get_chain_id;
 use aligned_sdk::verification_layer::get_nonce_from_batcher;
 use aligned_sdk::verification_layer::get_nonce_from_ethereum;
+use aligned_sdk::verification_layer::lock_balance_in_aligned;
 use aligned_sdk::verification_layer::unlock_balance_in_aligned;
 use aligned_sdk::verification_layer::withdraw_balance_from_aligned;
 use aligned_sdk::verification_layer::{deposit_to_aligned, get_balance_in_aligned};
@@ -43,6 +44,7 @@ use crate::AlignedCommands::GetUserBalance;
 use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserNonceFromEthereum;
 use crate::AlignedCommands::GetVkCommitment;
+use crate::AlignedCommands::LockFunds;
 use crate::AlignedCommands::Submit;
 use crate::AlignedCommands::UnlockFunds;
 use crate::AlignedCommands::VerifyProofOnchain;
@@ -70,7 +72,9 @@ pub enum AlignedCommands {
     )]
     DepositToBatcher(DepositToBatcherArgs),
     #[clap(about = "Unlocks funds from the batcher", name = "unlock-funds")]
-    UnlockFunds(UnlockFundsArgs),
+    UnlockFunds(LockUnlockFundsArgs),
+    #[clap(about = "Lock funds in the batcher", name = "unlock-funds")]
+    LockFunds(LockUnlockFundsArgs),
     #[clap(about = "Withdraw funds from the batcher", name = "withdraw-funds")]
     WithdrawFunds(WithdrawFundsArgs),
     #[clap(about = "Get user balance from the batcher", name = "get-user-balance")]
@@ -218,7 +222,7 @@ pub struct DepositToBatcherArgs {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct UnlockFundsArgs {
+pub struct LockUnlockFundsArgs {
     #[command(flatten)]
     private_key_type: PrivateKeyType,
     #[arg(
@@ -828,6 +832,50 @@ async fn main() -> Result<(), AlignedError> {
                 Ok(receipt) => {
                     info!(
                         "Funds in batcher unlocked successfully. Receipt: 0x{:x}",
+                        receipt.transaction_hash
+                    );
+                }
+                Err(e) => {
+                    error!("Transaction failed: {:?}", e);
+                }
+            }
+        }
+        LockFunds(args) => {
+            let eth_rpc_url = args.eth_rpc_url;
+            let eth_rpc_provider =
+                Provider::<Http>::try_from(eth_rpc_url.clone()).map_err(|e| {
+                    SubmitError::EthereumProviderError(format!(
+                        "Error while connecting to Ethereum: {}",
+                        e
+                    ))
+                })?;
+
+            let keystore_path = &args.private_key_type.keystore_path;
+            let private_key = &args.private_key_type.private_key;
+
+            let mut wallet = if let Some(keystore_path) = keystore_path {
+                let password = rpassword::prompt_password("Please enter your keystore password:")
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?;
+                Wallet::decrypt_keystore(keystore_path, password)
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else if let Some(private_key) = private_key {
+                private_key
+                    .parse::<LocalWallet>()
+                    .map_err(|e| SubmitError::GenericError(e.to_string()))?
+            } else {
+                warn!("Missing keystore or private key used for payment.");
+                return Ok(());
+            };
+
+            let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
+            wallet = wallet.with_chain_id(chain_id);
+
+            let client = SignerMiddleware::new(eth_rpc_provider, wallet);
+
+            match lock_balance_in_aligned(&client, args.network.into()).await {
+                Ok(receipt) => {
+                    info!(
+                        "Funds in batcher locked successfully. Receipt: 0x{:x}",
                         receipt.transaction_hash
                     );
                 }
