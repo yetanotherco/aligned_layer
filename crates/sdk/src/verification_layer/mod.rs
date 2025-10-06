@@ -794,6 +794,31 @@ pub async fn lock_balance_in_aligned(
     }
 }
 
+pub async fn get_unlock_block_time(
+    user: Address,
+    eth_rpc_url: &str,
+    network: Network,
+) -> Result<u64, errors::BalanceError> {
+    let eth_rpc_provider = Provider::<Http>::try_from(eth_rpc_url)
+        .map_err(|e| errors::BalanceError::EthereumProviderError(e.to_string()))?;
+
+    let payment_service_address = network.get_batcher_payment_service_address();
+
+    match batcher_payment_service(eth_rpc_provider, payment_service_address).await {
+        Ok(batcher_payment_service) => {
+            let call = batcher_payment_service.user_unlock_block(user);
+
+            let result = call
+                .call()
+                .await
+                .map_err(|e| errors::BalanceError::EthereumCallError(e.to_string()))?;
+
+            Ok(result.as_u64())
+        }
+        Err(e) => Err(errors::BalanceError::EthereumCallError(e.to_string())),
+    }
+}
+
 pub async fn withdraw_balance_from_aligned(
     signer: &SignerMiddleware<Provider<Http>, LocalWallet>,
     network: Network,
