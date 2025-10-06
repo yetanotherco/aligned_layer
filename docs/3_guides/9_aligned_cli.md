@@ -392,8 +392,8 @@ Locks funds in the batcher. Locked balances can be used for proof verification p
 
 ```bash
 aligned lock-funds \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
 --keystore_path <KEYSTORE_PATH>
 ```
 
@@ -432,8 +432,8 @@ Unlocks funds from the batcher. After calling this command, users must wait for 
 
 ```bash
 aligned unlock-funds \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
 --keystore_path <KEYSTORE_PATH>
 ```
 
@@ -473,8 +473,8 @@ Withdraws a specified amount from the user's balance in the batcher. This comman
 
 ```bash
 aligned withdraw-funds \
---network holesky \
---rpc_url https://ethereum-holesky-rpc.publicnode.com \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
 --amount 0.5ether \
 --keystore_path <KEYSTORE_PATH>
 ```
