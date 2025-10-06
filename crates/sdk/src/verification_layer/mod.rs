@@ -5,7 +5,7 @@ use crate::{
             DEFAULT_MAX_FEE_BATCH_SIZE, GAS_PRICE_PERCENTAGE_MULTIPLIER,
             INSTANT_MAX_FEE_BATCH_SIZE, PERCENTAGE_DIVIDER,
         },
-        errors::{self, GetNonceError},
+        errors::{self, GetNonceError, PaymentError},
         types::{
             AlignedVerificationData, ClientMessage, FeeEstimationType, GetNonceResponseMessage,
             Network, ProvingSystemId, VerificationData,
@@ -19,7 +19,7 @@ use crate::{
     },
     eth::{
         aligned_service_manager::aligned_service_manager,
-        batcher_payment_service::batcher_payment_service,
+        batcher_payment_service::{batcher_payment_service, BatcherPaymentServiceWithSigner},
     },
 };
 
@@ -747,6 +747,73 @@ pub async fn get_balance_in_aligned(
             Ok(result)
         }
         Err(e) => Err(errors::BalanceError::EthereumCallError(e.to_string())),
+    }
+}
+
+pub async fn unlock_balance_in_aligned(
+    signer: &SignerMiddleware<Provider<Http>, LocalWallet>,
+    network: Network,
+) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
+    let payment_service_address = network.get_batcher_payment_service_address();
+    let payment_service =
+        BatcherPaymentServiceWithSigner::new(payment_service_address, signer.clone().into());
+
+    let receipt = payment_service
+        .unlock()
+        .send()
+        .await
+        .map_err(|e| PaymentError::SendError(e.to_string()))?
+        .await
+        .map_err(|e| PaymentError::SubmitError(e.to_string()))?;
+
+    match receipt {
+        Some(hash) => Ok(hash),
+        None => Err(PaymentError::SubmitError("".into())),
+    }
+}
+
+pub async fn lock_balance_in_aligned(
+    signer: &SignerMiddleware<Provider<Http>, LocalWallet>,
+    network: Network,
+) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
+    let payment_service_address = network.get_batcher_payment_service_address();
+    let payment_service =
+        BatcherPaymentServiceWithSigner::new(payment_service_address, signer.clone().into());
+
+    let receipt = payment_service
+        .lock()
+        .send()
+        .await
+        .map_err(|e| PaymentError::SendError(e.to_string()))?
+        .await
+        .map_err(|e| PaymentError::SubmitError(e.to_string()))?;
+
+    match receipt {
+        Some(hash) => Ok(hash),
+        None => Err(PaymentError::SubmitError("".into())),
+    }
+}
+
+pub async fn withdraw_balance_from_aligned(
+    signer: &SignerMiddleware<Provider<Http>, LocalWallet>,
+    network: Network,
+    amount: U256,
+) -> Result<ethers::types::TransactionReceipt, errors::PaymentError> {
+    let payment_service_address = network.get_batcher_payment_service_address();
+    let payment_service =
+        BatcherPaymentServiceWithSigner::new(payment_service_address, signer.clone().into());
+
+    let receipt = payment_service
+        .withdraw(amount)
+        .send()
+        .await
+        .map_err(|e| PaymentError::SendError(e.to_string()))?
+        .await
+        .map_err(|e| PaymentError::SubmitError(e.to_string()))?;
+
+    match receipt {
+        Some(hash) => Ok(hash),
+        None => Err(PaymentError::SubmitError("".into())),
     }
 }
 
