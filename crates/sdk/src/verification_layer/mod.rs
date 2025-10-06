@@ -750,6 +750,22 @@ pub async fn get_balance_in_aligned(
     }
 }
 
+/// Unlocks the balance of a user in the Aligned payment service.
+///
+/// This function initiates an unlock request for the user's balance. After calling this function,
+/// the user's balance will be locked for a certain period before it can be withdrawn.
+/// Use [`get_unlock_block_time`] to check when the balance can be withdrawn.
+///
+/// # Arguments
+/// * `signer` - The signer middleware containing the user's wallet and provider.
+/// * `network` - The network on which the unlock operation will be performed.
+///
+/// # Returns
+/// * The transaction receipt of the unlock operation.
+///
+/// # Errors
+/// * `SendError` if there is an error sending the transaction.
+/// * `SubmitError` if there is an error submitting the transaction.
 pub async fn unlock_balance_in_aligned(
     signer: &SignerMiddleware<Provider<Http>, LocalWallet>,
     network: Network,
@@ -772,6 +788,22 @@ pub async fn unlock_balance_in_aligned(
     }
 }
 
+/// Locks the balance of a user in the Aligned payment service.
+///
+/// This function locks the user's balance, preventing it from being withdrawn.
+/// Locked balances can be used for proof verification payments but cannot be withdrawn
+/// until they are unlocked using [`unlock_balance_in_aligned`] and the unlock period expires.
+///
+/// # Arguments
+/// * `signer` - The signer middleware containing the user's wallet and provider.
+/// * `network` - The network on which the lock operation will be performed.
+///
+/// # Returns
+/// * The transaction receipt of the lock operation.
+///
+/// # Errors
+/// * `SendError` if there is an error sending the transaction.
+/// * `SubmitError` if there is an error submitting the transaction.
 pub async fn lock_balance_in_aligned(
     signer: &SignerMiddleware<Provider<Http>, LocalWallet>,
     network: Network,
@@ -794,6 +826,22 @@ pub async fn lock_balance_in_aligned(
     }
 }
 
+/// Returns the timestamp when a user's balance will be unlocked and available for withdrawal.
+///
+/// After calling [`unlock_balance_in_aligned`], users must wait for the lock period
+/// before they can withdraw their funds using [`withdraw_balance_from_aligned`].
+///
+/// # Arguments
+/// * `user` - The address of the user to check the unlock time for.
+/// * `eth_rpc_url` - The URL of the Ethereum RPC node.
+/// * `network` - The network on which to check the unlock time.
+///
+/// # Returns
+/// * The timestamp when the user's balance will be unlocked (as u64).
+///
+/// # Errors
+/// * `EthereumProviderError` if there is an error in the connection with the RPC provider.
+/// * `EthereumCallError` if there is an error in the Ethereum call.
 pub async fn get_unlock_block_time(
     user: Address,
     eth_rpc_url: &str,
@@ -819,6 +867,22 @@ pub async fn get_unlock_block_time(
     }
 }
 
+/// Withdraws a specified amount from the user's balance in the Aligned payment service.
+///
+/// This function can only be called after the balance has been unlocked using [`unlock_balance_in_aligned`]
+/// and the lock period has expired. Use [`get_unlock_block_time`] to check when the withdrawal becomes available.
+///
+/// # Arguments
+/// * `signer` - The signer middleware containing the user's wallet and provider.
+/// * `network` - The network on which the withdrawal will be performed.
+/// * `amount` - The amount to withdraw from the user's balance.
+///
+/// # Returns
+/// * The transaction receipt of the withdrawal operation.
+///
+/// # Errors
+/// * `SendError` if there is an error sending the transaction.
+/// * `SubmitError` if there is an error submitting the transaction.
 pub async fn withdraw_balance_from_aligned(
     signer: &SignerMiddleware<Provider<Http>, LocalWallet>,
     network: Network,
