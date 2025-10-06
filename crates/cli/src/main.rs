@@ -78,7 +78,7 @@ pub enum AlignedCommands {
     DepositToBatcher(DepositToBatcherArgs),
     #[clap(about = "Unlocks funds from the batcher", name = "unlock-funds")]
     UnlockFunds(LockUnlockFundsArgs),
-    #[clap(about = "Lock funds in the batcher", name = "unlock-funds")]
+    #[clap(about = "Lock funds in the batcher", name = "lock-funds")]
     LockFunds(LockUnlockFundsArgs),
     #[clap(about = "Withdraw funds from the batcher", name = "withdraw-funds")]
     WithdrawFunds(WithdrawFundsArgs),
