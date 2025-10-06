@@ -1060,6 +1060,7 @@ impl Batcher {
             .try_user_lock_with_timeout(address, usr_ref.lock())
             .await
         else {
+            drop(user_states_guard);
             send_message(
                 ws_conn_sink.clone(),
                 GetLastMaxFeeResponseMessage::ServerBusy,
