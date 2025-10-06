@@ -7,19 +7,12 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace.dependencies]
-serde = { version = "=1.0.210", features = ["derive"] }
-serde_derive = "=1.0.210"
-serde_json = "=1.0.132"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
 primitive-types = { version = "0.12.0", features = ["serde"] }
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
 sha3 = "0.10.8"
 types = { path = "crates/types" }
-
-sp1-sdk   = "=5.0.0"
-sp1-build = "=5.0.0"
-parity-scale-codec = { version = "=3.6.12", features = ["derive", "max-encoded-len"] }
-parity-scale-codec-derive = "=3.6.12"
-scale-info = { version = "=2.11.6", features = ["derive"] }
 
 [profile.release]
 opt-level = 3
