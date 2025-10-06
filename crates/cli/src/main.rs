@@ -4,6 +4,9 @@ use std::io::BufReader;
 use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 use aligned_sdk::aggregation_layer;
 use aligned_sdk::aggregation_layer::AggregationModeVerificationData;
@@ -19,6 +22,7 @@ use aligned_sdk::verification_layer::estimate_fee;
 use aligned_sdk::verification_layer::get_chain_id;
 use aligned_sdk::verification_layer::get_nonce_from_batcher;
 use aligned_sdk::verification_layer::get_nonce_from_ethereum;
+use aligned_sdk::verification_layer::get_unlock_block_time;
 use aligned_sdk::verification_layer::lock_balance_in_aligned;
 use aligned_sdk::verification_layer::unlock_balance_in_aligned;
 use aligned_sdk::verification_layer::withdraw_balance_from_aligned;
@@ -29,6 +33,7 @@ use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
 use env_logger::Env;
+use ethers::core::k256::pkcs8::der::asn1::UtcTime;
 use ethers::prelude::*;
 use ethers::utils::format_ether;
 use ethers::utils::hex;
@@ -922,6 +927,54 @@ async fn main() -> Result<(), AlignedError> {
                 return Ok(());
             };
 
+            let unlock_block_time = match get_unlock_block_time(
+                wallet.address(),
+                &eth_rpc_url,
+                args.network.clone().into(),
+            )
+            .await
+            {
+                Ok(value) => value,
+                Err(e) => {
+                    error!("Failed to get : {:?}", e);
+                    return Ok(());
+                }
+            };
+
+            let current_timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_secs();
+
+            let unlock_time = UtcTime::from_unix_duration(Duration::from_secs(unlock_block_time))
+                .expect("invalid unlock time");
+            let now_time =
+                UtcTime::from_system_time(SystemTime::now()).expect("invalid system time");
+
+            let retry_after_minutes = if unlock_block_time > current_timestamp {
+                (unlock_block_time - current_timestamp) / 60
+            } else {
+                0
+            };
+
+            if unlock_block_time == 0 {
+                error!("Funds are locked, you need to unlock them first.");
+                return Ok(());
+            }
+
+            if unlock_block_time > current_timestamp {
+                warn!(
+                    "Funds are still locked. You need to wait {} minutes before being able to withdraw after unlocking the funds.\n\
+                    Unlocks in block time: {}\n\
+                    Current time: {}",
+                    retry_after_minutes,
+                    format_utc_time(unlock_time),
+                    format_utc_time(now_time)
+                );
+
+                return Ok(());
+            }
+
             let chain_id = get_chain_id(eth_rpc_url.as_str()).await?;
             wallet = wallet.with_chain_id(chain_id);
 
@@ -1207,4 +1260,18 @@ pub async fn get_user_balance(
             "Invalid response from contract".to_string(),
         ))
     }
+}
+
+fn format_utc_time(date: UtcTime) -> String {
+    let dt = date.to_date_time();
+
+    format!(
+        "{:04}-{:02}-{:02} {:02}:{:02}:{:02}Z",
+        dt.year(),
+        dt.month(),
+        dt.day(),
+        dt.hour(),
+        dt.minutes(),
+        dt.seconds()
+    )
 }
