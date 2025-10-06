@@ -936,7 +936,7 @@ async fn main() -> Result<(), AlignedError> {
             {
                 Ok(value) => value,
                 Err(e) => {
-                    error!("Failed to get : {:?}", e);
+                    error!("Failed to get unlock time: {:?}", e);
                     return Ok(());
                 }
             };
