@@ -66,6 +66,7 @@ pub enum BatcherError {
     WsSinkEmpty,
     AddressNotFoundInUserStates(Address),
     QueueRemoveError(String),
+    StateCorruptedAndFlushed(String),
     EthereumProviderError(String),
 }
 
@@ -147,6 +148,9 @@ impl fmt::Debug for BatcherError {
             }
             BatcherError::QueueRemoveError(e) => {
                 write!(f, "Error while removing entry from queue: {}", e)
+            }
+            BatcherError::StateCorruptedAndFlushed(reason) => {
+                write!(f, "Batcher state was corrupted and flushed: {}", reason)
             }
             BatcherError::EthereumProviderError(e) => {
                 write!(f, "Ethereum provider error: {}", e)

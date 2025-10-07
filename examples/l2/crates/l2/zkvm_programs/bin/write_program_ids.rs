@@ -1,4 +1,4 @@
-use alloy::hex::hex;
+use alloy::hex;
 use serde_json::json;
 use sp1_sdk::{HashableKey, Prover};
 use std::{fs, path::Path};

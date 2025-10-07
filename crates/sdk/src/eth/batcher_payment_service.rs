@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ethers::prelude::*;
+use ethers::{core::k256::ecdsa::SigningKey, prelude::*};
 
 use crate::common::errors::VerificationError;
 
@@ -10,6 +10,9 @@ abigen!(
 );
 
 pub type BatcherPaymentService = BatcherPaymentServiceContract<Provider<Http>>;
+
+pub type SignerMiddlewareT = SignerMiddleware<Provider<Http>, Wallet<SigningKey>>;
+pub type BatcherPaymentServiceWithSigner = BatcherPaymentServiceContract<SignerMiddlewareT>;
 
 pub async fn batcher_payment_service(
     provider: Provider<Http>,

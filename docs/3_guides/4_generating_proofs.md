@@ -41,7 +41,7 @@ aligned submit \
 --vm_program <vm_program_path> \
 --batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com 
 ```
 
 Where `proof_path` is the path to the proof file, `vm_program_path` is the path to the ELF file. `proof_generator_addr` is an optional parameter that works as a helper for some applications where you can be frontrunned.
@@ -90,7 +90,7 @@ aligned submit \
 --vk <verification_key_path> \
 --batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com 
 ```
 
 Where proof path is the path to the proof file, `public_input_path` is the path to the public input file,
@@ -168,7 +168,7 @@ aligned submit \
   --public_input <pub_input_file_path> \
   --batcher_url wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr> \
-  --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+  --rpc_url https://ethereum-hoodi-rpc.publicnode.com \
   --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 

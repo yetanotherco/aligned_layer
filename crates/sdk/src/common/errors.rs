@@ -99,6 +99,7 @@ pub enum SubmitError {
     BatchQueueLimitExceededError,
     GenericError(String),
     UserFundsUnlocked,
+    ProofReplaced,
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
@@ -213,9 +214,15 @@ impl fmt::Display for SubmitError {
                 write!(f, "Batcher responded with invalid batch inclusion data. Can't verify your proof was correctly included in the batch.")
             }
             SubmitError::BatchQueueLimitExceededError => {
-                write!(f, "Error while adding entry to batch, queue limit exeeded.")
+                write!(
+                    f,
+                    "Error while adding entry to batch, queue limit exceeded."
+                )
             }
-
+            SubmitError::ProofReplaced => write!(
+                f,
+                "Proof has been replaced by a higher fee for the same nonce"
+            ),
             SubmitError::GetNonceError(e) => write!(f, "Error while getting nonce {}", e),
             SubmitError::UserFundsUnlocked => write!(
                 f,

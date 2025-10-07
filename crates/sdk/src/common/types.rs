@@ -456,6 +456,7 @@ pub enum SubmitProofResponseMessage {
     UnderpricedProof,
     ServerBusy,
     UserFundsUnlocked,
+    ProofReplaced,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

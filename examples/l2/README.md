@@ -56,10 +56,11 @@ make submodules
 ```
 
 You can run the example on:
-- [Holesky](#setup-holeksy)
+
+- [Hoodi](#setup-hoodi)
 - [Localnet](#setup-localnet)
 
-## Setup Holeksy
+## Setup Hoodi
 
 ### 1. Create keystore
 
@@ -76,51 +77,49 @@ cast wallet import --interactive <path_to_keystore.json>
 ```
 
 Then you need to obtain some funds to pay for gas and proof verification.
-You can do this by using this [faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
+You can do this by using this [faucet](https://hoodi-faucet.pk910.de/)
 
 *This same wallet is used to send the proof via aligned, so you'll also need to fund it on aligned. Follow this [guide](https://docs.alignedlayer.com/guides/0_submitting_proofs#id-2.-send-funds-to-aligned).*
 
 ### 2. Deploy the contract
 
--   Generate the base `.env`:
+- Generate the base `.env`:
 
-```shell
-make gen_env_contract_holesky
-```
+    ```shell
+        make gen_env_contract_hoodi
+    ```
 
--   Get the program ID of the l2 program you are proving:
+- Get the program ID of the l2 program you are proving:
 
-```shell
-make generate_program_id
-```
+    ```shell
+        make generate_program_id
+    ```
 
--   Complete the following fields `contracts/.env` file:
+- Complete the following fields `contracts/.env` file:
+  - `PROGRAM_ID=` (use the previously generated ID, you can re check with a `cat ./crates/l2/programs_ids.json` )
+  - `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
+  - `OWNER_ADDRESS`: you have to provide the *address of the wallet created in step `1.`*.
 
-    -   `PROGRAM_ID=` (use the previously generated ID, you can re check with a `cat ./crates/l2/programs_ids.json` )
-    -   `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
-    -   `OWNER_ADDRESS`: you have to provide the *address of the wallet created in step `1.`*.
+- Deploy the contracts with:
 
--   Deploy the contracts with:
-
-```shell
-make deploy_contract
-```
+    ```shell
+        make deploy_contract
+    ```
 
 *Save the output contract address.*
 
 ### 3. Setup the L2
 
--   Generate the base `.env` run:
+- Generate the base `.env` run:
 
-```shell
-make gen_env_l2_holesky
-```
+    ```shell
+    make gen_env_l2_hoodi
+    ```
 
--   Complete the missing fields on the `.env`:
-
-    -   `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
-    -   `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
-    -   `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
+- Complete the missing fields on the `.env`:
+  - `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
+  - `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
+  - `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
 
 Finally [run the l2](#running-the-l2).
 
