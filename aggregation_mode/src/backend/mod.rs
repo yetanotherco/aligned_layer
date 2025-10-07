@@ -9,7 +9,10 @@ use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
 
 use alloy::{
     consensus::BlobTransactionSidecar,
-    eips::eip4844::BYTES_PER_BLOB,
+    eips::{
+        eip4844::BYTES_PER_BLOB,
+        eip7594::{BlobTransactionSidecarEip7594, BlobTransactionSidecarVariant},
+    },
     hex,
     network::EthereumWallet,
     primitives::Address,
@@ -150,7 +153,7 @@ impl ProofAggregator {
 
     async fn send_proof_to_verify_on_chain(
         &self,
-        blob: BlobTransactionSidecar,
+        blob: BlobTransactionSidecarVariant,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: AlignedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
@@ -162,7 +165,8 @@ impl ProofAggregator {
                         proof.proof_with_pub_values.public_values.to_vec().into(),
                         proof.proof_with_pub_values.bytes().into(),
                     )
-                    .sidecar(blob)
+                    // TODO: alloy is missing to accept a blob variant
+                    // .sidecar(blob)
                     .send()
                     .await
             }
@@ -176,7 +180,8 @@ impl ProofAggregator {
                         encoded_seal.into(),
                         proof.receipt.journal.bytes.into(),
                     )
-                    .sidecar(blob)
+                    // TODO: alloy is missing to accept a blob variant
+                    // .sidecar(blob)
                     .send()
                     .await
             }
@@ -217,7 +222,7 @@ impl ProofAggregator {
     async fn construct_blob(
         &self,
         leaves: Vec<[u8; 32]>,
-    ) -> Result<(BlobTransactionSidecar, [u8; 32]), AggregatedProofSubmissionError> {
+    ) -> Result<(BlobTransactionSidecarVariant, [u8; 32]), AggregatedProofSubmissionError> {
         let data: Vec<u8> = leaves.iter().flat_map(|arr| arr.iter().copied()).collect();
         let mut blob_data: [u8; BYTES_PER_BLOB] = [0u8; BYTES_PER_BLOB];
 
@@ -246,17 +251,36 @@ impl ProofAggregator {
         let proof = settings
             .compute_blob_kzg_proof(&blob, &commitment.to_bytes())
             .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
+        let (_cells, cell_proofs) = settings
+            .compute_cells_and_kzg_proofs(&blob)
+            .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
 
-        let blob = BlobTransactionSidecar::from_kzg(
-            vec![blob],
+        let blob_eip4844 = BlobTransactionSidecar::from_kzg(
+            // NOTE: this clone would be avoided by matching the blob to build based on the epoch
+            vec![blob.clone()],
             vec![commitment.to_bytes()],
             vec![proof.to_bytes()],
         );
-        let blob_versioned_hash = blob
-            .versioned_hash_for_blob(0)
+
+        let blob_eip7594 = BlobTransactionSidecarEip7594::new(
+            vec![(*blob).into()],
+            vec![(*commitment.to_bytes()).into()],
+            cell_proofs
+                .iter()
+                .map(|i| (*i.to_bytes()).into())
+                .collect::<Vec<_>>(),
+        );
+
+        // TODO: decide the variant to build based on the epoch
+        let blob_variant: BlobTransactionSidecarVariant =
+            BlobTransactionSidecarVariant::Eip7594(blob_eip7594);
+
+        let blob_versioned_hash = blob_variant
+            .versioned_hashes()
+            .next()
             .ok_or(AggregatedProofSubmissionError::BuildingBlobVersionedHash)?
             .0;
 
-        Ok((blob, blob_versioned_hash))
+        Ok((blob_variant, blob_versioned_hash))
     }
 }
