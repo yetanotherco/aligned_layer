@@ -36,8 +36,10 @@ pub enum AggregatedProofSubmissionError {
     BuildingBlobCommitment,
     BuildingBlobProof,
     BuildingBlobVersionedHash,
+    BuildingCalldata(String),
+    BuildingTx(String),
     Risc0EncodingSeal(String),
-    SendVerifyAggregatedProofTransaction(alloy::contract::Error),
+    SendVerifyAggregatedProofTransaction(String),
     ReceiptError(PendingTransactionError),
     FetchingProofs(ProofsFetcherError),
     ZKVMAggregation(ProofAggregationError),
@@ -73,8 +75,10 @@ impl ProofAggregator {
         let engine =
             ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
         let fetcher = ProofsFetcher::new(&config);
-        let ethrex_eth_client = ethrex_rpc::EthClient::new(&config.eth_rpc_url).unwrap();
-        let secret_key = SecretKey::from_str(&config.ecdsa.private_key).unwrap();
+        let ethrex_eth_client =
+            ethrex_rpc::EthClient::new(&config.eth_rpc_url).expect("rpc url to be valid");
+        let secret_key =
+            SecretKey::from_str(&config.ecdsa.private_key).expect("private key to be valid");
         let ethrex_signer =
             ethrex_l2_rpc::signer::Signer::Local(EthrexLocalSigner::new(secret_key));
 
@@ -184,7 +188,7 @@ impl ProofAggregator {
                         ),
                     ],
                 )
-                .expect("Calldata to be valid");
+                .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?;
 
                 let tx = build_generic_tx(
                     &self.ethrex_eth_client,
@@ -198,12 +202,16 @@ impl ProofAggregator {
                     },
                 )
                 .await
-                .expect("Tx to be built correctly");
+                .map_err(|e| AggregatedProofSubmissionError::BuildingTx(e.to_string()))?;
 
                 let tx_hash =
                     send_generic_transaction(&self.ethrex_eth_client, tx, &self.ethrex_signer)
                         .await
-                        .expect("Transaction to be sent");
+                        .map_err(|e| {
+                            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
+                                e.to_string(),
+                            )
+                        })?;
 
                 Ok(tx_hash)
             }
@@ -224,7 +232,7 @@ impl ProofAggregator {
                         ),
                     ],
                 )
-                .expect("Calldata to be valid");
+                .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?;
 
                 let tx = build_generic_tx(
                     &self.ethrex_eth_client,
@@ -238,12 +246,16 @@ impl ProofAggregator {
                     },
                 )
                 .await
-                .expect("Tx to be built correctly");
+                .map_err(|e| AggregatedProofSubmissionError::BuildingTx(e.to_string()))?;
 
                 let tx_hash =
                     send_generic_transaction(&self.ethrex_eth_client, tx, &self.ethrex_signer)
                         .await
-                        .expect("Transaction to be sent");
+                        .map_err(|e| {
+                            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
+                                e.to_string(),
+                            )
+                        })?;
 
                 Ok(tx_hash)
             }
@@ -295,7 +307,8 @@ impl ProofAggregator {
             blob_data[start..end].copy_from_slice(chunk);
             offset += 32;
         }
-        let blobs_bundle = BlobsBundle::create_from_blobs(&vec![blob_data], Fork::Osaka).unwrap();
+        let blobs_bundle = BlobsBundle::create_from_blobs(&vec![blob_data], Fork::Osaka)
+            .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
         let blob_versioned_hash = blobs_bundle.generate_versioned_hashes()[0];
 
         Ok((blobs_bundle, blob_versioned_hash.0))
