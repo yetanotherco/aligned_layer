@@ -3,6 +3,7 @@ use std::{fs::File, fs::OpenOptions, io::Read, io::Write};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ECDSAConfig {
+    pub private_key: String,
     pub private_key_store_path: String,
     pub private_key_store_password: String,
 }

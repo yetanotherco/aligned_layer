@@ -21,10 +21,11 @@ use ethrex_common::{
     H256,
 };
 use ethrex_l2_rpc::signer::LocalSigner as EthrexLocalSigner;
-use ethrex_rpc::clients::Overrides;
+use ethrex_rpc::{clients::Overrides, EthClient};
 use ethrex_sdk::{build_generic_tx, calldata::encode_calldata, send_generic_transaction};
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
+use risc0_ethereum_contracts::encode_seal;
 use secp256k1::SecretKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
@@ -49,6 +50,8 @@ pub struct ProofAggregator {
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
     config: Config,
+    ethrex_eth_client: EthClient,
+    ethrex_signer: ethrex_l2_rpc::signer::Signer,
 }
 
 impl ProofAggregator {
@@ -70,12 +73,18 @@ impl ProofAggregator {
         let engine =
             ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
         let fetcher = ProofsFetcher::new(&config);
+        let ethrex_eth_client = ethrex_rpc::EthClient::new(&config.eth_rpc_url).unwrap();
+        let secret_key = SecretKey::from_str(&config.ecdsa.private_key).unwrap();
+        let ethrex_signer =
+            ethrex_l2_rpc::signer::Signer::Local(EthrexLocalSigner::new(secret_key));
 
         Self {
             engine,
             proof_aggregation_service,
             fetcher,
             config,
+            ethrex_eth_client,
+            ethrex_signer,
         }
     }
 
@@ -151,20 +160,16 @@ impl ProofAggregator {
     }
 
     async fn send_proof_to_verify_on_chain(
-        &self,
+        &mut self,
         blob_bundle: BlobsBundle,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: AlignedProof,
     ) -> Result<H256, AggregatedProofSubmissionError> {
+        // TODO: see how to get this
+        self.ethrex_eth_client.maximum_allowed_max_fee_per_blob_gas = Some(1);
+
         match aggregated_proof {
             AlignedProof::SP1(proof) => {
-                let mut client = ethrex_rpc::EthClient::new(&self.config.eth_rpc_url).unwrap();
-                client.maximum_allowed_max_fee_per_blob_gas = Some(5);
-
-                let secret_key = SecretKey::from_str("<SECRET_KEY>".into()).unwrap();
-                let signer =
-                    ethrex_l2_rpc::signer::Signer::Local(EthrexLocalSigner::new(secret_key));
-
                 let calldata = encode_calldata(
                     "verifySP1(bytes32,bytes,bytes)",
                     &[
@@ -179,48 +184,68 @@ impl ProofAggregator {
                         ),
                     ],
                 )
-                .unwrap();
+                .expect("Calldata to be valid");
 
-                let gas_price = client.get_gas_price_with_extra(20).await.unwrap();
                 let tx = build_generic_tx(
-                    &client,
+                    &self.ethrex_eth_client,
                     ethrex_common::types::TxType::EIP4844,
                     self.proof_aggregation_service.address().0 .0.into(),
-                    signer.address(),
+                    self.ethrex_signer.address(),
                     calldata.into(),
                     Overrides {
-                        max_fee_per_gas: Some(gas_price.try_into().unwrap()),
-                        max_priority_fee_per_gas: Some(gas_price.try_into().unwrap()),
-                        gas_price_per_blob: Some(gas_price),
                         blobs_bundle: Some(blob_bundle),
                         ..Default::default()
                     },
                 )
                 .await
-                .unwrap();
+                .expect("Tx to be built correctly");
 
-                println!("TX {:?}", tx);
-
-                let tx_hash = send_generic_transaction(&client, tx, &signer)
-                    .await
-                    .unwrap();
+                let tx_hash =
+                    send_generic_transaction(&self.ethrex_eth_client, tx, &self.ethrex_signer)
+                        .await
+                        .expect("Transaction to be sent");
 
                 Ok(tx_hash)
             }
             AlignedProof::Risc0(proof) => {
-                // let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
-                //     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
-                // })?;
-                // self.proof_aggregation_service
-                //     .verifyRisc0(
-                //         blob_versioned_hash.into(),
-                //         encoded_seal.into(),
-                //         proof.receipt.journal.bytes.into(),
-                //     )
-                //     .sidecar(blob)
-                //     .send()
-                //     .await
-                Ok(H256::default())
+                let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
+                    AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
+                })?;
+
+                let calldata = encode_calldata(
+                    "verifyRisc0(bytes32,bytes,bytes)",
+                    &[
+                        ethrex_l2_common::calldata::Value::FixedBytes(
+                            blob_versioned_hash.to_vec().into(),
+                        ),
+                        ethrex_l2_common::calldata::Value::Bytes(encoded_seal.into()),
+                        ethrex_l2_common::calldata::Value::Bytes(
+                            proof.receipt.journal.bytes.into(),
+                        ),
+                    ],
+                )
+                .expect("Calldata to be valid");
+
+                let tx = build_generic_tx(
+                    &self.ethrex_eth_client,
+                    ethrex_common::types::TxType::EIP4844,
+                    self.proof_aggregation_service.address().0 .0.into(),
+                    self.ethrex_signer.address(),
+                    calldata.into(),
+                    Overrides {
+                        blobs_bundle: Some(blob_bundle),
+                        ..Default::default()
+                    },
+                )
+                .await
+                .expect("Tx to be built correctly");
+
+                let tx_hash =
+                    send_generic_transaction(&self.ethrex_eth_client, tx, &self.ethrex_signer)
+                        .await
+                        .expect("Transaction to be sent");
+
+                Ok(tx_hash)
             }
         }
     }
