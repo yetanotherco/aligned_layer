@@ -10,9 +10,9 @@ use ethrex_rpc::{
     EthClient,
 };
 
-pub const MAXIMUM_ALLOWED_MAX_FEE_PER_GAS: u64 = 10000000000;
-pub const MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS: u64 = 10000000000;
-pub const ARBITRARY_BASE_BLOB_GAS_PRICE: u64 = 1000000000;
+// values suggested from ethrex codebase
+pub const MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS: u64 = 10000000000; // 10 Gwei
+pub const ARBITRARY_BASE_BLOB_GAS_PRICE: u64 = 1000000000; // 1 Gwei
 
 #[derive(Clone, Debug)]
 pub enum BlobEstimationError {

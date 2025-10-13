@@ -8,9 +8,7 @@ mod types;
 
 use crate::{
     aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
-    backend::eth::{
-        estimate_blob_gas, MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS, MAXIMUM_ALLOWED_MAX_FEE_PER_GAS,
-    },
+    backend::eth::{estimate_blob_gas, MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS},
 };
 
 use alloy::{
@@ -93,7 +91,7 @@ impl ProofAggregator {
             BACKOFF_FACTOR,
             MIN_RETRY_DELAY,
             MAX_RETRY_DELAY,
-            Some(MAXIMUM_ALLOWED_MAX_FEE_PER_GAS),
+            None,
             Some(MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS),
         )
         .expect("rpc url to be valid");
