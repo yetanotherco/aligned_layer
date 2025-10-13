@@ -1,11 +1,17 @@
 pub mod config;
+mod eth;
 pub mod fetcher;
 mod merkle_tree;
 mod retry;
 mod s3;
 mod types;
 
-use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
+use crate::{
+    aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
+    backend::eth::{
+        estimate_blob_gas, MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS, MAXIMUM_ALLOWED_MAX_FEE_PER_GAS,
+    },
+};
 
 use alloy::{
     eips::eip4844::BYTES_PER_BLOB,
@@ -17,9 +23,8 @@ use alloy::{
 };
 use config::Config;
 use ethrex_common::{
-    constants::MIN_BASE_FEE_PER_BLOB_GAS,
-    types::{fake_exponential_checked, BlobsBundle, Fork, BLOB_BASE_FEE_UPDATE_FRACTION},
-    H256, U256,
+    types::{BlobsBundle, Fork},
+    H256,
 };
 use ethrex_l2_rpc::signer::LocalSigner as EthrexLocalSigner;
 use ethrex_rpc::{
@@ -27,10 +32,9 @@ use ethrex_rpc::{
         eth::{BACKOFF_FACTOR, MAX_NUMBER_OF_RETRIES, MAX_RETRY_DELAY, MIN_RETRY_DELAY},
         Overrides,
     },
-    types::block_identifier::{BlockIdentifier, BlockTag},
     EthClient,
 };
-use ethrex_sdk::{build_generic_tx, calldata::encode_calldata, send_generic_transaction, transfer};
+use ethrex_sdk::{build_generic_tx, calldata::encode_calldata, send_generic_transaction};
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
@@ -64,41 +68,6 @@ pub struct ProofAggregator {
     ethrex_signer: ethrex_l2_rpc::signer::Signer,
 }
 
-async fn estimate_blob_gas(
-    eth_client: &EthClient,
-    arbitrary_base_blob_gas_price: u64,
-    headroom: u64,
-) -> u64 {
-    let latest_block = eth_client
-        .get_block_by_number(BlockIdentifier::Tag(BlockTag::Latest), false)
-        .await
-        .unwrap();
-
-    let blob_gas_used = latest_block.header.blob_gas_used.unwrap_or(0);
-    let excess_blob_gas = latest_block.header.excess_blob_gas.unwrap_or(0);
-
-    // Check if adding the blob gas used and excess blob gas would overflow
-    let total_blob_gas = excess_blob_gas.checked_add(blob_gas_used).unwrap();
-
-    // If the blob's market is in high demand, the equation may give a really big number.
-    // This function doesn't panic, it performs checked/saturating operations.
-    let blob_gas = fake_exponential_checked(
-        MIN_BASE_FEE_PER_BLOB_GAS,
-        total_blob_gas,
-        BLOB_BASE_FEE_UPDATE_FRACTION,
-    )
-    .unwrap();
-
-    let gas_with_headroom = (blob_gas * (100 + headroom)) / 100;
-
-    // Check if we have an overflow when we take the headroom into account.
-    let blob_gas = arbitrary_base_blob_gas_price
-        .checked_add(gas_with_headroom)
-        .unwrap();
-
-    blob_gas
-}
-
 impl ProofAggregator {
     pub fn new(config: Config) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
@@ -124,8 +93,8 @@ impl ProofAggregator {
             BACKOFF_FACTOR,
             MIN_RETRY_DELAY,
             MAX_RETRY_DELAY,
-            Some(10000000000),
-            Some(10000000000),
+            Some(MAXIMUM_ALLOWED_MAX_FEE_PER_GAS),
+            Some(MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS),
         )
         .expect("rpc url to be valid");
 
@@ -221,61 +190,29 @@ impl ProofAggregator {
         blob_versioned_hash: [u8; 32],
         aggregated_proof: AlignedProof,
     ) -> Result<H256, AggregatedProofSubmissionError> {
-        match aggregated_proof {
-            AlignedProof::SP1(proof) => {
-                let calldata = encode_calldata(
-                    "verifySP1(bytes32,bytes,bytes)",
-                    &[
-                        ethrex_l2_common::calldata::Value::FixedBytes(
-                            blob_versioned_hash.to_vec().into(),
-                        ),
-                        ethrex_l2_common::calldata::Value::Bytes(
-                            proof.proof_with_pub_values.public_values.to_vec().into(),
-                        ),
-                        ethrex_l2_common::calldata::Value::Bytes(
-                            proof.proof_with_pub_values.bytes().into(),
-                        ),
-                    ],
-                )
-                .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?;
+        let calldata = match aggregated_proof {
+            AlignedProof::SP1(proof) => encode_calldata(
+                "verifySP1(bytes32,bytes,bytes)",
+                &[
+                    ethrex_l2_common::calldata::Value::FixedBytes(
+                        blob_versioned_hash.to_vec().into(),
+                    ),
+                    ethrex_l2_common::calldata::Value::Bytes(
+                        proof.proof_with_pub_values.public_values.to_vec().into(),
+                    ),
+                    ethrex_l2_common::calldata::Value::Bytes(
+                        proof.proof_with_pub_values.bytes().into(),
+                    ),
+                ],
+            )
+            .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?,
 
-                let le_bytes = estimate_blob_gas(&self.ethrex_eth_client, 1000000000, 20)
-                    .await
-                    .to_le_bytes();
-                let gas_price_per_blob = U256::from_little_endian(&le_bytes);
-
-                let tx = build_generic_tx(
-                    &self.ethrex_eth_client,
-                    ethrex_common::types::TxType::EIP4844,
-                    self.proof_aggregation_service.address().0 .0.into(),
-                    self.ethrex_signer.address(),
-                    calldata.into(),
-                    Overrides {
-                        blobs_bundle: Some(blob_bundle),
-                        gas_price_per_blob: Some(gas_price_per_blob),
-                        ..Default::default()
-                    },
-                )
-                .await
-                .map_err(|e| AggregatedProofSubmissionError::BuildingTx(e.to_string()))?;
-
-                let tx_hash =
-                    send_generic_transaction(&self.ethrex_eth_client, tx, &self.ethrex_signer)
-                        .await
-                        .map_err(|e| {
-                            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                                e.to_string(),
-                            )
-                        })?;
-
-                Ok(tx_hash)
-            }
             AlignedProof::Risc0(proof) => {
                 let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
                 })?;
 
-                let calldata = encode_calldata(
+                encode_calldata(
                     "verifyRisc0(bytes32,bytes,bytes)",
                     &[
                         ethrex_l2_common::calldata::Value::FixedBytes(
@@ -287,40 +224,55 @@ impl ProofAggregator {
                         ),
                     ],
                 )
-                .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?;
-
-                let le_bytes = estimate_blob_gas(&self.ethrex_eth_client, 1000000000, 20)
-                    .await
-                    .to_le_bytes();
-                let gas_price_per_blob = U256::from_little_endian(&le_bytes);
-
-                let tx = build_generic_tx(
-                    &self.ethrex_eth_client,
-                    ethrex_common::types::TxType::EIP4844,
-                    self.proof_aggregation_service.address().0 .0.into(),
-                    self.ethrex_signer.address(),
-                    calldata.into(),
-                    Overrides {
-                        blobs_bundle: Some(blob_bundle),
-                        gas_price_per_blob: Some(gas_price_per_blob),
-                        ..Default::default()
-                    },
-                )
-                .await
-                .map_err(|e| AggregatedProofSubmissionError::BuildingTx(e.to_string()))?;
-
-                let tx_hash =
-                    send_generic_transaction(&self.ethrex_eth_client, tx, &self.ethrex_signer)
-                        .await
-                        .map_err(|e| {
-                            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                                e.to_string(),
-                            )
-                        })?;
-
-                Ok(tx_hash)
+                .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?
             }
-        }
+        };
+
+        // ethrex auto calulates max_fee_per_gas and max_priority_fee_per_gas for us
+        // but does not for max_fee_per_blob_gas but, so we need to estimate it ourselves
+        let gas_price_per_blob = estimate_blob_gas(&self.ethrex_eth_client, 20)
+            .await
+            .map_err(|e| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(e.to_string())
+            })?;
+        let gas_price = self
+            .ethrex_eth_client
+            .get_gas_price_with_extra(20)
+            .await
+            .map_err(|e| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(e.to_string())
+            })?
+            .try_into()
+            .map_err(|_| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
+                    "Failed to convert gas price to u64".into(),
+                )
+            })?;
+
+        let tx = build_generic_tx(
+            &self.ethrex_eth_client,
+            ethrex_common::types::TxType::EIP4844,
+            self.proof_aggregation_service.address().0 .0.into(),
+            self.ethrex_signer.address(),
+            calldata.into(),
+            Overrides {
+                blobs_bundle: Some(blob_bundle),
+                gas_price_per_blob: Some(gas_price_per_blob),
+                max_fee_per_gas: Some(gas_price),
+                max_priority_fee_per_gas: Some(gas_price),
+                ..Default::default()
+            },
+        )
+        .await
+        .map_err(|e| AggregatedProofSubmissionError::BuildingTx(e.to_string()))?;
+
+        let tx_hash = send_generic_transaction(&self.ethrex_eth_client, tx, &self.ethrex_signer)
+            .await
+            .map_err(|e| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(e.to_string())
+            })?;
+
+        Ok(tx_hash)
     }
 
     /// ### Blob capacity
