@@ -7,9 +7,10 @@ use eth::utils::{calculate_bumped_gas_price, get_batcher_signer, get_gas_price};
 use ethers::contract::ContractError;
 use ethers::signers::Signer;
 use retry::batcher_retryables::{
-    cancel_create_new_task_retryable, create_new_task_retryable, get_user_balance_retryable,
-    get_user_nonce_from_ethereum_retryable, simulate_create_new_task_retryable,
-    user_balance_is_unlocked_retryable,
+    cancel_create_new_task_retryable, create_new_task_retryable,
+    get_current_block_number_retryable, get_user_balance_retryable,
+    get_user_nonce_from_ethereum_retryable, query_balance_unlocked_events_retryable,
+    simulate_create_new_task_retryable, user_balance_is_unlocked_retryable,
 };
 use retry::{retry_function, RetryError};
 use tokio::time::{timeout, Instant};
@@ -39,8 +40,8 @@ use aligned_sdk::common::types::{
 
 use aws_sdk_s3::client::Client as S3Client;
 use eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
-use ethers::prelude::{Middleware, Provider};
-use ethers::types::{Address, Signature, TransactionReceipt, U256};
+use ethers::prelude::{Http, Middleware, Provider};
+use ethers::types::{Address, Signature, TransactionReceipt, U256, U64};
 use futures_util::{future, join, SinkExt, StreamExt, TryStreamExt};
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
@@ -50,6 +51,7 @@ use tokio::sync::{Mutex, MutexGuard, RwLock};
 
 // Message handler lock timeout
 const MESSAGE_HANDLER_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
+const POLLING_EVENTS_LOCK_TIMEOUT: Duration = Duration::from_secs(300);
 use tokio_tungstenite::tungstenite::{Error, Message};
 use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
 use types::errors::{BatcherError, TransactionSendError};
@@ -86,6 +88,8 @@ pub struct Batcher {
     eth_ws_url_fallback: String,
     batcher_signer: Arc<SignerMiddlewareT>,
     batcher_signer_fallback: Arc<SignerMiddlewareT>,
+    eth_http_provider: Provider<Http>,
+    eth_http_provider_fallback: Provider<Http>,
     chain_id: U256,
     payment_service: BatcherPaymentService,
     payment_service_fallback: BatcherPaymentService,
@@ -103,6 +107,7 @@ pub struct Batcher {
     current_min_max_fee: RwLock<U256>,
     amount_of_proofs_for_min_max_fee: usize,
     min_bump_percentage: U256,
+    balance_unlock_polling_interval_seconds: u64,
 
     // Shared state access:
     // Two kinds of threads interact with the shared state:
@@ -315,6 +320,8 @@ impl Batcher {
             eth_ws_url_fallback: config.eth_ws_url_fallback,
             batcher_signer,
             batcher_signer_fallback,
+            eth_http_provider,
+            eth_http_provider_fallback,
             chain_id,
             payment_service,
             payment_service_fallback,
@@ -327,6 +334,9 @@ impl Batcher {
             max_batch_proof_qty: config.batcher.max_batch_proof_qty,
             amount_of_proofs_for_min_max_fee: config.batcher.amount_of_proofs_for_min_max_fee,
             min_bump_percentage: U256::from(config.batcher.min_bump_percentage),
+            balance_unlock_polling_interval_seconds: config
+                .batcher
+                .balance_unlock_polling_interval_seconds,
             last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
             pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
             non_paying_config,
@@ -436,12 +446,16 @@ impl Batcher {
         }
     }
 
-    /// Helper to apply 15-second timeout to batch lock acquisition with consistent logging and metrics
-    async fn try_batch_lock_with_timeout<F, T>(&self, lock_future: F) -> Option<T>
+    /// Helper to apply `duration` timeout to batch lock acquisition with consistent logging and metrics
+    async fn try_batch_lock_with_timeout<F, T>(
+        &self,
+        lock_future: F,
+        duration: Duration,
+    ) -> Option<T>
     where
         F: std::future::Future<Output = T>,
     {
-        match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, lock_future).await {
+        match timeout(duration, lock_future).await {
             Ok(result) => Some(result),
             Err(_) => {
                 warn!("Batch lock acquisition timed out");
@@ -489,6 +503,204 @@ impl Batcher {
         )
         .await
         .map_err(|e| e.inner())
+    }
+
+    /// Poll for BalanceUnlocked events from BatcherPaymentService contract.
+    /// Runs at configurable intervals and checks recent blocks for events (2x the polling interval).
+    /// When an event is detected, removes user's proofs from queue and resets UserState.
+    pub async fn poll_balance_unlocked_events(self: Arc<Self>) -> Result<(), BatcherError> {
+        let mut interval = tokio::time::interval(Duration::from_secs(
+            self.balance_unlock_polling_interval_seconds,
+        ));
+        let mut from_block = self.get_current_block_number().await.map_err(|e| {
+            BatcherError::EthereumProviderError(format!(
+                "Failed to get current block number: {:?}",
+                e
+            ))
+        })?;
+
+        loop {
+            interval.tick().await;
+
+            match self.process_balance_unlocked_events(from_block).await {
+                Ok(current_block) => {
+                    from_block = current_block;
+                }
+                Err(e) => {
+                    error!("Error processing BalanceUnlocked events: {:?}", e);
+                    // On error, keep from_block unchanged to retry the same range next time
+                }
+            }
+        }
+    }
+
+    async fn process_balance_unlocked_events(&self, from_block: U64) -> Result<U64, BatcherError> {
+        // Get current block number using HTTP providers
+        let current_block = self.get_current_block_number().await.map_err(|e| {
+            BatcherError::EthereumProviderError(format!(
+                "Failed to get current block number: {:?}",
+                e
+            ))
+        })?;
+
+        // Query events with retry logic
+        let events = self
+            .query_balance_unlocked_events(from_block, current_block)
+            .await
+            .map_err(|e| {
+                BatcherError::EthereumProviderError(format!(
+                    "Failed to query BalanceUnlocked events: {:?}",
+                    e
+                ))
+            })?;
+
+        info!(
+            "Found {} BalanceUnlocked events in blocks {} to {}",
+            events.len(),
+            from_block,
+            current_block
+        );
+
+        // Process each event
+        for event in events {
+            let user_address = event.user;
+            debug!(
+                "Processing BalanceUnlocked event for user: {:?}",
+                user_address
+            );
+
+            // Check if user has proofs in queue
+            //
+            // Double-check that funds are still unlocked by calling the contract
+            // This is necessary because we query events over a block range, and the
+            // user’s state may have changed (e.g., funds could be locked again) after
+            // the event was emitted. Verifying on-chain ensures we don’t act on stale data.
+            //
+            // There is a brief period between the checks and the removal during which the user's
+            // proofs could be sent. This is acceptable, as the removal will not fail;
+            // it will simply clear the user's state.
+            if self.user_has_proofs_in_queue(user_address).await
+                && self.user_balance_is_unlocked(&user_address).await
+            {
+                info!(
+                    "User {:?} has proofs in queue and funds are unlocked, proceeding to remove proofs and resetting UserState",
+                    user_address
+                );
+                self.remove_user_proofs_and_reset_state(user_address).await;
+            }
+        }
+
+        Ok(current_block)
+    }
+
+    /// Gets the current block number from Ethereum.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    async fn get_current_block_number(&self) -> Result<U64, RetryError<String>> {
+        retry_function(
+            || {
+                get_current_block_number_retryable(
+                    &self.eth_http_provider,
+                    &self.eth_http_provider_fallback,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+    }
+
+    /// Queries BalanceUnlocked events from the BatcherPaymentService contract.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    async fn query_balance_unlocked_events(
+        &self,
+        from_block: U64,
+        to_block: U64,
+    ) -> Result<
+        Vec<aligned_sdk::eth::batcher_payment_service::BalanceUnlockedFilter>,
+        RetryError<String>,
+    > {
+        retry_function(
+            || {
+                query_balance_unlocked_events_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    from_block,
+                    to_block,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+    }
+
+    async fn user_has_proofs_in_queue(&self, user_address: Address) -> bool {
+        let user_states = self.user_states.read().await;
+        let Some(user_state) = user_states.get(&user_address) else {
+            return false;
+        };
+
+        let Some(user_state_guard) = self
+            .try_user_lock_with_timeout(user_address, user_state.lock())
+            .await
+        else {
+            return false;
+        };
+
+        user_state_guard.proofs_in_batch > 0
+    }
+
+    async fn remove_user_proofs_and_reset_state(&self, user_address: Address) {
+        let mut user_states = self.user_states.write().await;
+
+        let mut batch_state_guard = match self
+            .try_batch_lock_with_timeout(self.batch_state.lock(), POLLING_EVENTS_LOCK_TIMEOUT)
+            .await
+        {
+            Some(guard) => guard,
+            None => {
+                error!(
+                    "Failed to acquire batch lock when trying to remove proofs from user {:?}, skipping removal",
+                    user_address
+                );
+                self.metrics.inc_unlocked_event_polling_batch_lock_timeout();
+                return;
+            }
+        };
+
+        let removed_entries = batch_state_guard
+            .batch_queue
+            .extract_if(|entry, _| entry.sender == user_address);
+
+        // Notify user via websocket
+        for (entry, _) in removed_entries {
+            if let Some(ws_sink) = entry.messaging_sink {
+                let ws_sink_clone = ws_sink.clone();
+                tokio::spawn(async move {
+                    send_message(
+                        ws_sink_clone.clone(),
+                        SubmitProofResponseMessage::UserFundsUnlocked,
+                    )
+                    .await;
+                });
+            }
+            info!(
+                "Removed proof with nonce {} for user {:?} from batch queue",
+                entry.nonced_verification_data.nonce, user_address
+            );
+        }
+
+        user_states.remove(&user_address);
+        info!(
+            "Removed UserState entry for user {:?} after processing BalanceUnlocked event",
+            user_address
+        );
     }
 
     pub async fn listen_new_blocks_retryable(
@@ -1052,7 +1264,7 @@ impl Batcher {
         // * ---------------------------------------------------------------------*
 
         let Some(mut batch_state_lock) = self
-            .try_batch_lock_with_timeout(self.batch_state.lock())
+            .try_batch_lock_with_timeout(self.batch_state.lock(), MESSAGE_HANDLER_LOCK_TIMEOUT)
             .await
         else {
             send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
@@ -1222,7 +1434,7 @@ impl Batcher {
         let replacement_max_fee = nonced_verification_data.max_fee;
         let nonce = nonced_verification_data.nonce;
         let Some(mut batch_state_guard) = self
-            .try_batch_lock_with_timeout(self.batch_state.lock())
+            .try_batch_lock_with_timeout(self.batch_state.lock(), MESSAGE_HANDLER_LOCK_TIMEOUT)
             .await
         else {
             drop(user_state_guard);
@@ -1284,13 +1496,26 @@ impl Batcher {
         // Close old sink in old entry and replace it with the new one
         {
             if let Some(messaging_sink) = replacement_entry.messaging_sink {
-                let mut old_sink = messaging_sink.write().await;
-                if let Err(e) = old_sink.close().await {
-                    // we dont want to exit here, just log the error
-                    warn!("Error closing sink: {e:?}");
-                } else {
-                    info!("Old websocket sink closed");
-                }
+                tokio::spawn(async move {
+                    // Before closing the old sink, send a message to the client notifying that their proof
+                    // has been replaced
+                    send_message(
+                        messaging_sink.clone(),
+                        SubmitProofResponseMessage::ProofReplaced,
+                    )
+                    .await;
+
+                    // Note: This shuts down the sink, but does not wait for it to close, so the other side
+                    // might not receive the message. However, we don't want to wait here since it would
+                    // block the batcher.
+                    let mut old_sink = messaging_sink.write().await;
+                    if let Err(e) = old_sink.close().await {
+                        // we dont want to exit here, just log the error
+                        warn!("Error closing sink: {e:?}");
+                    } else {
+                        info!("Old websocket sink closed");
+                    }
+                });
             } else {
                 warn!(
                     "Old websocket sink was empty. This should only happen in testing environments"
@@ -1817,14 +2042,35 @@ impl Batcher {
                 warn!("Failed to send task status to telemetry: {:?}", e);
             }
 
-            // decide if i want to flush the queue:
             match e {
+                // This should never happen, there is a task that regularly cleans up
+                // user proofs with unlocked states
+                // (and it runs more frequently than the 1H the user needs to withdraw funds)
                 BatcherError::TransactionSendError(
-                    TransactionSendError::SubmissionInsufficientBalance,
+                    TransactionSendError::SubmissionInsufficientBalance(address),
                 ) => {
-                    // TODO: In the future, we should re-add the failed batch back to the queue
-                    // For now, we flush everything as a safety measure
+                    // In the future we could do a more granular recovery
+                    warn!("User {:?} has insufficient balance, flushing entire queue as safety measure", address);
+
                     self.flush_queue_and_clear_nonce_cache().await;
+
+                    for entry in finalized_batch {
+                        if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                            tokio::spawn(send_message(
+                                ws_sink.clone(),
+                                SubmitProofResponseMessage::BatchReset,
+                            ));
+                        } else {
+                            warn!(
+                                "Websocket sink was found empty. This should only happen in tests"
+                            );
+                        }
+                    }
+
+                    return Err(BatcherError::StateCorruptedAndFlushed(format!(
+                        "Queue and user states flushed due to insufficient balance for user {:?}",
+                        address
+                    )));
                 }
                 _ => {
                     // Add more cases here if we want in the future
@@ -1862,7 +2108,10 @@ impl Batcher {
         let mut batch_state_lock = self.batch_state.lock().await;
         for (entry, _) in batch_state_lock.batch_queue.iter() {
             if let Some(ws_sink) = entry.messaging_sink.as_ref() {
-                send_message(ws_sink.clone(), SubmitProofResponseMessage::BatchReset).await;
+                tokio::spawn(send_message(
+                    ws_sink.clone(),
+                    SubmitProofResponseMessage::BatchReset,
+                ));
             } else {
                 warn!("Websocket sink was found empty. This should only happen in tests");
             }
@@ -1951,12 +2200,19 @@ impl Batcher {
 
             // If batch finalization failed, restore the proofs to the queue
             if let Err(e) = batch_finalization_result {
-                error!(
-                    "Batch finalization failed, restoring proofs to queue: {:?}",
-                    e
-                );
-                self.restore_proofs_after_batch_failure(&finalized_batch)
-                    .await;
+                error!("Batch finalization failed: {:?}", e);
+
+                // If the queue was flushed, don't recover
+                match &e {
+                    BatcherError::StateCorruptedAndFlushed(_) => {
+                        info!("State was corrupted and flushed - not restoring proofs");
+                    }
+                    _ => {
+                        info!("Restoring proofs to queue after batch failure");
+                        self.restore_proofs_after_batch_failure(&finalized_batch)
+                            .await;
+                    }
+                }
                 return Err(e);
             }
         }

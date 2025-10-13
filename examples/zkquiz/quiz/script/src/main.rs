@@ -24,7 +24,7 @@ struct Args {
     #[arg(
         short,
         long,
-        default_value = "https://ethereum-holesky-rpc.publicnode.com"
+        default_value = "https://ethereum-hoodi-rpc.publicnode.com"
     )]
     rpc_url: String,
     #[clap(flatten)]
@@ -38,6 +38,7 @@ enum NetworkNameArg {
     Devnet,
     Holesky,
     HoleskyStage,
+    Hoodi,
     Mainnet,
 }
 
@@ -49,9 +50,10 @@ impl FromStr for NetworkNameArg {
             "devnet" => Ok(NetworkNameArg::Devnet),
             "holesky" => Ok(NetworkNameArg::Holesky),
             "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
+            "hoodi" => Ok(NetworkNameArg::Hoodi),
             "mainnet" => Ok(NetworkNameArg::Mainnet),
             _ => Err(
-                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet, hoodi"
                     .to_string(),
             ),
         }
@@ -64,7 +66,7 @@ struct NetworkArg {
         name = "The working network's name",
         long = "network",
         default_value = "devnet",
-        help = "[possible values: devnet, holesky, holesky-stage, mainnet]"
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet, hoodi]",
     )]
     network: Option<NetworkNameArg>,
     #[arg(
@@ -115,6 +117,7 @@ impl From<NetworkArg> for Network {
             Some(NetworkNameArg::Devnet) => Network::Devnet,
             Some(NetworkNameArg::Holesky) => Network::Holesky,
             Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
+            Some(NetworkNameArg::Hoodi) => Network::Hoodi,
             Some(NetworkNameArg::Mainnet) => Network::Mainnet,
         }
     }

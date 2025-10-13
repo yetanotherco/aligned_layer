@@ -7,7 +7,7 @@ pub enum TransactionSendError {
     NoProofSubmitters,
     NoFeePerProof,
     InsufficientFeeForAggregator,
-    SubmissionInsufficientBalance,
+    SubmissionInsufficientBalance(Address),
     BatchAlreadySubmitted,
     InsufficientFunds,
     OnlyBatcherAllowed,
@@ -30,8 +30,16 @@ impl From<Bytes> for TransactionSendError {
             "0x3102f10c" => TransactionSendError::BatchAlreadySubmitted, // can happen, don't flush
             "0x5c54305e" => TransactionSendError::InsufficientFunds, // shouldn't happen, don't flush
             "0x152bc288" => TransactionSendError::OnlyBatcherAllowed, // won't happen, don't flush
-            "0x4f779ceb" => TransactionSendError::SubmissionInsufficientBalance, // shouldn't happen,
-            // flush can help if something went wrong
+            "0x4f779ceb" => {
+                // SubmissionInsufficientBalance(address sender, uint256 balance, uint256 required)
+                // Try to decode the address parameter (first parameter after selector)
+                let address = byte_string
+                    .get(34..74) // Skip "0x" + selector (8 chars) + padding (24 chars)
+                    .and_then(|hex_str| hex::decode(hex_str).ok())
+                    .map(|bytes| Address::from_slice(&bytes))
+                    .unwrap_or(Address::zero());
+                TransactionSendError::SubmissionInsufficientBalance(address)
+            }
             _ => {
                 // flush because unkown error
                 TransactionSendError::Generic(format!("Unknown bytestring error: {}", byte_string))
@@ -58,6 +66,8 @@ pub enum BatcherError {
     WsSinkEmpty,
     AddressNotFoundInUserStates(Address),
     QueueRemoveError(String),
+    StateCorruptedAndFlushed(String),
+    EthereumProviderError(String),
 }
 
 impl From<tungstenite::Error> for BatcherError {
@@ -139,6 +149,12 @@ impl fmt::Debug for BatcherError {
             BatcherError::QueueRemoveError(e) => {
                 write!(f, "Error while removing entry from queue: {}", e)
             }
+            BatcherError::StateCorruptedAndFlushed(reason) => {
+                write!(f, "Batcher state was corrupted and flushed: {}", reason)
+            }
+            BatcherError::EthereumProviderError(e) => {
+                write!(f, "Ethereum provider error: {}", e)
+            }
         }
     }
 }
@@ -155,8 +171,12 @@ impl fmt::Display for TransactionSendError {
             TransactionSendError::InsufficientFeeForAggregator => {
                 write!(f, "Insufficient fee for aggregator")
             }
-            TransactionSendError::SubmissionInsufficientBalance => {
-                write!(f, "Submission insufficient balance")
+            TransactionSendError::SubmissionInsufficientBalance(address) => {
+                write!(
+                    f,
+                    "Submission insufficient balance for address: {:?}",
+                    address
+                )
             }
             TransactionSendError::BatchAlreadySubmitted => {
                 write!(f, "Batch already submitted")

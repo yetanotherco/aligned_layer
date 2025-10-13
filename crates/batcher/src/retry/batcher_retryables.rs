@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use ethers::prelude::*;
+use ethers::providers::Http;
 use log::{info, warn};
 use tokio::time::timeout;
 
@@ -284,4 +285,48 @@ pub async fn cancel_create_new_task_retryable(
         .ok_or(RetryError::Transient(ProviderError::CustomError(
             "Receipt not found".to_string(),
         )))
+}
+
+pub async fn get_current_block_number_retryable(
+    eth_http_provider: &Provider<Http>,
+    eth_http_provider_fallback: &Provider<Http>,
+) -> Result<U64, RetryError<String>> {
+    if let Ok(block_number) = eth_http_provider.get_block_number().await {
+        return Ok(block_number);
+    }
+
+    eth_http_provider_fallback
+        .get_block_number()
+        .await
+        .map_err(|e| {
+            warn!("Failed to get current block number: {e}");
+            RetryError::Transient(e.to_string())
+        })
+}
+
+pub async fn query_balance_unlocked_events_retryable(
+    payment_service: &BatcherPaymentService,
+    payment_service_fallback: &BatcherPaymentService,
+    from_block: U64,
+    to_block: U64,
+) -> Result<Vec<aligned_sdk::eth::batcher_payment_service::BalanceUnlockedFilter>, RetryError<String>>
+{
+    let filter = payment_service
+        .balance_unlocked_filter()
+        .from_block(from_block)
+        .to_block(to_block);
+
+    if let Ok(events) = filter.query().await {
+        return Ok(events);
+    }
+
+    let filter_fallback = payment_service_fallback
+        .balance_unlocked_filter()
+        .from_block(from_block)
+        .to_block(to_block);
+
+    filter_fallback.query().await.map_err(|e| {
+        warn!("Failed to query BalanceUnlocked events: {e}");
+        RetryError::Transient(e.to_string())
+    })
 }

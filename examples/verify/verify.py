@@ -5,8 +5,8 @@ from encode_verification_data import encode_call
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--rpc-url', default='https://ethereum-holesky-rpc.publicnode.com',
-                        help='RPC URL (default: https://ethereum-holesky-rpc.publicnode.com)')
+    parser.add_argument('--rpc-url', default='https://ethereum-hoodi-rpc.publicnode.com',
+                        help='RPC URL (default: https://ethereum-hoodi-rpc.publicnode.com)')
     parser.add_argument('--aligned-verification-data', help='Path to JSON file with the verification data',
                         required=True)
     parser.add_argument('--contract-address', help='Verifier Contract address', required=True)

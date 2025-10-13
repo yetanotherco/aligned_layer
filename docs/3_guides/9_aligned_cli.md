@@ -359,6 +359,128 @@ aligned get-user-amount-of-queued-proofs  \
 
 ---
 
+### **lock-funds**
+
+#### Description:
+
+Locks funds in the batcher. Locked balances can be used for proof verification payments but cannot be withdrawn until they are unlocked and the lock period expires.
+
+#### Command:
+
+`lock-funds [OPTIONS]`
+
+#### Options:
+
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned lock-funds \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--keystore_path <KEYSTORE_PATH>
+```
+
+---
+
+### **unlock-funds**
+
+#### Description:
+
+Unlocks funds from the batcher. After calling this command, users must wait for the lock period before they can withdraw their funds using `withdraw-funds`.
+
+#### Command:
+
+`unlock-funds [OPTIONS]`
+
+#### Options:
+
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned unlock-funds \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--keystore_path <KEYSTORE_PATH>
+```
+
+---
+
+### **withdraw-funds**
+
+#### Description:
+
+Withdraws a specified amount from the user's balance in the batcher. This command can only be used after the balance has been unlocked using `unlock-funds` and the lock period has expired.
+
+#### Command:
+
+`withdraw-funds [OPTIONS] --amount <amount_to_withdraw>`
+
+#### Options:
+
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--amount <amount (ether)>`: Amount of Ether to withdraw.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned withdraw-funds \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--amount 0.5ether \
+--keystore_path <KEYSTORE_PATH>
+```
+
+---
+
 ### **verify-agg-proof**
 
 #### Description:
