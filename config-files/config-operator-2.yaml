@@ -29,6 +29,7 @@ operator:
   staker_opt_out_window_blocks: 0
   metadata_url: 'https://yetanotherco.github.io/operator_metadata/metadata.json'
   max_batch_size: 268435456 # 256 MiB
+  max_proof_size: 10485760 # 10 MiB (default if not specified)
   last_processed_batch_filepath: 'config-files/operator-2.last_processed_batch.json'
   poll_latest_batch_interval: 20s # Optional: The interval to poll for latest batches. Default: 20s if not specified
 

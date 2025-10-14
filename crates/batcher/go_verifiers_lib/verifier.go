@@ -13,8 +13,10 @@ import "C"
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
 
 	"log"
@@ -27,6 +29,8 @@ import (
 	"github.com/iden3/go-rapidsnark/types"
 	"github.com/iden3/go-rapidsnark/verifier"
 )
+
+const MaxProofSize = 10 * 1024 * 1024 // 10 MB
 
 func listRefToBytes(listRef C.ListRef) []byte {
 
@@ -54,11 +58,32 @@ func VerifyGnarkGroth16ProofBN254(proofBytes C.ListRef, pubInputBytes C.ListRef,
 	return verifyGnarkGroth16Proof(proofBytes, pubInputBytes, verificationKeyBytes, ecc.BN254)
 }
 
+func gnarkProofLength(proofBytes []byte) (uint32, error) {
+	const HeaderSize = 4
+	r := bytes.NewReader(proofBytes)
+	var buf [HeaderSize]byte
+	if read, err := io.ReadFull(r, buf[:HeaderSize]); err != nil {
+		return uint32(read), err
+	}
+	sliceLen := binary.BigEndian.Uint32(buf[:HeaderSize])
+	return sliceLen, nil
+}
+
 // verifyGnarkPlonkProof contains the common proof verification logic.
 func verifyGnarkPlonkProof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef, verificationKeyBytesRef C.ListRef, curve ecc.ID) bool {
 	proofBytes := listRefToBytes(proofBytesRef)
 	pubInputBytes := listRefToBytes(pubInputBytesRef)
 	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)
+
+	proofLength, err := gnarkProofLength(proofBytes)
+	if err != nil {
+		log.Printf("Could not determine proof length: %v", err)
+		return false
+	}
+	if proofLength > MaxProofSize {
+		log.Printf("Proof size exceeds maximum limit of %d bytes", MaxProofSize)
+		return false
+	}
 
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
@@ -94,6 +119,16 @@ func verifyGnarkGroth16Proof(proofBytesRef C.ListRef, pubInputBytesRef C.ListRef
 	proofBytes := listRefToBytes(proofBytesRef)
 	pubInputBytes := listRefToBytes(pubInputBytesRef)
 	verificationKeyBytes := listRefToBytes(verificationKeyBytesRef)
+
+	proofLength, err := gnarkProofLength(proofBytes)
+	if err != nil {
+		log.Printf("Could not determine proof length: %v", err)
+		return false
+	}
+	if proofLength > MaxProofSize {
+		log.Printf("Proof size exceeds maximum limit of %d bytes", MaxProofSize)
+		return false
+	}
 
 	proofReader := bytes.NewReader(proofBytes)
 	proof := groth16.NewProof(curve)

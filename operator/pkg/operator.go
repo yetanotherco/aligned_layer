@@ -3,9 +3,11 @@ package operator
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/big"
 	"net/http"
@@ -72,6 +74,17 @@ const (
 	BatchDownloadRetryDelay = 5 * time.Second
 	UnverifiedBatchOffset   = 100
 )
+
+func gnarkProofLength(proofBytes []byte) (uint32, error) {
+	const HeaderSize = 4
+	r := bytes.NewReader(proofBytes)
+	var buf [HeaderSize]byte
+	if read, err := io.ReadFull(r, buf[:HeaderSize]); err != nil {
+		return uint32(read), err
+	}
+	sliceLen := binary.BigEndian.Uint32(buf[:HeaderSize])
+	return sliceLen, nil
+}
 
 func NewOperatorFromConfig(configuration config.OperatorConfig) (*Operator, error) {
 	logger := configuration.BaseConfig.Logger
@@ -457,6 +470,16 @@ func (o *Operator) verifyGnarkGroth16ProofBN254(proofBytes []byte, pubInputBytes
 
 // verifyGnarkPlonkProof contains the common proof verification logic.
 func (o *Operator) verifyGnarkPlonkProof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+	proofLength, err := gnarkProofLength(proofBytes)
+	if err != nil {
+		o.Logger.Infof("Could not determine proof length: %v", err)
+		return false
+	}
+	if proofLength > o.Config.Operator.MaxProofSize {
+		o.Logger.Infof("Proof size exceeds maximum limit of %d bytes", o.Config.Operator.MaxProofSize)
+		return false
+	}
+
 	proofReader := bytes.NewReader(proofBytes)
 	proof := plonk.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {
@@ -488,6 +511,16 @@ func (o *Operator) verifyGnarkPlonkProof(proofBytes []byte, pubInputBytes []byte
 
 // verifyGnarkGroth16Proof contains the common proof verification logic.
 func (o *Operator) verifyGnarkGroth16Proof(proofBytes []byte, pubInputBytes []byte, verificationKeyBytes []byte, curve ecc.ID) bool {
+	proofLength, err := gnarkProofLength(proofBytes)
+	if err != nil {
+		o.Logger.Infof("Could not determine proof length: %v", err)
+		return false
+	}
+	if proofLength > o.Config.Operator.MaxProofSize {
+		o.Logger.Infof("Proof size exceeds maximum limit of %d bytes", o.Config.Operator.MaxProofSize)
+		return false
+	}
+
 	proofReader := bytes.NewReader(proofBytes)
 	proof := groth16.NewProof(curve)
 	if _, err := proof.ReadFrom(proofReader); err != nil {

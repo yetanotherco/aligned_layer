@@ -31,4 +31,5 @@ operator:
   enable_metrics: {{ enable_metrics }}
   metrics_ip_port_address: "{{ metrics_ip_port_address }}"
   max_batch_size: 268435456 # 256 MiB
+  max_proof_size: 10485760 # 10 MiB (default if not specified)
   last_processed_batch_filepath: "{{ last_processed_batch_filepath }}"

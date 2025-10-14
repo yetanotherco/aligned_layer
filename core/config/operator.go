@@ -27,6 +27,7 @@ type OperatorConfig struct {
 		EnableMetrics                 bool
 		MetricsIpPortAddress          string
 		MaxBatchSize                  int64
+		MaxProofSize                  uint32
 		LastProcessedBatchFilePath    string
 		PollLatestBatchInterval       time.Duration
 	}
@@ -45,6 +46,7 @@ type OperatorConfigFromYaml struct {
 		EnableMetrics                 bool           `yaml:"enable_metrics"`
 		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
 		MaxBatchSize                  int64          `yaml:"max_batch_size"`
+		MaxProofSize                  uint32         `yaml:"max_proof_size"`
 		LastProcessedBatchFilePath    string         `yaml:"last_processed_batch_filepath"`
 		PollLatestBatchInterval       string         `yaml:"poll_latest_batch_interval"`
 	} `yaml:"operator"`
@@ -80,6 +82,11 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		}
 	}
 
+	maxProofSize := uint32(10 * 1024 * 1024) // 10MB default
+	if operatorConfigFromYaml.Operator.MaxProofSize > 0 {
+		maxProofSize = operatorConfigFromYaml.Operator.MaxProofSize
+	}
+
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
 		BlsConfig:                    blsConfig,
@@ -96,6 +103,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			EnableMetrics                 bool
 			MetricsIpPortAddress          string
 			MaxBatchSize                  int64
+			MaxProofSize                  uint32
 			LastProcessedBatchFilePath    string
 			PollLatestBatchInterval       time.Duration
 		}{
@@ -110,6 +118,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			EnableMetrics:                 operatorConfigFromYaml.Operator.EnableMetrics,
 			MetricsIpPortAddress:          operatorConfigFromYaml.Operator.MetricsIpPortAddress,
 			MaxBatchSize:                  operatorConfigFromYaml.Operator.MaxBatchSize,
+			MaxProofSize:                  maxProofSize,
 			LastProcessedBatchFilePath:    operatorConfigFromYaml.Operator.LastProcessedBatchFilePath,
 			PollLatestBatchInterval:       pollInterval,
 		},
