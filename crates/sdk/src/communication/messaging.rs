@@ -70,7 +70,7 @@ pub async fn send_messages(
         // Send the message
         if let Err(e) = ws_write.send(Message::Binary(msg_bin.clone())).await {
             error!("Error while sending message: {:?}", e);
-            sent_verification_data.push(Err(SubmitError::WebSocketConnectionError(e)));
+            sent_verification_data.push(Err(SubmitError::WebSocketConnectionError(e.to_string())));
             return sent_verification_data;
         }
 
