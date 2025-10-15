@@ -41,7 +41,7 @@ impl fmt::Display for BlobEstimationError {
 /// # Formula:
 /// The gas price is estimated using an exponential function based on the blob gas used in the latest block and the
 /// excess blob gas from the block header, following the formula from EIP-4844:
-/// ```
+/// ```txt
 ///    blob_gas = arbitrary_base_blob_gas_price + (excess_blob_gas + blob_gas_used) * headroom
 /// ```
 ///
