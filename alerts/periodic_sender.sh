@@ -47,7 +47,7 @@ while true; do
         echo "$message"
         ./alerts/sender_with_alert.sh "$ENV_FILE"
         tic=0  # Reset tic counter after sending a proof
-    elif { [ $tic -ge 50 ] && [ $current_gas_price -lt 50000000000 ]; }; then
+    elif { [ $tic -ge 50 ]; }; then
         # - After 50 tics (25 hours), if gas price is below 50 gwei, send a proof
         message="Sending proof at tic $tic with gas price $current_gas_price wei"
         echo "$message"
