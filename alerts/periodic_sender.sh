@@ -18,8 +18,8 @@ function fetch_gas_price() {
 
 source "$ENV_FILE"
 
-# Each tic lasts for 30 seconds
-sleep_time=30
+# Each tic lasts for 30 minutes
+sleep_time=1800
 tic=0
 
 while true; do
