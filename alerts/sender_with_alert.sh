@@ -182,10 +182,6 @@ wei_to_eth_division_factor=$((10**18))
 spent_amount=$(echo "scale=30; $total_fee_in_wei / (10^18)" | bc -l | awk '{printf "%.15f", $0}')
 
 eth_usd=$(curl -s --connect-timeout 10 --max-time 30 https://cryptoprices.cc/ETH/ 2>/dev/null)
-if [[ -z "$eth_usd" ]] || ! [[ "$eth_usd" =~ ^[0-9]+\.?[0-9]*$ ]]; then
-  echo "Warning: Could not fetch ETH price, using fallback value of 4000"
-  eth_usd=4000
-fi
 
 spent_amount_usd=$(echo "$spent_amount * $eth_usd" | bc | awk '{printf "%.2f", $1}')
 
