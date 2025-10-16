@@ -237,7 +237,7 @@ println!("Generating Proof ");
 let client = ProverClient::new();
 let (pk, vk) = client.setup(ELF);
 
-let Ok(proof) = client.prove(&pk, stdin).run() else {
+let Ok(proof) = client.prove(&pk, stdin).compressed().run() else {
     println!("Incorrect answers!");
     return;
 };

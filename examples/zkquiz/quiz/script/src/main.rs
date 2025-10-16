@@ -183,7 +183,7 @@ async fn main() {
     let client = ProverClient::from_env();
     let (pk, vk) = client.setup(ELF);
 
-    let Ok(proof) = client.prove(&pk, &stdin).run() else {
+    let Ok(proof) = client.prove(&pk, &stdin).compressed().run() else {
         println!("Incorrect answers!");
         return;
     };
