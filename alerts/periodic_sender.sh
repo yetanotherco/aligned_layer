@@ -18,8 +18,8 @@ function fetch_gas_price() {
 
 source "$ENV_FILE"
 
-# Each tic lasts for 30 minutes
-sleep_time=1800
+# Each tic lasts for 30 seconds
+sleep_time=30
 tic=0
 
 while true; do
@@ -33,28 +33,29 @@ while true; do
         # - Between 10 and 14 tics (5 to 7 hours), if gas price is below 2 gwei, send a proof
         message="Sending proof at tic $tic with gas price $current_gas_price wei"
         echo "$message"
-        ./sender_with_alert.sh "$ENV_FILE"
+        ./alerts/sender_with_alert.sh "$ENV_FILE"
+        tic=0  # Reset tic counter after sending a proof
     elif { [ $tic -ge 14 ] && [ $tic -lt 16 ] && [ $current_gas_price -lt 5000000000 ]; }; then
         # - Between 14 and 16 tics (7 to 8 hours), if gas price is below 5 gwei, send a proof
         message="Sending proof at tic $tic with gas price $current_gas_price wei"
         echo "$message"
-        ./sender_with_alert.sh "$ENV_FILE"
+        ./alerts/sender_with_alert.sh "$ENV_FILE"
+        tic=0  # Reset tic counter after sending a proof
     elif { [ $tic -ge 16 ] && [ $tic -lt 24 ] && [ $current_gas_price -lt 15000000000 ]; }; then
         # - Between 16 and 24 tics (8 to 12 hours), if gas price is below 15 gwei, send a proof
         message="Sending proof at tic $tic with gas price $current_gas_price wei"
         echo "$message"
-        ./sender_with_alert.sh "$ENV_FILE"
+        ./alerts/sender_with_alert.sh "$ENV_FILE"
+        tic=0  # Reset tic counter after sending a proof
     elif { [ $tic -ge 50 ] && [ $current_gas_price -lt 50000000000 ]; }; then
         # - After 50 tics (25 hours), if gas price is below 50 gwei, send a proof
         message="Sending proof at tic $tic with gas price $current_gas_price wei"
         echo "$message"
-        ./sender_with_alert.sh "$ENV_FILE"
+        ./alerts/sender_with_alert.sh "$ENV_FILE"
+        tic=0  # Reset tic counter after sending a proof
     fi
 
     tic=$((tic + 1))
-    if [ $tic -ge 96 ]; then
-        tic=0
-    fi
 
     echo "Sleeping $sleep_time seconds (($((sleep_time / 60)) minutes))"
     sleep "$sleep_time"
