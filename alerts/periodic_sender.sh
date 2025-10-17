@@ -14,6 +14,11 @@ fi
 function fetch_gas_price() {
     # TODO: We should have a second RPC_URL for fetching gas price to avoid being rate limited
     gas_price=$(cast gas-price --rpc-url $RPC_URL)
+    if [[ -z "$gas_price" || "$gas_price" == "0" ]]; then
+        echo "Primary RPC_URL failed to fetch gas price, trying fallback..."
+        gas_price=$(cast gas-price --rpc-url $RPC_URL_FALLBACK)
+    fi
+
     echo $gas_price
 }
 
@@ -27,6 +32,15 @@ while true; do
     echo "Starting pass #$tic"
 
     current_gas_price=$(fetch_gas_price)
+    if [[ -z "$current_gas_price" || "$current_gas_price" == "0" ]]; then
+        echo "Failed to fetch current gas price from both RPC URLs, skipping this pass."
+
+        tic=$((tic + 1))
+
+        echo "Sleeping $sleep_time seconds (($((sleep_time / 60)) minutes))"
+        sleep "$sleep_time"
+        continue
+    fi
     echo "Current gas price: $current_gas_price wei"
 
     # In case current tic and gas price meet the criteria, send a proof and reset tic counter
