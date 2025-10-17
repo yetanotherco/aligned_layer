@@ -12,7 +12,6 @@ fi
 
 # Fetches the current ETH gas price
 function fetch_gas_price() {
-    # TODO: We should have a second RPC_URL for fetching gas price to avoid being rate limited
     gas_price=$(cast gas-price --rpc-url $RPC_URL)
     if [[ -z "$gas_price" || "$gas_price" == "0" ]]; then
         echo "Primary RPC_URL failed to fetch gas price, trying fallback..."
