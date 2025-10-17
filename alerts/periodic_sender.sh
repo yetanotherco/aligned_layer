@@ -24,18 +24,18 @@ function fetch_gas_price() {
 
 source "$ENV_FILE"
 
-# Each tic lasts for 30 minutes
+# Each elapsed interval lasts for 30 minutes
 sleep_time=1800
-tic=0
+elapsed_intervals=0
 
 while true; do
-    echo "Starting pass #$tic"
+    echo "Starting pass #$elapsed_intervals"
 
     current_gas_price=$(fetch_gas_price)
     if [[ -z "$current_gas_price" || "$current_gas_price" == "0" ]]; then
         echo "Failed to fetch current gas price from both RPC URLs, skipping this pass."
 
-        tic=$((tic + 1))
+        elapsed_intervals=$((elapsed_intervals + 1))
 
         echo "Sleeping $sleep_time seconds (($((sleep_time / 60)) minutes))"
         sleep "$sleep_time"
@@ -43,34 +43,34 @@ while true; do
     fi
     echo "Current gas price: $current_gas_price wei"
 
-    # In case current tic and gas price meet the criteria, send a proof and reset tic counter
-    if { [ $tic -ge 10 ] && [ $tic -lt 14 ] && [ $current_gas_price -lt 2000000000 ]; }; then
-        # Between 10 and 14 tics (5 to 7 hours), if gas price is below 2 gwei, send a proof
-        message="Sending proof at tic $tic with gas price $current_gas_price wei"
+    # In case current and gas price meet the criteria, send a proof and reset counter
+    if { [ $elapsed_intervals -ge 10 ] && [ $elapsed_intervals -lt 14 ] && [ $current_gas_price -lt 2000000000 ]; }; then
+        # Between 10 and 14 elapsed intervals (5 to 7 hours), if gas price is below 2 gwei, send a proof
+        message="Sending proof at $elapsed_intervals with gas price $current_gas_price wei"
         echo "$message"
         ./alerts/sender_with_alert.sh "$ENV_FILE"
-        tic=0
-    elif { [ $tic -ge 14 ] && [ $tic -lt 16 ] && [ $current_gas_price -lt 5000000000 ]; }; then
-        # Between 14 and 16 tics (7 to 8 hours), if gas price is below 5 gwei, send a proof
-        message="Sending proof at tic $tic with gas price $current_gas_price wei"
+        elapsed_intervals=0
+    elif { [ $elapsed_intervals -ge 14 ] && [ $elapsed_intervals -lt 16 ] && [ $current_gas_price -lt 5000000000 ]; }; then
+        # Between 14 and 16 elapsed intervals (7 to 8 hours), if gas price is below 5 gwei, send a proof
+        message="Sending proof at $elapsed_intervals with gas price $current_gas_price wei"
         echo "$message"
         ./alerts/sender_with_alert.sh "$ENV_FILE"
-        tic=0
-    elif { [ $tic -ge 16 ] && [ $tic -lt 24 ] && [ $current_gas_price -lt 15000000000 ]; }; then
-        # Between 16 and 24 tics (8 to 12 hours), if gas price is below 15 gwei, send a proof
-        message="Sending proof at tic $tic with gas price $current_gas_price wei"
+        elapsed_intervals=0
+    elif { [ $elapsed_intervals -ge 16 ] && [ $elapsed_intervals -lt 24 ] && [ $current_gas_price -lt 15000000000 ]; }; then
+        # Between 16 and 24 elapsed intervals (8 to 12 hours), if gas price is below 15 gwei, send a proof
+        message="Sending proof at $elapsed_intervals with gas price $current_gas_price wei"
         echo "$message"
         ./alerts/sender_with_alert.sh "$ENV_FILE"
-        tic=0
-    elif { [ $tic -ge 50 ]; }; then
-        # After 50 tics (25 hours), if gas price is below 50 gwei, send a proof
-        message="Sending proof at tic $tic with gas price $current_gas_price wei"
+        elapsed_intervals=0
+    elif { [ $elapsed_intervals -ge 50 ]; }; then
+        # After 50 elapsed intervals (25 hours), if gas price is below 50 gwei, send a proof
+        message="Sending proof at $elapsed_intervals with gas price $current_gas_price wei"
         echo "$message"
         ./alerts/sender_with_alert.sh "$ENV_FILE"
-        tic=0
+        elapsed_intervals=0
     fi
 
-    tic=$((tic + 1))
+    elapsed_intervals=$((elapsed_intervals + 1))
 
     echo "Sleeping $sleep_time seconds (($((sleep_time / 60)) minutes))"
     sleep "$sleep_time"
