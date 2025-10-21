@@ -27,6 +27,8 @@ source "$ENV_FILE"
 sleep_time=1800
 elapsed_intervals=0
 
+./alerts/sender_with_alert.sh "$ENV_FILE"
+
 while true; do
     echo "Starting pass #$elapsed_intervals"
 
