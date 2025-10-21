@@ -64,7 +64,7 @@ while true; do
         ./alerts/sender_with_alert.sh "$ENV_FILE"
         elapsed_intervals=0
     elif { [ $elapsed_intervals -ge 50 ]; }; then
-        # After 50 elapsed intervals (25 hours), if gas price is below 50 gwei, send a proof
+        # After 50 elapsed intervals (25 hours) send a proof
         message="Sending proof at $elapsed_intervals with gas price $current_gas_price wei"
         echo "$message"
         ./alerts/sender_with_alert.sh "$ENV_FILE"
