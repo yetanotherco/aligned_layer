@@ -18,7 +18,7 @@ endif
 CONFIG_FILE?=config-files/config.yaml
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.19.1
+OPERATOR_VERSION=v0.20.0
 EIGEN_SDK_GO_VERSION_DEVNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
