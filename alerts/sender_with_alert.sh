@@ -100,6 +100,9 @@ x=$((nonce + 1)) # So we don't have any issues with nonce = 0
 echo "Generating proof $x != 0, nonce: $nonce"
 go run ./scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go $x
 
+verification_data_dir="./aligned_verification_data_$x"
+mkdir -p $verification_data_dir
+
 ## Send Proof
 echo "Submitting $REPETITIONS proofs $x != 0"
 submit=$(aligned submit \
@@ -113,6 +116,7 @@ submit=$(aligned submit \
   --network $NETWORK \
   --max_fee 0.004ether \
   --random_address \
+  --aligned_verification_data_path $verification_data_dir \
   2>&1)
 
 echo "$submit"
@@ -221,6 +225,6 @@ send_slack_message "$slack_message"
 
 ## Remove Proof Data
 rm -rf ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/*
-rm -rf ./aligned_verification_data/*
+rm -rf ./aligned_verification_data_$x
 
 exit 0
