@@ -11,7 +11,7 @@ if [[ -z "$ENV_FILE" ]]; then
 fi
 
 function send_proof_background() {
-    ./alerts/sender_with_alert.sh "$ENV_FILE"
+    ./alerts/sender_with_alert.sh "$ENV_FILE" &
 }
 
 # Fetches the current ETH gas price
