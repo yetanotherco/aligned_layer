@@ -8,6 +8,8 @@ replace github.com/iden3/go-rapidsnark/types => github.com/yetanotherco/go-rapid
 
 replace github.com/iden3/go-rapidsnark/verifier => github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250829135025-99f9f6b11ecc
 
+replace github.com/consensys/gnark-crypto => github.com/yetanotherco/gnark-crypto v0.0.0-20251017181549-3ba17da18479
+
 require (
 	github.com/consensys/gnark v0.12.0
 	github.com/consensys/gnark-crypto v0.17.0

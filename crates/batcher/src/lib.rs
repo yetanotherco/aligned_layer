@@ -33,9 +33,9 @@ use aligned_sdk::common::constants::{
     RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
 };
 use aligned_sdk::common::types::{
-    ClientMessage, GetNonceResponseMessage, NoncedVerificationData, ProofInvalidReason,
-    ProvingSystemId, SubmitProofMessage, SubmitProofResponseMessage, VerificationCommitmentBatch,
-    VerificationData, VerificationDataCommitment,
+    ClientMessage, GetLastMaxFeeResponseMessage, GetNonceResponseMessage, NoncedVerificationData,
+    ProofInvalidReason, ProvingSystemId, SubmitProofMessage, SubmitProofResponseMessage,
+    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
 };
 
 use aws_sdk_s3::client::Client as S3Client;
@@ -916,6 +916,11 @@ impl Batcher {
                     .handle_submit_proof_msg(msg, ws_conn_sink)
                     .await
             }
+            ClientMessage::GetLastMaxFee(address) => {
+                self.clone()
+                    .handle_get_last_max_fee(address, ws_conn_sink)
+                    .await
+            }
         }
     }
 
@@ -998,6 +1003,84 @@ impl Batcher {
         send_message(
             ws_conn_sink.clone(),
             GetNonceResponseMessage::Nonce(user_nonce),
+        )
+        .await;
+
+        Ok(())
+    }
+
+    async fn handle_get_last_max_fee(
+        self: Arc<Self>,
+        mut address: Address,
+        ws_conn_sink: WsMessageSink,
+    ) -> Result<(), Error> {
+        // If the address is not paying, we will return the last max fee of the aligned_payment_address
+        if !self.has_to_pay(&address) {
+            info!("Handling nonpaying message");
+            let Some(non_paying_config) = self.non_paying_config.as_ref() else {
+                warn!(
+                    "There isn't a non-paying configuration loaded. This message will be ignored"
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    GetLastMaxFeeResponseMessage::InvalidRequest(
+                        "There isn't a non-paying configuration loaded.".to_string(),
+                    ),
+                )
+                .await;
+                return Ok(());
+            };
+            let replacement_addr = non_paying_config.replacement.address();
+            address = replacement_addr;
+        }
+
+        let user_states_guard = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read())
+            .await
+        {
+            Ok(guard) => guard,
+            Err(_) => {
+                warn!("User states read lock acquisition timed out in handle_get_last_max_fee_for_address_msg");
+                self.metrics.inc_message_handler_user_states_lock_timeouts();
+                send_message(ws_conn_sink, GetLastMaxFeeResponseMessage::ServerBusy).await;
+                return Ok(());
+            }
+        };
+
+        let Some(usr_ref) = user_states_guard.get(&address).cloned() else {
+            drop(user_states_guard);
+            send_message(
+                ws_conn_sink.clone(),
+                GetLastMaxFeeResponseMessage::LastMaxFee(U256::MAX),
+            )
+            .await;
+            return Ok(());
+        };
+
+        let Some(usr_lock) = self
+            .try_user_lock_with_timeout(address, usr_ref.lock())
+            .await
+        else {
+            drop(user_states_guard);
+            send_message(
+                ws_conn_sink.clone(),
+                GetLastMaxFeeResponseMessage::ServerBusy,
+            )
+            .await;
+            return Ok(());
+        };
+
+        let proofs_in_queue = usr_lock.proofs_in_batch;
+        let max_fee = if proofs_in_queue > 0 {
+            usr_lock.last_max_fee_limit
+        } else {
+            U256::MAX
+        };
+        drop(usr_lock);
+        drop(user_states_guard);
+
+        send_message(
+            ws_conn_sink.clone(),
+            GetLastMaxFeeResponseMessage::LastMaxFee(max_fee),
         )
         .await;
 

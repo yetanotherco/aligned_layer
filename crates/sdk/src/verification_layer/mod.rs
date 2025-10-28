@@ -5,10 +5,11 @@ use crate::{
             DEFAULT_MAX_FEE_BATCH_SIZE, GAS_PRICE_PERCENTAGE_MULTIPLIER,
             INSTANT_MAX_FEE_BATCH_SIZE, PERCENTAGE_DIVIDER,
         },
-        errors::{self, GetNonceError, PaymentError},
+        errors::{self, GetLastMaxFeeError, GetNonceError, PaymentError},
         types::{
-            AlignedVerificationData, ClientMessage, FeeEstimationType, GetNonceResponseMessage,
-            Network, ProvingSystemId, VerificationData,
+            AlignedVerificationData, ClientMessage, FeeEstimationType,
+            GetLastMaxFeeResponseMessage, GetNonceResponseMessage, Network, ProvingSystemId,
+            VerificationData,
         },
     },
     communication::{
@@ -647,6 +648,87 @@ pub async fn get_nonce_from_ethereum(
             Ok(result)
         }
         Err(e) => Err(GetNonceError::EthRpcError(e.to_string())),
+    }
+}
+
+/// Retrieves the `max_fee` of the proof with the highest nonce in the batcher queue for a given address.
+///
+/// This value represents the maximum fee limit that can be used when submitting the next proof.  
+/// To increase the fee limit for a new proof, you must first bump the fee of the previous proofs,
+/// and continue doing so recursively until you reach the proof with the highest nonce (this one).
+///
+/// Read more here: https://docs.alignedlayer.com/architecture/1_proof_verification_layer/1_batcher#max-fee-priority-queue
+///
+/// # Arguments
+/// * `network` - The network from which to retrieve the last `max_fee`.
+/// * `address` - The user address whose last `max_fee` will be retrieved.
+///
+/// # Returns
+/// * `Ok(U256)` - The `max_fee` of the proof with the highest nonce for the given user.  
+/// * `Ok(U256::MAX)` - If the user has no proofs in the queue.  
+pub async fn get_last_max_fee(
+    network: Network,
+    address: Address,
+) -> Result<U256, GetLastMaxFeeError> {
+    let (ws_stream, _) = connect_async(network.get_batcher_url())
+        .await
+        .map_err(|_| {
+            GetLastMaxFeeError::ConnectionFailed("Ws connection to batcher failed".to_string())
+        })?;
+
+    debug!("WebSocket handshake has been successfully completed");
+    let (mut ws_write, mut ws_read) = ws_stream.split();
+    check_protocol_version(&mut ws_read)
+        .map_err(|e| match e {
+            errors::SubmitError::ProtocolVersionMismatch { current, expected } => {
+                GetLastMaxFeeError::ProtocolMismatch { current, expected }
+            }
+            _ => GetLastMaxFeeError::UnexpectedResponse(
+                "Unexpected response, expected protocol version".to_string(),
+            ),
+        })
+        .await?;
+
+    let msg = ClientMessage::GetLastMaxFee(address);
+
+    let msg_bin = cbor_serialize(&msg).map_err(|_| {
+        GetLastMaxFeeError::SerializationError("Failed to serialize msg".to_string())
+    })?;
+    ws_write
+        .send(Message::Binary(msg_bin.clone()))
+        .await
+        .map_err(|_| {
+            GetLastMaxFeeError::ConnectionFailed(
+                "Ws connection failed to send message to batcher".to_string(),
+            )
+        })?;
+
+    let mut response_stream: ResponseStream =
+        ws_read.try_filter(|msg| futures_util::future::ready(msg.is_binary()));
+
+    let msg = match response_stream.next().await {
+        Some(Ok(msg)) => msg,
+        _ => {
+            return Err(GetLastMaxFeeError::ConnectionFailed(
+                "Connection was closed without close message before receiving all messages"
+                    .to_string(),
+            ));
+        }
+    };
+
+    let _ = ws_write.close().await;
+
+    match cbor_deserialize(msg.into_data().as_slice()) {
+        Ok(GetLastMaxFeeResponseMessage::LastMaxFee(last_max_fee)) => Ok(last_max_fee),
+        Ok(GetLastMaxFeeResponseMessage::InvalidRequest(e)) => {
+            Err(GetLastMaxFeeError::InvalidRequest(e))
+        }
+        Ok(GetLastMaxFeeResponseMessage::ServerBusy) => Err(GetLastMaxFeeError::GenericError(
+            "Server is busy processing requests, please retry".to_string(),
+        )),
+        Err(_) => Err(GetLastMaxFeeError::SerializationError(
+            "Failed to deserialize batcher message".to_string(),
+        )),
     }
 }
 
