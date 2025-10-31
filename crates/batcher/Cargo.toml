@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 tokio-tungstenite = "0.21.0"
-mina_bridge_core = { git = "https://github.com/lambdaclass/mina_bridge.git", rev = "a4498abb345d68dbb699ff38ef698800879231f8" }
 futures-util = "0.3.30"
 tokio = { version = "1.45.1", features = ["rt", "rt-multi-thread", "macros"] }
 log = "0.4.21"
