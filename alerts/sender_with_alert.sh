@@ -224,7 +224,6 @@ for proof in ./aligned_verification_data_$x/*.cbor; do
     echo "$message"
     send_pagerduty_alert "$message"
     verified=0 # Some proofs failed, so we should not send the success message
-    create_log_entry "FAILURE" "Proof verification failed for $proof"
     break
   elif echo "$verification" | grep -q verified; then
     echo "Proof verification succeeded for $proof"
