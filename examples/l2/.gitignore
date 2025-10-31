@@ -1,0 +1,5 @@
+crates/l2/programs_ids.json
+contract-owner.keystore.json
+cmd/db
+cmd/proof.bin
+crates/db

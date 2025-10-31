@@ -3,13 +3,25 @@
 SHELL := /bin/bash
 OS := $(shell uname -s)
 
+NETWORK ?= devnet # devnet | holesky-stage | holesky
+ifeq ($(NETWORK),holesky)
+	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
+	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+else ifeq ($(NETWORK), holesky-stage)
+	RPC_URL ?= https://ethereum-holesky-rpc.publicnode.com
+	BEACON_URL ?= https://eth-beacon-chain-holesky.drpc.org/rest/
+else
+	RPC_URL ?= http://localhost:8545
+	BEACON_URL ?= http://localhost:58801
+endif
+
 CONFIG_FILE?=config-files/config.yaml
-export OPERATOR_ADDRESS ?= $(shell yq -r '.operator.address' $(CONFIG_FILE))
 AGG_CONFIG_FILE?=config-files/config-aggregator.yaml
 
-OPERATOR_VERSION=v0.14.0
+OPERATOR_VERSION=v0.20.0
+EIGEN_SDK_GO_VERSION_DEVNET=v0.2.0-beta.1
 EIGEN_SDK_GO_VERSION_TESTNET=v0.2.0-beta.1
-EIGEN_SDK_GO_VERSION_MAINNET=v0.1.13
+EIGEN_SDK_GO_VERSION_MAINNET=v0.2.0-beta.1
 
 ifeq ($(OS),Linux)
 	BUILD_ALL_FFI = $(MAKE) build_all_ffi_linux
@@ -20,16 +32,16 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
-	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
+	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
 endif
 
 ifeq ($(OS),Linux)
-	BUILD_OPERATOR = $(MAKE) build_operator_linux 
+	BUILD_OPERATOR = $(MAKE) operator_build_linux
 endif
 
 ifeq ($(OS),Darwin)
-	BUILD_OPERATOR = $(MAKE) build_operator_macos
+	BUILD_OPERATOR = $(MAKE) operator_build_macos
 endif
 
 ifeq ($(ENVIRONMENT), devnet)
@@ -54,9 +66,11 @@ else
 endif
 
 help:
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {if ($$1 ~ /^__/) printf "\033[33m%-50s\033[0m %s\n", $$1, $$2; else printf "\033[36m%-50s\033[0m %s\n", $$1, $$2}'
 
-submodules:
+__DEPENDENCIES__: ## ____
+
+submodules: ## Initialize and update git submodules
 	git submodule update --init --recursive
 	@echo "Updated submodules"
 
@@ -65,41 +79,73 @@ deps: submodules go_deps build_all_ffi ## Install deps
 go_deps:
 	@echo "Installing Go dependencies..."
 	go install github.com/maoueh/zap-pretty@v0.3.0
-	go install github.com/ethereum/go-ethereum/cmd/abigen@latest
-	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@latest
+	go install github.com/ethereum/go-ethereum/cmd/abigen@v1.14.0
+	go install github.com/Layr-Labs/eigenlayer-cli/cmd/eigenlayer@v0.13.0
 
-install_foundry:
+foundry_install:
 	curl -L https://foundry.paradigm.xyz | bash
 
-anvil_deploy_eigen_contracts:
+eigenlayer_cli_install: ## Install Eigenlayer CLI v0.13.0
+	curl -sSfL https://raw.githubusercontent.com/layr-labs/eigenlayer-cli/master/scripts/install.sh | sh -s -- v0.13.0
+
+__UTILS__: ## ____
+
+bindings: ## Generate Go bindings for contracts
+	cd contracts && ./generate-go-bindings.sh
+
+lint_contracts: ## Lint Solidity contracts
+	@cd contracts && npm run lint:sol
+
+build_aligned_contracts: ## Build AlignedLayer contracts
+	@cd contracts/src/core && forge build --via-ir
+
+show_aligned_error_codes: ## Show AlignedLayer error codes
+	@echo "\nAlignedLayerServiceManager errors:"
+	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
+	@echo "\nBatcherPaymentService errors:"
+	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
+
+__CONTRACTS_DEPLOYMENT_ANVIL__: ## ____
+
+anvil_deploy_all_contracts: anvil_deploy_eigen_contracts anvil_deploy_risc0_contracts anvil_deploy_sp1_contracts anvil_deploy_aligned_contracts
+
+anvil_deploy_eigen_contracts: ## Deploy EigenLayer Contracts on ANVIL
 	@echo "Deploying Eigen Contracts..."
 	. contracts/scripts/anvil/deploy_eigen_contracts.sh
 
-anvil_deploy_aligned_contracts:
+anvil_deploy_risc0_contracts: ## Deploy RISC0 Contracts used by Aggregation Mode on ANVIL
+	@echo "Deploying RISC0 Contracts..."
+	. contracts/scripts/anvil/deploy_risc0_contracts.sh
+
+anvil_deploy_sp1_contracts: ## Deploy SP1 Contracts used by Aggregation Mode on ANVIL
+	@echo "Deploying SP1 Contracts..."
+	. contracts/scripts/anvil/deploy_sp1_contracts.sh
+
+anvil_deploy_aligned_contracts: ## Deploy Aligned Contracts (Verification Layer and Aggregation Mode) on ANVIL
 	@echo "Deploying Aligned Contracts..."
 	. contracts/scripts/anvil/deploy_aligned_contracts.sh
 
-anvil_upgrade_aligned_contracts:
+anvil_upgrade_aligned_contracts: ## Upgrade Aligned Contracts (Verification Layer and Aggregation Mode) on ANVIL
 	@echo "Upgrading Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_aligned_contracts.sh
 
-anvil_upgrade_batcher_payment_service:
+anvil_upgrade_batcher_payment_service: ## Upgrade BatcherPaymentService contract on ANVIL
 	@echo "Upgrading BatcherPayments contract..."
 	. contracts/scripts/anvil/upgrade_batcher_payment_service.sh
 
-anvil_upgrade_registry_coordinator:
+anvil_upgrade_registry_coordinator: ## Upgrade Registry Coordinator Contracts on ANVIL
 	@echo "Upgrading Registry Coordinator Contracts..."
 	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
 
-anvil_upgrade_bls_apk_registry:
+anvil_upgrade_bls_apk_registry: ## Upgrade Bls Apk Registry Contract on ANVIL
 	@echo "Upgrading Bls Apk Registry Contract..."
 	. contracts/scripts/anvil/upgrade_bls_apk_registry.sh
 
-anvil_upgrade_stake_registry:
+anvil_upgrade_stake_registry: ## Upgrade Stake Registry Contract on ANVIL
 	@echo "Upgrading Stake Registry Contract..."
 	. contracts/scripts/anvil/upgrade_stake_registry.sh
 
-anvil_upgrade_index_registry:
+anvil_upgrade_index_registry: ## Upgrade Index Registry Contracts on ANVIL
 	@echo "Upgrading Index Registry Contracts..."
 	. contracts/scripts/anvil/upgrade_index_registry.sh
 
@@ -107,27 +153,29 @@ anvil_upgrade_add_aggregator:
 	@echo "Adding Aggregator to Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_add_aggregator_to_service_manager.sh
 
-pause_all_aligned_service_manager:
+__CONTRACTS_MANAGEMENT__: ## ____
+
+pause_all_aligned_service_manager: ## Pause all Aligned Service Manager contracts
 	@echo "Pausing all contracts..."
 	. contracts/scripts/pause_aligned_service_manager.sh all
 
-unpause_all_aligned_service_manager:
+unpause_all_aligned_service_manager: ## Unpause all Aligned Service Manager contracts
 	@echo "Pausing all contracts..."
 	. contracts/scripts/unpause_aligned_service_manager.sh all
 
-get_paused_state_aligned_service_manager:
+get_paused_state_aligned_service_manager: ## Get paused state of Aligned Service Manager contracts
 	@echo "Getting paused state of Aligned Service Manager contract..."
 	. contracts/scripts/get_paused_state_aligned_service_manager.sh
 
-pause_batcher_payment_service:
+pause_batcher_payment_service: ## Pause BatcherPaymentService contract
 	@echo "Pausing BatcherPayments contract..."
 	. contracts/scripts/pause_batcher_payment_service.sh
 
-unpause_batcher_payment_service:
+unpause_batcher_payment_service: ## Unpause BatcherPaymentService contract
 	@echo "Unpausing BatcherPayments contract..."
 	. contracts/scripts/unpause_batcher_payment_service.sh
 
-get_paused_state_batcher_payments_service:
+get_paused_state_batcher_payments_service: ## Get paused state of BatcherPaymentService contract
 	@echo "Getting paused state of Batcher Payments Service contract..."
 	. contracts/scripts/get_paused_state_batcher_payments_service.sh
 	
@@ -135,33 +183,140 @@ anvil_upgrade_initialize_disable_verifiers:
 	@echo "Initializing disabled verifiers..."
 	. contracts/scripts/anvil/upgrade_disabled_verifiers_in_service_manager.sh
 
-lint_contracts:
-	@cd contracts && npm run lint:sol
+# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
+verifier_enable_devnet: ## Enable a verifier on devnet
+	@echo "Enabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
 
-anvil_start:
-	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json
+verifier_disable_devnet: ## Disable a verifier on devnet
+	@echo "Disabling verifier with id: $(VERIFIER_ID)"
+	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
 
-anvil_start_with_block_time:
+verifier_enable: ## Enable a verifier
+	@echo "Enabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
+
+verifier_disable: ## Disable a verifier
+	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
+	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
+
+strategies_get_weight: ## Get the weight of a strategy
+	@echo "Getting weight of strategy: $(STRATEGY_INDEX)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_strategy_weight.sh $(STRATEGY_INDEX)
+
+strategies_update_weight: ## TODO
+	@echo "Updating strategy weights: "
+	@echo "STRATEGY_INDICES: $(STRATEGY_INDICES)"
+	@echo "NEW_MULTIPLIERS: $(NEW_MULTIPLIERS)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/update_strategy_weight.sh $(STRATEGY_INDICES) $(NEW_MULTIPLIERS)
+
+strategies_remove: ## TODO
+	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
+
+strategies_get_addresses: ## TODO
+	@echo "Getting strategy addresses"
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_restakeable_strategies.sh
+
+__ANVIL__: ## ____
+
+anvil_start: ## Start Anvil with pre-deployed state
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
-anvil_start_with_block_time_with_more_prefunded_accounts:
+anvil_start_with_more_prefunded_accounts:
 	@echo "Starting Anvil..."
 	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7 -a 2000
 
-_AGGREGATOR_:
+__AGGREGATION_MODE__: ## ____
 
-build_aggregator:
-	$(GET_SDK_VERSION)
-	@echo "Building aggregator"
-	@go build -o ./build/aligned-aggregator ./aggregator/cmd/main.go
+is_aggregator_set:
+	@if [ -z "$(AGGREGATOR)" ]; then \
+		echo "Error: AGGREGATOR is not set. Please provide arg AGGREGATOR='sp1' or 'risc0'."; \
+		exit 1; \
+	fi
 
-aggregator_start:
+reset_last_aggregated_block:
+	@echo "Resetting last aggregated block..."
+	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
+
+AGGREGATION_MODE_SOURCES = $(wildcard ./aggregation_mode/Cargo.toml) $(wildcard ./aggregation_mode/src/**) $(wildcard ./aggregation_mode/aggregation_programs/risc0/Cargo.toml) $(wildcard ./aggregation_mode/aggregation_programs/risc0/src/**) $(wildcard ./aggregation_mode/aggregation_programs/sp1/Cargo.toml) $(wildcard ./aggregation_mode/aggregation_programs/sp1/src/**)
+
+### All Dev proof aggregator receipts with no real proving
+./aggregation_mode/target/release/proof_aggregator_dev: $(AGGREGATION_MODE_SOURCES)
+		AGGREGATOR=$(AGGREGATOR) cargo build --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_dev
+
+proof_aggregator_start_dev: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_dev ## Starts proof aggregator with mock proofs (DEV mode). Parameters: AGGREGATOR=<sp1|risc0>
+	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 ./aggregation_mode/target/release/proof_aggregator_dev config-files/config-proof-aggregator-mock.yaml
+
+proof_aggregator_start_dev_ethereum_package: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_dev ## Starts proof aggregator with mock proofs (DEV mode) in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
+	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 ./aggregation_mode/target/release/proof_aggregator_dev config-files/config-proof-aggregator-mock-ethereum-package.yaml
+
+### All CPU proof aggregator receipts
+./aggregation_mode/target/release/proof_aggregator_cpu: $(AGGREGATION_MODE_SOURCES)
+	AGGREGATOR=$(AGGREGATOR) cargo build --features prove --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_cpu
+
+proof_aggregator_start: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_cpu ## Starts proof aggregator with proving activated. Parameters: AGGREGATOR=<sp1|risc0>
+	AGGREGATOR=$(AGGREGATOR) ./aggregation_mode/target/release/proof_aggregator_cpu config-files/config-proof-aggregator.yaml
+
+proof_aggregator_start_ethereum_package: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_cpu ## Starts proof aggregator with proving activated in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
+	AGGREGATOR=$(AGGREGATOR) ./aggregation_mode/target/release/proof_aggregator_cpu config-files/config-proof-aggregator-ethereum-package.yaml
+
+### All GPU proof aggregator receipts
+./aggregation_mode/target/release/proof_aggregator_gpu: $(AGGREGATION_MODE_SOURCES)
+	AGGREGATOR=$(AGGREGATOR) cargo build --features "prove,gpu" --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_gpu
+
+proof_aggregator_start_gpu: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_gpu ## Starts proof aggregator with proving + GPU acceleration (CUDA). Parameters: AGGREGATOR=<sp1|risc0>
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda ./aggregation_mode/target/release/proof_aggregator_gpu config-files/config-proof-aggregator.yaml
+
+proof_aggregator_start_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_gpu ## Starts proof aggregator with proving activated in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
+	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda ./aggregation_mode/target/release/proof_aggregator_gpu config-files/config-proof-aggregator-ethereum-package.yaml
+
+verify_aggregated_proof_sp1: 
+	@echo "Verifying SP1 in aggregated proofs on $(NETWORK)..."
+	@cd crates/cli/ && \
+	cargo run verify-agg-proof \
+		--network $(NETWORK) \
+		--from-block $(FROM_BLOCK) \
+		--proving_system SP1 \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
+		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
+		--beacon_url $(BEACON_URL) \
+		--rpc_url $(RPC_URL)
+
+verify_aggregated_proof_risc0: 
+	@echo "Verifying RISC0 in aggregated proofs on $(NETWORK)..."
+	@cd crates/cli/ && \
+	cargo run verify-agg-proof \
+		--network $(NETWORK) \
+		--from-block $(FROM_BLOCK) \
+		--proving_system Risc0 \
+		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
+		--beacon_url $(BEACON_URL) \
+		--rpc_url $(RPC_URL)
+
+proof_aggregator_install: ## Install the aggregation mode with proving enabled
+	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator_gpu --locked
+
+proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
+	@cd aggregation_mode && ./scripts/build_programs.sh
+
+__AGGREGATOR__: ## ____
+
+aggregator_start: ## Start the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, AGG_CONFIG_FILE
 	$(GET_SDK_VERSION)
 	@echo "Starting Aggregator..."
 	@go run aggregator/cmd/main.go --config $(AGG_CONFIG_FILE) \
 	2>&1 | zap-pretty
+
+aggregator_start_ethereum_package: ## Start the Aggregator with Ethereum package config. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, AGG_CONFIG_FILE
+	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
+
+aggregator_build: ## Build the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
+	$(GET_SDK_VERSION)
+	@echo "Building aggregator"
+	@go build -o ./build/aligned-aggregator ./aggregator/cmd/main.go
 
 aggregator_send_dummy_responses:
 	@echo "Sending dummy responses to Aggregator..."
@@ -171,19 +326,24 @@ test_go_retries:
 	@cd core/ && \
 	go test -v -timeout 15m
 
-__OPERATOR__:
+__OPERATOR__: ## ____
 
-operator_start:
+operator_start: ## Start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 	$(GET_SDK_VERSION)
 	@echo "Starting Operator..."
 	go run operator/cmd/main.go start --config $(CONFIG_FILE) \
 	2>&1 | zap-pretty
 
+operator_start_ethereum_package: ## Start the Operator with Ethereum package config
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
+
 operator_set_eigen_sdk_go_version_testnet:
 	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_TESTNET)"
 	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_TESTNET)
 
-operator_set_eigen_sdk_go_version_devnet: operator_set_eigen_sdk_go_version_mainnet
+operator_set_eigen_sdk_go_version_devnet:
+	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_DEVNET)"
+	go get github.com/Layr-Labs/eigensdk-go@$(EIGEN_SDK_GO_VERSION_DEVNET)
 
 operator_set_eigen_sdk_go_version_mainnet:
 	@echo "Setting Eigen SDK version to: $(EIGEN_SDK_GO_VERSION_MAINNET)"
@@ -193,29 +353,39 @@ operator_set_eigen_sdk_go_version_error:
 	@echo "Error setting Eigen SDK version, missing ENVIRONMENT. Possible values for ENVIRONMENT=<devnet|testnet|mainnet>"
 	exit 1
 
-operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer
+operator_full_registration: operator_get_eth operator_register_with_eigen_layer operator_mint_mock_tokens operator_deposit_into_mock_strategy operator_whitelist_devnet operator_register_with_aligned_layer ## Register the operator in EigenLayer and AlignedLayer. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
 
-operator_register_and_start: $(GET_SDK_VERSION) operator_full_registration operator_start
+operator_full_registration_and_start: ## Register the operator in EigenLayer and AlignedLayer, then start the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, CONFIG_FILE
+	@echo "Operator address: $$(yq -r '.operator.address' $$CONFIG_FILE)" && \
+	$(MAKE) operator_full_registration CONFIG_FILE=$(CONFIG_FILE) && \
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=$(CONFIG_FILE)
 
-build_operator: deps
+operator_full_registration_and_start_ethereum_package: ## Register the operator in EigenLayer and AlignedLayer, then start the Operator with Ethereum package config
+	@export CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml && \
+	echo "Operator address: $$(yq -r '.operator.address' $$CONFIG_FILE)" && \
+	$(MAKE) operator_full_registration CONFIG_FILE=$$CONFIG_FILE && \
+	$(MAKE) operator_start ENVIRONMENT=devnet CONFIG_FILE=$$CONFIG_FILE
+
+
+operator_build: deps ## Build the Operator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
 	$(GET_SDK_VERSION)
 	$(BUILD_OPERATOR)
 
-build_operator_macos:
+operator_build_macos:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
-build_operator_linux:
+operator_build_linux:
 	@echo "Building Operator..."
 	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION) -r $(OPERATOR_FFIS)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
 	@echo "Operator built into /operator/build/aligned-operator"
 
-update_operator:
+operator_update: ## Update the Operator to the latest version and build it. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>
 	$(GET_SDK_VERSION)
 	@echo "Updating Operator..."
 	@./scripts/fetch_latest_release.sh
-	@make build_operator
+	@make operator_build
 	@./operator/build/aligned-operator --version
 
 operator_valid_marshall_fuzz_macos:
@@ -232,12 +402,8 @@ operator_marshall_unmarshall_fuzz_linux:
 	@cd operator/pkg && \
 	go test -fuzz=FuzzMarshalUnmarshal
 
-bindings:
-	cd contracts && ./generate-go-bindings.sh
-
 test:
 	go test ./... -timeout 15m
-
 
 get_delegation_manager_address:
 	@sed -n 's/.*"delegationManager": "\([^"]*\)".*/\1/p' contracts/script/output/devnet/eigenlayer_deployment_output.json
@@ -254,7 +420,8 @@ operator_generate_config:
 
 operator_get_eth:
 	@echo "Sending funds to operator address on devnet"
-	@. ./scripts/fund_operator_devnet.sh
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	. ./scripts/fund_operator_devnet.sh
 
 operator_register_with_eigen_layer:
 	@echo "Registering operator with EigenLayer"
@@ -262,34 +429,38 @@ operator_register_with_eigen_layer:
 
 operator_mint_mock_tokens:
 	@echo "Minting tokens"
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
 	. ./scripts/mint_mock_token.sh $(CONFIG_FILE) 100000000000000000
 
 operator_whitelist_devnet:
 	@echo "Whitelisting operator"
-	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Operator address: $$OPERATOR_ADDRESS" && \
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_remove_from_whitelist_devnet:
 	@echo "Removing operator"
-	@echo "Operator address: $(OPERATOR_ADDRESS)"
-	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Operator address: $$OPERATOR_ADDRESS" && \
+	RPC_URL="http://localhost:8545" PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/operator_remove_from_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_whitelist:
-	@echo "Whitelisting operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/operator_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Whitelisting operator $$OPERATOR_ADDRESS on $(NETWORK)" && \
+	. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/operator_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_remove_from_whitelist:
-	@echo "Removing operator $(OPERATOR_ADDRESS)"
-	@. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $(OPERATOR_ADDRESS)
+	@OPERATOR_ADDRESS=$$(yq -r '.operator.address' $(CONFIG_FILE)) && \
+	echo "Removing operator $$OPERATOR_ADDRESS" && \
+	. contracts/scripts/.env && . contracts/scripts/operator_remove_from_whitelist.sh $$OPERATOR_ADDRESS
 
 operator_deposit_into_mock_strategy:
 	@echo "Depositing into mock strategy"
-	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.MOCK' contracts/script/output/devnet/eigenlayer_deployment_output.json))
+	$(eval STRATEGY_ADDRESS = $(shell jq -r '.addresses.strategies.WETH' contracts/script/output/devnet/eigenlayer_deployment_output.json))
 	@go run operator/cmd/main.go deposit-into-strategy \
 		--config $(CONFIG_FILE) \
 		--strategy-address $(STRATEGY_ADDRESS) \
 		--amount 100000000000000000
-
 
 AMOUNT ?= 1000
 
@@ -305,214 +476,197 @@ operator_register_with_aligned_layer:
 	@go run operator/cmd/main.go register \
 		--config $(CONFIG_FILE)
 
-operator_deposit_and_register: operator_deposit_into_strategy operator_register_with_aligned_layer
-
-
-# The verifier ID to enable or disable corresponds to the index of the verifier in the `ProvingSystemID` enum.
-verifier_enable_devnet:
-	@echo "Enabling verifier with id: $(VERIFIER_ID)"
-	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
-
-verifier_disable_devnet:
-	@echo "Disabling verifier with id: $(VERIFIER_ID)"
-	PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 RPC_URL=http://localhost:8545 OUTPUT_PATH=./script/output/devnet/alignedlayer_deployment_output.json ./contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
-
-verifier_enable:
-	@echo "Enabling verifier with ID: $(VERIFIER_ID)"
-	@. contracts/scripts/.env && . contracts/scripts/enable_verifier.sh $(VERIFIER_ID)
-
-verifier_disable:
-	@echo "Disabling verifier with ID: $(VERIFIER_ID)"
-	@. contracts/scripts/.env && . contracts/scripts/disable_verifier.sh $(VERIFIER_ID)
-
-strategies_get_weight:
-	@echo "Getting weight of strategy: $(STRATEGY_INDEX)"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_strategy_weight.sh $(STRATEGY_INDEX)
-
-strategies_update_weight:
-	@echo "Updating strategy weights: "
-	@echo "STRATEGY_INDICES: $(STRATEGY_INDICES)"
-	@echo "NEW_MULTIPLIERS: $(NEW_MULTIPLIERS)"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/update_strategy_weight.sh $(STRATEGY_INDICES) $(NEW_MULTIPLIERS)
-
-strategies_remove:
-	@echo "Removing strategies: $(INDICES_TO_REMOVE)"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/remove_strategy.sh $(INDICES_TO_REMOVE)
-
-strategies_get_addresses:
-	@echo "Getting strategy addresses"
-	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/get_restakeable_strategies.sh
-
-__BATCHER__:
+__BATCHER__: ## ____
 
 BURST_SIZE ?= 5
 
 user_fund_payment_service:
 	@. ./scripts/user_fund_payment_service_devnet.sh
 
-./batcher/aligned-batcher/.env:
-	@echo "To start the Batcher ./batcher/aligned-batcher/.env needs to be manually set"; false;
+./crates/batcher/.env:
+	@echo "To start the Batcher ./crates/batcher/.env needs to be manually set"; false;
 
-batcher_start: ./batcher/aligned-batcher/.env user_fund_payment_service
+batcher_start: ./crates/batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env
+	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env
 
-batcher_start_local: user_fund_payment_service
+batcher_start_local: user_fund_payment_service ## Start the Batcher locally. It runs LocalStack as S3 service.
 	@echo "Starting Batcher..."
-	@$(MAKE) run_storage &
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+	@$(MAKE) storage_start &
+	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env.dev
 
 batcher_start_local_no_fund:
 	@echo "Starting Batcher..."
-	@$(MAKE) run_storage &
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./batcher/aligned-batcher/.env.dev
+	@$(MAKE) storage_start &
+	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env.dev
 
-install_batcher:
-	@cargo install --path batcher/aligned-batcher
+batcher_start_ethereum_package: user_fund_payment_service ## Start the Batcher with Ethereum package config. It runs LocalStack as S3 service.
+	@echo "Starting Batcher..."
+	@$(MAKE) storage_start &
+	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./crates/batcher/.env.dev
 
-install_aligned:
-	@./batcher/aligned/install_aligned.sh
 
-uninstall_aligned:
+batcher_install: ## Install latest version of Batcher
+	@cargo install --path crates/batcher
+
+__STORAGE__: ## ____
+storage_start: ## Run S3-storage using storage-docker-compose.yaml
+	@echo "Running storage..."
+	@docker compose -f storage-docker-compose.yaml up
+
+__ALIGNED_CLI__: ## ____
+
+aligned_install: ## Install latest version of Aligned CLI
+	@./crates/cli/install_aligned.sh
+
+aligned_uninstall: ## Uninstall Aligned CLI
 	@rm -rf ~/.aligned && echo "Aligned uninstalled"
 
-install_aligned_compiling:
-	@cargo install --path batcher/aligned
+aligned_install_compiling: ## Install Aligned CLI by compiling from source
+	@cargo install --path crates/cli
 
 build_batcher_client:
-	@cd batcher/aligned && cargo b --release
+	@cd crates/cli && cargo build --release
 
-batcher/target/release/aligned:
-	@cd batcher/aligned && cargo b --release
+__SEND_PROOFS__: ## ____
 
+crates/target/release/aligned:
+	@cd crates/cli && cargo b --release
 
-RPC_URL=http://localhost:8545
-NETWORK=devnet # devnet | holesky-stage | holesky
-
-batcher_send_sp1_task:
-	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+batcher_send_sp1_task: ## Send a SP1 fibonacci proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending SP1 fibonacci proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_sp1_burst:
-	@echo "Sending SP1 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+batcher_send_sp1_burst: ## Send a burst of SP1 fibonacci proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending SP1 fibonacci proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system SP1 \
-		--proof ../../scripts/test_files/sp1/sp1_fibonacci.proof \
-		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci.elf \
+		--proof ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vm_program ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_sp1_infinite: ## Send burst of SP1 fibonacci proofs to Batcher every certain time
+	@echo "Sending infinite SP1 fibonacci proofs to Batcher..."
+	@./crates/cli/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
+
+batcher_send_risc0_task: ## Send a Risc0 fibonacci proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Risc0 fibonacci proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Risc0 \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_infinite_sp1:
-	@echo "Sending infinite SP1 fibonacci task to Batcher..."
-	@./batcher/aligned/send_infinite_sp1_tasks/send_infinite_sp1_tasks.sh
-
-batcher_send_risc0_task:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+batcher_send_risc0_task_no_pub_input: ## Send a Risc0 proof without public input to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Risc0 no pub input proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_3_0_3.proof \
+        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input_id_3_0_3.bin \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_risc0_task_no_pub_input:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+batcher_send_risc0_burst: ## Send a burst of Risc0 fibonacci proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Risc0 fibonacci proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/no_public_inputs/risc_zero_no_pub_input.proof \
-        --vm_program ../../scripts/test_files/risc_zero/no_public_inputs/no_pub_input_id.bin \
+		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_risc0_burst:
-	@echo "Sending Risc0 fibonacci task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Risc0 \
-		--proof ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
-        --vm_program ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
-        --public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
         --repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_gnark_plonk_bn254_task: crates/target/release/aligned ## Send a Gnark Plonk Bn254 1!=0 proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Gnark Plonk Bn254 1!=0 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system GnarkPlonkBn254 \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bn254_task: batcher/target/release/aligned
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+batcher_send_gnark_plonk_bn254_burst: crates/target/release/aligned ## Send a burst of Gnark Plonk Bn254 1!=0 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Gnark Plonk Bn254 1!=0 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBn254 \
-		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
-		--network $(NETWORK)
-
-batcher_send_plonk_bn254_burst: batcher/target/release/aligned
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system GnarkPlonkBn254 \
-		--proof ../../scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--rpc_url $(RPC_URL) \
 		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bls12_381_task: batcher/target/release/aligned
-	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+batcher_send_gnark_plonk_bls12_381_task: crates/target/release/aligned ## Send a Gnark Plonk BLS12-381 1!=0 proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Gnark Plonk BLS12-381 1!=0 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
-		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_plonk_bls12_381_burst: batcher/target/release/aligned
-	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
+batcher_send_gnark_plonk_bls12_381_burst: crates/target/release/aligned ## Send a burst of Gnark Plonk BLS12-381 1!=0 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Gnark Plonk BLS12-381 1!=0 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
 		--proving_system GnarkPlonkBls12_381 \
-		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+		--proof ../../scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_pub_input_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
-		--repetitions 15 \
+		--repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_groth16_bn254_task: batcher/target/release/aligned
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Groth16Bn254 \
-		--proof ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.proof \
-		--public_input ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.pub \
-		--vk ../../scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_1_groth16.vk \
+batcher_send_gnark_groth16_bn254_task: crates/target/release/aligned ## Send a Gnark Groth16 Bn254 1!=0 proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Gnark Groth 16Bn254 1!=0 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system GnarkGroth16Bn254 \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.vk \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
-batcher_send_infinite_groth16: batcher/target/release/aligned ## Send a different Groth16 BN254 proof using the client every 3 seconds
-	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
-	@echo "Sending a different GROTH16 BN254 proof in a loop every n seconds..."
-	@./batcher/aligned/send_infinite_tasks.sh 4
+batcher_send_gnark_groth16_bn254_burst: crates/target/release/aligned ## Send a burst of Gnark Groth16 Bn254 1!=0 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Gnark Groth16 Bn254 1!=0 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system GnarkGroth16Bn254 \
+		--proof ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.proof \
+		--public_input ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.pub \
+		--vk ../../scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.vk \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
 
-batcher_send_burst_groth16: batcher/target/release/aligned
-	@echo "Sending a burst of tasks to Batcher..."
+## TODO: send_burst_tasks.sh and send_infinite_tasks.sh does a similar thing. We could delete one
+batcher_send_gnark_groth16_bn254_infinite: crates/target/release/aligned ## Send a different Gnark Groth16 BN254 proof using the client every 3 seconds. Parameters: BURST_SIZE, START_COUNTER
+	@echo "Sending a burst of proofs to Batcher..."
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
-	@./batcher/aligned/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
+	@./crates/cli/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
 batcher_send_mina_task:
 	@echo "Sending Mina state task to Batcher..."
@@ -555,44 +709,84 @@ batcher_send_mina_account_burst:
 		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
 		--repetitions 15 \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
+batcher_send_circom_groth16_bn256_task: crates/target/release/aligned ## Send a Circom Groth16 BN256 proof to Batcher. Parameters: RPC_URL, NETWORK
+	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system CircomGroth16Bn256 \
+		--proof ../../scripts/test_files/circom_groth16_bn256_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn256_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn256_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_circom_groth16_bn256_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN256 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system CircomGroth16Bn256 \
+		--proof ../../scripts/test_files/circom_groth16_bn256_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn256_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn256_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_circom_groth16_bn256_no_pub_input_burst: crates/target/release/aligned ## Send a burst of Circom Groth16 BN256 proofs to Batcher. Parameters: RPC_URL, NETWORK, BURST_SIZE
+	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system CircomGroth16Bn256 \
+		--proof ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/proof.json \
+		--public_input ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/public.json \
+		--vk ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_proof_with_random_address: ## Send a proof with a random address to Batcher. Parameters: RPC_URL, NETWORK, PROOF_TYPE, REPETITIONS
+	@cd crates/cli/ && ./send_proof_with_random_address.sh
+
+batcher_send_burst_with_random_address: ## Send a burst of proofs with random addresses to Batcher. Parameters: RPC_URL, NETWORK, PROOF_TYPE, REPETITIONS
+	@cd crates/cli/ && ./send_burst_with_random_address.sh
 
 __TASK_SENDER__:
 BURST_TIME_SECS ?= 3
 
-task_sender_generate_groth16_proofs:
-	@cd batcher/aligned-task-sender && \
+task_sender_generate_gnark_groth16_proofs:
+	@cd crates/task-sender && \
 	cargo run --release -- generate-proofs \
-	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type groth16 \
+	--number-of-proofs $(NUMBER_OF_PROOFS) --proof-type gnark_groth16 \
 	--dir-to-save-proofs $(CURDIR)/scripts/test_files/task_sender/proofs
 
 # ===== DEVNET =====
 task_sender_fund_wallets_devnet:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- generate-and-fund-wallets \
 	--eth-rpc-url http://localhost:8545 \
 	--network devnet \
 	--amount-to-deposit 1 \
 	--amount-to-deposit-to-aligned 0.9999 \
-	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+	--private-keys-filepath $(CURDIR)/crates/task-sender/wallets/devnet
 
 task_sender_send_infinite_proofs_devnet:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url http://localhost:8545 \
 	--network devnet \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/devnet
+	--private-keys-filepath $(CURDIR)/crates/task-sender/wallets/devnet
 
 task_sender_test_connections_devnet:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- test-connections \
 	--num-senders $(NUM_SENDERS) \
 	--network devnet
 
 # ===== HOLESKY-STAGE =====
 task_sender_generate_and_fund_wallets_holesky_stage:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- generate-and-fund-wallets \
 	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
 	--network holesky-stage \
@@ -600,73 +794,86 @@ task_sender_generate_and_fund_wallets_holesky_stage:
 	--number-wallets $(NUM_WALLETS) \
 	--amount-to-deposit $(AMOUNT_TO_DEPOSIT) \
 	--amount-to-deposit-to-aligned $(AMOUNT_TO_DEPOSIT_TO_ALIGNED) \
-	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+	--private-keys-filepath $(CURDIR)/crates/task-sender/wallets/holesky-stage
 
 task_sender_send_infinite_proofs_holesky_stage:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- send-infinite-proofs \
 	--burst-size $(BURST_SIZE) --burst-time-secs $(BURST_TIME_SECS) \
 	--eth-rpc-url https://ethereum-holesky-rpc.publicnode.com \
 	--network holesky-stage \
 	--proofs-dirpath $(CURDIR)/scripts/test_files/task_sender/proofs \
-	--private-keys-filepath $(CURDIR)/batcher/aligned-task-sender/wallets/holesky-stage
+	--private-keys-filepath $(CURDIR)/crates/task-sender/wallets/holesky-stage
 
 task_sender_test_connections_holesky_stage:
-	@cd batcher/aligned-task-sender && \
+	@cd crates/task-sender && \
 	cargo run --release -- test-connections \
 	--num-senders $(NUM_SENDERS) \
 	--network holesky-stage
 
 __UTILS__:
 aligned_get_user_balance_devnet:
-	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+	@cd crates/cli/ && cargo run --release -- get-user-balance \
 		--user_addr $(USER_ADDR) \
 		--network devnet
 
 aligned_get_user_balance_holesky:
-	@cd batcher/aligned/ && cargo run --release -- get-user-balance \
+	@cd crates/cli/ && cargo run --release -- get-user-balance \
 		--rpc_url https://ethereum-holesky-rpc.publicnode.com \
 		--network holesky \
 		--user_addr $(USER_ADDR)
 
+__GENERATE_PROOFS__: ## ____
+generate_sp1_fibonacci_proof: ## Run the SP1 Fibonacci proof generator script
+	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
 
-__GENERATE_PROOFS__:
- # TODO add a default proving system
+generate_sp1_fibonacci_proof_no_pub_input: ## Run the SP1 Fibonacci proof generator script with empty journal
+	@cd scripts/test_files/sp1/no_public_inputs/script && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF with no public inputs generated in scripts/test_files/sp1 folder"
 
-generate_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
+generate_risc_zero_fibonacci_proof: ## Run the Risc0 Fibonacci proof generator script
+	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
+	RUST_LOG=info cargo run --release && \
+	echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
+
+generate_risc_zero_empty_journal_proof: ## Run the Risc0 Fibonacci proof generator script with empty journal
+	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
+	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
+
+generate_gnark_plonk_bls12_381_proof: ## Run the gnark_plonk_bls12_381_script
 	@echo "Running gnark_plonk_bls12_381 script..."
 	@go run scripts/test_files/gnark_plonk_bls12_381_script/main.go
 
-generate_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_plonk_bn254_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_plonk_bn254 script..."
 	@go run scripts/test_files/gnark_plonk_bn254_script/main.go
 
-generate_groth16_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_groth16_bn254_proof: ## Run the gnark_groth16_bn254_script
 	@echo "Running gnark_groth_bn254 script..."
 	@go run scripts/test_files/gnark_groth16_bn254_script/main.go
 
-generate_groth16_ineq_proof: ## Run the gnark_plonk_bn254_script
+generate_gnark_groth16_bn254_ineq_proof: ## Run the gnark_plonk_bn254_script
 	@echo "Running gnark_groth_bn254_ineq script..."
 	@go run scripts/test_files/gnark_groth16_bn254_infinite_script/cmd/main.go 1
 
-__METRICS__:
-# Prometheus and Grafana
-metrics_remove_containers:
-	@docker stop prometheus grafana
-	@docker rm prometheus grafana
-metrics_clean_db: metrics_remove_containers
-	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
+generate_circom_groth16_bn256_proof: ## Run the circom_groth16_bn256_script
+	@echo "Running circom_groth16_bn256 script..."
+	@cd scripts/test_files/circom_groth16_bn256_script && ./generate_proof.sh
 
-run_metrics: ## Run metrics using metrics-docker-compose.yaml
-	@echo "Running metrics..."
-	@docker compose -f metrics-docker-compose.yaml up
+generate_circom_groth16_bn256_setup: ## Run the circom_groth16_bn256_script setup
+	@echo "Running circom_groth16_bn256 script setup..."
+	@cd scripts/test_files/circom_groth16_bn256_script && ./generate_setup.sh
 
-__STORAGE__:
-run_storage: ## Run storage using storage-docker-compose.yaml
-	@echo "Running storage..."
-	@docker compose -f storage-docker-compose.yaml up
+generate_circom_groth16_bn256_no_pub_input_proof: ## Run the circom_groth16_bn256_script
+	@echo "Running circom_groth16_bn256 script..."
+	@cd scripts/test_files/circom_groth16_bn256_no_pub_input_script && ./generate_proof.sh
 
-__DEPLOYMENT__: ## ____
+generate_circom_groth16_bn256_no_pub_input_setup: ## Run the circom_groth16_bn256_script setup
+	@echo "Running circom_groth16_bn256_no_pub_input_script setup..."
+	@cd scripts/test_files/circom_groth16_bn256_no_pub_input_script && ./generate_setup.sh
+
+__CONTRACTS_DEPLOYMENT__: ## ____
 deploy_aligned_contracts: ## Deploy Aligned Contracts. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Deploying Aligned Contracts on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_aligned_contracts.sh
@@ -729,23 +936,13 @@ upgrade_batcher_payment_service: ## Upgrade BatcherPayments contract. Parameters
 	@echo "Upgrading BatcherPayments Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_batcher_payment_service.sh
 
-build_aligned_contracts:
-	@cd contracts/src/core && forge build
+deploy_proof_aggregator: ## Deploy ProofAggregator contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Deploying ProofAggregator contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_proof_aggregator.sh
 
-show_aligned_error_codes:
-	@echo "\nAlignedLayerServiceManager errors:"
-	@cd contracts && forge inspect src/core/IAlignedLayerServiceManager.sol:IAlignedLayerServiceManager errors
-	@echo "\nBatcherPaymentService errors:"
-	@cd contracts && forge inspect src/core/BatcherPaymentService.sol:BatcherPaymentService errors
-
-__BUILD__:
-build_binaries:
-	@echo "Building aggregator..."
-	@go build -o ./aggregator/build/aligned-aggregator ./aggregator/cmd/main.go
-	@echo "Aggregator built into /aggregator/build/aligned-aggregator"
-	@echo "Building aligned layer operator..."
-	@go build -ldflags "-X main.Version=$(OPERATOR_VERSION)" -o ./operator/build/aligned-operator ./operator/cmd/main.go
-	@echo "Aligned layer operator built into /operator/build/aligned-operator"
+upgrade_proof_aggregator: ## Upgrade ProofAggregator contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
 
 __SP1_FFI__: ##
 build_sp1_macos:
@@ -768,18 +965,6 @@ test_sp1_go_bindings_linux: build_sp1_linux
 	@echo "Testing SP1 Go bindings..."
 	go test ./operator/sp1/... -v
 
-# @cp -r scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.elf scripts/test_files/sp1/
-generate_sp1_fibonacci_proof:
-	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
-	@mv scripts/test_files/sp1/fibonacci_proof_generator/program/elf/riscv32im-succinct-zkvm-elf scripts/test_files/sp1/sp1_fibonacci.elf
-	@mv scripts/test_files/sp1/fibonacci_proof_generator/script/sp1_fibonacci.proof scripts/test_files/sp1/
-	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"
-
-generate_risc_zero_empty_journal_proof:
-	@cd scripts/test_files/risc_zero/no_public_inputs && RUST_LOG=info cargo run --release
-	@echo "Fibonacci proof and ELF with empty journal generated in scripts/test_files/risc_zero/no_public_inputs folder"
-
-
 __RISC_ZERO_FFI__: ##
 build_risc_zero_macos:
 	@cd operator/risc_zero/lib && cargo build $(RELEASE_FLAG)
@@ -800,12 +985,6 @@ test_risc_zero_go_bindings_macos: build_risc_zero_macos
 test_risc_zero_go_bindings_linux: build_risc_zero_linux
 	@echo "Testing RISC Zero Go bindings..."
 	go test ./operator/risc_zero/... -v
-
-generate_risc_zero_fibonacci_proof:
-	@cd scripts/test_files/risc_zero/fibonacci_proof_generator && \
-		RUST_LOG=info cargo run --release && \
-		echo "Fibonacci proof, pub input and image ID generated in scripts/test_files/risc_zero folder"
-
 
 __MERKLE_TREE_FFI__: ##
 build_merkle_tree_macos:
@@ -872,7 +1051,7 @@ test_mina_account_go_bindings_linux: build_mina_account_linux
 	@echo "Testing Mina Account Go bindings..."
 	go test ./operator/mina_account/... -v
 
-__BUILD_ALL_FFI__:
+__FFI__: ## ____
 
 build_all_ffi: ## Build all FFIs
 	$(BUILD_ALL_FFI)
@@ -896,25 +1075,19 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_mina_account_linux
 	@echo "All Linux FFIs built successfully."
 
-__EXPLORER__:
+__EXPLORER__: ## ____
 
-run_explorer_without_docker_db: explorer_ecto_setup_db
+explorer_start: explorer_start_db explorer_ecto_setup_db ## Start the Explorer with the database
 	@cd explorer/ && \
 		pnpm install --prefix assets && \
 		mix setup && \
 		./start.sh
 
-run_explorer: explorer_run_db explorer_ecto_setup_db
-	@cd explorer/ && \
-		pnpm install --prefix assets && \
-		mix setup && \
-		./start.sh
-
-explorer_build_db:
+explorer_build_db: ## Build the Explorer database image
 	@cd explorer && \
 		docker build -t explorer-postgres-image .
 
-explorer_run_db: explorer_remove_db_container
+explorer_start_db: explorer_remove_db_container
 	@cd explorer && \
 		docker run -d --name explorer-postgres-container -p 5432:5432 -v explorer-postgres-data:/var/lib/postgresql/data explorer-postgres-image
 
@@ -927,16 +1100,16 @@ explorer_remove_db_container:
 		docker stop explorer-postgres-container || true  && \
 		docker rm explorer-postgres-container || true
 
-explorer_clean_db: explorer_remove_db_container
+explorer_clean_db: explorer_remove_db_container ## Remove the Explorer database container and volume
 	@cd explorer && \
 		docker volume rm explorer-postgres-data || true
 
-explorer_dump_db:
+explorer_dump_db: ## Dump the Explorer database to a file
 	@cd explorer && \
 		docker exec -t explorer-postgres-container pg_dumpall -c -U explorer_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /explorer"
 
-explorer_recover_db: explorer_run_db
+explorer_recover_db: explorer_start_db ## Recover the Explorer database from a dump file
 	@read -p $$'\e[32mEnter the dump file to recover (e.g., dump.20230607_123456.sql): \e[0m' DUMP_FILE && \
 	cd explorer && \
 	docker cp $$DUMP_FILE explorer-postgres-container:/dump.sql && \
@@ -1021,8 +1194,9 @@ docker_batcher_send_sp1_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system SP1 \
-              --proof ./scripts/test_files/sp1/sp1_fibonacci.proof \
-              --vm_program ./scripts/test_files/sp1/sp1_fibonacci.elf \
+              --proof ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+              --vm_program ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.elf \
+              --public_input ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
@@ -1033,48 +1207,48 @@ docker_batcher_send_risc0_burst:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system Risc0 \
-              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.proof \
-              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id.bin \
-              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci.pub \
+              --proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+              --vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+              --public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
 
-docker_batcher_send_plonk_bn254_burst:
-	@echo "Sending Groth16Bn254 1!=0 task to Batcher..."
+docker_batcher_send_gnark_plonk_bn254_burst:
+	@echo "Sending Gnark Plonk Bn254 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system GnarkPlonkBn254 \
-              --proof ./scripts/test_files/gnark_plonk_bn254_script/plonk.proof \
-              --public_input ./scripts/test_files/gnark_plonk_bn254_script/plonk_pub_input.pub \
-              --vk ./scripts/test_files/gnark_plonk_bn254_script/plonk.vk \
+              --proof ./scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_pub_input_0_12_0.pub \
+              --vk ./scripts/test_files/gnark_plonk_bn254_script/gnark_plonk_0_12_0.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
               --repetitions $(DOCKER_BURST_SIZE) \
 			  --max_fee 0.1ether
 
-docker_batcher_send_plonk_bls12_381_burst:
-	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
+docker_batcher_send_gnark_plonk_bls12_381_burst:
+	@echo "Sending Gnark Plonk BLS12-381 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
               --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
               --proving_system GnarkPlonkBls12_381 \
-              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.proof \
-              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/plonk_pub_input.pub \
-              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/plonk.vk \
+              --proof ./scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.proof \
+              --public_input ./scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_pub_input_0_12_0.pub \
+              --vk ./scripts/test_files/gnark_plonk_bls12_381_script/gnark_plonk_0_12_0.vk \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --repetitions $(DOCKER_BURST_SIZE) \
               --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
 
-docker_batcher_send_groth16_burst:
+docker_batcher_send_gnark_groth16_burst:
 	@echo "Sending Groth16 BLS12-381 1!=0 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
             --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-			--proving_system Groth16Bn254 \
-			--proof ./scripts/test_files/gnark_groth16_bn254_script/groth16.proof \
-			--public_input ./scripts/test_files/gnark_groth16_bn254_script/plonk_pub_input.pub \
-			--vk ./scripts/test_files/gnark_groth16_bn254_script/groth16.vk \
+			--proving_system GnarkGroth16Bn254 \
+			--proof ./scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.proof \
+			--public_input ./scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.pub \
+			--vk ./scripts/test_files/gnark_groth16_bn254_script/gnark_groth16_0_12_0.vk \
 			--proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
 			--repetitions $(DOCKER_BURST_SIZE) \
 			--rpc_url $(DOCKER_RPC_URL) \
@@ -1102,15 +1276,41 @@ docker_batcher_send_mina_account_burst:
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
               --rpc_url $(DOCKER_RPC_URL) \
+docker_batcher_send_circom_groth16_bn256_burst:
+	@echo "Sending Circom Groth16 BN256 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+			  --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			  --proving_system CircomGroth16Bn256 \
+			  --proof ./scripts/test_files/circom_groth16_bn256_script/proof.json \
+			  --public_input ./scripts/test_files/circom_groth16_bn256_script/public.json \
+			  --vk ./scripts/test_files/circom_groth16_bn256_script/verification_key.json \
+			  --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			  --repetitions $(DOCKER_BURST_SIZE) \
+			  --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
+docker_batcher_send_circom_groth16_bn256_no_pub_input_burst:
+	@echo "Sending Circom Groth16 BN256 task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+			  --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+			  --proving_system CircomGroth16Bn256 \
+			  --proof ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/proof.json \
+			  --public_input ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/public.json \
+			  --vk ./scripts/test_files/circom_groth16_bn256_no_pub_input_script/verification_key.json \
+			  --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+			  --repetitions $(DOCKER_BURST_SIZE) \
+			  --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
 
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_sp1_burst
 	@$(MAKE) docker_batcher_send_risc0_burst
-	@$(MAKE) docker_batcher_send_plonk_bn254_burst
-	@$(MAKE) docker_batcher_send_plonk_bls12_381_burst
-	@$(MAKE) docker_batcher_send_groth16_burst
+	@$(MAKE) docker_batcher_send_gnark_plonk_bn254_burst
+	@$(MAKE) docker_batcher_send_gnark_plonk_bls12_381_burst
+	@$(MAKE) docker_batcher_send_gnark_groth16_burst
+	@$(MAKE) docker_batcher_send_circom_groth16_bn256_burst
+	@$(MAKE) docker_batcher_send_circom_groth16_bn256_no_pub_input_burst
 	@$(MAKE) docker_batcher_send_mina_burst
 	@$(MAKE) docker_batcher_send_mina_account_burst
 
@@ -1126,10 +1326,10 @@ docker_batcher_send_infinite_groth16:
 	    aligned submit \
 	              --rpc_url $(DOCKER_RPC_URL) \
 	              --repetitions $(DOCKER_BURST_SIZE) \
-	              --proving_system Groth16Bn254 \
-	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.proof \
-	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.pub \
-	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_groth16.vk \
+	              --proving_system GnarkGroth16Bn254 \
+	              --proof scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_gnark_groth16_0_12_0.proof \
+	              --public_input scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_gnark_groth16_0_12_0.pub \
+	              --vk scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/ineq_$${counter}_gnark_groth16_0_12_0.vk \
 	              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS); \
 				  --max_fee 0.1ether
 	    sleep $${timer}; \
@@ -1150,6 +1350,7 @@ docker_verify_proofs_onchain:
 	  '
 
 DOCKER_PROOFS_WAIT_TIME=60
+DOCKER_SENT_PROOFS=7
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
@@ -1178,7 +1379,7 @@ docker_verify_proof_submission_success:
 				fi; \
 				echo "---------------------------------------------------------------------------------------------------"; \
 			done; \
-			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne 5 ]; then \
+			if [ $$(ls -1 ./aligned_verification_data/*.cbor | wc -l) -ne $(DOCKER_SENT_PROOFS) ]; then \
 				echo "ERROR: Some proofs were verified successfully, but some proofs are missing in the aligned_verification_data/ directory"; \
 				exit 1; \
 			fi; \
@@ -1212,44 +1413,54 @@ docker_logs_operator:
 docker_logs_batcher:
 	docker compose -f docker-compose.yaml logs batcher -f
 
-__TELEMETRY__:
-# Collector, Jaeger and Elixir API
-telemetry_full_start: telemetry_compile_bls_verifier open_telemetry_start telemetry_start
+__TELEMETRY__: ## ____
+# TODO maybe add a target to run both metrics and telemetry
 
-# Collector and Jaeger
-open_telemetry_start: ## Run open telemetry services using telemetry-docker-compose.yaml
+metrics_start: ## Run metrics (prometheus, grafana) using metrics-docker-compose.yaml
+	@echo "Running metrics..."
+	@docker compose -f metrics-docker-compose.yaml up
+
+metrics_remove_containers: ## Remove Prometheus and Grafana containers
+	@docker stop prometheus grafana
+	@docker rm prometheus grafana
+
+metrics_clean_db: metrics_remove_containers ## Remove Prometheus and Grafana volumes
+	@docker volume rm aligned_layer_grafana_data aligned_layer_prometheus_data
+
+telemetry_start_all: telemetry_compile_bls_verifier open_telemetry_start telemetry_start ## Run all telemetry services (open telemetry, telemetry API)
+
+open_telemetry_start: ## Run open telemetry services (otel collector, jaeger, cassandra) using telemetry-docker-compose.yaml
 	@echo "Running telemetry..."
 	@docker compose -f telemetry-docker-compose.yaml up -d
 
-open_telemetry_prod_start: ## Run open telemetry services with Cassandra using telemetry-prod-docker-compose.yaml
+open_telemetry_prod_start: # TODO check if we are using this target
 	@echo "Running telemetry for Prod..."
 	@docker compose -f telemetry-prod-docker-compose.yaml up -d
 
-# Elixir API
-telemetry_start: telemetry_run_db telemetry_ecto_migrate ## Run Telemetry API
+telemetry_start: telemetry_start_db telemetry_ecto_migrate ## Run Telemetry API
 	@cd telemetry_api && \
 	 	./start.sh
 
-telemetry_ecto_migrate: ##
+telemetry_ecto_migrate: ## Run Ecto migrations for Telemetry API
 		@cd telemetry_api && \
 			./ecto_setup_db.sh
 
-telemetry_build_db:
+telemetry_build_db: ## Build the Telemetry database image
 	@cd telemetry_api && \
 		docker build -t telemetry-postgres-image .
 
-telemetry_run_db: telemetry_build_db telemetry_remove_db_container
+telemetry_start_db: telemetry_build_db telemetry_remove_db_container ## Run the Telemetry database container
 	@cd telemetry_api && \
 		docker run -d --name telemetry-postgres-container -p 5434:5432 -v telemetry-postgres-data:/var/lib/postgresql/data telemetry-postgres-image
 
-telemetry_remove_db_container:
+telemetry_remove_db_container: ## Remove the Telemetry database container
 	@docker stop telemetry-postgres-container || true  && \
 	    docker rm telemetry-postgres-container || true
 
-telemetry_clean_db: telemetry_remove_db_container
+telemetry_clean_db: telemetry_remove_db_container ## Remove the Telemetry database container and volume
 	@docker volume rm telemetry-postgres-data || true
 
-telemetry_dump_db:
+telemetry_dump_db: ## Dump the Telemetry database to a file
 	@cd telemetry_api && \
 		docker exec -t telemetry-postgres-container pg_dumpall -c -U telemetry_user > dump.$$(date +\%Y\%m\%d_\%H\%M\%S).sql
 	@echo "Dumped database successfully to /telemetry_api"
@@ -1258,31 +1469,31 @@ telemetry_create_env:
 	@cd telemetry_api && \
 		cp .env.dev .env
 
-telemetry_compile_bls_verifier:
+telemetry_compile_bls_verifier: ## Compile the BLS verifier for Telemetry API
 	@cd telemetry_api/priv && \
 	go build ../bls_verifier/bls_verify.go
 
-setup_local_aligned_all:
+setup_local_aligned_all: # TODO check if we are using this target
 	tmux kill-session -t aligned_layer || true
 	tmux new-session -d -s aligned_layer
 
 	tmux new-window -t aligned_layer -n anvil
-	tmux send-keys -t aligned_layer 'make anvil_start_with_block_time' C-m
+	tmux send-keys -t aligned_layer 'make anvil_start' C-m
 
 	tmux new-window -t aligned_layer -n aggregator
 	tmux send-keys -t aligned_layer:aggregator 'make aggregator_start' C-m
 
 	tmux new-window -t aligned_layer -n operator
-	tmux send-keys -t aligned_layer:operator 'sleep 5 && make operator_register_and_start' C-m
+	tmux send-keys -t aligned_layer:operator 'sleep 5 && make operator_full_registration_and_start' C-m
 
 	tmux new-window -t aligned_layer -n batcher
 	tmux send-keys -t aligned_layer:batcher 'sleep 60 && make batcher_start_local' C-m
 
 	tmux new-window -t aligned_layer -n explorer
-	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make run_explorer' C-m
+	tmux send-keys -t aligned_layer:explorer 'make explorer_create_env && make explorer_build_db && make explorer_start' C-m
 
 	tmux new-window -t aligned_layer -n telemetry
-	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_run_db && make open_telemetry_start && make telemetry_start' C-m
+	tmux send-keys -t aligned_layer:telemetry 'docker compose -f telemetry-docker-compose.yaml down && make telemetry_create_env && make telemetry_start_db && make open_telemetry_start && make telemetry_start' C-m
 
 __ANSIBLE__: ## ____
 
@@ -1293,14 +1504,13 @@ ansible_batcher_create_env: ## Create empty variables files for the Batcher depl
 	@echo "Config files for the Batcher created in infra/ansible/playbooks/ini"
 	@echo "Please complete the values and run make ansible_batcher_deploy"
 
-ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY, KEYSTORE
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(KEYSTORE)" ]; then \
-		echo "Error: Both INVENTORY and KEYSTORE must be set."; \
+ansible_batcher_deploy: ## Deploy the Batcher. Parameters: INVENTORY
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/batcher.yaml \
-		-i $(INVENTORY) \
-		-e "keystore_path=$(KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_aggregator_create_env: ## Create empty variables files for the Aggregator deploy
 	@cp -n infra/ansible/playbooks/ini/config-aggregator.ini.example infra/ansible/playbooks/ini/config-aggregator.ini
@@ -1308,14 +1518,12 @@ ansible_aggregator_create_env: ## Create empty variables files for the Aggregato
 	@echo "Please complete the values and run make ansible_aggregator_deploy"
 
 ansible_aggregator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ] || [ -z "$(ECDSA_KEYSTORE)" ] || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/aggregator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
 ansible_operator_create_env: ## Create empty variables files for the Operator deploy
 	@cp -n infra/ansible/playbooks/ini/config-operator.ini.example infra/ansible/playbooks/ini/config-operator.ini
@@ -1324,56 +1532,39 @@ ansible_operator_create_env: ## Create empty variables files for the Operator de
 	@echo "Please complete the values and run make ansible_operator_deploy"
 
 ansible_operator_deploy: ## Deploy the Operator. Parameters: INVENTORY
-	@if [ -z "$(INVENTORY)" ]  || [ -z "$(ECDSA_KEYSTORE)" ]  || [ -z "$(BLS_KEYSTORE)" ]; then \
-		echo "Error: INVENTORY, ECDSA_KEYSTORE, BLS_KEYSTORE must be set."; \
+	@if [ -z "$(INVENTORY)" ]; then \
+		echo "Error: INVENTORY must be set."; \
 		exit 1; \
 	fi
 	@ansible-playbook infra/ansible/playbooks/operator.yaml \
-		-i $(INVENTORY) \
-		-e "ecdsa_keystore_path=$(ECDSA_KEYSTORE)" \
-		-e "bls_keystore_path=$(BLS_KEYSTORE)"
+		-i $(INVENTORY)
 
-ansible_explorer_deploy:
+ansible_explorer_deploy: ## Deploy the Explorer. Parameters: INVENTORY
 	@ansible-playbook infra/ansible/playbooks/explorer.yaml \
 		-i $(INVENTORY)
 
-ansible_telemetry_create_env:
+ansible_telemetry_create_env: ## Create empty variables files for the Telemetry deploy
 	@cp -n infra/ansible/playbooks/ini/config-telemetry.ini.example infra/ansible/playbooks/ini/config-telemetry.ini
 	@echo "Config files for Telemetry created in infra/ansible/playbooks/ini"
 	@echo "Please complete the values and run make ansible_telemetry_deploy"
 
-ansible_telemetry_deploy:
+ansible_telemetry_deploy: ## Deploy the Telemetry. Parameters: INVENTORY
 	@ansible-playbook infra/ansible/playbooks/telemetry.yaml \
 		-i $(INVENTORY)
 
 __ETHEREUM_PACKAGE__:  ## ____
 
 ethereum_package_start: ## Starts the ethereum_package environment
-	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package --args-file network_params.yaml
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package@5.0.1 --args-file network_params.yaml
 
 ethereum_package_inspect: ## Prints detailed information about the net
 	kurtosis enclave inspect aligned
 
 ethereum_package_rm: ## Stops and removes the ethereum_package environment and used resources
 	kurtosis enclave rm aligned -f
+	kurtosis engine stop
 
-batcher_start_ethereum_package: user_fund_payment_service
-	@echo "Starting Batcher..."
-	@$(MAKE) run_storage &
-	@cargo run --manifest-path ./batcher/aligned-batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./batcher/aligned-batcher/.env.dev
-
-aggregator_start_ethereum_package:
-	$(MAKE) aggregator_start AGG_CONFIG_FILE=config-files/config-aggregator-ethereum-package.yaml
-
-operator_start_ethereum_package:
-	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
-
-operator_register_start_ethereum_package:
-	$(MAKE) operator_full_registration OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml \
-	$(MAKE) operator_start OPERATOR_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml
-
-
-install_spamoor: ## Instal spamoor to spam transactions
+spamoor_install: ## Instal spamoor to spam transactions
 	@echo "Installing spamoor..."
 	@git clone https://github.com/ethpandaops/spamoor.git
 	@cd spamoor && make
@@ -1400,7 +1591,7 @@ spamoor_send_transactions: ## Sends normal transactions and also replacement tra
 		--refill-amount 5 --refill-balance 2 --tipfee $(TIP_FEE) --basefee 100  \
 		2>&1 | grep -v 'checked child wallets (no funding needed)'
 
-__NODE_EXPORTER_: ##__
+__NODE_EXPORTER_:
 
 install_node_exporter:
 	@./scripts/install_node_exporter.sh

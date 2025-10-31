@@ -1,0 +1,11 @@
+[Unit]
+Description=AggregationMode Start Timer
+Requires=aggregation_mode_start.service
+
+[Timer]
+Unit=aggregation_mode_start.service
+AccuracySec=1s
+OnCalendar=16:55
+
+[Install]
+WantedBy=timers.target

@@ -20,7 +20,8 @@ forge script script/deploy/BatcherPaymentServiceDeployer.s.sol \
     --legacy \
     --verify \
     --etherscan-api-key $ETHERSCAN_API_KEY \
-    --sig "run(string memory batcherConfigPath, string memory outputPath)"
+    --sig "run(string memory batcherConfigPath, string memory outputPath)" \
+    --slow
 
 # Extract the batcher payment service values from the output
 batcher_payment_service_proxy=$(jq -r '.addresses.batcherPaymentService' $BATCHER_PAYMENT_SERVICE_OUTPUT_PATH)

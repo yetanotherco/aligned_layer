@@ -31,7 +31,7 @@ Next, we will see how to execute ZKQuiz to get your own ZKQuiz NFT!
 2. [Foundry](https://getfoundry.sh)
 
 {% hint style="info" %}
-ELF commitment was generated with Rust v1.80.1 and SP1 v3.0.0.
+ELF commitment was generated with Rust v1.80.1 and SP1 v4.1.7.
 {% endhint %}
 
 ### Usage
@@ -96,7 +96,7 @@ ZkQuiz has three main components:
 The user interacts with ZkQuiz App to solve a trivia challenge answering questions. Then, the App generates a Zk Proof with the Program generated using SP1.
 
 {% hint style="info" %}
-The ZkQuiz Program is built using SP1 following the [quickstart guide](https://docs.succinct.xyz/getting-started/quickstart.html#project-overview). For your projects, you can user any of the [prooving systems supported by Aligned](../2_architecture/0_supported_verifiers.md).
+The ZkQuiz Program is built using SP1 following the [quickstart guide](https://docs.succinct.xyz/docs/sp1/getting-started/quickstart). For your projects, you can user any of the [prooving systems supported by Aligned](../2_architecture/0_supported_verifiers.md).
 {% endhint %}
 
 Once the proof is generated, the App sends the proof to Aligned, and once it is verified, the App calls to the ZkQuiz Verifier Contract to check the proof verification and send an NFT to the user is the proof was verified in Aligned.
@@ -237,7 +237,7 @@ println!("Generating Proof ");
 let client = ProverClient::new();
 let (pk, vk) = client.setup(ELF);
 
-let Ok(proof) = client.prove(&pk, stdin).run() else {
+let Ok(proof) = client.prove(&pk, stdin).compressed().run() else {
     println!("Incorrect answers!");
     return;
 };
@@ -277,7 +277,6 @@ let nonce = get_nonce_from_ethereum(&rpc_url, wallet.address(), NETWORK)
 
 // Submit to Aligned.
 let aligned_verification_data = submit_and_wait_verification(
-    BATCHER_URL,
     &rpc_url,
     NETWORK,
     &verification_data,

@@ -1,10 +1,9 @@
-#![feature(slice_flatten)]
 use std::io;
 use std::str::FromStr;
 
-use aligned_sdk::core::types::{AlignedVerificationData, FeeEstimationType, Network, ProvingSystemId, VerificationData};
-use aligned_sdk::sdk::{deposit_to_aligned, estimate_fee};
-use aligned_sdk::sdk::{get_nonce_from_ethereum, submit_and_wait_verification};
+use aligned_sdk::common::types::{AlignedVerificationData, FeeEstimationType, Network, ProvingSystemId, VerificationData};
+use aligned_sdk::verification_layer::{deposit_to_aligned, estimate_fee};
+use aligned_sdk::verification_layer::{get_nonce_from_ethereum, submit_and_wait_verification};
 use clap::Parser;
 use dialoguer::Confirm;
 use ethers::prelude::*;
@@ -25,7 +24,7 @@ struct Args {
     #[arg(
         short,
         long,
-        default_value = "https://ethereum-holesky-rpc.publicnode.com"
+        default_value = "https://ethereum-hoodi-rpc.publicnode.com"
     )]
     rpc_url: String,
     #[clap(flatten)]
@@ -39,6 +38,7 @@ enum NetworkNameArg {
     Devnet,
     Holesky,
     HoleskyStage,
+    Hoodi,
     Mainnet,
 }
 
@@ -50,9 +50,10 @@ impl FromStr for NetworkNameArg {
             "devnet" => Ok(NetworkNameArg::Devnet),
             "holesky" => Ok(NetworkNameArg::Holesky),
             "holesky-stage" => Ok(NetworkNameArg::HoleskyStage),
+            "hoodi" => Ok(NetworkNameArg::Hoodi),
             "mainnet" => Ok(NetworkNameArg::Mainnet),
             _ => Err(
-                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet"
+                "Unknown network. Possible values: devnet, holesky, holesky-stage, mainnet, hoodi"
                     .to_string(),
             ),
         }
@@ -65,7 +66,7 @@ struct NetworkArg {
         name = "The working network's name",
         long = "network",
         default_value = "devnet",
-        help = "[possible values: devnet, holesky, holesky-stage, mainnet]"
+        help = "[possible values: devnet, holesky, holesky-stage, mainnet, hoodi]",
     )]
     network: Option<NetworkNameArg>,
     #[arg(
@@ -116,6 +117,7 @@ impl From<NetworkArg> for Network {
             Some(NetworkNameArg::Devnet) => Network::Devnet,
             Some(NetworkNameArg::Holesky) => Network::Holesky,
             Some(NetworkNameArg::HoleskyStage) => Network::HoleskyStage,
+            Some(NetworkNameArg::Hoodi) => Network::Hoodi,
             Some(NetworkNameArg::Mainnet) => Network::Mainnet,
         }
     }
@@ -178,10 +180,10 @@ async fn main() {
 
     println!("Generating Proof ");
 
-    let client = ProverClient::new();
+    let client = ProverClient::from_env();
     let (pk, vk) = client.setup(ELF);
 
-    let Ok(proof) = client.prove(&pk, stdin).run() else {
+    let Ok(proof) = client.prove(&pk, &stdin).compressed().run() else {
         println!("Incorrect answers!");
         return;
     };
@@ -299,8 +301,10 @@ async fn claim_nft_with_verified_proof(
             .batch_inclusion_proof
             .merkle_path
             .as_slice()
+            .iter()
             .flatten()
-            .to_vec(),
+            .copied()  // Convert &u8 to u8
+            .collect::<Vec<u8>>()
     );
 
     let proving_system_aux_data_commitment_hex: String = aligned_verification_data

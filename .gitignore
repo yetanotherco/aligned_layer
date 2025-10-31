@@ -6,14 +6,38 @@ out
 cache
 **/build
 **/target
+**/CLAUDE.md
+CLAUDE.md
 scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/**
-batcher/aligned/batch_inclusion_responses/*
+crates/cli/batch_inclusion_responses/*
 **/aligned_verification_data
 **/broadcast
 volume
+volume2
 config-files/*.last_processed_batch.json
+config-files/*.last_aggregated_block.json
 
 nonce_*.bin
 
 infra/ansible/playbooks/ini/**.ini
 infra/ansible/playbooks/files/**.pem
+
+examples/l2/crates/l2/db
+examples/l2/crates/l2/zkvm_programs/sp1/elf/sp1_state_transition_program
+
+# Circom
+*.ptau
+challenge_0003
+response_0003
+challenge_phase2_0003
+circuit.r1cs
+circuit.r1cs.json
+circuit.sym
+response_phase2_0003
+witness.wtns
+*.zkey
+circuit_cpp/
+circuit_js
+
+# Reports
+docs/dead_links_report.txt

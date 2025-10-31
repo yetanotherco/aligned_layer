@@ -6,9 +6,9 @@
 
 This guide assumes that:
 
-- sp1 prover installed (instructions [here](https://succinctlabs.github.io/sp1/getting-started/install.html))
+- sp1 prover installed (instructions [here](https://docs.succinct.xyz/docs/sp1/getting-started/install))
 - sp1 project to generate the proofs
-  (instructions [here](https://succinctlabs.github.io/sp1/generating-proofs/setup.html))
+  (instructions [here](https://docs.succinct.xyz/docs/sp1/getting-started/quickstart))
 - aligned installed (instructions [here](../1_introduction/1_try_aligned.md#quickstart))
 
 ### How to generate a proof
@@ -41,7 +41,7 @@ aligned submit \
 --vm_program <vm_program_path> \
 --batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com 
 ```
 
 Where `proof_path` is the path to the proof file, `vm_program_path` is the path to the ELF file. `proof_generator_addr` is an optional parameter that works as a helper for some applications where you can be frontrunned.
@@ -57,7 +57,7 @@ This guide assumes that:
 - Gnark library is installed. If not, install it using the following command inside your Go module:
 
  ```bash
- go get github.com/consensys/gnark@v0.10.0
+ go get github.com/consensys/gnark@v0.12.0
  ```
 
 - Gnark project to generate the proofs' instructions [here](https://docs.gnark.consensys.io/category/how-to)
@@ -90,7 +90,7 @@ aligned submit \
 --vk <verification_key_path> \
 --batcher_url wss://batcher.alignedlayer.com \
 --proof_generator_addr <proof_generator_addr> \
---rpc_url https://ethereum-holesky-rpc.publicnode.com 
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com 
 ```
 
 Where proof path is the path to the proof file, `public_input_path` is the path to the public input file,
@@ -168,7 +168,7 @@ aligned submit \
   --public_input <pub_input_file_path> \
   --batcher_url wss://batcher.alignedlayer.com \
   --proof_generator_addr <proof_generator_addr> \
-  --rpc_url https://ethereum-holesky-rpc.publicnode.com \
+  --rpc_url https://ethereum-hoodi-rpc.publicnode.com \
   --payment_service_addr 0x815aeCA64a974297942D2Bbf034ABEe22a38A003
 ```
 
@@ -303,6 +303,6 @@ To generate a proof of the execution of your code run the following:
   ```sh
   cargo run --release -- prove-risc0  <PROGRAM_DIRECTORY_PATH> .
   ```
-  Make sure to have [Risc0](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain) installed with version `v1.1.2`. Running Risc0 on macOS enable [metal](https://developer.apple.com/metal/) acceleration by default and may need to be installed it needed.
+  Make sure to have [Risc0](https://dev.risczero.com/api/zkvm/quickstart#1-install-the-risc-zero-toolchain) installed with version `v3.0.3`. Running Risc0 on macOS enable [metal](https://developer.apple.com/metal/) acceleration by default and may need to be installed it needed.
 
 For additional information on using zkRust and using it to submit proofs to Aligned see the [zkRust](https://github.com/yetanotherco/zkRust) Github Repository.

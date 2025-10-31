@@ -5,17 +5,18 @@ from encode_verification_data import encode_call
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--rpc-url', default='https://ethereum-holesky-rpc.publicnode.com',
-                        help='RPC URL (default: https://ethereum-holesky-rpc.publicnode.com)')
+    parser.add_argument('--rpc-url', default='https://ethereum-hoodi-rpc.publicnode.com',
+                        help='RPC URL (default: https://ethereum-hoodi-rpc.publicnode.com)')
     parser.add_argument('--aligned-verification-data', help='Path to JSON file with the verification data',
                         required=True)
     parser.add_argument('--contract-address', help='Verifier Contract address', required=True)
+    parser.add_argument('--sender-address',  help='Address that sent the batch to Aligned')
 
     args = parser.parse_args()
 
     provider = Web3(Web3.HTTPProvider(args.rpc_url))
 
-    data = encode_call(args.aligned_verification_data)
+    data = encode_call(args.aligned_verification_data, args.sender_address)
 
     result = provider.eth.call({
         'to': args.contract_address,

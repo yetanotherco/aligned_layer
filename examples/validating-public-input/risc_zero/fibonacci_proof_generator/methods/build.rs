@@ -1,31 +1,18 @@
-use std::{collections::HashMap, env, path::PathBuf};
-
-use risc0_build::{DockerOptions, GuestOptions};
+use risc0_build::{DockerOptionsBuilder, GuestOptionsBuilder};
+use std::collections::HashMap;
 
 fn main() {
-    match env::current_dir() {
-        Ok(current_dir) => {
-            if let Some(parent) = current_dir.parent() {
-                let parent_path = PathBuf::from(parent);
-                // Set the root directory for Docker to risc_zero/fibonacci_proof_generator
+    // With this containerized build process, we ensure that all builds of the guest code,
+    // regardless of the machine or local environment, will produce the same ImageID
+    let docker_options = DockerOptionsBuilder::default().build().unwrap();
+    // Reference: https://github.com/risc0/risc0/blob/main/risc0/build/src/config.rs#L73-L90
+    let guest_options = GuestOptionsBuilder::default()
+        .use_docker(docker_options)
+        .build()
+        .unwrap();
 
-                let docker_options = Some(DockerOptions {
-                    root_dir: Some(parent_path),
-                });
-
-                let guest_options = HashMap::from([(
-                    "fibonacci",
-                    GuestOptions {
-                        features: vec![],
-                        use_docker: docker_options,
-                    },
-                )]);
-
-                risc0_build::embed_methods_with_options(guest_options);
-            } else {
-                println!("The current directory does not have a parent.");
-            }
-        }
-        Err(e) => println!("Error getting current directory: {}", e),
-    }
+    risc0_build::embed_methods_with_options(HashMap::from([(
+        "fibonacci",
+        guest_options,
+    )]));
 }

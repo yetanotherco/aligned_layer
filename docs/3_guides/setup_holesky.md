@@ -4,8 +4,8 @@
 
 These contracts are not deployed by Aligned. Current EigenLayer contracts:
 
-- [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/testnet-holesky/script/configs/holesky/Holesky_current_deployment.config.json)
-- [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/mainnet/script/configs/mainnet/Mainnet_current_deployment.config.json)
+- [Holesky Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/main/script/configs/holesky.json)
+- [Mainnet Contracts](https://github.com/Layr-Labs/eigenlayer-contracts/blob/main/script/configs/mainnet.json)
 
 ## Aligned Contracts: Holesky/Mainnet
 
@@ -131,12 +131,4 @@ Also, you must re-generate the Go smart contract bindings:
 
 ```bash
 make bindings
-```
-
-### Deployment
-
-And finally you must rebuild go binaries, for Operator and Aggregator:
-
-```bash
-make build_binaries
 ```

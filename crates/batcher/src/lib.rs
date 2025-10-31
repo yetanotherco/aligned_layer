@@ -1,0 +1,2890 @@
+use aligned_sdk::communication::serialization::{cbor_deserialize, cbor_serialize};
+use config::NonPayingConfig;
+use connection::{send_message, WsMessageSink};
+use dotenvy::dotenv;
+use eth::service_manager::ServiceManager;
+use eth::utils::{calculate_bumped_gas_price, get_batcher_signer, get_gas_price};
+use ethers::contract::ContractError;
+use ethers::signers::Signer;
+use retry::batcher_retryables::{
+    cancel_create_new_task_retryable, create_new_task_retryable,
+    get_current_block_number_retryable, get_user_balance_retryable,
+    get_user_nonce_from_ethereum_retryable, query_balance_unlocked_events_retryable,
+    simulate_create_new_task_retryable, user_balance_is_unlocked_retryable,
+};
+use retry::{retry_function, RetryError};
+use tokio::time::{timeout, Instant};
+use types::batch_state::BatchState;
+use types::user_state::UserState;
+
+use batch_queue::calculate_batch_size;
+use std::collections::HashMap;
+use std::env;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::Duration;
+
+use aligned_sdk::common::constants::{
+    ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF, BATCHER_SUBMISSION_BASE_GAS_COST,
+    BUMP_BACKOFF_FACTOR, BUMP_MAX_RETRIES, BUMP_MAX_RETRY_DELAY, BUMP_MIN_RETRY_DELAY,
+    CBOR_ARRAY_MAX_OVERHEAD, CONNECTION_TIMEOUT, DEFAULT_MAX_FEE_PER_PROOF,
+    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
+    ETHEREUM_CALL_MIN_RETRY_DELAY, GAS_PRICE_PERCENTAGE_MULTIPLIER, PERCENTAGE_DIVIDER,
+    RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER,
+};
+use aligned_sdk::common::types::{
+    ClientMessage, GetLastMaxFeeResponseMessage, GetNonceResponseMessage, NoncedVerificationData,
+    ProofInvalidReason, ProvingSystemId, SubmitProofMessage, SubmitProofResponseMessage,
+    VerificationCommitmentBatch, VerificationData, VerificationDataCommitment,
+};
+
+use aws_sdk_s3::client::Client as S3Client;
+use eth::payment_service::{BatcherPaymentService, CreateNewTaskFeeParams, SignerMiddlewareT};
+use ethers::prelude::{Http, Middleware, Provider};
+use ethers::types::{Address, Signature, TransactionReceipt, U256, U64};
+use futures_util::{future, join, SinkExt, StreamExt, TryStreamExt};
+use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
+use log::{debug, error, info, warn};
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::{Mutex, MutexGuard, RwLock};
+
+// Message handler lock timeout
+const MESSAGE_HANDLER_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
+const POLLING_EVENTS_LOCK_TIMEOUT: Duration = Duration::from_secs(300);
+use tokio_tungstenite::tungstenite::{Error, Message};
+use types::batch_queue::{self, BatchQueueEntry, BatchQueueEntryPriority};
+use types::errors::{BatcherError, TransactionSendError};
+
+use crate::config::{ConfigFromYaml, ContractDeploymentOutput};
+use crate::telemetry::sender::TelemetrySender;
+
+pub mod circom;
+mod config;
+mod connection;
+mod eth;
+mod ffi;
+pub mod gnark;
+pub mod metrics;
+pub mod retry;
+pub mod risc_zero;
+pub mod s3;
+pub mod sp1;
+pub mod telemetry;
+pub mod types;
+mod zk_utils;
+
+pub const LISTEN_NEW_BLOCKS_MAX_TIMES: usize = usize::MAX;
+
+pub struct Batcher {
+    // Configuration parameters
+    s3_client: S3Client,
+    s3_bucket_name: String,
+    download_endpoint: String,
+    s3_client_secondary: Option<S3Client>,
+    s3_bucket_name_secondary: Option<String>,
+    download_endpoint_secondary: Option<String>,
+    eth_ws_url: String,
+    eth_ws_url_fallback: String,
+    batcher_signer: Arc<SignerMiddlewareT>,
+    batcher_signer_fallback: Arc<SignerMiddlewareT>,
+    eth_http_provider: Provider<Http>,
+    eth_http_provider_fallback: Provider<Http>,
+    chain_id: U256,
+    payment_service: BatcherPaymentService,
+    payment_service_fallback: BatcherPaymentService,
+    service_manager: ServiceManager,
+    service_manager_fallback: ServiceManager,
+    min_block_interval: u64,
+    transaction_wait_timeout: u64,
+    max_proof_size: usize,
+    max_batch_byte_size: usize,
+    max_batch_proof_qty: usize,
+    pre_verification_is_enabled: bool,
+    non_paying_config: Option<NonPayingConfig>,
+    aggregator_fee_percentage_multiplier: u128,
+    aggregator_gas_cost: u128,
+    current_min_max_fee: RwLock<U256>,
+    amount_of_proofs_for_min_max_fee: usize,
+    min_bump_percentage: U256,
+    balance_unlock_polling_interval_seconds: u64,
+
+    // Shared state access:
+    // Two kinds of threads interact with the shared state:
+    //   1. User message processing threads (run in parallel)
+    //   2. Batch creation thread (runs sequentially, includes failure recovery)
+    //
+    // Locking rules:
+    // - To avoid deadlocks, always acquire `user_states` before `batch_state`.
+    // - During failure recovery, restoring a valid state may require breaking this rule:
+    //   additional user locks might be acquired *after* the batch lock.
+    //   (See the `restore` algorithm in the `batch_queue` module.)
+    //
+    // Because of this exception, user message handling uses lock acquisition with timeouts.
+    batch_state: Mutex<BatchState>,
+
+    user_states: Arc<RwLock<HashMap<Address, Arc<Mutex<UserState>>>>>,
+
+    last_uploaded_batch_block: Mutex<u64>,
+
+    /// This is used to avoid multiple batches being submitted at the same time
+    /// It could be removed in the future by changing how we spawn
+    /// the batch creation task
+    posting_batch: Mutex<bool>,
+
+    disabled_verifiers: Mutex<U256>,
+
+    // Observability and monitoring
+    pub metrics: metrics::BatcherMetrics,
+    pub telemetry: TelemetrySender,
+}
+
+impl Batcher {
+    pub async fn new(config_file: String) -> Self {
+        dotenv().ok();
+
+        // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/localstack.html
+        // Primary S3 configuration
+        let s3_config_primary = s3::S3Config {
+            access_key_id: env::var("AWS_ACCESS_KEY_ID").ok(),
+            secret_access_key: env::var("AWS_SECRET_ACCESS_KEY").ok(),
+            region: env::var("AWS_REGION").ok(),
+            endpoint_url: env::var("UPLOAD_ENDPOINT").ok(),
+        };
+
+        let s3_bucket_name =
+            env::var("AWS_BUCKET_NAME").expect("AWS_BUCKET_NAME not found in environment");
+
+        let download_endpoint =
+            env::var("DOWNLOAD_ENDPOINT").expect("DOWNLOAD_ENDPOINT not found in environment");
+
+        let s3_client = s3::create_client(s3_config_primary).await;
+
+        // Secondary S3 configuration (optional)
+        let s3_bucket_name_secondary = env::var("AWS_BUCKET_NAME_SECONDARY").ok();
+        let download_endpoint_secondary = env::var("DOWNLOAD_ENDPOINT_SECONDARY").ok();
+
+        let s3_client_secondary = if s3_bucket_name_secondary.is_some()
+            && download_endpoint_secondary.is_some()
+        {
+            let s3_config_secondary = s3::S3Config {
+                access_key_id: env::var("AWS_ACCESS_KEY_ID_SECONDARY").ok(),
+                secret_access_key: env::var("AWS_SECRET_ACCESS_KEY_SECONDARY").ok(),
+                region: env::var("AWS_REGION_SECONDARY").ok(),
+                endpoint_url: env::var("UPLOAD_ENDPOINT_SECONDARY").ok(),
+            };
+            Some(s3::create_client(s3_config_secondary).await)
+        } else {
+            info!("Secondary S3 configuration not found or incomplete. Operating with primary S3 only.");
+            None
+        };
+
+        let config = ConfigFromYaml::new(config_file);
+        // Ensure max_batch_bytes_size can at least hold one proof of max_proof_size,
+        // including the overhead introduced by serialization
+        assert!(
+            config.batcher.max_proof_size + CBOR_ARRAY_MAX_OVERHEAD
+                <= config.batcher.max_batch_byte_size,
+            "max_batch_bytes_size ({}) not big enough for one max_proof_size ({}) proof",
+            config.batcher.max_batch_byte_size,
+            config.batcher.max_proof_size
+        );
+
+        let deployment_output =
+            ContractDeploymentOutput::new(config.aligned_layer_deployment_config_file_path);
+
+        info!(
+            "Starting metrics server on port {}",
+            config.batcher.metrics_port
+        );
+        let metrics = metrics::BatcherMetrics::start(config.batcher.metrics_port)
+            .expect("Failed to start metrics server");
+
+        let eth_http_provider =
+            eth::get_provider(config.eth_rpc_url.clone()).expect("Failed to get provider");
+
+        let eth_http_provider_fallback = eth::get_provider(config.eth_rpc_url_fallback.clone())
+            .expect("Failed to get fallback provider");
+
+        // FIXME(marian): We are getting just the last block number right now, but we should really
+        // have the last submitted batch block registered and query it when the batcher is initialized.
+        let last_uploaded_batch_block = match eth_http_provider.get_block_number().await {
+            Ok(block_num) => block_num,
+            Err(e) => {
+                warn!(
+                    "Failed to get block number with main rpc, trying with fallback rpc. Err: {:?}",
+                    e
+                );
+                eth_http_provider_fallback
+                    .get_block_number()
+                    .await
+                    .expect("Failed to get block number with fallback rpc")
+            }
+        };
+
+        let last_uploaded_batch_block = last_uploaded_batch_block.as_u64();
+
+        let chain_id = match eth_http_provider.get_chainid().await {
+            Ok(chain_id) => chain_id,
+            Err(e) => {
+                warn!("Failed to get chain id with main rpc: {}", e);
+                eth_http_provider_fallback
+                    .get_chainid()
+                    .await
+                    .expect("Failed to get chain id with fallback rpc")
+            }
+        };
+
+        let batcher_signer = get_batcher_signer(eth_http_provider.clone(), config.ecdsa.clone())
+            .await
+            .expect("Failed to get Batcher signer");
+
+        let batcher_signer_fallback =
+            get_batcher_signer(eth_http_provider_fallback.clone(), config.ecdsa.clone())
+                .await
+                .expect("Failed to get Batcher signer fallback");
+
+        let payment_service = eth::payment_service::get_batcher_payment_service(
+            batcher_signer.clone(),
+            deployment_output.addresses.batcher_payment_service.clone(),
+        )
+        .await
+        .expect("Failed to get Batcher Payment Service contract");
+
+        let payment_service_fallback = eth::payment_service::get_batcher_payment_service(
+            batcher_signer_fallback.clone(),
+            deployment_output.addresses.batcher_payment_service,
+        )
+        .await
+        .expect("Failed to get fallback Batcher Payment Service contract");
+
+        let service_manager = eth::service_manager::get_service_manager(
+            eth_http_provider.clone(),
+            config.ecdsa.clone(),
+            deployment_output.addresses.service_manager.clone(),
+        )
+        .await
+        .expect("Failed to get Service Manager contract");
+
+        let service_manager_fallback = eth::service_manager::get_service_manager(
+            eth_http_provider_fallback.clone(),
+            config.ecdsa,
+            deployment_output.addresses.service_manager,
+        )
+        .await
+        .expect("Failed to get fallback Service Manager contract");
+
+        let user_states = Arc::new(RwLock::new(HashMap::new()));
+        let batch_state = BatchState::new(config.batcher.max_queue_size);
+        let non_paying_config = if let Some(non_paying_config) = config.batcher.non_paying {
+            warn!("Non-paying address configuration detected. Will replace non-paying address {} with configured address.",
+                non_paying_config.address);
+
+            let non_paying_config = NonPayingConfig::from_yaml_config(non_paying_config).await;
+            let nonpaying_nonce = payment_service
+                .user_nonces(non_paying_config.replacement.address())
+                .call()
+                .await
+                .expect("Could not get non-paying nonce from Ethereum");
+
+            let non_paying_user_state = UserState::new(nonpaying_nonce);
+            user_states.write().await.insert(
+                non_paying_config.replacement.address(),
+                Arc::new(Mutex::new(non_paying_user_state)),
+            );
+
+            Some(non_paying_config)
+        } else {
+            None
+        };
+
+        let disabled_verifiers = match service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => service_manager_fallback.disabled_verifiers().call().await,
+        }
+        .expect("Failed to get disabled verifiers");
+
+        let telemetry = TelemetrySender::new(format!(
+            "http://{}",
+            config.batcher.telemetry_ip_port_address
+        ));
+
+        Self {
+            s3_client,
+            s3_bucket_name,
+            download_endpoint,
+            s3_client_secondary,
+            s3_bucket_name_secondary,
+            download_endpoint_secondary,
+            eth_ws_url: config.eth_ws_url,
+            eth_ws_url_fallback: config.eth_ws_url_fallback,
+            batcher_signer,
+            batcher_signer_fallback,
+            eth_http_provider,
+            eth_http_provider_fallback,
+            chain_id,
+            payment_service,
+            payment_service_fallback,
+            service_manager,
+            service_manager_fallback,
+            min_block_interval: config.batcher.block_interval,
+            transaction_wait_timeout: config.batcher.transaction_wait_timeout,
+            max_proof_size: config.batcher.max_proof_size,
+            max_batch_byte_size: config.batcher.max_batch_byte_size,
+            max_batch_proof_qty: config.batcher.max_batch_proof_qty,
+            amount_of_proofs_for_min_max_fee: config.batcher.amount_of_proofs_for_min_max_fee,
+            min_bump_percentage: U256::from(config.batcher.min_bump_percentage),
+            balance_unlock_polling_interval_seconds: config
+                .batcher
+                .balance_unlock_polling_interval_seconds,
+            last_uploaded_batch_block: Mutex::new(last_uploaded_batch_block),
+            pre_verification_is_enabled: config.batcher.pre_verification_is_enabled,
+            non_paying_config,
+            aggregator_fee_percentage_multiplier: config
+                .batcher
+                .aggregator_fee_percentage_multiplier,
+            aggregator_gas_cost: config.batcher.aggregator_gas_cost,
+            posting_batch: Mutex::new(false),
+            batch_state: Mutex::new(batch_state),
+            user_states,
+            disabled_verifiers: Mutex::new(disabled_verifiers),
+            current_min_max_fee: RwLock::new(U256::zero()),
+            metrics,
+            telemetry,
+        }
+    }
+
+    async fn update_evicted_user_state_with_lock(
+        &self,
+        removed_entry: &types::batch_queue::BatchQueueEntry,
+        batch_queue: &types::batch_queue::BatchQueue,
+        user_state_guard: &mut tokio::sync::MutexGuard<'_, crate::types::user_state::UserState>,
+    ) {
+        let addr = removed_entry.sender;
+
+        let new_last_max_fee_limit = match batch_queue
+            .iter()
+            .filter(|(e, _)| e.sender == addr)
+            .next_back()
+        {
+            Some((last_entry, _)) => last_entry.nonced_verification_data.max_fee,
+            None => {
+                self.user_states.write().await.remove(&addr);
+                return;
+            }
+        };
+
+        user_state_guard.proofs_in_batch -= 1;
+        user_state_guard.nonce -= U256::one();
+        user_state_guard.total_fees_in_queue -= removed_entry.nonced_verification_data.max_fee;
+        user_state_guard.last_max_fee_limit = new_last_max_fee_limit;
+    }
+
+    // Fallback async version for restoration path where we don't have pre-held locks
+    async fn update_evicted_user_state_async(
+        &self,
+        removed_entry: &types::batch_queue::BatchQueueEntry,
+        batch_queue: &types::batch_queue::BatchQueue,
+    ) -> Option<()> {
+        let addr = removed_entry.sender;
+
+        let new_last_max_fee_limit = match batch_queue
+            .iter()
+            .filter(|(e, _)| e.sender == addr)
+            .next_back()
+        {
+            Some((last_entry, _)) => last_entry.nonced_verification_data.max_fee,
+            None => {
+                self.user_states.write().await.remove(&addr);
+                return Some(());
+            }
+        };
+
+        let user_state = self.user_states.read().await.get(&addr)?.clone();
+        let mut user_state_guard = user_state.lock().await;
+        user_state_guard.proofs_in_batch -= 1;
+        user_state_guard.nonce -= U256::one();
+        user_state_guard.total_fees_in_queue -= removed_entry.nonced_verification_data.max_fee;
+        user_state_guard.last_max_fee_limit = new_last_max_fee_limit;
+        Some(())
+    }
+
+    fn calculate_new_user_states_data(
+        &self,
+        batch_queue: &batch_queue::BatchQueue,
+    ) -> HashMap<Address, (usize, U256, U256)> {
+        let mut updated_user_states = HashMap::new();
+        for (entry, _) in batch_queue.iter() {
+            let addr = entry.sender;
+            let max_fee = entry.nonced_verification_data.max_fee;
+
+            let (proof_count, max_fee_limit, total_fees_in_queue) = updated_user_states
+                .entry(addr)
+                .or_insert((0, max_fee, U256::zero()));
+
+            *proof_count += 1;
+            *total_fees_in_queue += max_fee;
+            if max_fee < *max_fee_limit {
+                *max_fee_limit = max_fee;
+            }
+        }
+        updated_user_states
+    }
+
+    /// Helper to apply 15-second timeout to user lock acquisition with consistent logging and metrics
+    async fn try_user_lock_with_timeout<F, T>(&self, addr: Address, lock_future: F) -> Option<T>
+    where
+        F: std::future::Future<Output = T>,
+    {
+        match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, lock_future).await {
+            Ok(result) => Some(result),
+            Err(_) => {
+                warn!("User lock acquisition timed out for address {}", addr);
+                self.metrics.inc_message_handler_user_lock_timeout();
+                None
+            }
+        }
+    }
+
+    /// Helper to apply `duration` timeout to batch lock acquisition with consistent logging and metrics
+    async fn try_batch_lock_with_timeout<F, T>(
+        &self,
+        lock_future: F,
+        duration: Duration,
+    ) -> Option<T>
+    where
+        F: std::future::Future<Output = T>,
+    {
+        match timeout(duration, lock_future).await {
+            Ok(result) => Some(result),
+            Err(_) => {
+                warn!("Batch lock acquisition timed out");
+                self.metrics.inc_message_handler_batch_lock_timeout();
+                None
+            }
+        }
+    }
+
+    pub async fn listen_connections(self: Arc<Self>, address: &str) -> Result<(), BatcherError> {
+        // Create the event loop and TCP listener we'll accept connections on.
+        let listener = TcpListener::bind(address)
+            .await
+            .map_err(|e| BatcherError::TcpListenerError(e.to_string()))?;
+        info!("Listening on: {}", address);
+
+        loop {
+            match listener.accept().await {
+                Ok((stream, addr)) => {
+                    let batcher = self.clone();
+                    // Let's spawn the handling of each connection in a separate task.
+                    tokio::spawn(batcher.handle_connection(stream, addr));
+                }
+                Err(e) => {
+                    self.metrics.user_error(&["connection_accept_error", ""]);
+                    error!("Couldn't accept new connection: {}", e);
+                }
+            }
+        }
+    }
+
+    /// Listen for Ethereum new blocks.
+    /// Retries on recoverable errors using exponential backoff
+    /// with the maximum number of retries and a `MAX_DELAY` of 1 hour.
+    pub async fn listen_new_blocks(self: Arc<Self>) -> Result<(), BatcherError> {
+        retry_function(
+            || {
+                let app = self.clone();
+                async move { app.listen_new_blocks_retryable().await }
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            LISTEN_NEW_BLOCKS_MAX_TIMES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        .map_err(|e| e.inner())
+    }
+
+    /// Poll for BalanceUnlocked events from BatcherPaymentService contract.
+    /// Runs at configurable intervals and checks recent blocks for events (2x the polling interval).
+    /// When an event is detected, removes user's proofs from queue and resets UserState.
+    pub async fn poll_balance_unlocked_events(self: Arc<Self>) -> Result<(), BatcherError> {
+        let mut interval = tokio::time::interval(Duration::from_secs(
+            self.balance_unlock_polling_interval_seconds,
+        ));
+        let mut from_block = self.get_current_block_number().await.map_err(|e| {
+            BatcherError::EthereumProviderError(format!(
+                "Failed to get current block number: {:?}",
+                e
+            ))
+        })?;
+
+        loop {
+            interval.tick().await;
+
+            match self.process_balance_unlocked_events(from_block).await {
+                Ok(current_block) => {
+                    from_block = current_block;
+                }
+                Err(e) => {
+                    error!("Error processing BalanceUnlocked events: {:?}", e);
+                    // On error, keep from_block unchanged to retry the same range next time
+                }
+            }
+        }
+    }
+
+    async fn process_balance_unlocked_events(&self, from_block: U64) -> Result<U64, BatcherError> {
+        // Get current block number using HTTP providers
+        let current_block = self.get_current_block_number().await.map_err(|e| {
+            BatcherError::EthereumProviderError(format!(
+                "Failed to get current block number: {:?}",
+                e
+            ))
+        })?;
+
+        // Query events with retry logic
+        let events = self
+            .query_balance_unlocked_events(from_block, current_block)
+            .await
+            .map_err(|e| {
+                BatcherError::EthereumProviderError(format!(
+                    "Failed to query BalanceUnlocked events: {:?}",
+                    e
+                ))
+            })?;
+
+        info!(
+            "Found {} BalanceUnlocked events in blocks {} to {}",
+            events.len(),
+            from_block,
+            current_block
+        );
+
+        // Process each event
+        for event in events {
+            let user_address = event.user;
+            debug!(
+                "Processing BalanceUnlocked event for user: {:?}",
+                user_address
+            );
+
+            // Check if user has proofs in queue
+            //
+            // Double-check that funds are still unlocked by calling the contract
+            // This is necessary because we query events over a block range, and the
+            // user’s state may have changed (e.g., funds could be locked again) after
+            // the event was emitted. Verifying on-chain ensures we don’t act on stale data.
+            //
+            // There is a brief period between the checks and the removal during which the user's
+            // proofs could be sent. This is acceptable, as the removal will not fail;
+            // it will simply clear the user's state.
+            if self.user_has_proofs_in_queue(user_address).await
+                && self.user_balance_is_unlocked(&user_address).await
+            {
+                info!(
+                    "User {:?} has proofs in queue and funds are unlocked, proceeding to remove proofs and resetting UserState",
+                    user_address
+                );
+                self.remove_user_proofs_and_reset_state(user_address).await;
+            }
+        }
+
+        Ok(current_block)
+    }
+
+    /// Gets the current block number from Ethereum.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    async fn get_current_block_number(&self) -> Result<U64, RetryError<String>> {
+        retry_function(
+            || {
+                get_current_block_number_retryable(
+                    &self.eth_http_provider,
+                    &self.eth_http_provider_fallback,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+    }
+
+    /// Queries BalanceUnlocked events from the BatcherPaymentService contract.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    async fn query_balance_unlocked_events(
+        &self,
+        from_block: U64,
+        to_block: U64,
+    ) -> Result<
+        Vec<aligned_sdk::eth::batcher_payment_service::BalanceUnlockedFilter>,
+        RetryError<String>,
+    > {
+        retry_function(
+            || {
+                query_balance_unlocked_events_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    from_block,
+                    to_block,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+    }
+
+    async fn user_has_proofs_in_queue(&self, user_address: Address) -> bool {
+        let user_states = self.user_states.read().await;
+        let Some(user_state) = user_states.get(&user_address) else {
+            return false;
+        };
+
+        let Some(user_state_guard) = self
+            .try_user_lock_with_timeout(user_address, user_state.lock())
+            .await
+        else {
+            return false;
+        };
+
+        user_state_guard.proofs_in_batch > 0
+    }
+
+    async fn remove_user_proofs_and_reset_state(&self, user_address: Address) {
+        let mut user_states = self.user_states.write().await;
+
+        let mut batch_state_guard = match self
+            .try_batch_lock_with_timeout(self.batch_state.lock(), POLLING_EVENTS_LOCK_TIMEOUT)
+            .await
+        {
+            Some(guard) => guard,
+            None => {
+                error!(
+                    "Failed to acquire batch lock when trying to remove proofs from user {:?}, skipping removal",
+                    user_address
+                );
+                self.metrics.inc_unlocked_event_polling_batch_lock_timeout();
+                return;
+            }
+        };
+
+        let removed_entries = batch_state_guard
+            .batch_queue
+            .extract_if(|entry, _| entry.sender == user_address);
+
+        // Notify user via websocket
+        for (entry, _) in removed_entries {
+            if let Some(ws_sink) = entry.messaging_sink {
+                let ws_sink_clone = ws_sink.clone();
+                tokio::spawn(async move {
+                    send_message(
+                        ws_sink_clone.clone(),
+                        SubmitProofResponseMessage::UserFundsUnlocked,
+                    )
+                    .await;
+                });
+            }
+            info!(
+                "Removed proof with nonce {} for user {:?} from batch queue",
+                entry.nonced_verification_data.nonce, user_address
+            );
+        }
+
+        user_states.remove(&user_address);
+        info!(
+            "Removed UserState entry for user {:?} after processing BalanceUnlocked event",
+            user_address
+        );
+    }
+
+    pub async fn listen_new_blocks_retryable(
+        self: Arc<Self>,
+    ) -> Result<(), RetryError<BatcherError>> {
+        // Try to connect at least to one of the nodes (main or fallback)
+        let eth_ws_provider = Provider::connect(&self.eth_ws_url).await.ok();
+        let eth_ws_provider_fallback = Provider::connect(&self.eth_ws_url_fallback).await.ok();
+        if eth_ws_provider.is_none() {
+            warn!("Failed to instantiate Ethereum main websocket provider");
+        }
+        if eth_ws_provider_fallback.is_none() {
+            warn!("Failed to instantiate fallback Ethereum websocket provider");
+        }
+        if eth_ws_provider.is_none() && eth_ws_provider_fallback.is_none() {
+            return Err(RetryError::Transient(
+                BatcherError::EthereumSubscriptionError(
+                    "Both Ethereum websocket providers failed to connect".to_string(),
+                ),
+            ));
+        }
+
+        // Try to connect to one stream (main or fallback)
+        let mut stream = match &eth_ws_provider {
+            Some(provider) => match provider.subscribe_blocks().await {
+                Ok(s) => Some(s),
+                Err(e) => {
+                    warn!("Error subscribing to blocks on primary provider: {:?}", e);
+                    None
+                }
+            },
+            None => None,
+        };
+        let mut stream_fallback = match &eth_ws_provider_fallback {
+            Some(provider) => match provider.subscribe_blocks().await {
+                Ok(s) => Some(s),
+                Err(e) => {
+                    warn!("Error subscribing to blocks on fallback provider: {:?}", e);
+                    None
+                }
+            },
+            None => None,
+        };
+        if stream.is_none() && stream_fallback.is_none() {
+            return Err(RetryError::Transient(
+                BatcherError::EthereumSubscriptionError(
+                    "Both Ethereum block subscriptions failed".to_string(),
+                ),
+            ));
+        }
+
+        let last_seen_block = Mutex::<u64>::new(0);
+
+        loop {
+            // Wait for both responses
+            let (block_main, block_fallback) = join!(
+                async {
+                    match stream.as_mut() {
+                        Some(s) => s.next().await,
+                        None => None,
+                    }
+                },
+                async {
+                    match stream_fallback.as_mut() {
+                        Some(s) => s.next().await,
+                        None => None,
+                    }
+                }
+            );
+
+            let block = if let Some(block) = block_main {
+                block
+            } else if let Some(block) = block_fallback {
+                block
+            } else {
+                // Both rpc failed to respond, break and try to reconnect
+                break;
+            };
+
+            let batcher = self.clone();
+            let block_number = block.number.unwrap_or_default();
+            let block_number = u64::try_from(block_number).unwrap_or_default();
+
+            {
+                let mut last_seen_block = last_seen_block.lock().await;
+                if block_number <= *last_seen_block {
+                    continue;
+                }
+                *last_seen_block = block_number;
+            }
+
+            info!("Received new block: {}", block_number);
+            tokio::spawn(async move {
+                if let Err(e) = batcher.handle_new_block(block_number).await {
+                    error!("Error when handling new block: {:?}", e);
+                }
+            });
+        }
+        error!("Both main and fallback Ethereum WS clients subscriptions have disconnected, will try to reconnect...");
+
+        Err(RetryError::Transient(
+            BatcherError::EthereumSubscriptionError("Could not get new blocks".to_string()),
+        ))
+    }
+
+    async fn handle_connection(
+        self: Arc<Self>,
+        raw_stream: TcpStream,
+        addr: SocketAddr,
+    ) -> Result<(), BatcherError> {
+        info!("Incoming TCP connection from: {}", addr);
+        self.metrics.open_connections.inc();
+
+        let ws_stream_future = tokio_tungstenite::accept_async(raw_stream);
+        let ws_stream =
+            match timeout(Duration::from_secs(CONNECTION_TIMEOUT), ws_stream_future).await {
+                Ok(Ok(stream)) => stream,
+                Ok(Err(e)) => {
+                    warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.open_connections.dec();
+                    return Ok(());
+                }
+                Err(e) => {
+                    warn!("Error while establishing websocket connection: {}", e);
+                    self.metrics.open_connections.dec();
+                    self.metrics.user_error(&["user_timeout", ""]);
+                    return Ok(());
+                }
+            };
+
+        debug!("WebSocket connection established: {}", addr);
+        let (outgoing, incoming) = ws_stream.split();
+        let outgoing = Arc::new(RwLock::new(outgoing));
+
+        let protocol_version_msg = SubmitProofResponseMessage::ProtocolVersion(
+            aligned_sdk::communication::protocol::EXPECTED_PROTOCOL_VERSION,
+        );
+
+        let serialized_protocol_version_msg = cbor_serialize(&protocol_version_msg)
+            .map_err(|e| BatcherError::SerializationError(e.to_string()))?;
+
+        outgoing
+            .write()
+            .await
+            .send(Message::binary(serialized_protocol_version_msg))
+            .await?;
+
+        let mut incoming_filter = incoming.try_filter(|msg| future::ready(msg.is_binary()));
+        let future_msg = incoming_filter.try_next();
+
+        // timeout to prevent a DOS attack
+        match timeout(Duration::from_secs(CONNECTION_TIMEOUT), future_msg).await {
+            Ok(Ok(Some(msg))) => {
+                self.clone().handle_message(msg, outgoing.clone()).await?;
+            }
+            Err(elapsed) => {
+                warn!("[{}] {}", &addr, elapsed);
+                self.metrics.user_error(&["user_timeout", ""]);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+            Ok(Ok(None)) => {
+                info!("[{}] Connection closed by the other side", &addr);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+            Ok(Err(e)) => {
+                error!("Unexpected error: {}", e);
+                self.metrics.open_connections.dec();
+                return Ok(());
+            }
+        };
+
+        match incoming_filter
+            .try_for_each(|msg| self.clone().handle_message(msg, outgoing.clone()))
+            .await
+        {
+            Err(e) => {
+                self.metrics.broken_ws_connections.inc();
+                error!("Unexpected error: {}", e)
+            }
+            Ok(_) => info!("{} disconnected", &addr),
+        }
+
+        self.metrics.open_connections.dec();
+        Ok(())
+    }
+
+    /// Handle an individual message from the client.
+    async fn handle_message(
+        self: Arc<Self>,
+        message: Message,
+        ws_conn_sink: WsMessageSink,
+    ) -> Result<(), Error> {
+        // Deserialize verification data from message
+        let client_msg: ClientMessage = match cbor_deserialize(message.into_data().as_slice()) {
+            Ok(msg) => msg,
+            Err(e) => {
+                warn!("Failed to deserialize message: {}", e);
+                self.metrics.user_error(&["deserialize_error", ""]);
+                return Ok(());
+            }
+        };
+        info!("Received new client message of type: {}", client_msg);
+        match client_msg {
+            ClientMessage::GetNonceForAddress(address) => {
+                self.clone()
+                    .handle_get_nonce_for_address_msg(address, ws_conn_sink)
+                    .await
+            }
+            ClientMessage::SubmitProof(msg) => {
+                self.clone()
+                    .handle_submit_proof_msg(msg, ws_conn_sink)
+                    .await
+            }
+            ClientMessage::GetLastMaxFee(address) => {
+                self.clone()
+                    .handle_get_last_max_fee(address, ws_conn_sink)
+                    .await
+            }
+        }
+    }
+
+    async fn handle_get_nonce_for_address_msg(
+        self: Arc<Self>,
+        mut address: Address,
+        ws_conn_sink: WsMessageSink,
+    ) -> Result<(), Error> {
+        // If the address is not paying, we will return the nonce of the aligned_payment_address
+        if !self.has_to_pay(&address) {
+            info!("Handling nonpaying message");
+            let Some(non_paying_config) = self.non_paying_config.as_ref() else {
+                warn!(
+                    "There isn't a non-paying configuration loaded. This message will be ignored"
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    GetNonceResponseMessage::InvalidRequest(
+                        "There isn't a non-paying configuration loaded.".to_string(),
+                    ),
+                )
+                .await;
+                return Ok(());
+            };
+            let replacement_addr = non_paying_config.replacement.address();
+            address = replacement_addr;
+        }
+
+        let cached_user_nonce = {
+            let user_states_guard = match timeout(
+                MESSAGE_HANDLER_LOCK_TIMEOUT,
+                self.user_states.read(),
+            )
+            .await
+            {
+                Ok(guard) => guard,
+                Err(_) => {
+                    warn!("User states read lock acquisition timed out in handle_get_nonce_for_address_msg");
+                    self.metrics.inc_message_handler_user_states_lock_timeouts();
+                    send_message(ws_conn_sink, GetNonceResponseMessage::ServerBusy).await;
+                    return Ok(());
+                }
+            };
+            let user_state_ref = user_states_guard.get(&address).cloned();
+            match user_state_ref {
+                Some(user_state_ref) => {
+                    let Some(user_state_guard) = self
+                        .try_user_lock_with_timeout(address, user_state_ref.lock())
+                        .await
+                    else {
+                        send_message(ws_conn_sink.clone(), GetNonceResponseMessage::ServerBusy)
+                            .await;
+                        return Ok(());
+                    };
+                    Some(user_state_guard.nonce)
+                }
+                None => None,
+            }
+        };
+
+        let user_nonce = if let Some(user_nonce) = cached_user_nonce {
+            user_nonce
+        } else {
+            match self.get_user_nonce_from_ethereum(address).await {
+                Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                Err(e) => {
+                    error!(
+                        "Failed to get user nonce from Ethereum for address {address:?}. Error: {e:?}"
+                    );
+                    send_message(
+                        ws_conn_sink.clone(),
+                        GetNonceResponseMessage::EthRpcError("Eth RPC error".to_string()),
+                    )
+                    .await;
+                    return Ok(());
+                }
+            }
+        };
+
+        send_message(
+            ws_conn_sink.clone(),
+            GetNonceResponseMessage::Nonce(user_nonce),
+        )
+        .await;
+
+        Ok(())
+    }
+
+    async fn handle_get_last_max_fee(
+        self: Arc<Self>,
+        mut address: Address,
+        ws_conn_sink: WsMessageSink,
+    ) -> Result<(), Error> {
+        // If the address is not paying, we will return the last max fee of the aligned_payment_address
+        if !self.has_to_pay(&address) {
+            info!("Handling nonpaying message");
+            let Some(non_paying_config) = self.non_paying_config.as_ref() else {
+                warn!(
+                    "There isn't a non-paying configuration loaded. This message will be ignored"
+                );
+                send_message(
+                    ws_conn_sink.clone(),
+                    GetLastMaxFeeResponseMessage::InvalidRequest(
+                        "There isn't a non-paying configuration loaded.".to_string(),
+                    ),
+                )
+                .await;
+                return Ok(());
+            };
+            let replacement_addr = non_paying_config.replacement.address();
+            address = replacement_addr;
+        }
+
+        let user_states_guard = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read())
+            .await
+        {
+            Ok(guard) => guard,
+            Err(_) => {
+                warn!("User states read lock acquisition timed out in handle_get_last_max_fee_for_address_msg");
+                self.metrics.inc_message_handler_user_states_lock_timeouts();
+                send_message(ws_conn_sink, GetLastMaxFeeResponseMessage::ServerBusy).await;
+                return Ok(());
+            }
+        };
+
+        let Some(usr_ref) = user_states_guard.get(&address).cloned() else {
+            drop(user_states_guard);
+            send_message(
+                ws_conn_sink.clone(),
+                GetLastMaxFeeResponseMessage::LastMaxFee(U256::MAX),
+            )
+            .await;
+            return Ok(());
+        };
+
+        let Some(usr_lock) = self
+            .try_user_lock_with_timeout(address, usr_ref.lock())
+            .await
+        else {
+            drop(user_states_guard);
+            send_message(
+                ws_conn_sink.clone(),
+                GetLastMaxFeeResponseMessage::ServerBusy,
+            )
+            .await;
+            return Ok(());
+        };
+
+        let proofs_in_queue = usr_lock.proofs_in_batch;
+        let max_fee = if proofs_in_queue > 0 {
+            usr_lock.last_max_fee_limit
+        } else {
+            U256::MAX
+        };
+        drop(usr_lock);
+        drop(user_states_guard);
+
+        send_message(
+            ws_conn_sink.clone(),
+            GetLastMaxFeeResponseMessage::LastMaxFee(max_fee),
+        )
+        .await;
+
+        Ok(())
+    }
+
+    /// Returns the Aligned-funded address that will be used to pay for proofs when users don't need to pay themselves.
+    /// This function assumes that the non-paying configuration is set.
+    fn aligned_payment_address(&self) -> Address {
+        self.non_paying_config
+            .as_ref()
+            .map(|config| config.replacement.address())
+            .unwrap()
+    }
+
+    async fn handle_submit_proof_msg(
+        self: Arc<Self>,
+        client_msg: Box<SubmitProofMessage>,
+        ws_conn_sink: WsMessageSink,
+    ) -> Result<(), Error> {
+        let msg_nonce = client_msg.verification_data.nonce;
+        debug!("Received message with nonce: {msg_nonce:?}");
+        self.metrics.received_proofs.inc();
+
+        // * ---------------------------------------------------*
+        // *        Perform validations over the message        *
+        // * ---------------------------------------------------*
+
+        // All check functions sends the error to the metrics server and logs it
+        // if they return false
+
+        if !self.msg_chain_id_is_valid(&client_msg, &ws_conn_sink).await {
+            return Ok(());
+        }
+
+        if !self
+            .msg_batcher_payment_addr_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        {
+            return Ok(());
+        }
+
+        if !self
+            .msg_proof_size_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        {
+            return Ok(());
+        }
+
+        let Some(addr_in_msg) = self
+            .msg_signature_is_valid(&client_msg, &ws_conn_sink)
+            .await
+        else {
+            return Ok(());
+        };
+
+        let addr;
+        let signature = client_msg.signature;
+        let nonced_verification_data;
+
+        if self.has_to_pay(&addr_in_msg) {
+            addr = addr_in_msg;
+            nonced_verification_data = client_msg.verification_data.clone();
+        } else {
+            info!("Generating non-paying data");
+            // If the user is not required to pay, substitute their address with a pre-funded Aligned address
+            addr = self.aligned_payment_address();
+            // Substitute the max_fee to a high enough value to cover the gas cost of the proof
+            let mut aux_verification_data = client_msg.verification_data.clone();
+            aux_verification_data.max_fee = (DEFAULT_MAX_FEE_PER_PROOF * 100).into(); // 2_000 gas per proof * 100 gwei gas price (upper bound) * 100 to make sure it is enough
+            nonced_verification_data = aux_verification_data
+        }
+
+        // Before moving on to process the message, verify that the max fee covers the
+        // minimum max fee allowed. This prevents users from spamming with very low max fees
+        // the min max fee is enforced by checking if it can cover a batch of [`amount_of_proofs_for_min_max_fee`]
+        let msg_max_fee = nonced_verification_data.max_fee;
+        if !self.msg_covers_minimum_max_fee(msg_max_fee).await {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::UnderpricedProof,
+            )
+            .await;
+            return Ok(());
+        };
+
+        // We don't need a batch state lock here, since if the user locks its funds
+        // after the check, some blocks should pass until he can withdraw.
+        // It is safe to do just do this here.
+        if !self.msg_user_balance_is_locked(&addr, &ws_conn_sink).await {
+            return Ok(());
+        }
+
+        info!("Handling message, locking user state");
+
+        // We acquire the lock first only to query if the user is already present and the lock is dropped.
+        // If it was not present, then the user nonce is queried to the Aligned contract.
+        // Lastly, we get a lock of the batch state again and insert the user state if it was still missing.
+
+        let is_user_in_state = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read())
+            .await
+        {
+            Ok(user_states_guard) => user_states_guard.contains_key(&addr),
+            Err(_) => {
+                warn!("User states read lock acquisition timed out in handle_submit_proof_msg (user check)");
+                self.metrics.inc_message_handler_user_states_lock_timeouts();
+                send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                return Ok(());
+            }
+        };
+
+        if !is_user_in_state {
+            // If the user state was not present, we need to get the nonce from the Ethereum contract
+            let ethereum_user_nonce = match self.get_user_nonce_from_ethereum(addr).await {
+                Ok(ethereum_user_nonce) => ethereum_user_nonce,
+                Err(e) => {
+                    error!(
+                        "Failed to get user nonce from Ethereum for address {addr:?}. Error: {e:?}"
+                    );
+                    send_message(
+                        ws_conn_sink.clone(),
+                        SubmitProofResponseMessage::EthRpcError,
+                    )
+                    .await;
+                    self.metrics.user_error(&["eth_rpc_error", ""]);
+                    return Ok(());
+                }
+            };
+            debug!("User state for address {addr:?} not found, creating a new one");
+            // We add a dummy user state to grab a lock on the user state
+            let dummy_user_state = UserState::new(ethereum_user_nonce);
+            match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.write()).await {
+                Ok(mut user_states_guard) => {
+                    user_states_guard.insert(addr, Arc::new(Mutex::new(dummy_user_state)));
+                }
+                Err(_) => {
+                    warn!("User states write lock acquisition timed out in handle_submit_proof_msg (user creation)");
+                    self.metrics.inc_message_handler_user_states_lock_timeouts();
+                    send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                    return Ok(());
+                }
+            };
+            debug!("Dummy user state for address {addr:?} created");
+        }
+
+        let user_state_ref = match timeout(MESSAGE_HANDLER_LOCK_TIMEOUT, self.user_states.read())
+            .await
+        {
+            Ok(user_states_guard) => user_states_guard.get(&addr).cloned(),
+            Err(_) => {
+                warn!("User states read lock acquisition timed out in handle_submit_proof_msg (user retrieval)");
+                self.metrics.inc_message_handler_user_states_lock_timeouts();
+                send_message(ws_conn_sink, SubmitProofResponseMessage::ServerBusy).await;
+                return Ok(());
+            }
+        };
+        let Some(user_state_ref) = user_state_ref else {
+            error!("This should never happen, user state has previously been inserted if it didn't exist");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::AddToBatchError,
+            )
+            .await;
+            self.metrics.user_error(&["batcher_state_error", ""]);
+            return Ok(());
+        };
+
+        // We acquire the lock on the user state, now everything will be processed sequentially
+        let Some(mut user_state_guard) = self
+            .try_user_lock_with_timeout(addr, user_state_ref.lock())
+            .await
+        else {
+            send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
+            return Ok(());
+        };
+
+        // * ---------------------------------------------------*
+        // *        Perform validations over user state         *
+        // * ---------------------------------------------------*
+
+        let Some(user_balance) = self.get_user_balance(&addr).await else {
+            error!("Could not get balance for address {addr:?}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::EthRpcError,
+            )
+            .await;
+            self.metrics.user_error(&["eth_rpc_error", ""]);
+            return Ok(());
+        };
+
+        let msg_max_fee = nonced_verification_data.max_fee;
+        let user_last_max_fee_limit = user_state_guard.last_max_fee_limit;
+
+        let user_accumulated_fee = user_state_guard.total_fees_in_queue;
+
+        if !self.verify_user_has_enough_balance(user_balance, user_accumulated_fee, msg_max_fee) {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InsufficientBalance(addr),
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
+            return Ok(());
+        }
+
+        let expected_nonce = user_state_guard.nonce;
+
+        if expected_nonce < msg_nonce {
+            warn!("Invalid nonce for address {addr}, expected nonce: {expected_nonce:?}, received nonce: {msg_nonce:?}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidNonce,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
+            return Ok(());
+        }
+
+        // In this case, the message might be a replacement one. If it is valid,
+        // we replace the old entry with the new from the replacement message.
+        // Notice this stops the normal flow of the handle_submit_proof.
+        // We pass the already-held user_state_guard to avoid double-locking
+        // This will take the batch lock internally
+        if expected_nonce > msg_nonce {
+            info!("Possible replacement message received: Expected nonce {expected_nonce:?} - message nonce: {msg_nonce:?}");
+            self.handle_replacement_message(
+                nonced_verification_data,
+                ws_conn_sink.clone(),
+                client_msg.signature,
+                addr,
+                user_state_guard,
+            )
+            .await;
+
+            return Ok(());
+        }
+
+        // We check this after replacement logic because if user wants to replace a proof, their
+        // new_max_fee must be greater or equal than old_max_fee
+        if msg_max_fee > user_last_max_fee_limit {
+            warn!("Invalid max fee for address {addr}, had fee limit of {user_last_max_fee_limit:?}, sent {msg_max_fee:?}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidMaxFee,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_max_fee", ""]);
+            return Ok(());
+        }
+
+        if !self
+            .verify_proof_if_enabled(
+                &nonced_verification_data.verification_data,
+                ws_conn_sink.clone(),
+            )
+            .await
+        {
+            return Ok(());
+        }
+
+        // * ---------------------------------------------------------------------*
+        // *        Perform validation over batcher queue                         *
+        // * ---------------------------------------------------------------------*
+
+        let Some(mut batch_state_lock) = self
+            .try_batch_lock_with_timeout(self.batch_state.lock(), MESSAGE_HANDLER_LOCK_TIMEOUT)
+            .await
+        else {
+            send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
+            return Ok(());
+        };
+        if batch_state_lock.is_queue_full() {
+            debug!("Batch queue is full. Evaluating if the incoming proof can replace a lower-priority entry.");
+
+            let new_proof_fee = nonced_verification_data.max_fee;
+            let mut evicted_entry = None;
+
+            // Collect addresses of potential candidates (lightweight)
+            let eviction_candidates: Vec<Address> = batch_state_lock
+                .batch_queue
+                .iter()
+                .filter_map(|(entry, _)| {
+                    if new_proof_fee > entry.nonced_verification_data.max_fee {
+                        Some(entry.sender)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            // Try to find any candidate whose lock we can acquire and immediately process them
+            for candidate_addr in eviction_candidates {
+                if let Some(user_state_arc) =
+                    self.user_states.read().await.get(&candidate_addr).cloned()
+                {
+                    if let Ok(mut user_guard) = user_state_arc.try_lock() {
+                        // Found someone whose lock we can get - now find and remove their entry
+                        let entries_to_check: Vec<_> = batch_state_lock
+                            .batch_queue
+                            .iter()
+                            .filter(|(entry, _)| {
+                                entry.sender == candidate_addr
+                                    && new_proof_fee > entry.nonced_verification_data.max_fee
+                            })
+                            .map(|(entry, _)| entry.clone())
+                            .collect();
+
+                        if let Some(target_entry) = entries_to_check.into_iter().next() {
+                            let removed_entry = batch_state_lock
+                                .batch_queue
+                                .remove(&target_entry)
+                                .map(|(e, _)| e);
+
+                            if let Some(removed) = removed_entry {
+                                info!(
+                                    "Incoming proof (nonce: {}, fee: {}) replacing proof from sender {} with nonce {} (fee: {})",
+                                    nonced_verification_data.nonce,
+                                    new_proof_fee,
+                                    removed.sender,
+                                    removed.nonced_verification_data.nonce,
+                                    removed.nonced_verification_data.max_fee
+                                );
+
+                                // Update the evicted user's state immediately
+                                self.update_evicted_user_state_with_lock(
+                                    &removed,
+                                    &batch_state_lock.batch_queue,
+                                    &mut user_guard,
+                                )
+                                .await;
+
+                                if let Some(ref removed_entry_ws) = removed.messaging_sink {
+                                    let ws_sink = removed_entry_ws.clone();
+                                    // Usually we just drop the locks, but this time
+                                    // We still need to keep them since we are doing more work
+                                    // So we send the message in an async manner
+                                    tokio::spawn(async move {
+                                        send_message(
+                                            ws_sink,
+                                            SubmitProofResponseMessage::UnderpricedProof,
+                                        )
+                                        .await;
+                                    });
+                                }
+
+                                evicted_entry = Some(removed);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Check if we successfully evicted someone
+            if evicted_entry.is_none() {
+                // No lock could be acquired or no evictable entry found - reject this proof
+                info!(
+                    "Incoming proof (nonce: {}, fee: {}) rejected - queue is full and no evictable entries found.",
+                    nonced_verification_data.nonce,
+                    new_proof_fee
+                );
+                std::mem::drop(batch_state_lock);
+                send_message(
+                    ws_conn_sink.clone(),
+                    SubmitProofResponseMessage::UnderpricedProof,
+                )
+                .await;
+                return Ok(());
+            }
+        }
+
+        // * ---------------------------------------------------------------------*
+        // *        Add message data into the queue and update user state         *
+        // * ---------------------------------------------------------------------*
+
+        if let Err(e) = self
+            .add_to_batch(
+                batch_state_lock,
+                &nonced_verification_data,
+                ws_conn_sink.clone(),
+                signature,
+                addr,
+            )
+            .await
+        {
+            error!("Error while adding entry to batch: {e:?}");
+            send_message(ws_conn_sink, SubmitProofResponseMessage::AddToBatchError).await;
+            self.metrics.user_error(&["add_to_batch_error", ""]);
+            return Ok(());
+        };
+
+        // Update user state now that entry has been successfully added to batch
+        let max_fee = nonced_verification_data.max_fee;
+        let nonce = nonced_verification_data.nonce;
+        user_state_guard.nonce = nonce + U256::one();
+        user_state_guard.last_max_fee_limit = max_fee;
+        user_state_guard.proofs_in_batch += 1;
+        user_state_guard.total_fees_in_queue += max_fee;
+        Ok(())
+    }
+
+    async fn is_verifier_disabled(&self, verifier: ProvingSystemId) -> bool {
+        let disabled_verifiers = self.disabled_verifiers.lock().await;
+        zk_utils::is_verifier_disabled(*disabled_verifiers, verifier)
+    }
+
+    // Verifies user has enough balance for paying all his proofs in the current batch.
+    fn verify_user_has_enough_balance(
+        &self,
+        user_balance: U256,
+        user_accumulated_fee: U256,
+        new_msg_max_fee: U256,
+    ) -> bool {
+        let required_balance: U256 = user_accumulated_fee + new_msg_max_fee;
+        user_balance >= required_balance
+    }
+
+    /// Handles a replacement message
+    /// First checks if the message is already in the batch
+    /// If the message is in the batch, checks if the max fee is higher
+    /// If the max fee is higher, replaces the message in the batch
+    /// If the max fee is lower, sends an error message to the client
+    /// If the message is not in the batch, sends an error message to the client
+    /// Returns true if the message was replaced in the batch, false otherwise
+    async fn handle_replacement_message(
+        &self,
+        nonced_verification_data: NoncedVerificationData,
+        ws_conn_sink: WsMessageSink,
+        signature: Signature,
+        addr: Address,
+        mut user_state_guard: tokio::sync::MutexGuard<'_, UserState>,
+    ) {
+        let replacement_max_fee = nonced_verification_data.max_fee;
+        let nonce = nonced_verification_data.nonce;
+        let Some(mut batch_state_guard) = self
+            .try_batch_lock_with_timeout(self.batch_state.lock(), MESSAGE_HANDLER_LOCK_TIMEOUT)
+            .await
+        else {
+            drop(user_state_guard);
+            send_message(ws_conn_sink.clone(), SubmitProofResponseMessage::ServerBusy).await;
+            return;
+        };
+        let Some(entry) = batch_state_guard.get_entry(addr, nonce) else {
+            drop(batch_state_guard);
+            drop(user_state_guard);
+            warn!("Invalid nonce for address {addr}. Queue entry with nonce {nonce} not found");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidNonce,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_nonce", ""]);
+            return;
+        };
+
+        // Validate that the max fee is at least higher or equal to the original fee + a configurable min_bump_percentage
+        let original_max_fee = entry.nonced_verification_data.max_fee;
+        let min_bump =
+            original_max_fee + (original_max_fee * self.min_bump_percentage) / U256::from(100);
+
+        if replacement_max_fee < min_bump {
+            drop(batch_state_guard);
+            drop(user_state_guard);
+            info!("Invalid replacement message for address {addr}, had max fee: {original_max_fee:?}, received fee: {replacement_max_fee:?}, minimum required: {min_bump:?}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::UnderpricedProof,
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_fee_increase", ""]);
+            return;
+        }
+
+        info!("Replacing message for address {addr} with nonce {nonce} and max fee {replacement_max_fee}");
+
+        if !self
+            .verify_proof_if_enabled(
+                &nonced_verification_data.verification_data,
+                ws_conn_sink.clone(),
+            )
+            .await
+        {
+            drop(batch_state_guard);
+            drop(user_state_guard);
+            return;
+        }
+
+        // The replacement entry is built from the old entry and validated for then to be replaced
+        let mut replacement_entry = entry.clone();
+        replacement_entry.signature = signature;
+        replacement_entry.verification_data_commitment =
+            nonced_verification_data.verification_data.clone().into();
+        replacement_entry.nonced_verification_data = nonced_verification_data;
+
+        // Close old sink in old entry and replace it with the new one
+        {
+            if let Some(messaging_sink) = replacement_entry.messaging_sink {
+                tokio::spawn(async move {
+                    // Before closing the old sink, send a message to the client notifying that their proof
+                    // has been replaced
+                    send_message(
+                        messaging_sink.clone(),
+                        SubmitProofResponseMessage::ProofReplaced,
+                    )
+                    .await;
+
+                    // Note: This shuts down the sink, but does not wait for it to close, so the other side
+                    // might not receive the message. However, we don't want to wait here since it would
+                    // block the batcher.
+                    let mut old_sink = messaging_sink.write().await;
+                    if let Err(e) = old_sink.close().await {
+                        // we dont want to exit here, just log the error
+                        warn!("Error closing sink: {e:?}");
+                    } else {
+                        info!("Old websocket sink closed");
+                    }
+                });
+            } else {
+                warn!(
+                    "Old websocket sink was empty. This should only happen in testing environments"
+                )
+            };
+        }
+
+        replacement_entry.messaging_sink = Some(ws_conn_sink.clone());
+        if !batch_state_guard.replacement_entry_is_valid(&replacement_entry) {
+            drop(batch_state_guard);
+            drop(user_state_guard);
+            warn!("Invalid replacement message");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidReplacementMessage,
+            )
+            .await;
+            self.metrics
+                .user_error(&["invalid_replacement_message", ""]);
+            return;
+        }
+
+        info!(
+            "Replacement entry is valid, incrementing fee for sender: {:?}, nonce: {:?}, max_fee: {:?}",
+            replacement_entry.sender, replacement_entry.nonced_verification_data.nonce, replacement_max_fee
+        );
+
+        // remove the old entry and insert the new one
+        // note that the entries are considered equal for the priority queue
+        // if they have the same nonce and sender, so we can remove the old entry
+        // by calling remove with the new entry
+        batch_state_guard.batch_queue.remove(&replacement_entry);
+        batch_state_guard.batch_queue.push(
+            replacement_entry.clone(),
+            BatchQueueEntryPriority::new(replacement_max_fee, nonce),
+        );
+
+        // update max_fee_limit and total_fees_in_queue using already held user_state_guard
+        let updated_max_fee_limit_in_batch = batch_state_guard.get_user_min_fee_in_batch(&addr);
+        user_state_guard.last_max_fee_limit = updated_max_fee_limit_in_batch;
+
+        let fee_difference = replacement_max_fee - original_max_fee;
+        user_state_guard.total_fees_in_queue += fee_difference;
+    }
+
+    async fn verify_proof_if_enabled(
+        &self,
+        verification_data: &aligned_sdk::common::types::VerificationData,
+        ws_conn_sink: WsMessageSink,
+    ) -> bool {
+        if !self.pre_verification_is_enabled {
+            return true;
+        }
+
+        if self
+            .is_verifier_disabled(verification_data.proving_system)
+            .await
+        {
+            warn!(
+                "Verifier for proving system {} is disabled",
+                verification_data.proving_system
+            );
+            send_message(
+                ws_conn_sink,
+                SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::DisabledVerifier(
+                    verification_data.proving_system,
+                )),
+            )
+            .await;
+            self.metrics.user_error(&[
+                "disabled_verifier",
+                &format!("{}", verification_data.proving_system),
+            ]);
+            return false;
+        }
+
+        if !zk_utils::verify(verification_data).await {
+            error!("Invalid proof detected. Verification failed");
+            send_message(
+                ws_conn_sink,
+                SubmitProofResponseMessage::InvalidProof(ProofInvalidReason::RejectedProof),
+            )
+            .await;
+            self.metrics.user_error(&[
+                "rejected_proof",
+                &format!("{}", verification_data.proving_system),
+            ]);
+            return false;
+        }
+
+        true
+    }
+
+    async fn disabled_verifiers(&self) -> Result<U256, ContractError<SignerMiddlewareT>> {
+        match self.service_manager.disabled_verifiers().call().await {
+            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+            Err(_) => {
+                self.service_manager_fallback
+                    .disabled_verifiers()
+                    .call()
+                    .await
+            }
+        }
+    }
+
+    /// Gets the user nonce from Ethereum.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    async fn get_user_nonce_from_ethereum(
+        &self,
+        addr: Address,
+    ) -> Result<U256, RetryError<String>> {
+        retry_function(
+            || {
+                get_user_nonce_from_ethereum_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+    }
+
+    /// Adds verification data to the current batch queue.
+    async fn add_to_batch(
+        &self,
+        mut batch_state_lock: MutexGuard<'_, BatchState>,
+        verification_data: &NoncedVerificationData,
+        ws_conn_sink: WsMessageSink,
+        proof_submitter_sig: Signature,
+        proof_submitter_addr: Address,
+    ) -> Result<(), BatcherError> {
+        info!("Calculating verification data commitments...");
+        let verification_data_comm = verification_data.clone().into();
+        info!("Adding verification data to batch...");
+
+        let max_fee = verification_data.max_fee;
+        let nonce = verification_data.nonce;
+        batch_state_lock.batch_queue.push(
+            BatchQueueEntry::new(
+                verification_data.clone(),
+                verification_data_comm,
+                ws_conn_sink,
+                proof_submitter_sig,
+                proof_submitter_addr,
+            ),
+            BatchQueueEntryPriority::new(max_fee, nonce),
+        );
+
+        // Update metrics
+        let queue_len = batch_state_lock.batch_queue.len();
+        let queue_size_bytes = calculate_batch_size(&batch_state_lock.batch_queue)?;
+        self.metrics
+            .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+
+        info!("Current batch queue length: {}", queue_len);
+
+        // User state will be updated by the caller who already has the lock
+
+        Ok(())
+    }
+
+    /// Given a new block number listened from the blockchain, checks if the current batch is ready to be posted.
+    /// There are essentially two conditions to be checked:
+    ///   * Has the current batch reached the minimum size to be posted?
+    ///   * Has the received block number surpassed the maximum interval with respect to the last posted batch block?
+    ///
+    /// Then the batch will be made as big as possible given this two conditions:
+    ///   * The serialized batch size needs to be smaller than the maximum batch size
+    ///   * The batch submission fee is less than the lowest `max fee` included the batch,
+    ///   * And the batch submission fee is more than the highest `max fee` not included the batch.
+    ///
+    /// An extra sanity check is made to check if the batch size is 0, since it does not make sense to post
+    /// an empty batch, even if the block interval has been reached.
+    /// Once the batch meets the conditions for submission, the finalized batch is then passed to the
+    /// `finalize_batch` function.
+    /// This function removes the proofs from the queue immediately to avoid race conditions.
+    async fn extract_batch_if_ready(
+        &self,
+        block_number: u64,
+        gas_price: U256,
+    ) -> Option<Vec<BatchQueueEntry>> {
+        let batch_state_lock = self.batch_state.lock().await;
+        let current_batch_len = batch_state_lock.batch_queue.len();
+        let last_uploaded_batch_block_lock = self.last_uploaded_batch_block.lock().await;
+
+        if current_batch_len < 1 {
+            info!(
+                "Current batch has {} proofs. Waiting for more proofs...",
+                current_batch_len
+            );
+            return None;
+        }
+
+        if block_number < *last_uploaded_batch_block_lock + self.min_block_interval {
+            info!(
+                "Current batch not ready to be posted. Minimium amount of {} blocks have not passed. Block passed: {}", self.min_block_interval,
+                block_number - *last_uploaded_batch_block_lock,
+            );
+            return None;
+        }
+
+        // Check if a batch is currently being posted
+        let mut batch_posting = self.posting_batch.lock().await;
+        if *batch_posting {
+            info!(
+                "Batch is currently being posted. Waiting for the current batch to be finalized..."
+            );
+            return None;
+        }
+
+        // Set the batch posting flag to true
+        *batch_posting = true;
+
+        // PHASE 1: Extract the batch directly from the queue to avoid race conditions
+        let mut batch_state_lock = batch_state_lock; // Make mutable
+
+        let finalized_batch = batch_queue::extract_batch_directly(
+            &mut batch_state_lock.batch_queue,
+            gas_price,
+            self.max_batch_byte_size,
+            self.max_batch_proof_qty,
+            self.constant_gas_cost(),
+        )
+        .inspect_err(|e| {
+            *batch_posting = false;
+            match e {
+                // We can't post a batch since users are not willing to pay the needed fee, wait for more proofs
+                BatcherError::BatchCostTooHigh => {
+                    info!("No working batch found. Waiting for more proofs")
+                }
+                // FIXME: We should refactor this code and instead of returning None, return an error.
+                // See issue https://github.com/yetanotherco/aligned_layer/issues/1046.
+                e => error!("Unexpected error: {:?}", e),
+            }
+        })
+        .ok()?;
+
+        info!(
+            "Extracted {} proofs from queue for batch processing",
+            finalized_batch.len()
+        );
+
+        // Update queue metrics after successful batch extraction
+        let queue_len = batch_state_lock.batch_queue.len();
+        match calculate_batch_size(&batch_state_lock.batch_queue) {
+            Ok(queue_size_bytes) => {
+                self.metrics
+                    .update_queue_metrics(queue_len as i64, queue_size_bytes as i64);
+            }
+            Err(e) => {
+                error!(
+                    "Failed to calculate batch size for queue metrics update: {:?}",
+                    e
+                );
+                // Still update queue length metric, set size to 0 due to calculation error
+                self.metrics.update_queue_metrics(queue_len as i64, 0);
+            }
+        }
+
+        Some(finalized_batch)
+    }
+
+    /// Updates user states based on current queue state after batch operations.
+    /// Used for both successful batch confirmation and failed batch restoration.
+    /// Updates proofs_in_batch, total_fees_in_queue, and last_max_fee_limit based on current queue state.
+    /// Uses proper lock ordering: user_state -> batch_state to avoid deadlocks.
+    async fn update_user_states_from_queue_state(
+        &self,
+        affected_users: std::collections::HashSet<Address>,
+    ) -> Result<(), BatcherError> {
+        // Update each user's state with proper lock ordering
+        for addr in affected_users {
+            if let Some(user_state) = self.user_states.read().await.get(&addr).cloned() {
+                let mut user_state_guard = user_state.lock().await; // First: user lock
+                let batch_state_lock = self.batch_state.lock().await; // Second: batch lock
+
+                // Calculate what each user's state should be based on current queue contents
+                let current_queue_user_states =
+                    self.calculate_new_user_states_data(&batch_state_lock.batch_queue);
+
+                if let Some((proof_count, min_max_fee_in_queue, total_fees_in_queue)) =
+                    current_queue_user_states.get(&addr)
+                {
+                    // User has proofs in queue - use calculated values
+                    user_state_guard.proofs_in_batch = *proof_count;
+                    user_state_guard.total_fees_in_queue = *total_fees_in_queue;
+                    user_state_guard.last_max_fee_limit = *min_max_fee_in_queue;
+                } else {
+                    // User not found in queue - reset to defaults
+                    user_state_guard.proofs_in_batch = 0;
+                    user_state_guard.total_fees_in_queue = U256::zero();
+                    user_state_guard.last_max_fee_limit = U256::MAX;
+                }
+
+                drop(batch_state_lock); // Release batch lock
+                drop(user_state_guard); // Release user lock
+            } else {
+                warn!("User state not found for address {}", addr);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Cleans up user states after successful batch submission.
+    /// Resets last_max_fee_limit to U256::MAX for users who had proofs in the submitted batch
+    /// but now have no proofs left in the queue.
+    async fn cleanup_user_states_after_successful_submission(
+        &self,
+        finalized_batch: &[BatchQueueEntry],
+    ) {
+        use std::collections::HashSet;
+
+        // Get unique users from the submitted batch
+        let users_in_batch: HashSet<Address> =
+            finalized_batch.iter().map(|entry| entry.sender).collect();
+
+        // Check current queue state to see which users still have proofs
+        let batch_state_lock = match self.batch_state.try_lock() {
+            Ok(lock) => lock,
+            Err(_) => {
+                // If we can't get the lock, skip cleanup - it's not critical
+                warn!("Could not acquire batch state lock for user state cleanup");
+                return;
+            }
+        };
+
+        let current_user_states =
+            self.calculate_new_user_states_data(&batch_state_lock.batch_queue);
+
+        // For each user in the batch, check if they now have no proofs left
+        for user_addr in users_in_batch {
+            if !current_user_states.contains_key(&user_addr) {
+                // User has no proofs left in queue - reset their max_fee_limit
+                if let Some(user_state_ref) = self.user_states.read().await.get(&user_addr).cloned()
+                {
+                    if let Ok(mut user_state_guard) = user_state_ref.try_lock() {
+                        user_state_guard.last_max_fee_limit = U256::max_value();
+                    }
+                    // If we can't get the lock, skip this user - not critical
+                }
+            }
+        }
+    }
+
+    /// Restores proofs to the queue after batch submission failure.
+    /// Uses similar logic to user proof submission, including handling queue capacity.
+    /// NOTE: Nonce ordering is preserved by the priority queue's eviction order:
+    /// - Lower fees get evicted first
+    /// - For same fees, higher nonces get evicted first  
+    ///   This ensures we never have nonce N+1 without nonce N in the queue.
+    async fn restore_proofs_after_batch_failure(&self, failed_batch: &[BatchQueueEntry]) {
+        info!(
+            "Restoring {} proofs to queue after batch failure",
+            failed_batch.len()
+        );
+
+        let user_states_lock = self.user_states.write().await;
+        let mut batch_state_lock = self.batch_state.lock().await;
+        let mut restored_entries = Vec::new();
+
+        for entry in failed_batch {
+            let priority = BatchQueueEntryPriority::new(
+                entry.nonced_verification_data.max_fee,
+                entry.nonced_verification_data.nonce,
+            );
+
+            // Check if queue is full
+            if batch_state_lock.is_queue_full() {
+                // Use same logic as user submission - evict lowest priority if this one is higher
+                if let Some((lowest_entry, _)) = batch_state_lock.batch_queue.peek() {
+                    let lowest_fee = lowest_entry.nonced_verification_data.max_fee;
+                    let restore_fee = entry.nonced_verification_data.max_fee;
+
+                    if restore_fee > lowest_fee {
+                        // Evict the lowest priority entry (preserves nonce ordering)
+                        if let Some((evicted_entry, _)) = batch_state_lock.batch_queue.pop() {
+                            warn!("Queue full during restoration, evicting proof from sender {} with nonce {} (fee: {})",
+                                evicted_entry.sender, evicted_entry.nonced_verification_data.nonce, evicted_entry.nonced_verification_data.max_fee);
+
+                            // Update user state for evicted entry
+                            self.update_evicted_user_state_async(
+                                &evicted_entry,
+                                &batch_state_lock.batch_queue,
+                            )
+                            .await;
+
+                            // Notify the evicted user via websocket
+                            if let Some(evicted_ws_sink) = evicted_entry.messaging_sink {
+                                connection::send_message(
+                                    evicted_ws_sink,
+                                    aligned_sdk::common::types::SubmitProofResponseMessage::UnderpricedProof,
+                                )
+                                .await;
+                            }
+                        }
+                    } else {
+                        warn!("Queue full and restored proof has lower priority, dropping proof from sender {} with nonce {} (fee: {})",
+                            entry.sender, entry.nonced_verification_data.nonce, entry.nonced_verification_data.max_fee);
+                        continue;
+                    }
+                }
+            }
+
+            // Add the proof back to the queue
+            batch_state_lock.batch_queue.push(entry.clone(), priority);
+            restored_entries.push(entry);
+        }
+
+        info!(
+            "Restored {} proofs to queue, new queue length: {}",
+            restored_entries.len(),
+            batch_state_lock.batch_queue.len()
+        );
+
+        // Get unique users from restored entries
+        let users_with_restored_proofs: std::collections::HashSet<Address> =
+            restored_entries.iter().map(|entry| entry.sender).collect();
+
+        // At this point we have a valid queue with updated evicted users states
+        // Only auxiliary user data (max_min_fee) can be "inconsistent"
+        // but we can keep updating it without locking the queue
+        info!("Queue recovered from submission failure, resuming user processing and updating user states metadata");
+        std::mem::drop(user_states_lock);
+        std::mem::drop(batch_state_lock);
+
+        info!("Updating user states after proof restoration...");
+        if let Err(e) = self
+            .update_user_states_from_queue_state(users_with_restored_proofs)
+            .await
+        {
+            error!(
+                "Failed to update user states after proof restoration: {:?}",
+                e
+            );
+        }
+    }
+
+    /// Takes the finalized batch as input and:
+    ///     builds the merkle tree
+    ///     posts verification data batch to s3
+    ///     creates new task in Aligned contract
+    ///     removes the proofs from the queue, once they are succesfully submitted on-chain
+    ///     sends responses to all clients that added proofs to the batch.
+    /// The last uploaded batch block is updated once the task is created in Aligned.
+    async fn finalize_batch(
+        &self,
+        block_number: u64,
+        finalized_batch: &[BatchQueueEntry],
+        gas_price: U256,
+    ) -> Result<(), BatcherError> {
+        let nonced_batch_verifcation_data: Vec<NoncedVerificationData> = finalized_batch
+            .iter()
+            .map(|entry| entry.nonced_verification_data.clone())
+            .collect();
+
+        let batch_verification_data: Vec<VerificationData> = nonced_batch_verifcation_data
+            .iter()
+            .map(|vd| vd.verification_data.clone())
+            .collect();
+
+        let batch_bytes = cbor_serialize(&batch_verification_data)
+            .map_err(|e| BatcherError::TaskCreationError(e.to_string()))?;
+
+        info!("Finalizing batch. Length: {}", finalized_batch.len());
+        let batch_data_comm: Vec<VerificationDataCommitment> = finalized_batch
+            .iter()
+            .map(|entry| entry.verification_data_commitment.clone())
+            .collect();
+
+        let batch_merkle_tree: MerkleTree<VerificationCommitmentBatch> =
+            MerkleTree::build(&batch_data_comm).ok_or_else(|| {
+                BatcherError::TaskCreationError(
+                    "Failed to Build Merkle Tree: Empty Batch".to_string(),
+                )
+            })?;
+
+        {
+            let mut last_uploaded_batch_block = self.last_uploaded_batch_block.lock().await;
+            // update last uploaded batch block
+            *last_uploaded_batch_block = block_number;
+            info!(
+                "Batch Finalizer: Last uploaded batch block updated to: {}. Lock unlocked",
+                block_number
+            );
+        }
+
+        let leaves: Vec<[u8; 32]> = batch_data_comm
+            .iter()
+            .map(VerificationCommitmentBatch::hash_data)
+            .collect();
+
+        if let Err(e) = self
+            .telemetry
+            .init_task_trace(&hex::encode(batch_merkle_tree.root))
+            .await
+        {
+            warn!("Failed to initialize task trace on telemetry: {:?}", e);
+        }
+
+        // Here we submit the batch on-chain
+        if let Err(e) = self
+            .submit_batch(
+                &batch_bytes,
+                &batch_merkle_tree.root,
+                leaves,
+                finalized_batch,
+                gas_price,
+            )
+            .await
+        {
+            let reason = format!("{:?}", e);
+            if let Err(e) = self
+                .telemetry
+                .task_creation_failed(&hex::encode(batch_merkle_tree.root), &reason)
+                .await
+            {
+                warn!("Failed to send task status to telemetry: {:?}", e);
+            }
+
+            match e {
+                // This should never happen, there is a task that regularly cleans up
+                // user proofs with unlocked states
+                // (and it runs more frequently than the 1H the user needs to withdraw funds)
+                BatcherError::TransactionSendError(
+                    TransactionSendError::SubmissionInsufficientBalance(address),
+                ) => {
+                    // In the future we could do a more granular recovery
+                    warn!("User {:?} has insufficient balance, flushing entire queue as safety measure", address);
+
+                    self.flush_queue_and_clear_nonce_cache().await;
+
+                    for entry in finalized_batch {
+                        if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                            tokio::spawn(send_message(
+                                ws_sink.clone(),
+                                SubmitProofResponseMessage::BatchReset,
+                            ));
+                        } else {
+                            warn!(
+                                "Websocket sink was found empty. This should only happen in tests"
+                            );
+                        }
+                    }
+
+                    return Err(BatcherError::StateCorruptedAndFlushed(format!(
+                        "Queue and user states flushed due to insufficient balance for user {:?}",
+                        address
+                    )));
+                }
+                _ => {
+                    // Add more cases here if we want in the future
+                }
+            }
+
+            return Err(e);
+        };
+
+        // Note: Proofs were already removed from the queue during extraction phase
+        // Now update user states based on current queue state after successful submission
+        info!("Updating user states after batch confirmation...");
+        let users_in_batch: std::collections::HashSet<Address> =
+            finalized_batch.iter().map(|entry| entry.sender).collect();
+        if let Err(e) = self
+            .update_user_states_from_queue_state(users_in_batch)
+            .await
+        {
+            error!(
+                "Failed to update user states after batch confirmation: {:?}",
+                e
+            );
+            // Continue with the rest of the process since batch was already submitted successfully
+        }
+
+        // Clean up user states for users who had proofs in this batch but now have no proofs left
+        self.cleanup_user_states_after_successful_submission(finalized_batch)
+            .await;
+
+        connection::send_batch_inclusion_data_responses(finalized_batch, &batch_merkle_tree).await
+    }
+
+    async fn flush_queue_and_clear_nonce_cache(&self) {
+        warn!("Resetting state... Flushing queue and nonces");
+        let mut batch_state_lock = self.batch_state.lock().await;
+        for (entry, _) in batch_state_lock.batch_queue.iter() {
+            if let Some(ws_sink) = entry.messaging_sink.as_ref() {
+                tokio::spawn(send_message(
+                    ws_sink.clone(),
+                    SubmitProofResponseMessage::BatchReset,
+                ));
+            } else {
+                warn!("Websocket sink was found empty. This should only happen in tests");
+            }
+        }
+
+        let Some(nonpaying_replacement_addr) = self.get_nonpaying_replacement_addr() else {
+            batch_state_lock.batch_queue.clear();
+            self.user_states.write().await.clear();
+            return;
+        };
+
+        // If there is a nonpaying address configured, then fetch the correct nonce from Ethereum
+        // so that it is already loaded
+
+        let Ok(nonpaying_replacement_addr_nonce) = self
+            .get_user_nonce_from_ethereum(nonpaying_replacement_addr)
+            .await
+        else {
+            batch_state_lock.batch_queue.clear();
+            self.user_states.write().await.clear();
+            return;
+        };
+        batch_state_lock.batch_queue.clear();
+        self.user_states.write().await.clear();
+        let nonpaying_user_state = UserState::new(nonpaying_replacement_addr_nonce);
+        self.user_states.write().await.insert(
+            nonpaying_replacement_addr,
+            Arc::new(Mutex::new(nonpaying_user_state)),
+        );
+
+        self.metrics.update_queue_metrics(0, 0);
+    }
+
+    /// Receives new block numbers, checks if conditions are met for submission and
+    /// finalizes the batch.
+    async fn handle_new_block(&self, block_number: u64) -> Result<(), BatcherError> {
+        let gas_price_future = get_gas_price(
+            self.batcher_signer.provider(),
+            self.batcher_signer_fallback.provider(),
+        );
+        let disabled_verifiers_future = self.disabled_verifiers();
+
+        let (gas_price, disable_verifiers) =
+            tokio::join!(gas_price_future, disabled_verifiers_future);
+
+        let gas_price = gas_price.map_err(|_| BatcherError::GasPriceError)?;
+
+        // compute the new min max fee
+        let min_max_fee = aligned_sdk::verification_layer::calculate_fee_per_proof_with_gas_price(
+            self.amount_of_proofs_for_min_max_fee,
+            gas_price,
+        );
+        // Acquire a write lock to update the latest gas price.
+        // The lock is dropped immediately after this assignment completes.
+        *self.current_min_max_fee.write().await = min_max_fee;
+        info!(
+            "Updated min max-fee: {} ETH per proof (batch size: {})",
+            ethers::utils::format_ether(min_max_fee),
+            self.amount_of_proofs_for_min_max_fee
+        );
+
+        {
+            let new_disable_verifiers = disable_verifiers
+                .map_err(|e| BatcherError::DisabledVerifiersError(e.to_string()))?;
+            let mut disabled_verifiers_lock = self.disabled_verifiers.lock().await;
+            if new_disable_verifiers != *disabled_verifiers_lock {
+                *disabled_verifiers_lock = new_disable_verifiers;
+                self.flush_queue_and_clear_nonce_cache().await;
+            }
+        }
+
+        let modified_gas_price = gas_price * U256::from(GAS_PRICE_PERCENTAGE_MULTIPLIER)
+            / U256::from(PERCENTAGE_DIVIDER);
+
+        if let Some(finalized_batch) = self
+            .extract_batch_if_ready(block_number, modified_gas_price)
+            .await
+        {
+            let batch_finalization_result = self
+                .finalize_batch(block_number, &finalized_batch, modified_gas_price)
+                .await;
+
+            // Resetting this here to avoid doing it on every return path of `finalize_batch` function
+            let mut batch_posting = self.posting_batch.lock().await;
+            *batch_posting = false;
+
+            // If batch finalization failed, restore the proofs to the queue
+            if let Err(e) = batch_finalization_result {
+                error!("Batch finalization failed: {:?}", e);
+
+                // If the queue was flushed, don't recover
+                match &e {
+                    BatcherError::StateCorruptedAndFlushed(_) => {
+                        info!("State was corrupted and flushed - not restoring proofs");
+                    }
+                    _ => {
+                        info!("Restoring proofs to queue after batch failure");
+                        self.restore_proofs_after_batch_failure(&finalized_batch)
+                            .await;
+                    }
+                }
+                return Err(e);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Post batch to s3 and submit new task to Ethereum
+    async fn submit_batch(
+        &self,
+        batch_bytes: &[u8],
+        batch_merkle_root: &[u8; 32],
+        leaves: Vec<[u8; 32]>,
+        finalized_batch: &[BatchQueueEntry],
+        gas_price: U256,
+    ) -> Result<(), BatcherError> {
+        let batch_merkle_root_hex = hex::encode(batch_merkle_root);
+        info!("Batch merkle root: 0x{}", batch_merkle_root_hex);
+        let file_name = batch_merkle_root_hex.clone() + ".json";
+
+        let batch_data_pointer = self
+            .upload_batch_to_multiple_s3(batch_bytes, &file_name)
+            .await?;
+        if let Err(e) = self
+            .telemetry
+            .task_uploaded_to_s3(&batch_merkle_root_hex)
+            .await
+        {
+            warn!("Failed to send task status to telemetry: {:?}", e);
+        };
+        info!("Batch upload to: {}", batch_data_pointer);
+
+        let num_proofs_in_batch = leaves.len();
+        let gas_per_proof = (self.constant_gas_cost()
+            + ADDITIONAL_SUBMISSION_GAS_COST_PER_PROOF * num_proofs_in_batch as u128)
+            / num_proofs_in_batch as u128;
+        let fee_per_proof = U256::from(gas_per_proof) * gas_price;
+        let fee_for_aggregator = (U256::from(self.aggregator_gas_cost)
+            * gas_price
+            * U256::from(self.aggregator_fee_percentage_multiplier))
+            / U256::from(PERCENTAGE_DIVIDER);
+        let respond_to_task_fee_limit = (fee_for_aggregator
+            * U256::from(RESPOND_TO_TASK_FEE_LIMIT_PERCENTAGE_MULTIPLIER))
+            / U256::from(PERCENTAGE_DIVIDER);
+        let fee_params = CreateNewTaskFeeParams::new(
+            fee_for_aggregator,
+            fee_per_proof,
+            gas_price,
+            respond_to_task_fee_limit,
+        );
+
+        let proof_submitters: Vec<Address> =
+            finalized_batch.iter().map(|entry| entry.sender).collect();
+
+        self.simulate_create_new_task(
+            *batch_merkle_root,
+            batch_data_pointer.clone(),
+            proof_submitters.clone(),
+            fee_params.clone(),
+        )
+        .await?;
+
+        self.metrics
+            .gas_price_used_on_latest_batch
+            .set(gas_price.as_u64() as i64);
+
+        if let Err(e) = self
+            .telemetry
+            .task_created(
+                &hex::encode(batch_merkle_root),
+                ethers::utils::format_ether(fee_per_proof),
+                num_proofs_in_batch,
+            )
+            .await
+        {
+            warn!("Failed to send task status to telemetry: {:?}", e);
+        };
+
+        info!("Submitting batch to contract");
+        match self
+            .create_new_task(
+                *batch_merkle_root,
+                batch_data_pointer,
+                proof_submitters,
+                fee_params,
+            )
+            .await
+        {
+            Ok(receipt) => {
+                if let Some(gas_used) = receipt.gas_used {
+                    info!("Gas used to create new task: {}", gas_used);
+                }
+                info!("Batch verification task created on Aligned contract");
+                self.metrics.sent_batches.inc();
+                Ok(())
+            }
+            Err(e) => {
+                error!("Failed to send batch to contract: {:?}", e);
+
+                self.metrics.reverted_batches.inc();
+                Err(e)
+            }
+        }
+    }
+
+    /// Sends a `create_new_task` transaction to Ethereum and waits for a maximum of 8 blocks for the receipt.
+    /// Retries up to `ETHEREUM_CALL_MAX_RETRIES` times using exponential backoff on recoverable errors while trying to send the transaction:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    /// `ReceiptNotFoundError` is treated as non-recoverable, and the transaction will be canceled using `cancel_create_new_task_tx` in that case.
+    async fn create_new_task(
+        &self,
+        batch_merkle_root: [u8; 32],
+        batch_data_pointer: String,
+        proof_submitters: Vec<Address>,
+        fee_params: CreateNewTaskFeeParams,
+    ) -> Result<TransactionReceipt, BatcherError> {
+        let start = Instant::now();
+        let result = retry_function(
+            || {
+                create_new_task_retryable(
+                    batch_merkle_root,
+                    batch_data_pointer.clone(),
+                    proof_submitters.clone(),
+                    fee_params.clone(),
+                    self.transaction_wait_timeout,
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await;
+        self.metrics
+            .create_new_task_duration
+            .set(start.elapsed().as_millis() as i64);
+        // Set to zero since it is not always executed
+        self.metrics.cancel_create_new_task_duration.set(0);
+        match result {
+            Ok(receipt) => {
+                if let Err(e) = self
+                    .telemetry
+                    .task_sent(&hex::encode(batch_merkle_root), receipt.transaction_hash)
+                    .await
+                {
+                    warn!("Failed to send task status to telemetry: {:?}", e);
+                }
+                let gas_cost = Self::gas_cost_in_eth(receipt.effective_gas_price, receipt.gas_used);
+                self.metrics
+                    .batcher_gas_cost_create_task_total
+                    .inc_by(gas_cost);
+                Ok(receipt)
+            }
+            Err(RetryError::Permanent(BatcherError::ReceiptNotFoundError)) => {
+                self.metrics.canceled_batches.inc();
+                self.cancel_create_new_task_tx(fee_params.gas_price).await;
+                Err(BatcherError::ReceiptNotFoundError)
+            }
+            Err(RetryError::Permanent(e)) | Err(RetryError::Transient(e)) => Err(e),
+        }
+    }
+
+    /// Simulates the `create_new_task` transaction by sending an `eth_call` to the RPC node.
+    /// This function does not mutate the state but verifies if it will revert under the given conditions.
+    async fn simulate_create_new_task(
+        &self,
+        batch_merkle_root: [u8; 32],
+        batch_data_pointer: String,
+        proof_submitters: Vec<Address>,
+        fee_params: CreateNewTaskFeeParams,
+    ) -> Result<(), BatcherError> {
+        retry_function(
+            || {
+                simulate_create_new_task_retryable(
+                    batch_merkle_root,
+                    batch_data_pointer.clone(),
+                    proof_submitters.clone(),
+                    fee_params.clone(),
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        .map_err(|e| e.inner())?;
+
+        Ok(())
+    }
+
+    /// Sends a transaction to Ethereum with the same nonce as the previous one to override it.
+    /// Retries on recoverable errors with exponential backoff.
+    /// Bumps the fee if not included in 6 blocks, using `calculate_bumped_gas_price`.
+    /// In the first 5 attemps, bumps the fee every 3 blocks. Then exponential backoff takes over.
+    /// After 2 hours (attempt 13), retries occur hourly for 1 day (33 retries).
+    pub async fn cancel_create_new_task_tx(&self, old_tx_gas_price: U256) {
+        info!("Cancelling createNewTask transaction...");
+        let start = Instant::now();
+        let iteration = Arc::new(Mutex::new(0));
+        let previous_gas_price = Arc::new(Mutex::new(old_tx_gas_price));
+
+        match retry_function(
+            || async {
+                let mut iteration = iteration.lock().await;
+                let mut previous_gas_price = previous_gas_price.lock().await;
+
+                let current_gas_price = match get_gas_price(
+                    self.batcher_signer.provider(),
+                    self.batcher_signer_fallback.provider(),
+                )
+                .await
+                {
+                    Ok(gas_price) => gas_price,
+                    Err(e) => return Err(RetryError::Transient(e)),
+                };
+
+                let bumped_gas_price =
+                    calculate_bumped_gas_price(*previous_gas_price, current_gas_price, *iteration);
+
+                *iteration += 1;
+                *previous_gas_price = bumped_gas_price;
+
+                cancel_create_new_task_retryable(
+                    &self.batcher_signer,
+                    &self.batcher_signer_fallback,
+                    bumped_gas_price,
+                    self.transaction_wait_timeout,
+                )
+                .await
+            },
+            BUMP_MIN_RETRY_DELAY,
+            BUMP_BACKOFF_FACTOR,
+            BUMP_MAX_RETRIES,
+            BUMP_MAX_RETRY_DELAY,
+        )
+        .await
+        {
+            Ok(receipt) => {
+                info!("createNewTask transaction successfully canceled");
+                let gas_cost = Self::gas_cost_in_eth(receipt.effective_gas_price, receipt.gas_used);
+                self.metrics
+                    .batcher_gas_cost_cancel_task_total
+                    .inc_by(gas_cost);
+            }
+            Err(e) => error!("Could not cancel createNewTask transaction: {e}"),
+        };
+        self.metrics
+            .cancel_create_new_task_duration
+            .set(start.elapsed().as_millis() as i64);
+    }
+
+    fn gas_cost_in_eth(gas_price: Option<U256>, gas_used: Option<U256>) -> f64 {
+        if let (Some(gas_price), Some(gas_used)) = (gas_price, gas_used) {
+            let wei_gas_cost = gas_price
+                .checked_mul(gas_used)
+                .unwrap_or_else(U256::max_value);
+
+            // f64 is typically sufficient for transaction gas costs.
+            let max_f64_u256 = U256::from(f64::MAX as u64);
+            if wei_gas_cost > max_f64_u256 {
+                return f64::MAX;
+            }
+
+            let wei_gas_cost_f64 = wei_gas_cost.low_u128() as f64;
+            let eth_gas_cost = wei_gas_cost_f64 / 1e18;
+
+            return eth_gas_cost;
+        }
+        0.0
+    }
+
+    /// An address has to pay if it's on mainnet or is not the special designated address on testnet
+    fn has_to_pay(&self, addr: &Address) -> bool {
+        self.non_paying_config.is_none()
+            || self
+                .non_paying_config
+                .as_ref()
+                .is_some_and(|non_paying_config| non_paying_config.address != *addr)
+    }
+
+    fn get_nonpaying_replacement_addr(&self) -> Option<Address> {
+        let non_paying_conf = self.non_paying_config.as_ref()?;
+        Some(non_paying_conf.replacement.address())
+    }
+
+    /// Gets the balance of user with address `addr` from Ethereum.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs)
+    /// Returns `None` if the balance couldn't be returned
+    /// FIXME: This should return a `Result` instead.
+    async fn get_user_balance(&self, addr: &Address) -> Option<U256> {
+        retry_function(
+            || {
+                get_user_balance_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        .ok()
+    }
+
+    /// Checks if the user's balance is unlocked for a given address.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    /// Returns `false` if an error occurs during the retries.
+    async fn user_balance_is_unlocked(&self, addr: &Address) -> bool {
+        let Ok(unlocked) = retry_function(
+            || {
+                user_balance_is_unlocked_retryable(
+                    &self.payment_service,
+                    &self.payment_service_fallback,
+                    addr,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        else {
+            warn!("Could not get user locking state.");
+            return false;
+        };
+        unlocked
+    }
+
+    /// Uploads the batch to both S3 buckets and returns the comma-separated URLs of successful uploads.
+    /// Returns an error only if all uploads fail.
+    async fn upload_batch_to_multiple_s3(
+        &self,
+        batch_bytes: &[u8],
+        file_name: &str,
+    ) -> Result<String, BatcherError> {
+        // Upload to both S3 buckets and collect successful URLs
+        let mut successful_urls = Vec::new();
+
+        // Try primary S3 upload
+        if self
+            .upload_batch_to_s3(
+                &self.s3_client,
+                batch_bytes,
+                file_name,
+                &self.s3_bucket_name,
+            )
+            .await
+            .is_ok()
+        {
+            let primary_url = format!("{}/{}", self.download_endpoint, file_name);
+            successful_urls.push(primary_url.clone());
+            info!("Successfully uploaded batch to primary S3: {}", primary_url);
+        } else {
+            warn!("Failed to upload batch to primary S3");
+        }
+
+        // Try secondary S3 upload (if configured)
+        if let (
+            Some(s3_client_secondary),
+            Some(s3_bucket_name_secondary),
+            Some(download_endpoint_secondary),
+        ) = (
+            &self.s3_client_secondary,
+            &self.s3_bucket_name_secondary,
+            &self.download_endpoint_secondary,
+        ) {
+            if self
+                .upload_batch_to_s3(
+                    s3_client_secondary,
+                    batch_bytes,
+                    file_name,
+                    s3_bucket_name_secondary,
+                )
+                .await
+                .is_ok()
+            {
+                let secondary_url = format!("{}/{}", download_endpoint_secondary, file_name);
+                successful_urls.push(secondary_url.clone());
+                info!(
+                    "Successfully uploaded batch to secondary S3: {}",
+                    secondary_url
+                );
+            } else {
+                warn!("Failed to upload batch to secondary S3");
+            }
+        }
+
+        // Update metrics with number of available data services
+        self.metrics
+            .available_data_services
+            .set(successful_urls.len() as i64);
+
+        // If no uploads succeeded, return error
+        if successful_urls.is_empty() {
+            error!("Failed to upload batch to both S3 buckets");
+            return Err(BatcherError::BatchUploadError(
+                "Failed to upload to any S3 bucket".to_string(),
+            ));
+        }
+
+        Ok(successful_urls.join(","))
+    }
+
+    /// Uploads the batch to s3.
+    /// Retries on recoverable errors using exponential backoff up to `ETHEREUM_CALL_MAX_RETRIES` times:
+    /// (0,5 secs - 1 secs - 2 secs - 4 secs - 8 secs).
+    async fn upload_batch_to_s3(
+        &self,
+        s3_client: &S3Client,
+        batch_bytes: &[u8],
+        file_name: &str,
+        bucket_name: &str,
+    ) -> Result<(), BatcherError> {
+        let start = Instant::now();
+        let result = retry_function(
+            || {
+                Self::upload_batch_to_s3_retryable(
+                    batch_bytes,
+                    file_name,
+                    s3_client.clone(),
+                    bucket_name,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
+        )
+        .await
+        .map_err(|e| BatcherError::BatchUploadError(e.to_string()));
+
+        self.metrics
+            .s3_duration
+            .set(start.elapsed().as_micros() as i64);
+
+        result
+    }
+
+    async fn upload_batch_to_s3_retryable(
+        batch_bytes: &[u8],
+        file_name: &str,
+        s3_client: S3Client,
+        s3_bucket_name: &str,
+    ) -> Result<(), RetryError<String>> {
+        s3::upload_object(&s3_client, s3_bucket_name, batch_bytes.to_vec(), file_name)
+            .await
+            .map_err(|e| {
+                warn!("Error uploading batch to s3 {e}");
+                RetryError::Transient(e.to_string())
+            })?;
+        Ok(())
+    }
+
+    fn constant_gas_cost(&self) -> u128 {
+        (self.aggregator_fee_percentage_multiplier * self.aggregator_gas_cost) / PERCENTAGE_DIVIDER
+            + BATCHER_SUBMISSION_BASE_GAS_COST
+    }
+
+    /// Checks if the message signature is valid
+    /// and returns the address if its.
+    /// If not, returns false, logs the error,
+    /// and sends it to the metrics server
+    async fn msg_signature_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> Option<Address> {
+        let Ok(addr) = client_msg.verify_signature() else {
+            error!("Signature verification error");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidSignature,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_signature", ""]);
+            return None;
+        };
+
+        Some(addr)
+    }
+
+    /// Checks if the proof size + pub inputs is valid (not exceeding max_proof_size)
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if the size is too large
+    async fn msg_proof_size_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let verification_data_size = client_msg.verification_data.cbor_size_upper_bound();
+
+        if verification_data_size > self.max_proof_size {
+            error!("Proof size exceeds the maximum allowed size.");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::ProofTooLarge,
+            )
+            .await;
+            self.metrics.user_error(&["proof_too_large", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    /// Checks if the chain id matches the one in the config
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if it doesn't matches
+    async fn msg_chain_id_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let msg_chain_id = client_msg.verification_data.chain_id;
+        if msg_chain_id != self.chain_id {
+            warn!("Received message with incorrect chain id: {msg_chain_id}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidChainId,
+            )
+            .await;
+            self.metrics.user_error(&["invalid_chain_id", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    /// Checks if the message has a valid payment service address
+    /// Returns false, logs the error,
+    /// and sends it to the metrics server if it doesn't match
+    async fn msg_batcher_payment_addr_is_valid(
+        &self,
+        client_msg: &SubmitProofMessage,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        let msg_payment_service_addr = client_msg.verification_data.payment_service_addr;
+        if msg_payment_service_addr != self.payment_service.address() {
+            warn!("Received message with incorrect payment service address: {msg_payment_service_addr}");
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InvalidPaymentServiceAddress(
+                    msg_payment_service_addr,
+                    self.payment_service.address(),
+                ),
+            )
+            .await;
+            self.metrics
+                .user_error(&["invalid_payment_service_address", ""]);
+            return false;
+        }
+
+        true
+    }
+
+    async fn msg_covers_minimum_max_fee(&self, msg_max_fee: U256) -> bool {
+        let min_max_fee_per_proof = self.current_min_max_fee.read().await;
+        msg_max_fee >= *min_max_fee_per_proof
+    }
+
+    /// Checks if the user's balance is unlocked
+    /// Returns false if balance is unlocked, logs the error,
+    /// and sends it to the metrics server
+    async fn msg_user_balance_is_locked(
+        &self,
+        addr: &Address,
+        ws_conn_sink: &WsMessageSink,
+    ) -> bool {
+        if self.user_balance_is_unlocked(addr).await {
+            send_message(
+                ws_conn_sink.clone(),
+                SubmitProofResponseMessage::InsufficientBalance(*addr),
+            )
+            .await;
+            self.metrics.user_error(&["insufficient_balance", ""]);
+            return false;
+        }
+
+        true
+    }
+}

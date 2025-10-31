@@ -12,7 +12,7 @@ import (
 	"unsafe"
 )
 
-func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err error) {
+func VerifySp1Proof(proofBuffer []byte, publicInputsBuffer []byte, elfBuffer []byte) (isVerified bool, err error) {
 	// Here we define the return value on failure
 	isVerified = false
 	err = nil
@@ -24,17 +24,23 @@ func VerifySp1Proof(proofBuffer []byte, elfBuffer []byte) (isVerified bool, err 
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			err = fmt.Errorf("Panic was caught while verifying sp1 proof: %s", rec)
+			err = fmt.Errorf("panic was caught while verifying sp1 proof: %s", rec)
 		}
 	}()
 
 	proofPtr := (*C.uchar)(unsafe.Pointer(&proofBuffer[0]))
 	elfPtr := (*C.uchar)(unsafe.Pointer(&elfBuffer[0]))
 
-	r := (C.int32_t)(C.verify_sp1_proof_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), elfPtr, (C.uint32_t)(len(elfBuffer))))
+	r := (C.int32_t)(0)
+	if len(publicInputsBuffer) == 0 { // allow empty public inputs
+		r = (C.int32_t)(C.verify_sp1_proof_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), nil, (C.uint32_t)(0), elfPtr, (C.uint32_t)(len(elfBuffer))))
+	} else {
+		publicInputsPtr := (*C.uchar)(unsafe.Pointer(&publicInputsBuffer[0]))
+		r = (C.int32_t)(C.verify_sp1_proof_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), publicInputsPtr, (C.uint32_t)(len(publicInputsBuffer)), elfPtr, (C.uint32_t)(len(elfBuffer))))
+	}
 
 	if r == -1 {
-		err = fmt.Errorf("Panic happened on FFI while verifying sp1 proof")
+		err = fmt.Errorf("panic happened on FFI while verifying sp1 proof")
 		return isVerified, err
 	}
 

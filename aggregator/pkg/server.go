@@ -92,11 +92,11 @@ func (agg *Aggregator) ProcessOperatorSignedTaskResponseV2(signedTaskResponse *t
 
 		if err != nil {
 			agg.logger.Warnf("BLS aggregation service error: %s", err)
-			done<- 1
+			done <- 1
 			// todo shouldn't we here close the channel with a reply = 1?
 		} else {
 			agg.logger.Info("BLS process succeeded")
-			done<- 0
+			done <- 0
 		}
 
 		close(done)
@@ -136,7 +136,7 @@ func (agg *Aggregator) GetTaskIndexRetryable(batchIdentifierHash [32]byte, confi
 		taskIndex, ok := agg.batchesIdxByIdentifierHash[batchIdentifierHash]
 		agg.taskMutex.Unlock()
 		if !ok {
-			return taskIndex, fmt.Errorf("Task not found in the internal map")
+			return taskIndex, fmt.Errorf("task not found in the internal map")
 		} else {
 			return taskIndex, nil
 		}

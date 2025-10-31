@@ -2,6 +2,7 @@ package chainio
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
@@ -126,29 +127,16 @@ func (s *AvsSubscriber) BlockNumberRetryable(ctx context.Context, config *retry.
 }
 
 /*
-FilterBatchV2Retryable
-Get NewBatchV2 logs from the AVS contract.
-- All errors are considered Transient Errors
-- Retry times (3 retries): 1 sec, 2 sec, 4 sec.
-*/
-func (s *AvsSubscriber) FilterBatchV2Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte, config *retry.RetryParams) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
-	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV2Iterator, error) {
-		return s.AvsContractBindings.ServiceManager.FilterNewBatchV2(opts, batchMerkleRoot)
-	}
-	return retry.RetryWithData(filterNewBatchV2_func, config)
-}
-
-/*
 FilterBatchV3Retryable
 Get NewBatchV3 logs from the AVS contract.
 - All errors are considered Transient Errors
 - Retry times (3 retries): 1 sec, 2 sec, 4 sec.
 */
 func (s *AvsSubscriber) FilterBatchV3Retryable(opts *bind.FilterOpts, batchMerkleRoot [][32]byte, config *retry.RetryParams) (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
-	filterNewBatchV2_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
+	filterNewBatchV3_func := func() (*servicemanager.ContractAlignedLayerServiceManagerNewBatchV3Iterator, error) {
 		return s.AvsContractBindings.ServiceManager.FilterNewBatchV3(opts, batchMerkleRoot)
 	}
-	return retry.RetryWithData(filterNewBatchV2_func, config)
+	return retry.RetryWithData(filterNewBatchV3_func, config)
 }
 
 /*
@@ -167,7 +155,7 @@ func (s *AvsSubscriber) BatchesStateRetryable(opts *bind.CallOpts, arg0 [32]byte
 		Responded             bool
 		RespondToTaskFeeLimit *big.Int
 	}, error) {
-		return s.AvsContractBindings.ServiceManager.ContractAlignedLayerServiceManagerCaller.BatchesState(opts, arg0)
+		return s.AvsContractBindings.ServiceManager.BatchesState(opts, arg0)
 	}
 
 	return retry.RetryWithData(batchState_func, config)
@@ -193,25 +181,6 @@ func (s *AvsSubscriber) SubscribeNewHeadRetryable(ctx context.Context, c chan<- 
 }
 
 /*
-SubscribeToNewTasksV2Retryable
-Subscribe to NewBatchV2 logs from the AVS contract.
-- All errors are considered Transient Errors
-- Retry times (3 retries): 1 sec, 2 sec, 4 sec.
-*/
-func SubscribeToNewTasksV2Retryable(
-	opts *bind.WatchOpts,
-	serviceManager *servicemanager.ContractAlignedLayerServiceManager,
-	newTaskCreatedChan chan *servicemanager.ContractAlignedLayerServiceManagerNewBatchV2,
-	batchMerkleRoot [][32]byte,
-	config *retry.RetryParams,
-) (event.Subscription, error) {
-	subscribe_func := func() (event.Subscription, error) {
-		return serviceManager.WatchNewBatchV2(opts, newTaskCreatedChan, batchMerkleRoot)
-	}
-	return retry.RetryWithData(subscribe_func, config)
-}
-
-/*
 SubscribeToNewTasksV3Retryable
 Subscribe to NewBatchV3 logs from the AVS contract.
 - All errors are considered Transient Errors
@@ -225,6 +194,7 @@ func SubscribeToNewTasksV3Retryable(
 	config *retry.RetryParams,
 ) (event.Subscription, error) {
 	subscribe_func := func() (event.Subscription, error) {
+		log.Info().Msg("Subscribing to NewBatchV3")
 		return serviceManager.WatchNewBatchV3(opts, newTaskCreatedChan, batchMerkleRoot)
 	}
 	return retry.RetryWithData(subscribe_func, config)

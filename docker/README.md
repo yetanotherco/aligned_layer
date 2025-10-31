@@ -71,7 +71,7 @@ make docker_batcher_send_plonk_bls12_381_burst
 ```
 
 ```shell
-make docker_batcher_send_infinite_groth16
+make docker_batcher_send_infinite_gnark_groth16
 ```
 
 Or you can send all of them together with:

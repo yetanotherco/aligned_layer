@@ -34,27 +34,39 @@ make batcher_start_ethereum_package
 To start the aggregator run:
 
 ```bash
-make aggregator_start_ethereum_package
+make aggregator_start_ethereum_package ENVIRONMENT=devnet
 ```
 
 To start an operator run:
 
 ```bash
-make operator_register_start_ethereum_package
+make operator_full_registration_and_start_ethereum_package
 ```
 
 If you want to deploy more operators, you must duplicate the config-operator-1-ethereum-package.yaml and change the private and bls keys and the address.
 
+If operator starting fails due to a failure in operation registration to aligned (not whitelisted), try running the commands separately:
+
+```bash
+make operator_full_registration CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml ENVIRONMENT=devnet
+make operator_start CONFIG_FILE=config-files/config-operator-1-ethereum-package.yaml ENVIRONMENT=devnet
+```
+
 To start Telemetry and the Explorer, run the usual commands:
 
 ```bash
-make telemetry_full_start
-make run_explorer
+make telemetry_start_all
+
+make explorer_build_db
+make explorer_start
 ```
 
+Note: If you are starting telemetry again and fails, a common failure reason can be forgetting to clean the db running `make telemetry_clean_db`.
+
 To spam transactions install spamoor:
+
 ```bash
-make install_spamoor
+make spamoor_install
 ```
 
 and run the following make targets:
@@ -69,6 +81,7 @@ make spamoor_send_transactions  \\
 ```
 
 For Example:
+
 ```bash
 make spamoor_send_transactions COUNT=1000 TX_CONSUME_GAS=150000 TX_PER_BLOCK=50 NUM_WALLETS=100 TIP_FEE=2
 ```
@@ -97,8 +110,8 @@ make spamoor_send_transactions COUNT=1000000000  TX_CONSUME_GAS=150000 TX_PER_BL
 ```
 
 - Notes:
-    - A transaction consuming `150000` of gas would be similar to a bridge swap.
-    - We pass `2` gwei more to the `tipFee` that should be enough if not, you can increase it.
+  - A transaction consuming `150000` of gas would be similar to a bridge swap.
+  - We pass `2` gwei more to the `tipFee` that should be enough if not, you can increase it.
 
 3. **Monitor Gas Price Updates:** After a few blocks, the `gasPrice` will adjust. The aligned batcher and aggregator will fetch the updated `gasPrice` and start competing in the mempool with their adjusted bump.
 4. **Repeat as Needed:** Re-run the same command with the updated `TIP_FEE` to maintain competition:

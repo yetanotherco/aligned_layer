@@ -12,14 +12,12 @@ import (
 type EigenLayerDeploymentConfig struct {
 	DelegationManagerAddr common.Address
 	AVSDirectoryAddr      common.Address
-	SlasherAddr           common.Address
 }
 
 type EigenLayerDeploymentConfigFromJson struct {
 	Addresses struct {
 		DelegationManagerAddr common.Address `json:"delegationManager"`
 		AVSDirectoryAddr      common.Address `json:"avsDirectory"`
-		SlasherAddr           common.Address `json:"slasher"`
 	} `json:"addresses"`
 }
 
@@ -44,13 +42,8 @@ func NewEigenLayerDeploymentConfig(eigenLayerDeploymentFilePath string) *EigenLa
 		log.Fatal("AVS directory address is empty")
 	}
 
-	if eigenLayerDeploymentConfigFromJson.Addresses.SlasherAddr == common.HexToAddress("") {
-		log.Fatal("Slasher address is empty")
-	}
-
 	return &EigenLayerDeploymentConfig{
 		DelegationManagerAddr: eigenLayerDeploymentConfigFromJson.Addresses.DelegationManagerAddr,
 		AVSDirectoryAddr:      eigenLayerDeploymentConfigFromJson.Addresses.AVSDirectoryAddr,
-		SlasherAddr:           eigenLayerDeploymentConfigFromJson.Addresses.SlasherAddr,
 	}
 }

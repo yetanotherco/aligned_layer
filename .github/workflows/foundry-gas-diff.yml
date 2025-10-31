@@ -3,7 +3,8 @@ name: Report gas diff
 on:
   push:
     branches:
-      - main
+      - testnet
+      - staging
   pull_request:
     # Run only for changes in specific files.
      paths:

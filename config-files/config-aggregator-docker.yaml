@@ -22,8 +22,8 @@ bls:
 ## Aggregator Configurations
 aggregator:
   server_ip_port_address: 0.0.0.0:8090
-  bls_public_key_compendium_address: 0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44
-  avs_service_manager_address: 0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690
+  bls_public_key_compendium_address: '0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44'
+  avs_service_manager_address: '0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690'
   enable_metrics: true
   metrics_ip_port_address: 0.0.0.0:9091
   telemetry_ip_port_address: localhost:4001
@@ -38,3 +38,4 @@ aggregator:
   # The Gas formula is percentage (gas_base_bump_percentage + gas_bump_incremental_percentage * i) / 100) is checked against this value
   # If it is higher, it will default to `gas_bump_percentage_limit`
   time_to_wait_before_bump: 72s # The time to wait for the receipt when responding to task. Suggested value 72 seconds (6 blocks)
+  poll_latest_batch_interval: 20s # The interval to poll for latest batches. Default: 20s

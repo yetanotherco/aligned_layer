@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/yetanotherco/aligned_layer/core/utils"
@@ -27,6 +28,7 @@ type OperatorConfig struct {
 		MetricsIpPortAddress          string
 		MaxBatchSize                  int64
 		LastProcessedBatchFilePath    string
+		PollLatestBatchInterval       time.Duration
 	}
 }
 
@@ -44,8 +46,9 @@ type OperatorConfigFromYaml struct {
 		MetricsIpPortAddress          string         `yaml:"metrics_ip_port_address"`
 		MaxBatchSize                  int64          `yaml:"max_batch_size"`
 		LastProcessedBatchFilePath    string         `yaml:"last_processed_batch_filepath"`
+		PollLatestBatchInterval       string         `yaml:"poll_latest_batch_interval"`
 	} `yaml:"operator"`
-	BlsConfigFromYaml   BlsConfigFromYaml   `yaml:"bls"`
+	BlsConfigFromYaml BlsConfigFromYaml `yaml:"bls"`
 }
 
 func NewOperatorConfig(configFilePath string) *OperatorConfig {
@@ -70,6 +73,13 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 		log.Fatal("Error reading operator config: ", err)
 	}
 
+	pollInterval := 20 * time.Second
+	if operatorConfigFromYaml.Operator.PollLatestBatchInterval != "" {
+		if parsed, err := time.ParseDuration(operatorConfigFromYaml.Operator.PollLatestBatchInterval); err == nil {
+			pollInterval = parsed
+		}
+	}
+
 	return &OperatorConfig{
 		BaseConfig:                   baseConfig,
 		BlsConfig:                    blsConfig,
@@ -87,6 +97,21 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			MetricsIpPortAddress          string
 			MaxBatchSize                  int64
 			LastProcessedBatchFilePath    string
-		}(operatorConfigFromYaml.Operator),
+			PollLatestBatchInterval       time.Duration
+		}{
+			AggregatorServerIpPortAddress: operatorConfigFromYaml.Operator.AggregatorServerIpPortAddress,
+			OperatorTrackerIpPortAddress:  operatorConfigFromYaml.Operator.OperatorTrackerIpPortAddress,
+			Address:                       operatorConfigFromYaml.Operator.Address,
+			EarningsReceiverAddress:       operatorConfigFromYaml.Operator.EarningsReceiverAddress,
+			DelegationApproverAddress:     operatorConfigFromYaml.Operator.DelegationApproverAddress,
+			StakerOptOutWindowBlocks:      operatorConfigFromYaml.Operator.StakerOptOutWindowBlocks,
+			MetadataUrl:                   operatorConfigFromYaml.Operator.MetadataUrl,
+			RegisterOperatorOnStartup:     operatorConfigFromYaml.Operator.RegisterOperatorOnStartup,
+			EnableMetrics:                 operatorConfigFromYaml.Operator.EnableMetrics,
+			MetricsIpPortAddress:          operatorConfigFromYaml.Operator.MetricsIpPortAddress,
+			MaxBatchSize:                  operatorConfigFromYaml.Operator.MaxBatchSize,
+			LastProcessedBatchFilePath:    operatorConfigFromYaml.Operator.LastProcessedBatchFilePath,
+			PollLatestBatchInterval:       pollInterval,
+		},
 	}
 }

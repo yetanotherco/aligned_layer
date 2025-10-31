@@ -152,7 +152,12 @@ func (t *Telemetry) sendTelemetryMessage(endpoint string, message interface{}) e
 		t.logger.Warn("[Telemetry] Error sending POST request", "error", err)
 		return fmt.Errorf("error making POST request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.logger.Warn("[Telemetry] Error closing response body", "error", err)
+		}
+	}(resp.Body)
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

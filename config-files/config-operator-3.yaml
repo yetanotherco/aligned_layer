@@ -23,13 +23,14 @@ bls:
 operator:
   aggregator_rpc_server_ip_port_address: localhost:8090
   operator_tracker_ip_port_address: http://localhost:4001
-  address: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
-  earnings_receiver_address: 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+  address: '0x90F79bf6EB2c4f870365E785982E1f101E93b906'
+  earnings_receiver_address: '0x90F79bf6EB2c4f870365E785982E1f101E93b906'
   delegation_approver_address: '0x0000000000000000000000000000000000000000'
   staker_opt_out_window_blocks: 0
   metadata_url: 'https://yetanotherco.github.io/operator_metadata/metadata.json'
   max_batch_size: 268435456 # 256 MiB
   last_processed_batch_filepath: 'config-files/operator-3.last_processed_batch.json'
+  poll_latest_batch_interval: 20s # Optional: The interval to poll for latest batches. Default: 20s if not specified
 
 # Operators variables needed for register it in EigenLayer
 el_delegation_manager_address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9'

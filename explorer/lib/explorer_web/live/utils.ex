@@ -102,6 +102,15 @@ defmodule ExplorerWeb.Helpers do
     Integer.to_string(value) |> String.pad_leading(2, "0")
   end
 
+  def is_mainnet() do
+    prefix = System.get_env("ENVIRONMENT")
+
+    case prefix do
+      "mainnet" -> true
+      _ -> false
+    end
+  end
+
   @doc """
   Get the EigenLayer Explorer URL based on the environment.
   - `holesky` -> https://holesky.eigenlayer.xyz
@@ -114,6 +123,8 @@ defmodule ExplorerWeb.Helpers do
     case prefix do
       "holesky" -> "https://holesky.eigenlayer.xyz"
       "mainnet" -> "https://app.eigenlayer.xyz"
+      "sepolia" -> "https://sepolia.eigenlayer.xyz"
+      "hoodi" -> "https://hoodi.eigenlayer.xyz"
       _ -> "http://localhost:4000"
     end
   end
@@ -125,6 +136,8 @@ defmodule ExplorerWeb.Helpers do
     [
       {"Mainnet", "https://explorer.alignedlayer.com"},
       {"Holesky", "https://holesky.explorer.alignedlayer.com"},
+      {"Sepolia", "https://sepolia.explorer.alignedlayer.com"},
+      {"Hoodi", "https://hoodi.explorer.alignedlayer.com"},
       {"Stage", "https://stage.explorer.alignedlayer.com"},
       {"Devnet", "http://localhost:4000/"}
     ]
@@ -134,6 +147,8 @@ defmodule ExplorerWeb.Helpers do
     case host do
       "explorer.alignedlayer.com" -> "Mainnet"
       "holesky.explorer.alignedlayer.com" -> "Holesky"
+      "sepolia.explorer.alignedlayer.com" -> "Sepolia"
+      "hoodi.explorer.alignedlayer.com" -> "Hoodi"
       "stage.explorer.alignedlayer.com" -> "Stage"
       _ -> "Devnet"
     end
@@ -151,11 +166,41 @@ defmodule ExplorerWeb.Helpers do
     case prefix do
       "mainnet" -> "https://etherscan.io"
       "holesky" -> "https://holesky.etherscan.io"
+      "sepolia" -> "https://sepolia.etherscan.io"
+      "hoodi" -> "https://hoodi.etherscan.io"
+      _ -> "http://localhost:4000"
+    end
+  end
+
+  @doc """
+  Get the Etherscan URL based on the environment.
+  - `holesky` -> https://holesky.etherscan.io
+  - `mainnet` -> https://etherscan.io
+  - `default` -> http://localhost:4000
+  """
+  def get_blobscan_url() do
+    prefix = System.get_env("ENVIRONMENT")
+
+    case prefix do
+      "mainnet" -> "https://blobscan.com/"
+      "holesky" -> "https://holesky.blobscan.com/"
+      "sepolia" -> "https://sepolia.blobscan.com/"
+      "hoodi" -> "https://hoodi.blobscan.com/"
       _ -> "http://localhost:4000"
     end
   end
 
   def get_aligned_contracts_addresses() do
+    Map.merge(get_verification_layer_addresses(), get_proof_aggregation_addresses())
+  end
+
+  defp get_proof_aggregation_addresses() do
+    proof_agg_config_file = System.get_env("ALIGNED_PROOF_AGG_CONFIG_FILE")
+    {_, config_json_string} = File.read(proof_agg_config_file)
+    Jason.decode!(config_json_string) |> Map.get("addresses")
+  end
+
+  defp get_verification_layer_addresses() do
     aligned_config_file = System.get_env("ALIGNED_CONFIG_FILE")
     {_, config_json_string} = File.read(aligned_config_file)
     Jason.decode!(config_json_string) |> Map.get("addresses")
@@ -226,24 +271,40 @@ defmodule Utils do
                      _ -> 268_435_456
                    end)
 
+  @max_batch_urls 5
+
   @batcher_submission_gas_cost Application.compile_env(:explorer, :batcher_submission_gas_cost)
   @aggregator_gas_cost Application.compile_env(:explorer, :aggregator_gas_cost)
-  @aggregator_fee_percentage_multiplier Application.compile_env(:explorer, :aggregator_fee_percentage_multiplier)
+  @aggregator_fee_percentage_multiplier Application.compile_env(
+                                          :explorer,
+                                          :aggregator_fee_percentage_multiplier
+                                        )
   @percentage_divider Application.compile_env(:explorer, :percentage_divider)
-  @additional_submission_gas_cost_per_proof Application.compile_env(:explorer, :additional_submission_gas_cost_per_proof)
+  @additional_submission_gas_cost_per_proof Application.compile_env(
+                                              :explorer,
+                                              :additional_submission_gas_cost_per_proof
+                                            )
 
   def scheduled_batch_interval() do
     default_value = 10
+
     case System.get_env("SCHEDULED_BATCH_INTERVAL_MINUTES") do
       nil ->
-        Logger.warning("SCHEDULED_BATCH_INTERVAL_MINUTES .env var is not set, using default value: #{default_value}")
+        Logger.warning(
+          "SCHEDULED_BATCH_INTERVAL_MINUTES .env var is not set, using default value: #{default_value}"
+        )
+
         default_value
+
       value ->
         try do
           String.to_integer(value)
         rescue
           ArgumentError ->
-            Logger.warning("Invalid SCHEDULED_BATCH_INTERVAL_MINUTES .env var: #{value}, using default value: #{default_value}")
+            Logger.warning(
+              "Invalid SCHEDULED_BATCH_INTERVAL_MINUTES .env var: #{value}, using default value: #{default_value}"
+            )
+
             default_value
         end
     end
@@ -286,7 +347,7 @@ defmodule Utils do
   def calculate_proof_hashes(deserialized_batch) do
     deserialized_batch
     |> Enum.map(fn s3_object ->
-      ExKeccak.hash_256(:erlang.list_to_binary(s3_object["proof"]))
+      ExKeccak.hash_256(s3_object["proof"].value)
     end)
   end
 
@@ -310,6 +371,42 @@ defmodule Utils do
       {:halt, {:error, {:invalid, :body_too_large}}}
     else
       {:cont, acc}
+    end
+  end
+
+  # fetch_batch_data_pointer_with_multiple_urls tries multiple comma-separated URLs until first successful response
+  def fetch_batch_data_pointer_with_multiple_urls(batch_data_pointers) do
+    # Parse comma-separated URLs and limit to max 5
+    urls = parse_batch_urls(batch_data_pointers)
+
+    errors = []
+
+    # Try each URL until first successful response
+    try_urls(urls, errors)
+  end
+
+  # parse_batch_urls parses comma-separated URLs and limits to max 5
+  defp parse_batch_urls(batch_data_pointers) do
+    batch_data_pointers
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.filter(fn url -> url != "" end)
+    |> Enum.take(@max_batch_urls)
+  end
+
+  # try_urls attempts to fetch from each URL until success
+  defp try_urls([], errors) do
+    # All URLs failed
+    {:error, {:all_urls_failed, Enum.reverse(errors)}}
+  end
+
+  defp try_urls([url | remaining_urls], errors) do
+    case fetch_batch_data_pointer(url) do
+      {:ok, data} ->
+        {:ok, data}
+      {:error, reason} ->
+        new_errors = ["URL #{url}: #{inspect(reason)}" | errors]
+        try_urls(remaining_urls, new_errors)
     end
   end
 
@@ -410,7 +507,7 @@ defmodule Utils do
       nil ->
         Logger.debug("Fetching from S3")
 
-        batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer()
+        batch_content = batch.data_pointer |> Utils.fetch_batch_data_pointer_with_multiple_urls()
 
         case batch_content do
           {:ok, batch_content} ->
@@ -457,8 +554,8 @@ defmodule Utils do
   def constant_batch_submission_gas_cost() do
     trunc(
       @aggregator_gas_cost * @aggregator_fee_percentage_multiplier /
-      @percentage_divider +
-      @batcher_submission_gas_cost
+        @percentage_divider +
+        @batcher_submission_gas_cost
     )
   end
 

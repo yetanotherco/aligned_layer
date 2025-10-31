@@ -46,7 +46,7 @@ type Aggregator struct {
 	avsReader             *chainio.AvsReader
 	avsSubscriber         *chainio.AvsSubscriber
 	avsWriter             *chainio.AvsWriter
-	taskSubscriber        chan error
+	taskSubscriber        chan chainio.ErrorPair
 	blsAggregationService blsagg.BlsAggregationService
 
 	// BLS Signature Service returns an Index

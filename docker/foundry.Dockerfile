@@ -1,6 +1,6 @@
 FROM debian:bookworm-slim
 
-ENV FOUNDRY_VERSION=nightly-a428ba6ad8856611339a6319290aade3347d25d9
+ENV FOUNDRY_VERSION=v1.1.0
 
 RUN apt update -y
 RUN apt upgrade -y

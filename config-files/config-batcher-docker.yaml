@@ -21,12 +21,22 @@ batcher:
   block_interval: 3
   batch_size_interval: 10
   transaction_wait_timeout: 96000 # 8 blocks
-  max_proof_size: 67108864 # 64 MiB
+  max_proof_size: 4194304 # 4 MiB
   max_batch_byte_size: 268435456 # 256 MiB
   max_batch_proof_qty: 3000 # 3000 proofs in a batch
+  max_queue_size: 10000
   pre_verification_is_enabled: true
   metrics_port: 9093
   telemetry_ip_port_address: localhost:4001
   non_paying:
-    address: 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 # Anvil address 9
+    address: '0xa0Ee7A142d267C1f36714E4a8F75612F20a79720' # Anvil address 9
     replacement_private_key: ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 # Anvil address 1
+  # When validating if the msg covers the minimum max fee
+  # A batch of how many proofs should it cover
+  amount_of_proofs_for_min_max_fee: 128
+  # When replacing the message, how much higher should the max fee in comparison to the original one
+  # The calculation is replacement_max_fee >= original_max_fee + original_max_fee * min_bump_percentage / 100
+  min_bump_percentage: 10
+  # How often to poll for BalanceUnlocked events in seconds (default: 600 seconds = 10 minutes)
+  balance_unlock_polling_interval_seconds: 600
+

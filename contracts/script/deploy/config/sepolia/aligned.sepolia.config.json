@@ -3,13 +3,13 @@
       "chainId": 11155111
     },
     "permissions" : {
-      "aggregator": "<aggregator_address>", 
-      "deployer": "<deployer_address>",
-      "owner": "<owner_address>",
-      "upgrader": "<upgrader_address>",
-      "churner": "<churner_address>",
-      "ejector": "<ejector_address>",
-      "pauser": "<pauser_address>",
+      "aggregator": "0x1407a423FFaBcBC6ceEb0bbDf4cd093c860a3F62",
+      "deployer": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106",
+      "owner": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106",
+      "upgrader": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106",
+      "churner": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106",
+      "ejector": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106",
+      "pauser": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106",
       "initalPausedStatus": 0
     },
     "minimumStakes": [
@@ -18,7 +18,15 @@
     "strategyWeights": [
       [
         {
-          "0_strategy": "0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9",
+          "0_strategy": "0x424246eF71b01ee33aA33aC590fd9a0855F5eFbc",
+          "1_multiplier": 1e+18
+        },
+        {
+          "0_strategy": "0x8b29d91e67b013e855EaFe0ad704aC4Ab086a574",
+          "1_multiplier": 1e+18
+        },
+        {
+          "0_strategy": "0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0",
           "1_multiplier": 1e+18
         }
       ]

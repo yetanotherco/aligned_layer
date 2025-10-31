@@ -1,0 +1,29 @@
+[package]
+name = "aligned-sdk"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ethers = { version = "2.0", features = ["ws", "rustls", "eip712"] }
+log = { version = "0.4.21" }
+serde_json = "1.0.117"
+tokio-tungstenite = { version = "0.23.1", features = ["native-tls"] }
+futures-util = "0.3.30"
+tokio = { version = "1.37.0", features = [
+    "io-std",
+    "time",
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "sync",
+] }
+lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
+serde = { version = "1.0.201", features = ["derive"] }
+serde_bytes = "0.11"
+sha3 = { version = "0.10.8" }
+url = "2.5.0"
+hex = "0.4.3"
+ciborium = "=0.2.2"
+serde_repr = "0.1.19"
+dialoguer = "0.11.0"
+reqwest = { version = "0.12", features = ["json"] }

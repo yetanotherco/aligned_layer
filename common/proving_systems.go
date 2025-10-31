@@ -13,15 +13,16 @@ type ProvingSystemId uint16
 const (
 	GnarkPlonkBls12_381 ProvingSystemId = iota
 	GnarkPlonkBn254
-	Groth16Bn254
+	GnarkGroth16Bn254
 	SP1
 	Risc0
+	CircomGroth16Bn256
 	Mina
 	MinaAccount
 )
 
 func (t *ProvingSystemId) String() string {
-	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "Groth16Bn254", "SP1", "Mina", "MinaAccount"}[*t]
+	return [...]string{"GnarkPlonkBls12_381", "GnarkPlonkBn254", "GnarkGroth16Bn254", "SP1", "Mina", "MinaAccount"}[*t]
 }
 
 func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
@@ -30,12 +31,14 @@ func ProvingSystemIdFromString(provingSystem string) (ProvingSystemId, error) {
 		return GnarkPlonkBls12_381, nil
 	case "GnarkPlonkBn254":
 		return GnarkPlonkBn254, nil
-	case "Groth16Bn254":
-		return Groth16Bn254, nil
+	case "GnarkGroth16Bn254":
+		return GnarkGroth16Bn254, nil
 	case "SP1":
 		return SP1, nil
 	case "Risc0":
 		return Risc0, nil
+	case "CircomGroth16Bn256":
+		return CircomGroth16Bn256, nil
 	case "Mina":
 		return Mina, nil
 	case "MinaAccount":
@@ -51,12 +54,14 @@ func ProvingSystemIdToString(provingSystem ProvingSystemId) (string, error) {
 		return "GnarkPlonkBls12_381", nil
 	case GnarkPlonkBn254:
 		return "GnarkPlonkBn254", nil
-	case Groth16Bn254:
-		return "Groth16Bn254", nil
+	case GnarkGroth16Bn254:
+		return "GnarkGroth16Bn254", nil
 	case SP1:
 		return "SP1", nil
 	case Risc0:
 		return "Risc0", nil
+	case CircomGroth16Bn256:
+		return "CircomGroth16Bn256", nil
 	case Mina:
 		return "Mina", nil
 	case MinaAccount:
@@ -109,12 +114,14 @@ func (s *ProvingSystemId) UnmarshalCBOR(data []byte) error {
 		*s = GnarkPlonkBls12_381
 	case "GnarkPlonkBn254":
 		*s = GnarkPlonkBn254
-	case "Groth16Bn254":
-		*s = Groth16Bn254
+	case "GnarkGroth16Bn254":
+		*s = GnarkGroth16Bn254
 	case "SP1":
 		*s = SP1
 	case "Risc0":
 		*s = Risc0
+	case "CircomGroth16Bn256":
+		*s = CircomGroth16Bn256
 	case "Mina":
 		*s = Mina
 	case "MinaAccount":
