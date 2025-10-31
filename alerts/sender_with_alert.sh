@@ -210,7 +210,7 @@ verified=1
 
 ## Verify Proofs
 echo "Verifying $REPETITIONS proofs $x != 0"
-for proof in ./aligned_verification_data/*.cbor; do
+for proof in ./aligned_verification_data_$x/*.cbor; do
   ## Validate Proof on Chain
   verification=$(aligned verify-proof-onchain \
     --aligned-verification-data $proof \
