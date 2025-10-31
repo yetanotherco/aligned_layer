@@ -24,7 +24,7 @@ func VerifyMinaState(proofBuffer []byte, pubInputBuffer []byte) (isVerified bool
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			err = fmt.Errorf("Panic was caught while verifying sp1 proof: %s", rec)
+			err = fmt.Errorf("panic was caught while verifying sp1 proof: %s", rec)
 		}
 	}()
 
@@ -34,7 +34,7 @@ func VerifyMinaState(proofBuffer []byte, pubInputBuffer []byte) (isVerified bool
 	r := (C.int32_t)(C.verify_mina_state_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), pubInputPtr, (C.uint32_t)(len(pubInputBuffer))))
 
 	if r == -1 {
-		err = fmt.Errorf("Panic happened on FFI while verifying Mina proof")
+		err = fmt.Errorf("panic happened on FFI while verifying Mina proof")
 		return isVerified, err
 	}
 

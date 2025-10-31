@@ -24,7 +24,7 @@ func VerifyAccountInclusion(proofBuffer []byte, pubInputBuffer []byte) (isVerifi
 	defer func() {
 		rec := recover()
 		if rec != nil {
-			err = fmt.Errorf("Panic was caught while verifying sp1 proof: %s", rec)
+			err = fmt.Errorf("panic was caught while verifying sp1 proof: %s", rec)
 		}
 	}()
 
@@ -33,7 +33,7 @@ func VerifyAccountInclusion(proofBuffer []byte, pubInputBuffer []byte) (isVerifi
 	r := (C.int32_t)(C.verify_account_inclusion_ffi(proofPtr, (C.uint32_t)(len(proofBuffer)), pubInputPtr, (C.uint32_t)(len(pubInputBuffer))))
 
 	if r == -1 {
-		err = fmt.Errorf("Panic happened on FFI while verifying Mina account proof")
+		err = fmt.Errorf("panic happened on FFI while verifying Mina account proof")
 		return isVerified, err
 	}
 
