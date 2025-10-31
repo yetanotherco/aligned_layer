@@ -101,6 +101,7 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             };
 
             verify_account_inclusion(&verification_data.proof, pub_input)
+        }
     }
 }
 
