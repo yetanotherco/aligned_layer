@@ -79,6 +79,25 @@ function send_slack_message() {
   . alerts/slack.sh "$1"
 }
 
+LOG_DIR_PATH="./alerts/notification_logs/log_$date_only.txt"
+# Creates a log entry in the daily log file
+function create_log_entry() {
+  status="$1"
+  reason="${2:-}"
+
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+
+  # Keep the date to get the file name
+  date_only=$(date +"%Y_%m_%d")
+
+  # Check if file exists, if not create it
+  if [ ! -f "$LOG_DIR_PATH" ]; then
+    touch "$LOG_DIR_PATH"
+  fi
+
+  echo "[$timestamp] $status: - $reason" >> "$LOG_DIR_PATH"
+}
+
 ################# SEND LOGIC #################
 
 ## Remove Proof Data
@@ -91,8 +110,7 @@ mkdir -p ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proof
 nonce=$(aligned get-user-nonce --network $NETWORK --user_addr $SENDER_ADDRESS 2>&1 | awk '{print $9}')
 echo $nonce
 if ! [[ "$nonce" =~ ^[0-9]+$ ]]; then
-  echo "Failed getting user nonce, retrying in 10 seconds"
-  sleep 10
+  echo "Failed getting user nonce, exiting"
   exit 0
 fi
 
@@ -129,6 +147,7 @@ while IFS= read -r error; do
   if [[ -n "$error" ]]; then
     slack_error_message="Error submitting proof to $NETWORK: $error"
     send_slack_message "$slack_error_message"
+    create_log_entry "ERROR" "Error submitting proof to $NETWORK: $error"
     is_error=1
   fi
 done <<< "$submit_errors"
@@ -207,6 +226,7 @@ for proof in ./aligned_verification_data/*.cbor; do
     echo "$message"
     send_pagerduty_alert "$message"
     verified=0 # Some proofs failed, so we should not send the success message
+    create_log_entry "FAILURE" "Proof verification failed for $proof"
     break
   elif echo "$verification" | grep -q verified; then
     echo "Proof verification succeeded for $proof"
@@ -222,6 +242,12 @@ fi
 ## Send Update to Slack
 echo "$slack_message"
 send_slack_message "$slack_message"
+
+if [ $verified -eq 1 ]; then
+  create_log_entry "SUCCESS" "$total_number_proofs proofs submitted and verified ($REPETITIONS sent). Spent $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+else
+  create_log_entry "FAILURE" "$total_number_proofs proofs submitted but not verified ($REPETITIONS sent). Spent $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+fi
 
 ## Remove Proof Data
 rm -rf ./scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs/*
