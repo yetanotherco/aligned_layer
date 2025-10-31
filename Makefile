@@ -222,7 +222,7 @@ __ANVIL__: ## ____
 
 anvil_start: ## Start Anvil with pre-deployed state
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 2
 
 anvil_start_with_more_prefunded_accounts:
 	@echo "Starting Anvil..."
@@ -668,47 +668,6 @@ batcher_send_gnark_groth16_bn254_infinite: crates/target/release/aligned ## Send
 	@mkdir -p scripts/test_files/gnark_groth16_bn254_infinite_script/infinite_proofs
 	@./crates/cli/send_burst_tasks.sh $(BURST_SIZE) $(START_COUNTER)
 
-batcher_send_mina_task:
-	@echo "Sending Mina state task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Mina \
-		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
-		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
-
-batcher_send_mina_task_bad_hash:
-	@echo "Sending Mina state task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Mina \
-		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
-		--public_input ../../scripts/test_files/mina/mina_state_bad_hash.pub \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
-
-batcher_send_mina_burst:
-	@echo "Sending Mina state task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system Mina \
-		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
-		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
-		--repetitions 15 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
-
-batcher_send_mina_account_task:
-	@echo "Sending Mina account task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system MinaAccount \
-		--proof ../../scripts/test_files/mina_account/mina_account.proof \
-		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
-
-batcher_send_mina_account_burst:
-	@echo "Sending Mina account task to Batcher..."
-	@cd batcher/aligned/ && cargo run --release -- submit \
-		--proving_system MinaAccount \
-		--proof ../../scripts/test_files/mina_account/mina_account.proof \
-		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
-		--repetitions 15 \
-		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657
 batcher_send_circom_groth16_bn256_task: crates/target/release/aligned ## Send a Circom Groth16 BN256 proof to Batcher. Parameters: RPC_URL, NETWORK
 	@echo "Sending Circom Groth16 BN256 proof to Batcher..."
 	@cd crates/cli/ && cargo run --release -- submit \
@@ -739,6 +698,58 @@ batcher_send_circom_groth16_bn256_no_pub_input_burst: crates/target/release/alig
 		--proof ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/proof.json \
 		--public_input ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/public.json \
 		--vk ../../scripts/test_files/circom_groth16_bn256_no_pub_input_script/verification_key.json \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_task:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_task_bad_hash:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state_bad_hash.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_account_task:
+	@echo "Sending Mina account task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system MinaAccount \
+		--proof ../../scripts/test_files/mina_account/mina_account.proof \
+		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_account_burst:
+	@echo "Sending Mina account task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system MinaAccount \
+		--proof ../../scripts/test_files/mina_account/mina_account.proof \
+		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
 		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
 		--repetitions $(BURST_SIZE) \
 		--rpc_url $(RPC_URL) \
