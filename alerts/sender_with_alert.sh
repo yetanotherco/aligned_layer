@@ -79,7 +79,6 @@ function send_slack_message() {
   . alerts/slack.sh "$1"
 }
 
-LOG_DIR_PATH="./alerts/notification_logs/log_$date_only.txt"
 # Creates a log entry in the daily log file
 function create_log_entry() {
   status="$1"
@@ -87,15 +86,14 @@ function create_log_entry() {
 
   timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
-  # Keep the date to get the file name
-  date_only=$(date +"%Y_%m_%d")
+  log_file_path="./alerts/notification_logs/log_$(date +"%Y_%m_%d").txt"
 
   # Check if file exists, if not create it
-  if [ ! -f "$LOG_DIR_PATH" ]; then
-    touch "$LOG_DIR_PATH"
+  if [ ! -f "$log_file_path" ]; then
+    touch "$log_file_path"
   fi
 
-  echo "[$timestamp] $status: - $reason" >> "$LOG_DIR_PATH"
+  echo "[$timestamp] $status: - $reason" >> "$log_file_path"
 }
 
 ################# SEND LOGIC #################
