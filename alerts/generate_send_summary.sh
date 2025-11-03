@@ -97,15 +97,16 @@ if [[ -f "$LOG_FILE" ]]; then
     done < "$LOG_FILE"
 
     summary=$(
-        printf "Proof Submission Summary - %s\n" "$(date +'%Y-%m-%d %H:%M:%S')"
-        echo "----------------------------------------"
-        printf "Processed batches    :  %d\n" "$batches"
-        printf "Proofs submitted     :  %d\n" "$submitted_total"
-        printf "Proofs verified      :  %d\n" "$verified_total"
-        printf "Proofs not verified  :  %d\n" "$unverified_total"
-        printf "Total spent (ETH).   :  %.12f ETH\n" "$eth_total"
-        printf "Total spent (USD).   :  $ %.2f\n" "$usd_total"
-        echo "----------------------------------------"
+        printf "Daily Proof Submission Summary\n"
+        printf "From %s 00:00 to %s 23:59\n" "$(date +'%d-%m-%Y')" "$(date +'%d-%m-%Y')"
+        echo "----------------------------------------------------"
+        printf "Processed batches:      %d\n" "$batches"
+        printf "Proofs submitted:       %d\n" "$submitted_total"
+        printf "Proofs verified :       %d\n" "$verified_total"
+        printf "Proofs not verified:    %d\n" "$unverified_total"
+        printf "Total spent (ETH):     %.12f ETH\n" "$eth_total"
+        printf "Total spent (USD):     $ %.2f\n" "$usd_total"
+        echo "----------------------------------------------------"
     )
 
     echo "$summary"
