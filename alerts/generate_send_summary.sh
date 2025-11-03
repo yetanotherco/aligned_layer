@@ -21,6 +21,10 @@ source "$1"
 # Determine log file name based on current date
 LOG_FILE="./alerts/notification_logs/log_$(date +"%Y_%m_%d").txt"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+cd ..
+
 batches=0
 submitted_total=0
 verified_total=0
