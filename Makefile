@@ -222,7 +222,7 @@ __ANVIL__: ## ____
 
 anvil_start: ## Start Anvil with pre-deployed state
 	@echo "Starting Anvil..."
-	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 2
+	anvil --load-state contracts/scripts/anvil/state/alignedlayer-deployed-anvil-state.json --block-time 7
 
 anvil_start_with_more_prefunded_accounts:
 	@echo "Starting Anvil..."
