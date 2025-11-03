@@ -230,15 +230,12 @@ for proof in ./aligned_verification_data_$x/*.cbor; do
   fi
 done
 
-if [ $verified -eq 1 ]; then
-  slack_message="$total_number_proofs proofs submitted and verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
-else
+if [ $verified -ne 1 ]; then
+  ## Send Update to Slack only in case verification failed
   slack_message="$total_number_proofs proofs submitted but not verified. We sent $REPETITIONS proofs. Spent amount: $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
+  echo "$slack_message"
+  send_slack_message "$slack_message"
 fi
-
-## Send Update to Slack
-echo "$slack_message"
-send_slack_message "$slack_message"
 
 if [ $verified -eq 1 ]; then
   create_log_entry "SUCCESS" "$total_number_proofs proofs submitted and verified ($REPETITIONS sent). Spent $spent_amount ETH ($ $spent_amount_usd) [ ${batch_explorer_urls[@]} ]"
