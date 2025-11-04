@@ -18,8 +18,10 @@
 # Load env file from $1 path
 source "$1"
 
+DATE=$(date -d "yesterday" +"%Y_%m_%d")
+
 # Determine log file name based on current date
-LOG_FILE="./alerts/notification_logs/log_$(date +"%Y_%m_%d").txt"
+LOG_FILE="./alerts/notification_logs/log_$DATE.txt"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -102,11 +104,11 @@ if [[ -f "$LOG_FILE" ]]; then
 
     summary=$(
         printf "Daily Proof Submission Summary\n"
-        printf "From %s 00:00 to %s 23:59\n" "$(date +'%d-%m-%Y')" "$(date +'%d-%m-%Y')"
+        printf "From %s 00:00 to %s 23:59\n" "$DATE" "$DATE"
         echo "----------------------------------------------------"
         printf "Processed batches:      %d\n" "$batches"
         printf "Proofs submitted:       %d\n" "$submitted_total"
-        printf "Proofs verified :       %d\n" "$verified_total"
+        printf "Proofs verified:        %d\n" "$verified_total"
         printf "Proofs not verified:    %d\n" "$unverified_total"
         printf "Total spent (ETH):     %.12f ETH\n" "$eth_total"
         printf "Total spent (USD):     $ %.2f\n" "$usd_total"
@@ -123,7 +125,7 @@ if [[ -f "$LOG_FILE" ]]; then
         "$SLACK_WEBHOOK_URL" >/dev/null 2>&1
     fi
 else
-    echo "Proof Submission Summary - $(date +'%Y-%m-%d %H:%M:%S')"
+    echo "Proof Submission Summary - $DATE"
     echo "----------------------------------------"
     echo "No log file found for today: $LOG_FILE"
     echo "----------------------------------------"
