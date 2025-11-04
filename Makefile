@@ -1363,7 +1363,7 @@ docker_verify_proofs_onchain:
 	  '
 
 DOCKER_PROOFS_WAIT_TIME=60
-DOCKER_SENT_PROOFS=7
+DOCKER_SENT_PROOFS=9
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
