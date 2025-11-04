@@ -1265,28 +1265,6 @@ docker_batcher_send_gnark_groth16_burst:
 			--rpc_url $(DOCKER_RPC_URL) \
 			--max_fee 0.1ether
 
-docker_batcher_send_mina_burst:
-	@echo "Sending Mina state task to Batcher..."
-	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
-              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-              --proving_system Mina \
-              --proof ./scripts/test_files/mina/devnet_mina_state.proof \
-              --public_input ./scripts/test_files/mina/devnet_mina_state.pub \
-              --repetitions $(DOCKER_BURST_SIZE) \
-              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL) \
-			  --max_fee 0.1ether
-
-docker_batcher_send_mina_account_burst:
-	@echo "Sending Mina account task to Batcher..."
-	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
-              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
-              --proving_system MinaAccount \
-              --proof ./scripts/test_files/mina_account/mina_account.proof \
-              --public_input ./scripts/test_files/mina_account/mina_account.pub \
-              --repetitions $(DOCKER_BURST_SIZE) \
-              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL) \
 docker_batcher_send_circom_groth16_bn256_burst:
 	@echo "Sending Circom Groth16 BN256 task to Batcher..."
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
@@ -1312,6 +1290,29 @@ docker_batcher_send_circom_groth16_bn256_no_pub_input_burst:
 			  --repetitions $(DOCKER_BURST_SIZE) \
 			  --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
+
+docker_batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system Mina \
+              --proof ./scripts/test_files/mina/devnet_mina_state.proof \
+              --public_input ./scripts/test_files/mina/devnet_mina_state.pub \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
+docker_batcher_send_mina_account_burst:
+	@echo "Sending Mina account task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system MinaAccount \
+              --proof ./scripts/test_files/mina_account/mina_account.proof \
+              --public_input ./scripts/test_files/mina_account/mina_account.pub \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL)
 
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
