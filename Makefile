@@ -1312,7 +1312,8 @@ docker_batcher_send_mina_account_burst:
               --public_input ./scripts/test_files/mina_account/mina_account.pub \
               --repetitions $(DOCKER_BURST_SIZE) \
               --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
-              --rpc_url $(DOCKER_RPC_URL)
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
 
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
