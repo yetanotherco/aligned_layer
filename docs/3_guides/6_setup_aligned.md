@@ -164,7 +164,7 @@ This will:
 
 - Start a postgres docker container
 - Run ecto setup
-- Start the explorer on <http://localhost:4000>.
+- Start the explorer on http://localhost:4000.
 
 <details>
 <summary>Clean, dump and recover DB</summary>
