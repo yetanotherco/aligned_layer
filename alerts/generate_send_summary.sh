@@ -29,8 +29,11 @@ cd ..
 
 batches=0
 submitted_total=0
+submitted_by_aligned=0
 verified_total=0
 unverified_total=0
+eth_by_aligned="0"
+usd_by_aligned="0"
 eth_total="0"
 usd_total="0"
 
@@ -47,26 +50,29 @@ if [[ -f "$LOG_FILE" ]]; then
                 | cut -d' ' -f1)
             if [[ -n "$proofs_submitted" ]]; then
                 submitted_total=$((submitted_total + proofs_submitted))
+                verified_total=$((verified_total + proofs_submitted))
             fi
 
-            proofs_verified=$(printf '%s\n' "$line" \
+            proofs_submitted_by_aligned=$(printf '%s\n' "$line" \
                 | grep -oE '\([0-9]+ sent\)' \
                 | grep -oE '[0-9]+' \
                 | head -1)
-            if [[ -n "$proofs_verified" ]]; then
-                verified_total=$((verified_total + proofs_verified))
+            if [[ -n "$proofs_submitted_by_aligned" ]]; then
+                submitted_by_aligned=$((submitted_by_aligned + proofs_submitted_by_aligned))
             fi
 
             eth_spent=$(printf '%s\n' "$line" \
                 | sed -n 's/.*Spent \([0-9.]*\) ETH.*/\1/p')
             if [[ -n "$eth_spent" ]]; then
                 eth_total=$(echo "$eth_total + $eth_spent" | bc -l)
+                eth_by_aligned=$(echo "$eth_by_aligned + $eth_spent / $proofs_submitted * $proofs_submitted_by_aligned" | bc -l)
             fi
 
             usd_spent=$(printf '%s\n' "$line" \
                 | sed -n 's/.*(\$ *\([0-9.]*\)).*/\1/p')
             if [[ -n "$usd_spent" ]]; then
                 usd_total=$(echo "$usd_total + $usd_spent" | bc -l)
+                usd_by_aligned=$(echo "$usd_by_aligned + $usd_spent / $proofs_submitted * $proofs_submitted_by_aligned" | bc -l)
             fi
             ;;
         *"FAILURE:"*)
@@ -78,26 +84,29 @@ if [[ -f "$LOG_FILE" ]]; then
                 | cut -d' ' -f1)
             if [[ -n "$proofs_submitted" ]]; then
                 submitted_total=$((submitted_total + proofs_submitted))
+                unverified_total=$((unverified_total + proofs_submitted))
             fi
 
-            proofs_unverified=$(printf '%s\n' "$line" \
+            proofs_submitted_by_aligned=$(printf '%s\n' "$line" \
                 | grep -oE '\([0-9]+ sent\)' \
                 | grep -oE '[0-9]+' \
                 | head -1)
-            if [[ -n "$proofs_verified" ]]; then
-                unverified_total=$((verified_total + proofs_verified))
+            if [[ -n "$proofs_submitted_by_aligned" ]]; then
+                submitted_by_aligned=$((submitted_by_aligned + proofs_submitted_by_aligned))
             fi
 
             eth_spent=$(printf '%s\n' "$line" \
                 | sed -n 's/.*Spent \([0-9.]*\) ETH.*/\1/p')
             if [[ -n "$eth_spent" ]]; then
                 eth_total=$(echo "$eth_total + $eth_spent" | bc -l)
+                eth_by_aligned=$(echo "$eth_by_aligned + $eth_spent / $proofs_submitted * $proofs_submitted_by_aligned" | bc -l)
             fi
 
             usd_spent=$(printf '%s\n' "$line" \
                 | sed -n 's/.*(\$ *\([0-9.]*\)).*/\1/p')
             if [[ -n "$usd_spent" ]]; then
                 usd_total=$(echo "$usd_total + $usd_spent" | bc -l)
+                usd_by_aligned=$(echo "$usd_by_aligned + $usd_spent / $proofs_submitted * $proofs_submitted_by_aligned" | bc -l)
             fi
         esac
     done < "$LOG_FILE"
@@ -106,12 +115,15 @@ if [[ -f "$LOG_FILE" ]]; then
         printf "Daily Proof Submission Summary\n"
         printf "From %s 00:00 to %s 23:59\n" "$DATE" "$DATE"
         echo "----------------------------------------------------"
-        printf "Processed batches:      %d\n" "$batches"
-        printf "Proofs submitted:       %d\n" "$submitted_total"
-        printf "Proofs verified:        %d\n" "$verified_total"
-        printf "Proofs not verified:    %d\n" "$unverified_total"
-        printf "Total spent (ETH):     %.12f ETH\n" "$eth_total"
-        printf "Total spent (USD):     $ %.2f\n" "$usd_total"
+        printf "Processed batches:              %d\n" "$batches"
+        printf "Total Proofs submitted:         %d\n" "$submitted_total"
+        printf "Total Proofs verified:          %d\n" "$verified_total"
+        printf "Total Proofs not verified:      %d\n" "$unverified_total"
+        printf "Proofs submitted by Aligned:    %d\n" "$submitted_by_aligned"
+        printf "Total spent by Aligned (ETH):   %.12f ETH\n" "$eth_by_aligned"
+        printf "Total spent by Aligned (USD):   $ %.2f\n" "$usd_by_aligned"
+        printf "Total spent (ETH):              %.12f ETH\n" "$eth_total"
+        printf "Total spent (USD):              $ %.2f\n" "$usd_total"
         echo "----------------------------------------------------"
     )
 
