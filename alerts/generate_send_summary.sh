@@ -115,18 +115,19 @@ if [[ -f "$LOG_FILE" ]]; then
         printf "Daily Proof Submission Summary\n"
         printf "From %s 00:00 to %s 23:59\n" "$DATE" "$DATE"
         echo "----------------------------------------------------"
-        printf "Processed batches: %d\n" "$batches"
-        printf "Total Proofs submitted: %d\n" "$submitted_total"
-        printf "Total Proofs verified: %d\n" "$verified_total"
-        printf "Total Proofs not verified: %d\n" "$unverified_total"
-        printf "Proofs submitted by Aligned: %d\n" "$submitted_by_aligned"
-        printf "Proofs submitted by 3rd parties: %d\n" "$((submitted_total - submitted_by_aligned))"
-        printf "Spent by Aligned (ETH): %.12f ETH\n" "$eth_by_aligned"
-        printf "Spent by Aligned (USD): $ %.2f\n" "$usd_by_aligned"
-        printf "Spent by 3rd parties (ETH): %.12f ETH\n" "$(echo "$eth_total - $eth_by_aligned" | bc -l)"
-        printf "Spent by 3rd parties (USD): $ %.2f\n" "$(echo "$usd_total - $usd_by_aligned" | bc -l)"
-        printf "Total spent (ETH): %.12f ETH\n" "$eth_total"
-        printf "Total spent (USD): $ %.2f\n" "$usd_total"
+        printf "Processed batches:              %d\n" "$batches"
+        printf "Total Proofs submitted:         %d\n" "$submitted_total"
+        printf "Total Proofs verified:          %d\n" "$verified_total"
+        printf "Total Proofs not verified:      %d\n" "$unverified_total"
+        printf "Submitted by Aligned:           %d\n" "$submitted_by_aligned"
+        printf "Submitted by 3rd parties:       %d\n" "$((submitted_total - submitted_by_aligned))"
+        echo "----------------------------------------------------"
+        printf "Spent by Aligned (ETH):         %.12f ETH\n" "$eth_by_aligned"
+        printf "Spent by Aligned (USD):         $ %.2f\n" "$usd_by_aligned"
+        printf "Spent by 3rd parties (ETH):     %.12f ETH\n" "$(echo "$eth_total - $eth_by_aligned" | bc -l)"
+        printf "Spent by 3rd parties (USD):     $ %.2f\n" "$(echo "$usd_total - $usd_by_aligned" | bc -l)"
+        printf "Total spent (ETH):              %.12f ETH\n" "$eth_total"
+        printf "Total spent (USD):              $ %.2f\n" "$usd_total"
         echo "----------------------------------------------------"
     )
 
@@ -136,7 +137,7 @@ if [[ -f "$LOG_FILE" ]]; then
     if [[ -n "$SLACK_WEBHOOK_URL" ]]; then
         safe_summary=$(printf '%s\n' "$summary" | sed 's/"/\\"/g')
         curl -s -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"$safe_summary\"}" \
+        --data "{\"text\":\"\`\`\`$safe_summary\`\`\`\"}" \
         "$SLACK_WEBHOOK_URL" >/dev/null 2>&1
     fi
 else
