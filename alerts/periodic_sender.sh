@@ -25,6 +25,12 @@ function fetch_gas_price() {
     echo $gas_price
 }
 
+# Get batcher queue len
+function get_queue_length() {
+    queue_len=$(curl $BATCHER_METRICS_URL -s | grep queue_len | awk '{print $2}' | tail -n 1)
+    echo $queue_len
+}
+
 source "$ENV_FILE"
 
 # Each elapsed interval lasts for 5 minutes
@@ -47,6 +53,14 @@ while true; do
         continue
     fi
     echo "Current gas price: $current_gas_price wei"
+
+    queue_len=$(get_queue_length)
+    if [ "$queue_len" -eq 0 ]; then
+        echo "There are no pending proofs in the queue, skipping this pass."
+        echo "Sleeping $sleep_time seconds (($((sleep_time / 60)) minutes))"
+        sleep "$sleep_time"
+        continue
+    fi
 
     # In case current and gas price meet the criteria, send a proof and reset counter
     if { [ $elapsed_intervals -ge 1 ] && [ $elapsed_intervals -lt 3 ] && [ $current_gas_price -lt 1500000000 ]; }; then
