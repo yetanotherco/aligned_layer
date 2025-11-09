@@ -48,7 +48,7 @@ network_params:
   # Maximum number of blobs per block
   #  max_blobs_per_block: 6
 
-  preset: "minimal"
+#  preset: "minimal"
   devnet_repo: ethpandaops
 
   # Prefunded Accounts
