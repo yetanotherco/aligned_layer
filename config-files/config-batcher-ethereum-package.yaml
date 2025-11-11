@@ -27,6 +27,7 @@ batcher:
   metrics_port: 9093
   telemetry_ip_port_address: localhost:4001
   # The specific name for each verifier should match the ProvingSystemId string representation
+  # Possible values: GnarkPlonkBls12_381, GnarkPlonkBn254, GnarkGroth16Bn254, SP1, Risc0, CircomGroth16Bn256, Mina, MinaAccount
   disabled_verifiers: []
   non_paying:
     address: '0xa0Ee7A142d267C1f36714E4a8F75612F20a79720' # Anvil address 9
