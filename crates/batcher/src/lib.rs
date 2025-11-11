@@ -136,7 +136,7 @@ pub struct Batcher {
 
     // The list of disabled verifiers from the config file. Note that this is separate from the
     // contract's disabled verifiers, and is updated only when the batcher is restarted.
-    config_disabled_verifiers: Vec<String>,
+    config_disabled_verifiers: Vec<ProvingSystemId>,
 
     // Observability and monitoring
     pub metrics: metrics::BatcherMetrics,
@@ -1492,10 +1492,7 @@ impl Batcher {
 
     async fn is_verifier_disabled(&self, verifier: ProvingSystemId) -> bool {
         // Check if the verifier is disabled in the configuration first
-        if self
-            .config_disabled_verifiers
-            .contains(&verifier.to_string())
-        {
+        if self.config_disabled_verifiers.contains(&verifier) {
             return true;
         }
         let disabled_verifiers = self.disabled_verifiers.lock().await;
