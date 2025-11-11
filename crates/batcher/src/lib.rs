@@ -354,7 +354,7 @@ impl Batcher {
             batch_state: Mutex::new(batch_state),
             user_states,
             disabled_verifiers: Mutex::new(contract_disabled_verifiers),
-            config_disabled_verifiers: config_disabled_verifiers,
+            config_disabled_verifiers,
             current_min_max_fee: RwLock::new(U256::zero()),
             metrics,
             telemetry,
