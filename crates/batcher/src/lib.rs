@@ -134,6 +134,10 @@ pub struct Batcher {
 
     disabled_verifiers: Mutex<U256>,
 
+    // The list of disabled verifiers from the config file. Note that this is separate from the
+    // contract's disabled verifiers, and is updated only when the batcher is restarted.
+    config_disabled_verifiers: Vec<String>,
+
     // Observability and monitoring
     pub metrics: metrics::BatcherMetrics,
     pub telemetry: TelemetrySender,
@@ -298,11 +302,13 @@ impl Batcher {
             None
         };
 
-        let disabled_verifiers = match service_manager.disabled_verifiers().call().await {
-            Ok(disabled_verifiers) => Ok(disabled_verifiers),
+        let contract_disabled_verifiers = match service_manager.disabled_verifiers().call().await {
+            Ok(contract_disabled_verifiers) => Ok(contract_disabled_verifiers),
             Err(_) => service_manager_fallback.disabled_verifiers().call().await,
         }
         .expect("Failed to get disabled verifiers");
+
+        let config_disabled_verifiers = config.batcher.disabled_verifiers.clone();
 
         let telemetry = TelemetrySender::new(format!(
             "http://{}",
@@ -347,7 +353,8 @@ impl Batcher {
             posting_batch: Mutex::new(false),
             batch_state: Mutex::new(batch_state),
             user_states,
-            disabled_verifiers: Mutex::new(disabled_verifiers),
+            disabled_verifiers: Mutex::new(contract_disabled_verifiers),
+            config_disabled_verifiers: config_disabled_verifiers,
             current_min_max_fee: RwLock::new(U256::zero()),
             metrics,
             telemetry,
