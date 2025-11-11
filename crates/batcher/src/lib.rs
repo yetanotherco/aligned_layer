@@ -1491,6 +1491,13 @@ impl Batcher {
     }
 
     async fn is_verifier_disabled(&self, verifier: ProvingSystemId) -> bool {
+        // Check if the verifier is disabled in the configuration first
+        if self
+            .config_disabled_verifiers
+            .contains(&verifier.to_string())
+        {
+            return true;
+        }
         let disabled_verifiers = self.disabled_verifiers.lock().await;
         zk_utils::is_verifier_disabled(*disabled_verifiers, verifier)
     }
