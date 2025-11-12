@@ -309,6 +309,10 @@ impl Batcher {
         .expect("Failed to get disabled verifiers");
 
         let config_disabled_verifiers = config.batcher.disabled_verifiers.clone();
+        info!(
+            "Disabled verifiers from config: {:?}",
+            config_disabled_verifiers
+        );
 
         let telemetry = TelemetrySender::new(format!(
             "http://{}",
