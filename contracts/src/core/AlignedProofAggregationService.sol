@@ -118,14 +118,11 @@ contract AlignedProofAggregationService is
     /// @param verifierType The type of verifier (SP1 or RISC0).
     ///
     /// @return bool Returns true if the computed Merkle root is a recognized valid aggregated proof.
-    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs, IAlignedProofAggregationService.VerifierType verifierType)
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
         public
         view
         returns (bool)
     {
-        require(programIds[programId] == uint8(verifierType), "Program ID not registered for the received verifier type");
-
-        // TODO: consider adding the verifierType to the proof commitment to avoid potential collisions
         bytes32 proofCommitment = keccak256(abi.encodePacked(programId, publicInputs));
         bytes32 merkleRoot = MerkleProof.processProofCalldata(merklePath, proofCommitment);
         return aggregatedProofs[merkleRoot];

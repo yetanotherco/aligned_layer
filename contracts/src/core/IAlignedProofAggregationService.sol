@@ -29,7 +29,7 @@ interface IAlignedProofAggregationService {
     function verifyRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes, bytes32 programId)
         external;
 
-    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs, VerifierType verifierType)
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
         external
         view
         returns (bool);
