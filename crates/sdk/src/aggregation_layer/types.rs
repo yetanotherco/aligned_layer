@@ -30,10 +30,18 @@ impl AggregationModeVerificationData {
         }
     }
 
+    pub fn proving_system_id(&self) -> u8 {
+        match self {
+            Self::SP1 { .. } => 0u8,
+            Self::Risc0 { .. } => 1u8,
+        }
+    }
+
     pub fn commitment(&self) -> [u8; 32] {
         match self {
             AggregationModeVerificationData::SP1 { vk, public_inputs } => {
                 let mut hasher = Keccak256::new();
+                hasher.update(&[0u8]);
                 hasher.update(vk);
                 hasher.update(public_inputs);
                 hasher.finalize().into()
@@ -43,6 +51,7 @@ impl AggregationModeVerificationData {
                 public_inputs,
             } => {
                 let mut hasher = Keccak256::new();
+                hasher.update(&[1u8]);
                 hasher.update(image_id);
                 hasher.update(public_inputs);
                 hasher.finalize().into()

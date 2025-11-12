@@ -11,6 +11,7 @@ pub struct Risc0ImageIdAndPubInputs {
 impl Risc0ImageIdAndPubInputs {
     pub fn commitment(&self) -> [u8; 32] {
         let mut hasher = Keccak::v256();
+        hasher.update(&[1u8]);
         for &word in &self.image_id {
             hasher.update(&word.to_be_bytes());
         }

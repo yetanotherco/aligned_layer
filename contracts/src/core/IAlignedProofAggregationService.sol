@@ -7,13 +7,13 @@ interface IAlignedProofAggregationService {
 
     /// @notice Event emitted when the Risc0 verifier address is updated
     event Risc0VerifierAddressUpdated(address indexed newAddress);
-    
+
     /// @notice Event emitted when the SP1 verifier address is updated
     event SP1VerifierAddressUpdated(address indexed newAddress);
-    
+
     /// @notice Event emitted when the Risc0 aggregator program image ID is updated
     event Risc0AggregatorProgramImageIdUpdated(bytes32 indexed newImageId);
-    
+
     /// @notice Event emitted when the SP1 aggregator program VK hash is updated
     event SP1AggregatorProgramVKHashUpdated(bytes32 indexed newVKHash);
 
@@ -29,10 +29,12 @@ interface IAlignedProofAggregationService {
     function verifyRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes)
         external;
 
-    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
-        external
-        view
-        returns (bool);
+    function verifyProofInclusion(
+        bytes32[] calldata merklePath,
+        uint256 provingSystemId,
+        bytes32 programId,
+        bytes calldata publicInputs
+    ) external view returns (bool);
 
     /// @notice Sets the address of the Risc0 verifier contract
     /// @param _risc0VerifierAddress The new address for the Risc0 verifier contract

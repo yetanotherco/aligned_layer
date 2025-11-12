@@ -11,6 +11,7 @@ pub struct SP1VkAndPubInputs {
 impl SP1VkAndPubInputs {
     pub fn commitment(&self) -> [u8; 32] {
         let mut hasher = Keccak256::new();
+        hasher.update(&[0u8]);
         for &word in &self.vk {
             hasher.update(word.to_be_bytes());
         }
