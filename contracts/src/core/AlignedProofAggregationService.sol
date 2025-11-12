@@ -42,12 +42,6 @@ contract AlignedProofAggregationService is
     /// verified against known and registered programs.
     mapping(bytes32 => uint8) public programIds;
 
-    enum VerifierType {
-        INVALID, // This to prevent default value being considered valid (when mapping returns 0 for non-existing keys)
-        SP1,
-        RISC0
-    }
-
     constructor() {
         _disableInitializers();
     }
@@ -77,7 +71,7 @@ contract AlignedProofAggregationService is
     {
         (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
 
-        require(programIds[programId] == uint8(VerifierType.SP1), "Invalid program ID");
+        require(programIds[programId] == uint8(IAlignedProofAggregationService.VerifierType.SP1), "Invalid program ID");
 
         // In dev mode, poofs are mocked, so we skip the verification part
         if (_isSP1VerificationEnabled()) {
@@ -94,7 +88,7 @@ contract AlignedProofAggregationService is
     {
         (bytes32 merkleRoot) = abi.decode(risc0JournalBytes, (bytes32));
 
-        require(programIds[programId] == uint8(VerifierType.RISC0), "Invalid program ID");
+        require(programIds[programId] == uint8(IAlignedProofAggregationService.VerifierType.RISC0), "Invalid program ID");
 
         // In dev mode, poofs are mocked, so we skip the verification part
         if (_isRisc0VerificationEnabled()) {
@@ -124,7 +118,7 @@ contract AlignedProofAggregationService is
     /// @param verifierType The type of verifier (SP1 or RISC0).
     ///
     /// @return bool Returns true if the computed Merkle root is a recognized valid aggregated proof.
-    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs, VerifierType verifierType)
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs, IAlignedProofAggregationService.VerifierType verifierType)
         public
         view
         returns (bool)
@@ -172,7 +166,7 @@ contract AlignedProofAggregationService is
         emit SP1VerifierAddressUpdated(_sp1VerifierAddress);
     }
 
-    function addProgramId(bytes32 programId, VerifierType verifierType) external onlyOwner {
+    function addProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType) external onlyOwner {
         programIds[programId] = uint8(verifierType);
         emit ProgramIdAdded(programId, verifierType);
     }

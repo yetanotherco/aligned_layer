@@ -52,4 +52,10 @@ interface IAlignedProofAggregationService {
     function deleteProgramId(bytes32 programId) external;
 
     error OnlyAlignedAggregator(address sender);
+
+    enum VerifierType {
+        INVALID, // This to prevent default value being considered valid (when mapping returns 0 for non-existing keys)
+        SP1,
+        RISC0
+    }
 }
