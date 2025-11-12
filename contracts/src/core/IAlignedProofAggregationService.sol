@@ -11,11 +11,11 @@ interface IAlignedProofAggregationService {
     /// @notice Event emitted when the SP1 verifier address is updated
     event SP1VerifierAddressUpdated(address indexed newAddress);
     
-    /// @notice Event emitted when the Risc0 aggregator program image ID is updated
-    event Risc0AggregatorProgramImageIdUpdated(bytes32 indexed newImageId);
-    
-    /// @notice Event emitted when the SP1 aggregator program VK hash is updated
-    event SP1AggregatorProgramVKHashUpdated(bytes32 indexed newVKHash);
+    /// @notice Event emitted when a new program ID is added
+    event ProgramIdAdded(bytes32 indexed programId, AlignedProofAggregationService.VerifierType verifierType);
+
+    /// @notice Event emitted when a program ID is deleted
+    event ProgramIdDeleted(bytes32 indexed programId);
 
     /// @notice Method to verify an aggregated proof from aligned
     /// @dev This function is called by the aligned proof aggregator after collecting the proofs and aggregating them
@@ -38,17 +38,18 @@ interface IAlignedProofAggregationService {
     /// @param _risc0VerifierAddress The new address for the Risc0 verifier contract
     function setRisc0VerifierAddress(address _risc0VerifierAddress) external;
 
-    /// @notice Sets the image id of the Risc0 program
-    /// @param _risc0AggregatorProgramImageId The new imageid for the Risc0 aggregator program
-    function setRisc0AggregatorProgramImageId(bytes32 _risc0AggregatorProgramImageId) external;
-
     /// @notice Sets the address of the SP1 verifier contract
     /// @param _sp1VerifierAddress The new address for the SP1 verifier contract
     function setSP1VerifierAddress(address _sp1VerifierAddress) external;
 
-    /// @notice Sets the vk hash of the sp1 program
-    /// @param _sp1AggregatorProgramVKHash The new vk hash for the sp1 aggregator program
-    function setSP1AggregatorProgramVKHash(bytes32 _sp1AggregatorProgramVKHash) external;
+    /// @notice Adds a new program ID with its verifier type
+    /// @param programId The program ID to add
+    /// @param verifierType The type of verifier (SP1 or RISC0)
+    function addProgramId(bytes32 programId, uint8 verifierType) external;
+
+    /// @notice Deletes an existing program ID
+    /// @param programId The program ID to delete
+    function deleteProgramId(bytes32 programId) external;
 
     error OnlyAlignedAggregator(address sender);
 }

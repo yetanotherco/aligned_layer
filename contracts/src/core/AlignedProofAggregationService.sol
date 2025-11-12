@@ -174,10 +174,12 @@ contract AlignedProofAggregationService is
 
     function addProgramId(bytes32 programId, VerifierType verifierType) external onlyOwner {
         programIds[programId] = uint8(verifierType);
+        emit ProgramIdAdded(programId, verifierType);
     }
 
     function deleteProgramId(bytes32 programId) external onlyOwner {
         // Check if we should verify its existence before deleting
         delete programIds[programId];
+        emit ProgramIdDeleted(programId);
     }
 }
