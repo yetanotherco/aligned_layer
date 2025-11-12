@@ -12,7 +12,7 @@ interface IAlignedProofAggregationService {
     event SP1VerifierAddressUpdated(address indexed newAddress);
     
     /// @notice Event emitted when a new program ID is added
-    event ProgramIdAdded(bytes32 indexed programId, AlignedProofAggregationService.VerifierType verifierType);
+    event ProgramIdAdded(bytes32 indexed programId, VerifierType verifierType);
 
     /// @notice Event emitted when a program ID is deleted
     event ProgramIdDeleted(bytes32 indexed programId);
@@ -23,13 +23,13 @@ interface IAlignedProofAggregationService {
     /// @param blobVersionedHash the versioned hash of the blob transaction that contains the leaves that compose the merkle root.
     /// @param sp1PublicValues Values used to perform the execution
     /// @param sp1ProofBytes Groth16 proof
-    function verifySP1(bytes32 blobVersionedHash, bytes calldata sp1PublicValues, bytes calldata sp1ProofBytes)
+    function verifySP1(bytes32 blobVersionedHash, bytes calldata sp1PublicValues, bytes calldata sp1ProofBytes, bytes32 programId)
         external;
 
-    function verifyRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes)
+    function verifyRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes, bytes32 programId)
         external;
 
-    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
+    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs, VerifierType verifierType)
         external
         view
         returns (bool);
@@ -45,7 +45,7 @@ interface IAlignedProofAggregationService {
     /// @notice Adds a new program ID with its verifier type
     /// @param programId The program ID to add
     /// @param verifierType The type of verifier (SP1 or RISC0)
-    function addProgramId(bytes32 programId, uint8 verifierType) external;
+    function addProgramId(bytes32 programId, VerifierType verifierType) external;
 
     /// @notice Deletes an existing program ID
     /// @param programId The program ID to delete
