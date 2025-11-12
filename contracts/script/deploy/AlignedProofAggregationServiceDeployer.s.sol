@@ -1,6 +1,7 @@
 pragma solidity ^0.8.12;
 
 import {AlignedProofAggregationService} from "../../src/core/AlignedProofAggregationService.sol";
+import {IAlignedProofAggregationService} from "../../src/core/IAlignedProofAggregationService.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "forge-std/Script.sol";
@@ -27,13 +28,13 @@ contract AlignedProofAggregationServiceDeployer is Script {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(alignedProofAggregationService),
             abi.encodeWithSignature(
-                "initialize(address,address,address,address,bytes32,bytes32)",
+                "initialize(address,address,address,address,bytes32[],uint8[])",
                 ownerAddress,
                 alignedAggregatorAddress,
                 sp1VerifierAddress,
                 risc0VerifierAddress,
-                risc0AggregationProgramImageId,
-                sp1AggregationProgramVKHash
+                [risc0AggregationProgramImageId, sp1AggregationProgramVKHash],
+                [uint8(IAlignedProofAggregationService.VerifierType.RISC0), uint8(IAlignedProofAggregationService.VerifierType.SP1)]
             )
         );
 
