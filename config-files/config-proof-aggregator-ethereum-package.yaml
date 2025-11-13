@@ -14,5 +14,6 @@ proofs_per_chunk: 512 # Amount of proofs to process per chunk
 total_proofs_limit: 3968
 
 ecdsa:
+  private_key: "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"
   private_key_store_password: ""
