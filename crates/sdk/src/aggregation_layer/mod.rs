@@ -3,7 +3,10 @@ mod helpers;
 mod types;
 
 // Makes only the two types on this use public
-pub use types::{AggregationModeVerificationData, ProofVerificationAggModeError};
+pub use types::{
+    AggregationModeVerificationData, ProofVerificationAggModeError, RISC0_PROVING_SYSTEM_ID,
+    SP1_PROVING_SYSTEM_ID,
+};
 
 use crate::{
     common::types::Network, eth::aligned_proof_agg_service::aligned_proof_aggregation_service,

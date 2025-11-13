@@ -3,6 +3,9 @@ use sha3::{Digest, Keccak256};
 
 use crate::beacon::BeaconClientError;
 
+pub const SP1_PROVING_SYSTEM_ID: u8 = 0;
+pub const RISC0_PROVING_SYSTEM_ID: u8 = 1;
+
 #[derive(Debug)]
 pub enum AggregationModeVerificationData {
     SP1 {
@@ -32,8 +35,8 @@ impl AggregationModeVerificationData {
 
     pub fn proving_system_id(&self) -> u8 {
         match self {
-            Self::SP1 { .. } => 0u8,
-            Self::Risc0 { .. } => 1u8,
+            Self::SP1 { .. } => SP1_PROVING_SYSTEM_ID,
+            Self::Risc0 { .. } => RISC0_PROVING_SYSTEM_ID,
         }
     }
 
