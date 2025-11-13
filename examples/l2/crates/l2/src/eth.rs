@@ -1,8 +1,13 @@
 use std::str::FromStr;
 
+use aligned_sdk::aggregation_layer::SP1_PROVING_SYSTEM_ID;
 use alloy::{
-    network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
-    rpc::types::TransactionReceipt, signers::local::LocalSigner, sol,
+    network::EthereumWallet,
+    primitives::{Address, U256},
+    providers::ProviderBuilder,
+    rpc::types::TransactionReceipt,
+    signers::local::LocalSigner,
+    sol,
 };
 
 use crate::config::Config;
@@ -34,9 +39,12 @@ pub async fn send_state_transition_to_chain(
     );
 
     let merkle_proof = merkle_proof.iter().map(|e| e.into()).collect();
-
     let res = state_transition_contract
-        .updateState(0u8.into(), public_inputs.into(), merkle_proof)
+        .updateState(
+            U256::from(SP1_PROVING_SYSTEM_ID),
+            public_inputs.into(),
+            merkle_proof,
+        )
         .send()
         .await
         .expect("State transition tx to not revert");
