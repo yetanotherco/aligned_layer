@@ -1,26 +1,42 @@
 pub mod config;
+mod eth;
 pub mod fetcher;
 mod merkle_tree;
 mod retry;
 mod s3;
 mod types;
 
-use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
+use crate::{
+    aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
+    backend::eth::{estimate_blob_gas, MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS},
+};
 
 use alloy::{
-    consensus::BlobTransactionSidecar,
     eips::eip4844::BYTES_PER_BLOB,
     hex,
     network::EthereumWallet,
     primitives::Address,
     providers::{PendingTransactionError, ProviderBuilder},
-    rpc::types::TransactionReceipt,
     signers::local::LocalSigner,
 };
 use config::Config;
+use ethrex_common::{
+    types::{BlobsBundle, Fork},
+    H256,
+};
+use ethrex_l2_rpc::signer::LocalSigner as EthrexLocalSigner;
+use ethrex_rpc::{
+    clients::{
+        eth::{BACKOFF_FACTOR, MAX_NUMBER_OF_RETRIES, MAX_RETRY_DELAY, MIN_RETRY_DELAY},
+        Overrides,
+    },
+    EthClient,
+};
+use ethrex_sdk::{build_generic_tx, calldata::encode_calldata, send_generic_transaction};
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
+use secp256k1::SecretKey;
 use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
@@ -31,8 +47,10 @@ pub enum AggregatedProofSubmissionError {
     BuildingBlobCommitment,
     BuildingBlobProof,
     BuildingBlobVersionedHash,
+    BuildingCalldata(String),
+    BuildingTx(String),
     Risc0EncodingSeal(String),
-    SendVerifyAggregatedProofTransaction(alloy::contract::Error),
+    SendVerifyAggregatedProofTransaction(String),
     ReceiptError(PendingTransactionError),
     FetchingProofs(ProofsFetcherError),
     ZKVMAggregation(ProofAggregationError),
@@ -45,6 +63,8 @@ pub struct ProofAggregator {
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
     config: Config,
+    ethrex_eth_client: EthClient,
+    ethrex_signer: ethrex_l2_rpc::signer::Signer,
 }
 
 impl ProofAggregator {
@@ -66,12 +86,29 @@ impl ProofAggregator {
         let engine =
             ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
         let fetcher = ProofsFetcher::new(&config);
+        let ethrex_eth_client = ethrex_rpc::EthClient::new_with_config(
+            vec![&config.eth_rpc_url],
+            MAX_NUMBER_OF_RETRIES,
+            BACKOFF_FACTOR,
+            MIN_RETRY_DELAY,
+            MAX_RETRY_DELAY,
+            None,
+            Some(MAXIMUM_ALLOWED_MAX_FEE_PER_BLOB_GAS),
+        )
+        .expect("rpc url to be valid");
+
+        let secret_key =
+            SecretKey::from_str(&config.ecdsa.private_key).expect("private key to be valid");
+        let ethrex_signer =
+            ethrex_l2_rpc::signer::Signer::Local(EthrexLocalSigner::new(secret_key));
 
         Self {
             engine,
             proof_aggregation_service,
             fetcher,
             config,
+            ethrex_eth_client,
+            ethrex_signer,
         }
     }
 
@@ -138,58 +175,110 @@ impl ProofAggregator {
         );
 
         info!("Sending proof to ProofAggregationService contract...");
-        let receipt = self
+        let tx_hash = self
             .send_proof_to_verify_on_chain(blob, blob_versioned_hash, aggregated_proof)
             .await?;
-        info!(
-            "Proof sent and verified, tx hash {:?}",
-            receipt.transaction_hash
-        );
+        info!("Proof sent and verified, tx hash {:?}", tx_hash);
 
         Ok(())
     }
 
     async fn send_proof_to_verify_on_chain(
-        &self,
-        blob: BlobTransactionSidecar,
+        &mut self,
+        blob_bundle: BlobsBundle,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: AlignedProof,
-    ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
-        let res = match aggregated_proof {
+    ) -> Result<H256, AggregatedProofSubmissionError> {
+        let calldata = match aggregated_proof {
             AlignedProof::SP1(proof) => {
                 let vk_hash = proof.vk.hash_bytes();
-                self.proof_aggregation_service
-                    .verifySP1(
-                        blob_versioned_hash.into(),
-                        proof.proof_with_pub_values.public_values.to_vec().into(),
-                        proof.proof_with_pub_values.bytes().into(),
-                        vk_hash.into(),
-                    )
-                    .sidecar(blob)
-                    .send()
-                    .await
+
+                encode_calldata(
+                    "verifySP1(bytes32,bytes,bytes,bytes32)",
+                    &[
+                        ethrex_l2_common::calldata::Value::FixedBytes(
+                            blob_versioned_hash.to_vec().into(),
+                        ),
+                        ethrex_l2_common::calldata::Value::Bytes(
+                            proof.proof_with_pub_values.public_values.to_vec().into(),
+                        ),
+                        ethrex_l2_common::calldata::Value::Bytes(
+                            proof.proof_with_pub_values.bytes().into(),
+                        ),
+                        ethrex_l2_common::calldata::Value::FixedBytes(vk_hash.into()),
+                    ],
+                )
+                .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?
             }
             AlignedProof::Risc0(proof) => {
                 let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
                 })?;
-                self.proof_aggregation_service
-                    .verifyRisc0(
-                        blob_versioned_hash.into(),
-                        encoded_seal.into(),
-                        proof.receipt.journal.bytes.into(),
-                        proof.image_id.into(),
-                    )
-                    .sidecar(blob)
-                    .send()
-                    .await
-            }
-        }
-        .map_err(AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction)?;
 
-        res.get_receipt()
+                encode_calldata(
+                    "verifyRisc0(bytes32,bytes,bytes,bytes32)",
+                    &[
+                        ethrex_l2_common::calldata::Value::FixedBytes(
+                            blob_versioned_hash.to_vec().into(),
+                        ),
+                        ethrex_l2_common::calldata::Value::Bytes(encoded_seal.into()),
+                        ethrex_l2_common::calldata::Value::Bytes(
+                            proof.receipt.journal.bytes.into(),
+                        ),
+                        ethrex_l2_common::calldata::Value::FixedBytes(
+                            proof.image_id.to_vec().into(),
+                        ),
+                    ],
+                )
+                .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?
+            }
+        };
+
+        // ethrex auto calulates max_fee_per_gas and max_priority_fee_per_gas for us
+        // but does not for max_fee_per_blob_gas but, so we need to estimate it ourselves
+        let gas_price_per_blob = estimate_blob_gas(&self.ethrex_eth_client, 20)
             .await
-            .map_err(AggregatedProofSubmissionError::ReceiptError)
+            .map_err(|e| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(e.to_string())
+            })?;
+        let gas_price = self
+            .ethrex_eth_client
+            .get_gas_price_with_extra(20)
+            .await
+            .map_err(|e| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(e.to_string())
+            })?
+            .try_into()
+            .map_err(|_| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
+                    "Failed to convert gas price to u64".into(),
+                )
+            })?;
+
+        let tx = build_generic_tx(
+            &self.ethrex_eth_client,
+            ethrex_common::types::TxType::EIP4844,
+            self.proof_aggregation_service.address().0 .0.into(),
+            self.ethrex_signer.address(),
+            calldata.into(),
+            Overrides {
+                blobs_bundle: Some(blob_bundle),
+                gas_price_per_blob: Some(gas_price_per_blob),
+                max_fee_per_gas: Some(gas_price),
+                max_priority_fee_per_gas: Some(gas_price),
+                ..Default::default()
+            },
+        )
+        .await
+        .map_err(|e| AggregatedProofSubmissionError::BuildingTx(e.to_string()))?;
+
+        let tx_hash = send_generic_transaction(&self.ethrex_eth_client, tx, &self.ethrex_signer)
+            .await
+            .map_err(|e| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(e.to_string())
+            })?;
+
+        Ok(tx_hash)
     }
 
     /// ### Blob capacity
@@ -221,7 +310,7 @@ impl ProofAggregator {
     async fn construct_blob(
         &self,
         leaves: Vec<[u8; 32]>,
-    ) -> Result<(BlobTransactionSidecar, [u8; 32]), AggregatedProofSubmissionError> {
+    ) -> Result<(BlobsBundle, [u8; 32]), AggregatedProofSubmissionError> {
         let data: Vec<u8> = leaves.iter().flat_map(|arr| arr.iter().copied()).collect();
         let mut blob_data: [u8; BYTES_PER_BLOB] = [0u8; BYTES_PER_BLOB];
 
@@ -237,30 +326,10 @@ impl ProofAggregator {
             blob_data[start..end].copy_from_slice(chunk);
             offset += 32;
         }
-
-        // calculate kzg commitments for blob
-
-        // This parameter is the optimal balance between performance and memory usage to load the trusted setup
-        // Source: https://github.com/ethereum/c-kzg-4844?tab=readme-ov-file#precompute
-        let settings = c_kzg::ethereum_kzg_settings(8);
-        let blob = c_kzg::Blob::new(blob_data);
-        let commitment = settings
-            .blob_to_kzg_commitment(&blob)
-            .map_err(|_| AggregatedProofSubmissionError::BuildingBlobCommitment)?;
-        let proof = settings
-            .compute_blob_kzg_proof(&blob, &commitment.to_bytes())
+        let blobs_bundle = BlobsBundle::create_from_blobs(&vec![blob_data], Fork::Osaka)
             .map_err(|_| AggregatedProofSubmissionError::BuildingBlobProof)?;
+        let blob_versioned_hash = blobs_bundle.generate_versioned_hashes()[0];
 
-        let blob = BlobTransactionSidecar::from_kzg(
-            vec![blob],
-            vec![commitment.to_bytes()],
-            vec![proof.to_bytes()],
-        );
-        let blob_versioned_hash = blob
-            .versioned_hash_for_blob(0)
-            .ok_or(AggregatedProofSubmissionError::BuildingBlobVersionedHash)?
-            .0;
-
-        Ok((blob, blob_versioned_hash))
+        Ok((blobs_bundle, blob_versioned_hash.0))
     }
 }
