@@ -21,6 +21,7 @@ use config::Config;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
+use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
@@ -156,11 +157,13 @@ impl ProofAggregator {
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         let res = match aggregated_proof {
             AlignedProof::SP1(proof) => {
+                let vk_hash = proof.vk.hash_bytes();
                 self.proof_aggregation_service
                     .verifySP1(
                         blob_versioned_hash.into(),
                         proof.proof_with_pub_values.public_values.to_vec().into(),
                         proof.proof_with_pub_values.bytes().into(),
+                        vk_hash.into(),
                     )
                     .sidecar(blob)
                     .send()
@@ -175,6 +178,7 @@ impl ProofAggregator {
                         blob_versioned_hash.into(),
                         encoded_seal.into(),
                         proof.receipt.journal.bytes.into(),
+                        proof.image_id.into(),
                     )
                     .sidecar(blob)
                     .send()
