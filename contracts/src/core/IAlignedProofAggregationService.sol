@@ -1,7 +1,6 @@
 pragma solidity ^0.8.12;
 
 interface IAlignedProofAggregationService {
-
     /// @notice event that gets emitted after a successful aggregated proof verification
     event AggregatedProofVerified(bytes32 indexed merkleRoot, bytes32 blobVersionedHash);
 
@@ -31,7 +30,7 @@ interface IAlignedProofAggregationService {
 
     function verifyProofInclusion(
         bytes32[] calldata merklePath,
-        uint256 provingSystemId,
+        uint8 provingSystemId,
         bytes32 programId,
         bytes calldata publicInputs
     ) external view returns (bool);
