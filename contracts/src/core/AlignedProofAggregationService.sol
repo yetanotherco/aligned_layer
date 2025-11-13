@@ -115,7 +115,6 @@ contract AlignedProofAggregationService is
     /// @param merklePath The Merkle proof (sibling hashes) needed to reconstruct the Merkle root.
     /// @param programId The identifier for the ZK program (image_id in RISC0 or vk hash in SP1).
     /// @param publicInputs The public inputs bytes of the proof.
-    /// @param verifierType The type of verifier (SP1 or RISC0).
     ///
     /// @return bool Returns true if the computed Merkle root is a recognized valid aggregated proof.
     function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
