@@ -266,6 +266,16 @@ pub enum GetNonceError {
     GenericError(String),
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum GetLastMaxFeeError {
+    ConnectionFailed(String),
+    SerializationError(String),
+    UnexpectedResponse(String),
+    InvalidRequest(String),
+    ProtocolMismatch { current: u16, expected: u16 },
+    GenericError(String),
+}
+
 #[derive(Debug)]
 pub enum ChainIdError {
     EthereumProviderError(String),

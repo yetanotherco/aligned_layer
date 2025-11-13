@@ -319,6 +319,46 @@ aligned get-user-nonce-from-ethereum \
 
 ---
 
+### **get-user-last-max-fee**
+
+#### Description:
+
+Retrieves the `max_fee` of the proof with the highest nonce in the batcher queue for a given address.
+
+This value represents the maximum fee limit that can be used when submitting the next proof. To increase the fee limit for a new proof, you must first bump the fee of the previous proofs queued in the batcher.
+
+Read more here: https://docs.alignedlayer.com/architecture/1_proof_verification_layer/1_batcher#max-fee-priority-queue
+
+#### Command:
+
+`get-user-last-max-fee [OPTIONS] <user_ethereum_address>`
+
+#### Options:
+
+- `<user_ethereum_address>`: User's Ethereum address.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned get-user-last-max-fee \
+<USER_ETH_ADDRESS> \
+--network holesky
+```
+
+#### Notes:
+
+- Returns `U256::MAX` (2^256 - 1) when no proofs are present in the queue for the user.
+
+---
+
 ### **get-user-amount-of-queued-proofs**
 
 #### Description:

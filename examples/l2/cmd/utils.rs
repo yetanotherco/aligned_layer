@@ -11,7 +11,8 @@ pub fn load_config() -> Config {
         "holesky" => Network::Holesky,
         "holesky-stage" => Network::HoleskyStage,
         "devnet" => Network::Devnet,
-        _ => panic!("Invalid network, possible values are: holesky, holesky-stage, devnet"),
+        "hoodi" => Network::Hoodi,
+        _ => panic!("Invalid network, possible values are: holesky, holesky-stage, hoodi, devnet"),
     };
 
     let config = Config {
