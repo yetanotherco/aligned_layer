@@ -12,6 +12,7 @@ pub async fn send_proof_to_be_verified_on_aligned(
     proof: &sp1_sdk::SP1ProofWithPublicValues,
     vm_program_code: Vec<u8>,
 ) -> AlignedVerificationData {
+    let pub_input = proof.public_values.to_vec();
     let proof = bincode::serialize(proof).expect("Serialize sp1 proof to binary");
     let chain_id = get_chain_id(&config.eth_rpc_url)
         .await
@@ -28,7 +29,7 @@ pub async fn send_proof_to_be_verified_on_aligned(
         proving_system: aligned_sdk::common::types::ProvingSystemId::SP1,
         proof,
         vm_program_code: Some(vm_program_code),
-        pub_input: None,
+        pub_input: Some(pub_input),
         verification_key: None,
     };
 

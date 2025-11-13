@@ -13,6 +13,8 @@ replace github.com/iden3/go-rapidsnark/types => github.com/yetanotherco/go-rapid
 
 replace github.com/iden3/go-rapidsnark/verifier => github.com/yetanotherco/go-rapidsnark/verifier v0.0.0-20250829135025-99f9f6b11ecc
 
+replace github.com/consensys/gnark-crypto => github.com/yetanotherco/gnark-crypto v0.0.0-20251017181549-3ba17da18479
+
 require (
 	github.com/Layr-Labs/eigensdk-go v0.2.0-beta.1
 	github.com/ethereum/go-ethereum v1.14.0

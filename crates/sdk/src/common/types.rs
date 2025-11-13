@@ -295,6 +295,7 @@ pub enum ClientMessage {
     // Needs to be wrapped in box as the message is 3x bigger than the others
     // see https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
     SubmitProof(Box<SubmitProofMessage>),
+    GetLastMaxFee(Address),
 }
 
 impl Display for ClientMessage {
@@ -303,6 +304,7 @@ impl Display for ClientMessage {
         match self {
             ClientMessage::GetNonceForAddress(_) => write!(f, "GetNonceForAddress"),
             ClientMessage::SubmitProof(_) => write!(f, "SubmitProof"),
+            ClientMessage::GetLastMaxFee(_) => write!(f, "GetLastMaxFee"),
         }
     }
 }
@@ -461,6 +463,13 @@ pub enum SubmitProofResponseMessage {
 pub enum GetNonceResponseMessage {
     Nonce(U256),
     EthRpcError(String),
+    InvalidRequest(String),
+    ServerBusy,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GetLastMaxFeeResponseMessage {
+    LastMaxFee(U256),
     InvalidRequest(String),
     ServerBusy,
 }

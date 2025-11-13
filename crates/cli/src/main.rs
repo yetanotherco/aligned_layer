@@ -20,6 +20,7 @@ use aligned_sdk::communication::serialization::cbor_deserialize;
 use aligned_sdk::verification_layer;
 use aligned_sdk::verification_layer::estimate_fee;
 use aligned_sdk::verification_layer::get_chain_id;
+use aligned_sdk::verification_layer::get_last_max_fee;
 use aligned_sdk::verification_layer::get_nonce_from_batcher;
 use aligned_sdk::verification_layer::get_nonce_from_ethereum;
 use aligned_sdk::verification_layer::get_unlock_block_time;
@@ -46,6 +47,7 @@ use transaction::eip2718::TypedTransaction;
 use crate::AlignedCommands::DepositToBatcher;
 use crate::AlignedCommands::GetUserAmountOfQueuedProofs;
 use crate::AlignedCommands::GetUserBalance;
+use crate::AlignedCommands::GetUserLastMaxFee;
 use crate::AlignedCommands::GetUserNonce;
 use crate::AlignedCommands::GetUserNonceFromEthereum;
 use crate::AlignedCommands::GetVkCommitment;
@@ -94,6 +96,11 @@ pub enum AlignedCommands {
         name = "get-user-nonce-from-ethereum"
     )]
     GetUserNonceFromEthereum(GetUserNonceFromEthereumArgs),
+    #[clap(
+        about = "Gets user current last max fee from the batcher. This is the max limit you can send in your next proof.",
+        name = "get-user-last-max-fee"
+    )]
+    GetUserLastMaxFee(GetUserLastMaxFeeArgs),
     #[clap(
         about = "Gets the number of proofs a user has queued in the Batcher.",
         name = "get-user-amount-of-queued-proofs"
@@ -313,6 +320,15 @@ pub struct GetUserNonceArgs {
         long = "user_addr",
         required = true
     )]
+    address: String,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct GetUserLastMaxFeeArgs {
+    #[clap(flatten)]
+    network: NetworkArg,
+    #[arg(name = "The user's Ethereum address", required = true)]
     address: String,
 }
 
@@ -1037,6 +1053,22 @@ async fn main() -> Result<(), AlignedError> {
                 }
                 Err(e) => {
                     error!("Error while getting nonce: {:?}", e);
+                    return Ok(());
+                }
+            }
+        }
+        GetUserLastMaxFee(args) => {
+            let address = H160::from_str(&args.address).unwrap();
+            match get_last_max_fee(args.network.into(), address).await {
+                Ok(last_max_fee) => {
+                    let last_max_fee_ether = ethers::utils::format_ether(last_max_fee);
+                    info!(
+                        "Last max fee for address {} is {}eth",
+                        address, last_max_fee_ether
+                    );
+                }
+                Err(e) => {
+                    error!("Error while getting last max fee: {:?}", e);
                     return Ok(());
                 }
             }
