@@ -118,7 +118,7 @@ contract AlignedProofAggregationService is
     /// @return bool Returns true if the computed Merkle root is a recognized valid aggregated proof.
     function verifyProofInclusion(
         bytes32[] calldata merklePath,
-        uint256 provingSystemId,
+        uint8 provingSystemId,
         bytes32 programId,
         bytes calldata publicInputs
     ) public view returns (bool) {

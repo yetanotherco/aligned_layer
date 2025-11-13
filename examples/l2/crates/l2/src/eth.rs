@@ -36,7 +36,11 @@ pub async fn send_state_transition_to_chain(
     let merkle_proof = merkle_proof.iter().map(|e| e.into()).collect();
 
     let res = state_transition_contract
-        .updateState(0u8.into(), public_inputs.into(), merkle_proof)
+        .updateState(
+            SP1_PROVING_SYSTEM_ID.into(),
+            public_inputs.into(),
+            merkle_proof,
+        )
         .send()
         .await
         .expect("State transition tx to not revert");
