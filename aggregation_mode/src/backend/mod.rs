@@ -205,7 +205,7 @@ impl ProofAggregator {
                         ethrex_l2_common::calldata::Value::Bytes(
                             proof.proof_with_pub_values.bytes().into(),
                         ),
-                        ethrex_l2_common::calldata::Value::FixedBytes(vk_hash.into()),
+                        ethrex_l2_common::calldata::Value::FixedBytes(vk_hash.to_vec().into()),
                     ],
                 )
                 .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?
