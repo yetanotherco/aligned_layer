@@ -191,24 +191,15 @@ impl ProofAggregator {
     ) -> Result<H256, AggregatedProofSubmissionError> {
         let calldata = match aggregated_proof {
             AlignedProof::SP1(proof) => {
-                let vk_hash: [u8; 32] = {
-                    let hex_str = self
-                        .config
-                        .sp1_chunk_aggregator_vk_hash
-                        .strip_prefix("0x")
-                        .unwrap_or(&self.config.sp1_chunk_aggregator_vk_hash);
-                    let bytes = hex::decode(hex_str).map_err(|e| {
-                        AggregatedProofSubmissionError::BuildingVKHash(e.to_string())
-                    })?;
-                    if bytes.len() != 32 {
-                        return Err(AggregatedProofSubmissionError::BuildingVKHash(
-                            "vk hash not 32 bytes".into(),
-                        ));
-                    }
-                    let mut arr = [0u8; 32];
-                    arr.copy_from_slice(&bytes);
-                    arr
-                };
+                let vk_hash: risc0_zkvm::Bytes =
+                    hex::decode(self.config.sp1_chunk_aggregator_vk_hash.clone())
+                        .map_err(|e| AggregatedProofSubmissionError::BuildingVKHash(e.to_string()))?
+                        .try_into()
+                        .map_err(|_| {
+                            AggregatedProofSubmissionError::BuildingVKHash(
+                                "VK hash is not 32 bytes".into(),
+                            )
+                        })?;
 
                 encode_calldata(
                     "verifySP1(bytes32,bytes,bytes,bytes32)",
@@ -222,7 +213,7 @@ impl ProofAggregator {
                         ethrex_l2_common::calldata::Value::Bytes(
                             proof.proof_with_pub_values.bytes().into(),
                         ),
-                        ethrex_l2_common::calldata::Value::FixedBytes(vk_hash.to_vec().into()),
+                        ethrex_l2_common::calldata::Value::FixedBytes(vk_hash),
                     ],
                 )
                 .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?
@@ -232,24 +223,15 @@ impl ProofAggregator {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
                 })?;
 
-                let risc0_image_id: [u8; 32] = {
-                    let hex_str = self
-                        .config
-                        .risc0_chunk_aggregator_image_id
-                        .strip_prefix("0x")
-                        .unwrap_or(&self.config.risc0_chunk_aggregator_image_id);
-                    let bytes = hex::decode(hex_str).map_err(|e| {
-                        AggregatedProofSubmissionError::BuildingVKHash(e.to_string())
-                    })?;
-                    if bytes.len() != 32 {
-                        return Err(AggregatedProofSubmissionError::BuildingVKHash(
-                            "risc0 image id not 32 bytes".into(),
-                        ));
-                    }
-                    let mut arr = [0u8; 32];
-                    arr.copy_from_slice(&bytes);
-                    arr
-                };
+                let risc0_image_id: risc0_zkvm::Bytes =
+                    hex::decode(self.config.risc0_chunk_aggregator_image_id.clone())
+                        .map_err(|e| AggregatedProofSubmissionError::BuildingVKHash(e.to_string()))?
+                        .try_into()
+                        .map_err(|_| {
+                            AggregatedProofSubmissionError::BuildingVKHash(
+                                "Risc0 image id is not 32 bytes".into(),
+                            )
+                        })?;
 
                 encode_calldata(
                     "verifyRisc0(bytes32,bytes,bytes,bytes32)",
@@ -261,9 +243,7 @@ impl ProofAggregator {
                         ethrex_l2_common::calldata::Value::Bytes(
                             proof.receipt.journal.bytes.into(),
                         ),
-                        ethrex_l2_common::calldata::Value::FixedBytes(
-                            risc0_image_id.to_vec().into(),
-                        ),
+                        ethrex_l2_common::calldata::Value::FixedBytes(risc0_image_id),
                     ],
                 )
                 .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?
