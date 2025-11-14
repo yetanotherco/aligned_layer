@@ -37,7 +37,6 @@ use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
 use secp256k1::SecretKey;
-use sp1_sdk::HashableKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
@@ -56,6 +55,7 @@ pub enum AggregatedProofSubmissionError {
     ZKVMAggregation(ProofAggregationError),
     BuildingMerkleRoot,
     MerkleRootMisMatch,
+    BuildingVKHash(String),
 }
 
 pub struct ProofAggregator {
@@ -191,7 +191,24 @@ impl ProofAggregator {
     ) -> Result<H256, AggregatedProofSubmissionError> {
         let calldata = match aggregated_proof {
             AlignedProof::SP1(proof) => {
-                let vk_hash = proof.vk.hash_bytes();
+                let vk_hash: [u8; 32] = {
+                    let hex_str = self
+                        .config
+                        .sp1_chunk_aggregator_vk_hash
+                        .strip_prefix("0x")
+                        .unwrap_or(&self.config.sp1_chunk_aggregator_vk_hash);
+                    let bytes = hex::decode(hex_str).map_err(|e| {
+                        AggregatedProofSubmissionError::BuildingVKHash(e.to_string())
+                    })?;
+                    if bytes.len() != 32 {
+                        return Err(AggregatedProofSubmissionError::BuildingVKHash(
+                            "vk hash not 32 bytes".into(),
+                        ));
+                    }
+                    let mut arr = [0u8; 32];
+                    arr.copy_from_slice(&bytes);
+                    arr
+                };
 
                 encode_calldata(
                     "verifySP1(bytes32,bytes,bytes,bytes32)",
@@ -215,6 +232,25 @@ impl ProofAggregator {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
                 })?;
 
+                let risc0_image_id: [u8; 32] = {
+                    let hex_str = self
+                        .config
+                        .risc0_chunk_aggregator_image_id
+                        .strip_prefix("0x")
+                        .unwrap_or(&self.config.risc0_chunk_aggregator_image_id);
+                    let bytes = hex::decode(hex_str).map_err(|e| {
+                        AggregatedProofSubmissionError::BuildingVKHash(e.to_string())
+                    })?;
+                    if bytes.len() != 32 {
+                        return Err(AggregatedProofSubmissionError::BuildingVKHash(
+                            "risc0 image id not 32 bytes".into(),
+                        ));
+                    }
+                    let mut arr = [0u8; 32];
+                    arr.copy_from_slice(&bytes);
+                    arr
+                };
+
                 encode_calldata(
                     "verifyRisc0(bytes32,bytes,bytes,bytes32)",
                     &[
@@ -226,7 +262,7 @@ impl ProofAggregator {
                             proof.receipt.journal.bytes.into(),
                         ),
                         ethrex_l2_common::calldata::Value::FixedBytes(
-                            proof.image_id.to_vec().into(),
+                            risc0_image_id.to_vec().into(),
                         ),
                     ],
                 )
