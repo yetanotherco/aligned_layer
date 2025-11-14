@@ -71,7 +71,9 @@ contract AlignedProofAggregationService is
     {
         (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
 
-        require(programIds[programId] == uint8(IAlignedProofAggregationService.VerifierType.SP1), "Invalid program ID");
+        if (programIds[programId] != uint8(IAlignedProofAggregationService.VerifierType.SP1)) {
+            revert InvalidProgramId(programId, IAlignedProofAggregationService.VerifierType.SP1, programIds[programId]);
+        }
 
         // In dev mode, poofs are mocked, so we skip the verification part
         if (_isSP1VerificationEnabled()) {
@@ -88,7 +90,9 @@ contract AlignedProofAggregationService is
     {
         (bytes32 merkleRoot) = abi.decode(risc0JournalBytes, (bytes32));
 
-        require(programIds[programId] == uint8(IAlignedProofAggregationService.VerifierType.RISC0), "Invalid program ID");
+        if (programIds[programId] != uint8(IAlignedProofAggregationService.VerifierType.RISC0)) {
+            revert InvalidProgramId(programId, IAlignedProofAggregationService.VerifierType.RISC0, programIds[programId]);
+        }
 
         // In dev mode, poofs are mocked, so we skip the verification part
         if (_isRisc0VerificationEnabled()) {
