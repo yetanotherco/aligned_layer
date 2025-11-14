@@ -56,7 +56,6 @@ pub enum AggregatedProofSubmissionError {
     ZKVMAggregation(ProofAggregationError),
     BuildingMerkleRoot,
     MerkleRootMisMatch,
-    BuildingVKHash(String),
 }
 
 pub struct ProofAggregator {
@@ -106,22 +105,16 @@ impl ProofAggregator {
             ethrex_l2_rpc::signer::Signer::Local(EthrexLocalSigner::new(secret_key));
 
         let sp1_chunk_aggregator_vk_hash_bytes: Bytes =
-            hex::decode(self.config.sp1_chunk_aggregator_vk_hash.clone())
-                .map_err(|e| AggregatedProofSubmissionError::BuildingVKHash(e.to_string()))?
+            hex::decode(config.sp1_chunk_aggregator_vk_hash.clone())
+                .expect("Failed to decode SP1 chunk aggregator VK hash")
                 .try_into()
-                .map_err(|_| {
-                    AggregatedProofSubmissionError::BuildingVKHash("VK hash is not 32 bytes".into())
-                })?;
+                .expect("VK hash is not 32 bytes");
 
         let risc0_chunk_aggregator_image_id_bytes: Bytes =
-            hex::decode(self.config.risc0_chunk_aggregator_image_id.clone())
-                .map_err(|e| AggregatedProofSubmissionError::BuildingVKHash(e.to_string()))?
+            hex::decode(config.risc0_chunk_aggregator_image_id.clone())
+                .expect("Failed to decode Risc0 chunk aggregator image id")
                 .try_into()
-                .map_err(|_| {
-                    AggregatedProofSubmissionError::BuildingVKHash(
-                        "Risc0 image id is not 32 bytes".into(),
-                    )
-                })?;
+                .expect("Risc0 image id is not 32 bytes");
 
         Self {
             engine,
