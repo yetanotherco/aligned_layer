@@ -23,6 +23,7 @@ interface IAlignedProofAggregationService {
     /// @param blobVersionedHash the versioned hash of the blob transaction that contains the leaves that compose the merkle root.
     /// @param sp1PublicValues Values used to perform the execution
     /// @param sp1ProofBytes Groth16 proof
+    /// @param programId The chunk aggregator program ID against which the proof should be verified
     function verifySP1(bytes32 blobVersionedHash, bytes calldata sp1PublicValues, bytes calldata sp1ProofBytes, bytes32 programId)
         external;
 
