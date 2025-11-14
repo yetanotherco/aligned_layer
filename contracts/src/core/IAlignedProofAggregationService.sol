@@ -54,7 +54,7 @@ interface IAlignedProofAggregationService {
     error OnlyAlignedAggregator(address sender);
 
     enum VerifierType {
-        INVALID, // This to prevent default value being considered valid (when mapping returns 0 for non-existing keys)
+        INVALID,  // If a given program does not exist in the `programId` map, it defaults to 0. This prevents non-existing keys to be considered valid in case SP1 or RISC0 were in this position
         SP1,
         RISC0
     }
