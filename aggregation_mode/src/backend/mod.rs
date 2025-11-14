@@ -36,6 +36,7 @@ use ethrex_sdk::{build_generic_tx, calldata::encode_calldata, send_generic_trans
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
+use risc0_zkvm::Bytes;
 use secp256k1::SecretKey;
 use std::str::FromStr;
 use tracing::{error, info, warn};
@@ -65,6 +66,8 @@ pub struct ProofAggregator {
     config: Config,
     ethrex_eth_client: EthClient,
     ethrex_signer: ethrex_l2_rpc::signer::Signer,
+    sp1_chunk_aggregator_vk_hash_bytes: Bytes,
+    risc0_chunk_aggregator_image_id_bytes: Bytes,
 }
 
 impl ProofAggregator {
@@ -102,6 +105,24 @@ impl ProofAggregator {
         let ethrex_signer =
             ethrex_l2_rpc::signer::Signer::Local(EthrexLocalSigner::new(secret_key));
 
+        let sp1_chunk_aggregator_vk_hash_bytes: Bytes =
+            hex::decode(self.config.sp1_chunk_aggregator_vk_hash.clone())
+                .map_err(|e| AggregatedProofSubmissionError::BuildingVKHash(e.to_string()))?
+                .try_into()
+                .map_err(|_| {
+                    AggregatedProofSubmissionError::BuildingVKHash("VK hash is not 32 bytes".into())
+                })?;
+
+        let risc0_chunk_aggregator_image_id_bytes: Bytes =
+            hex::decode(self.config.risc0_chunk_aggregator_image_id.clone())
+                .map_err(|e| AggregatedProofSubmissionError::BuildingVKHash(e.to_string()))?
+                .try_into()
+                .map_err(|_| {
+                    AggregatedProofSubmissionError::BuildingVKHash(
+                        "Risc0 image id is not 32 bytes".into(),
+                    )
+                })?;
+
         Self {
             engine,
             proof_aggregation_service,
@@ -109,6 +130,8 @@ impl ProofAggregator {
             config,
             ethrex_eth_client,
             ethrex_signer,
+            sp1_chunk_aggregator_vk_hash_bytes,
+            risc0_chunk_aggregator_image_id_bytes,
         }
     }
 
@@ -190,48 +213,28 @@ impl ProofAggregator {
         aggregated_proof: AlignedProof,
     ) -> Result<H256, AggregatedProofSubmissionError> {
         let calldata = match aggregated_proof {
-            AlignedProof::SP1(proof) => {
-                let vk_hash: risc0_zkvm::Bytes =
-                    hex::decode(self.config.sp1_chunk_aggregator_vk_hash.clone())
-                        .map_err(|e| AggregatedProofSubmissionError::BuildingVKHash(e.to_string()))?
-                        .try_into()
-                        .map_err(|_| {
-                            AggregatedProofSubmissionError::BuildingVKHash(
-                                "VK hash is not 32 bytes".into(),
-                            )
-                        })?;
-
-                encode_calldata(
-                    "verifySP1(bytes32,bytes,bytes,bytes32)",
-                    &[
-                        ethrex_l2_common::calldata::Value::FixedBytes(
-                            blob_versioned_hash.to_vec().into(),
-                        ),
-                        ethrex_l2_common::calldata::Value::Bytes(
-                            proof.proof_with_pub_values.public_values.to_vec().into(),
-                        ),
-                        ethrex_l2_common::calldata::Value::Bytes(
-                            proof.proof_with_pub_values.bytes().into(),
-                        ),
-                        ethrex_l2_common::calldata::Value::FixedBytes(vk_hash),
-                    ],
-                )
-                .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?
-            }
+            AlignedProof::SP1(proof) => encode_calldata(
+                "verifySP1(bytes32,bytes,bytes,bytes32)",
+                &[
+                    ethrex_l2_common::calldata::Value::FixedBytes(
+                        blob_versioned_hash.to_vec().into(),
+                    ),
+                    ethrex_l2_common::calldata::Value::Bytes(
+                        proof.proof_with_pub_values.public_values.to_vec().into(),
+                    ),
+                    ethrex_l2_common::calldata::Value::Bytes(
+                        proof.proof_with_pub_values.bytes().into(),
+                    ),
+                    ethrex_l2_common::calldata::Value::FixedBytes(
+                        self.sp1_chunk_aggregator_vk_hash_bytes.clone(),
+                    ),
+                ],
+            )
+            .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?,
             AlignedProof::Risc0(proof) => {
                 let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
                 })?;
-
-                let risc0_image_id: risc0_zkvm::Bytes =
-                    hex::decode(self.config.risc0_chunk_aggregator_image_id.clone())
-                        .map_err(|e| AggregatedProofSubmissionError::BuildingVKHash(e.to_string()))?
-                        .try_into()
-                        .map_err(|_| {
-                            AggregatedProofSubmissionError::BuildingVKHash(
-                                "Risc0 image id is not 32 bytes".into(),
-                            )
-                        })?;
 
                 encode_calldata(
                     "verifyRisc0(bytes32,bytes,bytes,bytes32)",
@@ -243,7 +246,9 @@ impl ProofAggregator {
                         ethrex_l2_common::calldata::Value::Bytes(
                             proof.receipt.journal.bytes.into(),
                         ),
-                        ethrex_l2_common::calldata::Value::FixedBytes(risc0_image_id),
+                        ethrex_l2_common::calldata::Value::FixedBytes(
+                            self.risc0_chunk_aggregator_image_id_bytes.clone(),
+                        ),
                     ],
                 )
                 .map_err(|e| AggregatedProofSubmissionError::BuildingCalldata(e.to_string()))?
