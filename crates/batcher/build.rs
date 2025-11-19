@@ -26,7 +26,7 @@ fn main() {
 
     go_build.status().expect("Go build failed");
 
-    println!("cargo:rerun-if-changed={}", GO_SRC);
+    println!("cargo:rerun-if-changed={GO_SRC}");
     println!(
         "cargo:rustc-link-search=native={}",
         out_dir.to_str().unwrap()
@@ -36,5 +36,5 @@ fn main() {
         println!("cargo:rustc-link-arg=-Wl,--allow-multiple-definition");
     }
 
-    println!("cargo:rustc-link-lib=static={}", GO_LIB);
+    println!("cargo:rustc-link-lib=static={GO_LIB}");
 }
