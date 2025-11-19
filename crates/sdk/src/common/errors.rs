@@ -65,7 +65,7 @@ impl fmt::Display for AlignedError {
 
 #[derive(Debug)]
 pub enum SubmitError {
-    WebSocketConnectionError(tokio_tungstenite::tungstenite::Error),
+    WebSocketConnectionError(String),
     WebSocketClosedUnexpectedlyError(CloseFrame<'static>),
     IoError(PathBuf, io::Error),
     SerializationError(SerializationError),
@@ -104,7 +104,7 @@ pub enum SubmitError {
 
 impl From<tokio_tungstenite::tungstenite::Error> for SubmitError {
     fn from(e: tokio_tungstenite::tungstenite::Error) -> Self {
-        SubmitError::WebSocketConnectionError(e)
+        SubmitError::WebSocketConnectionError(e.to_string())
     }
 }
 
