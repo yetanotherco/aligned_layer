@@ -1,8 +1,12 @@
 participants:
-  - el_type: reth
+  - el_type: geth
+    el_image: ethereum/client-go:v1.16.4
+    el_extra_params: ["--miner.extradata=lighthouseFromLocal"]
     cl_type: lighthouse
-    count: 3
-    validator_count: 32
+    cl_image: sigp/lighthouse:v8.0.0
+    count: 3 
+    supernode: true
+
 
 ethereum_metrics_exporter_enabled: true
 
@@ -22,6 +26,7 @@ port_publisher:
 ethereum_genesis_generator_params:
   # The image to use for ethereum genesis generator
   image: ethpandaops/ethereum-genesis-generator:4.1.19
+  extra_env: {}
 
 # Default configuration parameters for the network
 network_params:
@@ -34,7 +39,7 @@ network_params:
   seconds_per_slot: 12
 
   # How long you want the network to wait before starting up
-  genesis_delay: 20
+  genesis_delay: 120
 
   # The gas limit of the network set at genesis
   genesis_gaslimit: 36000000
@@ -47,8 +52,17 @@ network_params:
   custody_requirement: 4
   # Maximum number of blobs per block
   #  max_blobs_per_block: 6
+  min_validator_withdrawability_delay: 1
+  shard_committee_period: 1
+  churn_limit_quotient: 16
+  fulu_fork_epoch: 1
+  bpo_1_epoch: 2
+  bpo_1_max_blobs: 15
+  bpo_1_target_blobs: 10
+  bpo_2_epoch: 3
+  bpo_2_max_blobs: 21
+  bpo_2_target_blobs: 14
 
-  preset: "minimal"
   devnet_repo: ethpandaops
 
   # Prefunded Accounts
