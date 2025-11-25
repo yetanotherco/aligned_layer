@@ -76,7 +76,9 @@ We are using docker to produce deterministic builds so that the program ids are 
 
 ### Updating the program id in `AlignedProofAggregationService` contract
 
-If the program ids have changed, you will also need to update them in the `AlignedProofAggregationService` contract.
+If the program ids have changed, you will also need to add the updated one to the `AlignedProofAggregationService` contract. You can do this by calling the `addProgramId` method with the new image ID and the verifier type number as parameters (you can check the last parameter in the VerifierType definition at `contracts/src/core/AlignedProofAggregationService.sol`).
 
--   Risc0: call `setRisc0AggregatorProgramImageId` method with the value of `risc0_root_aggregator_image_id` from `aggregation_mode/program_ids.json`.
--   SP1: call: `setSP1AggregatorProgramVKHash` method with the value of `sp1_root_aggregator_vk_hash` from `aggregation_mode/program_ids.json`.
+You can fetch the program ID values from the following:
+
+- Risc0: Use the value of `risc0_root_aggregator_image_id` from `aggregation_mode/program_ids.json`.
+- SP1: Use the value of `sp1_root_aggregator_vk_hash` from `aggregation_mode/program_ids.json`.

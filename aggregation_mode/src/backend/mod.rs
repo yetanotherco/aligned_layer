@@ -44,6 +44,8 @@ pub struct ProofAggregator {
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
     config: Config,
+    sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
+    risc0_chunk_aggregator_image_id_bytes: [u8; 32],
 }
 
 impl ProofAggregator {
@@ -66,11 +68,27 @@ impl ProofAggregator {
             ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
         let fetcher = ProofsFetcher::new(&config);
 
+        let sp1_chunk_aggregator_vk_hash_bytes: [u8; 32] =
+            hex::decode(&config.sp1_chunk_aggregator_vk_hash)
+                .expect("Failed to decode SP1 chunk aggregator VK hash")
+                .as_slice()
+                .try_into()
+                .expect("SP1 chunk aggregator VK hash must be 32 bytes");
+
+        let risc0_chunk_aggregator_image_id_bytes: [u8; 32] =
+            hex::decode(&config.risc0_chunk_aggregator_image_id)
+                .expect("Failed to decode Risc0 chunk aggregator image id")
+                .as_slice()
+                .try_into()
+                .expect("Risc0 chunk aggregator image id must be 32 bytes");
+
         Self {
             engine,
             proof_aggregation_service,
             fetcher,
             config,
+            sp1_chunk_aggregator_vk_hash_bytes,
+            risc0_chunk_aggregator_image_id_bytes,
         }
     }
 
@@ -161,6 +179,7 @@ impl ProofAggregator {
                     blob_versioned_hash.into(),
                     proof.proof_with_pub_values.public_values.to_vec().into(),
                     proof.proof_with_pub_values.bytes().into(),
+                    self.sp1_chunk_aggregator_vk_hash_bytes.into(),
                 )
                 .sidecar(blob)
                 .into_transaction_request(),
@@ -173,6 +192,7 @@ impl ProofAggregator {
                         blob_versioned_hash.into(),
                         encoded_seal.into(),
                         proof.receipt.journal.bytes.into(),
+                        self.risc0_chunk_aggregator_image_id_bytes.into(),
                     )
                     .sidecar(blob)
                     .into_transaction_request()
