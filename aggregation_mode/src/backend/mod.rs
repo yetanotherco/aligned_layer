@@ -71,14 +71,12 @@ impl ProofAggregator {
         let sp1_chunk_aggregator_vk_hash_bytes: [u8; 32] =
             hex::decode(&config.sp1_chunk_aggregator_vk_hash)
                 .expect("Failed to decode SP1 chunk aggregator VK hash")
-                .as_slice()
                 .try_into()
                 .expect("SP1 chunk aggregator VK hash must be 32 bytes");
 
         let risc0_chunk_aggregator_image_id_bytes: [u8; 32] =
             hex::decode(&config.risc0_chunk_aggregator_image_id)
                 .expect("Failed to decode Risc0 chunk aggregator image id")
-                .as_slice()
                 .try_into()
                 .expect("Risc0 chunk aggregator image id must be 32 bytes");
 
