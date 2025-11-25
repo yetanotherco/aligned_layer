@@ -80,5 +80,5 @@ If the program ids have changed, you will also need to add the updated one to th
 
 You can fetch the program ID values from the following:
 
-- Risc0: Use the value of `risc0_root_aggregator_image_id` from `aggregation_mode/program_ids.json`.
-- SP1: Use the value of `sp1_root_aggregator_vk_hash` from `aggregation_mode/program_ids.json`.
+- Risc0: Use the value of `risc0_chunk_aggregator_image_id` from `aggregation_mode/program_ids.json`.
+- SP1: Use the value of `sp1_chunk_aggregator_vk_hash` from `aggregation_mode/program_ids.json`.

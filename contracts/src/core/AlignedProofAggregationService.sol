@@ -37,9 +37,9 @@ contract AlignedProofAggregationService is
     /// if the sp1 verifier address is set to this address, then we skip verification
     address public constant VERIFIER_MOCK_ADDRESS = address(0xFF);
 
-    /// @notice A mapping to track valid program IDs (image IDs for RISC Zero or vk hashes for SP1)
-    /// to their corresponding verifier types. These program IDs are used to ensure that proofs are
-    /// verified against known and registered programs.
+    /// @notice A map to track aggregation program IDs (image IDs for RISC Zero or vk hashes for SP1)
+    /// with their proving system. These program IDs are used to validate that the proofs to verify are indeed from
+    /// a trusted aggregation program.
     mapping(bytes32 => uint8) public programIds;
 
     constructor() {
