@@ -3,8 +3,34 @@ use sha3::{Digest, Keccak256};
 
 use crate::beacon::BeaconClientError;
 
-pub const SP1_PROVING_SYSTEM_ID: u8 = 0;
-pub const RISC0_PROVING_SYSTEM_ID: u8 = 1;
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AggregationModeProvingSystem {
+    SP1 = 0,
+    RISC0 = 1,
+}
+
+impl AggregationModeProvingSystem {
+    pub const fn as_u8(self) -> u8 {
+        self as u8
+    }
+
+    pub const fn id(self) -> u8 {
+        self.as_u8()
+    }
+}
+
+impl TryFrom<u8> for AggregationModeProvingSystem {
+    type Error = ();
+
+    fn try_from(v: u8) -> Result<Self, Self::Error> {
+        match v {
+            0 => Ok(AggregationModeProvingSystem::SP1),
+            1 => Ok(AggregationModeProvingSystem::RISC0),
+            _ => Err(()),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum AggregationModeVerificationData {
@@ -35,8 +61,8 @@ impl AggregationModeVerificationData {
 
     pub fn proving_system_id(&self) -> u8 {
         match self {
-            Self::SP1 { .. } => SP1_PROVING_SYSTEM_ID,
-            Self::Risc0 { .. } => RISC0_PROVING_SYSTEM_ID,
+            Self::SP1 { .. } => AggregationModeProvingSystem::SP1.id(),
+            Self::Risc0 { .. } => AggregationModeProvingSystem::RISC0.id(),
         }
     }
 
@@ -44,7 +70,7 @@ impl AggregationModeVerificationData {
         match self {
             AggregationModeVerificationData::SP1 { vk, public_inputs } => {
                 let mut hasher = Keccak256::new();
-                hasher.update(&[0u8]);
+                hasher.update(&[self.proving_system_id()]);
                 hasher.update(vk);
                 hasher.update(public_inputs);
                 hasher.finalize().into()
@@ -54,7 +80,7 @@ impl AggregationModeVerificationData {
                 public_inputs,
             } => {
                 let mut hasher = Keccak256::new();
-                hasher.update(&[1u8]);
+                hasher.update(&[self.proving_system_id()]);
                 hasher.update(image_id);
                 hasher.update(public_inputs);
                 hasher.finalize().into()

@@ -4,8 +4,7 @@ mod types;
 
 // Makes only the two types on this use public
 pub use types::{
-    AggregationModeVerificationData, ProofVerificationAggModeError, RISC0_PROVING_SYSTEM_ID,
-    SP1_PROVING_SYSTEM_ID,
+    AggregationModeProvingSystem, AggregationModeVerificationData, ProofVerificationAggModeError,
 };
 
 use crate::{

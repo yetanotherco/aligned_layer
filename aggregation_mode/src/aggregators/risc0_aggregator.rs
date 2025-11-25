@@ -1,6 +1,6 @@
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
-use aligned_sdk::aggregation_layer::RISC0_PROVING_SYSTEM_ID;
+use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt};
 use sha3::{Digest, Keccak256};
 
@@ -81,7 +81,7 @@ pub const RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES: [u8; 32] = {
 impl Risc0ProofReceiptAndImageId {
     pub fn hash_image_id_and_public_inputs(&self) -> [u8; 32] {
         let mut hasher = Keccak256::new();
-        hasher.update(&[RISC0_PROVING_SYSTEM_ID]);
+        hasher.update(&[AggregationModeProvingSystem::RISC0.id()]);
         hasher.update(self.image_id);
         hasher.update(self.public_inputs());
         hasher.finalize().into()
