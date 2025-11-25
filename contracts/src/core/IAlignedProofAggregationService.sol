@@ -15,7 +15,7 @@ interface IAlignedProofAggregationService {
     event ProgramIdAdded(bytes32 indexed programId, VerifierType verifierType);
 
     /// @notice Event emitted when a program ID is deleted
-    event ProgramIdDeleted(bytes32 indexed programId);
+    event ProgramIdDeleted(bytes32 indexed programId, VerifierType verifierType);
 
     /// @notice Method to verify an aggregated proof from aligned
     /// @dev This function is called by the aligned proof aggregator after collecting the proofs and aggregating them

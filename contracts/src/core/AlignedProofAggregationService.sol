@@ -177,8 +177,9 @@ contract AlignedProofAggregationService is
     /// @notice Deletes a program ID from the list of valid program IDs.
     /// @param programId The program ID to delete (image ID for RISC0 or vk hash for SP1).
     function deleteProgramId(bytes32 programId) external onlyOwner {
-        // Check if we should verify its existence before deleting
+        // Preserve the verifier type so we can emit it with the event
+        uint8 verifierTypeRaw = programIds[programId];
         delete programIds[programId];
-        emit ProgramIdDeleted(programId);
+        emit ProgramIdDeleted(programId, IAlignedProofAggregationService.VerifierType(verifierTypeRaw));
     }
 }
