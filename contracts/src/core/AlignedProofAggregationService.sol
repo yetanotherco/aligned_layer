@@ -152,6 +152,17 @@ contract AlignedProofAggregationService is
         _;
     }
 
+    /// @notice Modifier to ensure the provided verifier type is one of the valid enum values.
+    modifier validVerifierType(IAlignedProofAggregationService.VerifierType verifierType) {
+        uint8 v = uint8(verifierType);
+        if (v == uint8(IAlignedProofAggregationService.VerifierType.SP1) ||
+            v == uint8(IAlignedProofAggregationService.VerifierType.RISC0)){
+                revert IAlignedProofAggregationService.InvalidVerifierType(v);
+            }
+            
+        _;
+    }
+
     /// @notice Sets the address of the Risc0 verifier contract
     /// @param _risc0VerifierAddress The new address for the Risc0 verifier contract
     function setRisc0VerifierAddress(address _risc0VerifierAddress) external onlyOwner {
@@ -169,16 +180,23 @@ contract AlignedProofAggregationService is
     /// @notice Adds a new program ID to the list of valid program IDs.
     /// @param programId The program ID to add (image ID for RISC0 or vk hash for SP1).
     /// @param verifierType The type of verifier associated with the program ID.
-    function addProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType) external onlyOwner {
+    function addProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType)
+        external
+        onlyOwner
+        validVerifierType(verifierType)
+    {
         programIds[programId] = uint8(verifierType);
         emit ProgramIdAdded(programId, verifierType);
     }
 
     /// @notice Deletes a program ID from the list of valid program IDs.
     /// @param programId The program ID to delete (image ID for RISC0 or vk hash for SP1).
-    function deleteProgramId(bytes32 programId) external onlyOwner {
+    function deleteProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType) external onlyOwner validVerifierType(verifierType) {
         // Preserve the verifier type so we can emit it with the event
         uint8 verifierTypeRaw = programIds[programId];
+
+        // TODO: Check if the verifier type matches the one received by param
+
         delete programIds[programId];
         emit ProgramIdDeleted(programId, IAlignedProofAggregationService.VerifierType(verifierTypeRaw));
     }

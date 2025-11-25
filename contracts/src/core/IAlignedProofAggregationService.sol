@@ -50,11 +50,14 @@ interface IAlignedProofAggregationService {
 
     /// @notice Deletes an existing program ID
     /// @param programId The program ID to delete
-    function deleteProgramId(bytes32 programId) external;
+    /// @param verifierType The type of verifier (SP1 or RISC0)
+    function deleteProgramId(bytes32 programId, VerifierType verifierType) external;
 
     error OnlyAlignedAggregator(address sender);
 
     error InvalidProgramId(bytes32 programId, VerifierType expected, uint8 actual);
+
+    error InvalidVerifierType(uint8 actual);
 
     enum VerifierType {
         INVALID,  // If a given program does not exist in the `programId` map, it defaults to 0. This prevents non-existing keys to be considered valid in case SP1 or RISC0 were in this position
