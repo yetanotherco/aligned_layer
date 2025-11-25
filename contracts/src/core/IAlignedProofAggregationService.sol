@@ -59,6 +59,8 @@ interface IAlignedProofAggregationService {
 
     error InvalidVerifierType(uint8 actual);
 
+    error VerifierTypeMismatch(uint8 expected, uint8 received);
+
     enum VerifierType {
         INVALID,  // If a given program does not exist in the `programId` map, it defaults to 0. This prevents non-existing keys to be considered valid in case SP1 or RISC0 were in this position
         SP1,

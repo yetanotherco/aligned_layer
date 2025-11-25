@@ -194,8 +194,12 @@ contract AlignedProofAggregationService is
     function deleteProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType) external onlyOwner validVerifierType(verifierType) {
         // Preserve the verifier type so we can emit it with the event
         uint8 verifierTypeRaw = programIds[programId];
+        uint8 rawReceivedVerifierType = uint8(verifierType);
 
-        // TODO: Check if the verifier type matches the one received by param
+        // Check if the obtained verifier type matches the one received by param
+        if (verifierTypeRaw != rawReceivedVerifierType) {
+            revert IAlignedProofAggregationService.VerifierTypeMismatch(verifierTypeRaw, rawReceivedVerifierType);
+        }
 
         delete programIds[programId];
         emit ProgramIdDeleted(programId, IAlignedProofAggregationService.VerifierType(verifierTypeRaw));
