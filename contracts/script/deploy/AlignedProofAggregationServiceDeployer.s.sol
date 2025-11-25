@@ -17,6 +17,7 @@ contract AlignedProofAggregationServiceDeployer is Script {
         address risc0VerifierAddress = stdJson.readAddress(config_data, ".address.risc0VerifierAddress");
         bytes32 risc0AggregationProgramImageId =
             stdJson.readBytes32(config_data, ".programs_id.risc0AggregationProgramImageId");
+        bool devMode = stdJson.readBool(config_data, ".devMode");
 
         address ownerAddress = stdJson.readAddress(config_data, ".permissions.owner");
 
@@ -27,13 +28,14 @@ contract AlignedProofAggregationServiceDeployer is Script {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(alignedProofAggregationService),
             abi.encodeWithSignature(
-                "initialize(address,address,address,address,bytes32,bytes32)",
+                "initialize(address,address,address,address,bytes32,bytes32,bool)",
                 ownerAddress,
                 alignedAggregatorAddress,
                 sp1VerifierAddress,
                 risc0VerifierAddress,
                 risc0AggregationProgramImageId,
-                sp1AggregationProgramVKHash
+                sp1AggregationProgramVKHash,
+                devMode
             )
         );
 

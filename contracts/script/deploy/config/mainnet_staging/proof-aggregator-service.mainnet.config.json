@@ -10,5 +10,6 @@
   },
   "permissions": {
     "owner": "<owner_address>"
-  }
+  },
+  "devMode": false
 }

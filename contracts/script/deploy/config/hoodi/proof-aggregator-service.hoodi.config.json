@@ -10,5 +10,6 @@
   },
   "permissions": {
     "owner": "0xF138043AC49a0cbB1C8fF03433B51861eA0AE927"
-  }
+  },
+  "devMode": false
 }

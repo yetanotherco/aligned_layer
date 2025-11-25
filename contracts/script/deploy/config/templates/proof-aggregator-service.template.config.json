@@ -10,5 +10,6 @@
   },
   "permissions": {
     "owner": ""
-  }
+  },
+  "devMode": false
 }
