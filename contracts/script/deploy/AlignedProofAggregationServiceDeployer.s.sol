@@ -23,19 +23,18 @@ contract AlignedProofAggregationServiceDeployer is Script {
 
         vm.startBroadcast();
 
-        AlignedProofAggregationService alignedProofAggregationService = new AlignedProofAggregationService();
+        AlignedProofAggregationService alignedProofAggregationService = new AlignedProofAggregationService(devMode);
 
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(alignedProofAggregationService),
             abi.encodeWithSignature(
-                "initialize(address,address,address,address,bytes32,bytes32,bool)",
+                "initialize(address,address,address,address,bytes32,bytes32)",
                 ownerAddress,
                 alignedAggregatorAddress,
                 sp1VerifierAddress,
                 risc0VerifierAddress,
                 risc0AggregationProgramImageId,
-                sp1AggregationProgramVKHash,
-                devMode
+                sp1AggregationProgramVKHash
             )
         );
 
