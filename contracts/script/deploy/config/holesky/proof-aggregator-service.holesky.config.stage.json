@@ -11,5 +11,5 @@
   "permissions": {
     "owner": "0xE3C695b73dbe27106aF4530b152de3e57456B385"
   },
-  "devMode": false
+  "isDevMode": false
 }

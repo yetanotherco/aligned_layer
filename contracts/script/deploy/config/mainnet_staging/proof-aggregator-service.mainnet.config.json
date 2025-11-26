@@ -11,5 +11,5 @@
   "permissions": {
     "owner": "<owner_address>"
   },
-  "devMode": false
+  "isDevMode": false
 }

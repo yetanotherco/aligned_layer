@@ -17,13 +17,13 @@ contract AlignedProofAggregationServiceDeployer is Script {
         address risc0VerifierAddress = stdJson.readAddress(config_data, ".address.risc0VerifierAddress");
         bytes32 risc0AggregationProgramImageId =
             stdJson.readBytes32(config_data, ".programs_id.risc0AggregationProgramImageId");
-        bool devMode = stdJson.readBool(config_data, ".devMode");
+        bool isDevMode = stdJson.readBool(config_data, ".isDevMode");
 
         address ownerAddress = stdJson.readAddress(config_data, ".permissions.owner");
 
         vm.startBroadcast();
 
-        AlignedProofAggregationService alignedProofAggregationService = new AlignedProofAggregationService(devMode);
+        AlignedProofAggregationService alignedProofAggregationService = new AlignedProofAggregationService(isDevMode);
 
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(alignedProofAggregationService),
