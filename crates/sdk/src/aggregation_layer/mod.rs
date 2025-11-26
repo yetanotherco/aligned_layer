@@ -130,7 +130,7 @@ pub async fn is_proof_verified_on_chain(
     let res = contract_provider
         .verify_proof_inclusion(
             merkle_path,
-            verification_data.proving_system_id().into(),
+            verification_data.proving_system_id(),
             verification_data.program_id(),
             Bytes::from(verification_data.public_inputs().clone()),
         )

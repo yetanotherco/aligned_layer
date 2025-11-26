@@ -70,7 +70,7 @@ impl AggregationModeVerificationData {
         match self {
             AggregationModeVerificationData::SP1 { vk, public_inputs } => {
                 let mut hasher = Keccak256::new();
-                hasher.update(&[self.proving_system_id()]);
+                hasher.update([self.proving_system_id()]);
                 hasher.update(vk);
                 hasher.update(public_inputs);
                 hasher.finalize().into()
@@ -80,7 +80,7 @@ impl AggregationModeVerificationData {
                 public_inputs,
             } => {
                 let mut hasher = Keccak256::new();
-                hasher.update(&[self.proving_system_id()]);
+                hasher.update([self.proving_system_id()]);
                 hasher.update(image_id);
                 hasher.update(public_inputs);
                 hasher.finalize().into()
