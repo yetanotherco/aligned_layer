@@ -153,7 +153,7 @@ contract AlignedProofAggregationService is
     }
 
     /// @notice Modifier to ensure the provided verifier type is one of the valid enum values.
-    modifier validVerifierType(IAlignedProofAggregationService.VerifierType verifierType) {
+    modifier onValidVerifierType(IAlignedProofAggregationService.VerifierType verifierType) {
         uint8 v = uint8(verifierType);
         if (v != uint8(IAlignedProofAggregationService.VerifierType.SP1) &&
             v != uint8(IAlignedProofAggregationService.VerifierType.RISC0)){
@@ -183,7 +183,7 @@ contract AlignedProofAggregationService is
     function addProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType)
         external
         onlyOwner
-        validVerifierType(verifierType)
+        onValidVerifierType(verifierType)
     {
         programIds[programId] = uint8(verifierType);
         emit ProgramIdAdded(programId, verifierType);
@@ -191,7 +191,7 @@ contract AlignedProofAggregationService is
 
     /// @notice Deletes a program ID from the list of valid program IDs.
     /// @param programId The program ID to delete (image ID for RISC0 or vk hash for SP1).
-    function deleteProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType) external onlyOwner validVerifierType(verifierType) {
+    function deleteProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType) external onlyOwner onValidVerifierType(verifierType) {
         // Preserve the verifier type so we can emit it with the event
         uint8 verifierTypeRaw = programIds[programId];
         uint8 rawReceivedVerifierType = uint8(verifierType);
