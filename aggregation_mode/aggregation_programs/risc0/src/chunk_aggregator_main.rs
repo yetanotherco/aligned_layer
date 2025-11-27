@@ -8,8 +8,8 @@ risc0_zkvm::guest::entry!(main);
 
 // Generated with `make proof_aggregator_write_program_ids` and copied from program_ids.json
 pub const USER_PROOFS_AGGREGATOR_PROGRAM_IMAGE_ID: [u8; 32] = [
-    213, 222, 129, 66, 92, 168, 117, 175, 141, 69, 249, 171, 248, 137, 130, 165, 149, 72, 165, 91,
-    229, 255, 250, 13, 76, 25, 181, 189, 202, 45, 149, 122,
+    253, 36, 51, 43, 163, 223, 190, 136, 60, 123, 233, 240, 170, 213, 170, 76, 117, 219, 15, 0, 47,
+    81, 218, 228, 232, 218, 86, 42, 145, 190, 144, 161,
 ];
 
 fn main() {
