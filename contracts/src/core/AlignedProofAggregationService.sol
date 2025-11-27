@@ -154,10 +154,9 @@ contract AlignedProofAggregationService is
 
     /// @notice Modifier to ensure the provided verifier type is one of the valid enum values.
     modifier onValidVerifierType(IAlignedProofAggregationService.VerifierType verifierType) {
-        uint8 v = uint8(verifierType);
-        if (v != uint8(IAlignedProofAggregationService.VerifierType.SP1) &&
-            v != uint8(IAlignedProofAggregationService.VerifierType.RISC0)){
-                revert IAlignedProofAggregationService.InvalidVerifierType(v);
+        if (verifierType != IAlignedProofAggregationService.VerifierType.SP1 &&
+            verifierType != IAlignedProofAggregationService.VerifierType.RISC0){
+                revert IAlignedProofAggregationService.InvalidVerifierType(uint8(verifierType));
             }
             
         _;
