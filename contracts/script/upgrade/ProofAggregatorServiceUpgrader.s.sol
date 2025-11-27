@@ -17,9 +17,7 @@ contract AlignedProofAggregationServiceUpgrader is Script {
             payable(stdJson.readAddress(aligned_deployment_file, ".addresses.alignedProofAggregationService"))
         );
 
-        bool isDevMode = stdJson.readBool(config_data, ".isDevMode");
-
-        AlignedProofAggregationService newProofAggregatorServiceImplementation = new AlignedProofAggregationService(isDevMode);
+        AlignedProofAggregationService newProofAggregatorServiceImplementation = new AlignedProofAggregationService();
 
         // Not link the new implementation to the proxy
         // Because this must be executed in the multisig

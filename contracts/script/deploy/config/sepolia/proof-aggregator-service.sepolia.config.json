@@ -10,6 +10,5 @@
   },
   "permissions": {
     "owner": "0x771C1aB81C81A774B66C4386Eb50D6DFC8538106"
-  },
-  "isDevMode": false
+  }
 }
