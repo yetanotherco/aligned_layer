@@ -2,7 +2,7 @@ use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-const SP1_PROVING_SYSTEM_ID: u8 = 0;
+const SP1_PROVING_SYSTEM_ID: u16 = 1;
 
 #[derive(Serialize, Deserialize)]
 pub struct SP1VkAndPubInputs {
@@ -13,7 +13,7 @@ pub struct SP1VkAndPubInputs {
 impl SP1VkAndPubInputs {
     pub fn commitment(&self) -> [u8; 32] {
         let mut hasher = Keccak256::new();
-        hasher.update(&[SP1_PROVING_SYSTEM_ID]);
+        hasher.update(&SP1_PROVING_SYSTEM_ID.to_be_bytes());
         for &word in &self.vk {
             hasher.update(word.to_be_bytes());
         }
