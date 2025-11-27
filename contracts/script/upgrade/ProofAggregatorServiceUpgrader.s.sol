@@ -7,9 +7,8 @@ import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 
 contract AlignedProofAggregationServiceUpgrader is Script {
-    function run(string memory alignedLayerDeploymentFilePath, string memory proofAggregatorConfigFilePath) external returns (address, address) {
+    function run(string memory alignedLayerDeploymentFilePath) external returns (address, address) {
         string memory aligned_deployment_file = vm.readFile(alignedLayerDeploymentFilePath);
-        string memory config_data = vm.readFile(proofAggregatorConfigFilePath);
 
         vm.startBroadcast();
 
