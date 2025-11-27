@@ -22,7 +22,7 @@ contract AlignedProofAggregationService is
     /// @dev This can either be a specific SP1Verifier for a specific version, or the
     ///      SP1VerifierGateway which can be used to verify proofs for any version of SP1.
     ///      For the list of supported verifiers on each chain, see:
-    ///      https://docs.succinct.xyz/onchain-verification/contract-addresses
+    ///      https://docs.succinct.xyz/docs/sp1/verification/contract-addresses
     address public sp1VerifierAddress;
 
     /// @notice The address of the Wallet that is allowed to call the verify function.
@@ -75,7 +75,7 @@ contract AlignedProofAggregationService is
             revert InvalidProgramId(programId, IAlignedProofAggregationService.VerifierType.SP1, programIds[programId]);
         }
 
-        // In dev mode, poofs are mocked, so we skip the verification part
+        // In dev mode, proofs are mocked, so we skip the verification part
         if (_isSP1VerificationEnabled()) {
             ISP1Verifier(sp1VerifierAddress).verifyProof(programId, sp1PublicValues, sp1ProofBytes);
         }
@@ -94,7 +94,7 @@ contract AlignedProofAggregationService is
             revert InvalidProgramId(programId, IAlignedProofAggregationService.VerifierType.RISC0, programIds[programId]);
         }
 
-        // In dev mode, poofs are mocked, so we skip the verification part
+        // In dev mode, proofs are mocked, so we skip the verification part
         if (_isRisc0VerificationEnabled()) {
             bytes32 risc0JournalDigest = sha256(risc0JournalBytes);
             IRiscZeroVerifier(risc0VerifierAddress).verify(
