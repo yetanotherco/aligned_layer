@@ -38,7 +38,7 @@ pub async fn send_state_transition_to_chain(
 
     let res = state_transition_contract
         .updateState(
-            AggregationModeProvingSystem::SP1.id().into(),
+            AggregationModeProvingSystem::SP1.id(),
             public_inputs.into(),
             merkle_proof,
         )

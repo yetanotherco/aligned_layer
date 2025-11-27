@@ -64,7 +64,7 @@ impl SP1ProofWithPubValuesAndElf {
 
     pub fn hash_vk_and_pub_inputs(&self) -> [u8; 32] {
         let mut hasher = Keccak256::new();
-        hasher.update([AggregationModeProvingSystem::SP1.id()]);
+        hasher.update(AggregationModeProvingSystem::SP1.id_bytes());
         let vk_bytes = &self.vk.hash_bytes();
         hasher.update(vk_bytes);
         hasher.update(self.proof_with_pub_values.public_values.as_slice());

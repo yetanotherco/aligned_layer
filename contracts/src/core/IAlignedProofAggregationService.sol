@@ -30,7 +30,7 @@ interface IAlignedProofAggregationService {
 
     function verifyProofInclusion(
         bytes32[] calldata merklePath,
-        uint8 provingSystemId,
+        uint16 provingSystemId,
         bytes32 programId,
         bytes calldata publicInputs
     ) external view returns (bool);
