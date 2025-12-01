@@ -308,6 +308,9 @@ agg_mode_docker_up:
 agg_mode_docker_down:
 	@cd aggregation_mode && docker-compose down
 
+agg_mode_docker_clean: agg_mode_docker_down
+	docker volume rm aggregation-mode_postgres_data
+
 agg_mode_run_migrations: agg_mode_docker_up
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin migrate -- postgres://postgres:postgres@localhost:5435/
 

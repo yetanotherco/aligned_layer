@@ -13,6 +13,7 @@ CREATE TABLE proofs (
     proof BYTEA,
     public_inputs BYTEA,
     proof_commitment BYTEA,
+    merkle_path BYTEA,
     task_id UUID REFERENCES tasks(task_id)
 );
 

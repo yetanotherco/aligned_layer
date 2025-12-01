@@ -20,4 +20,14 @@ impl Db {
 
         Ok(Self { pool })
     }
+
+    pub async fn count_proofs_by_address(&self, address: &str) -> Result<i64, sqlx::Error> {
+        let (count,) =
+            sqlx::query_as::<_, (i64,)>("SELECT COUNT(*) FROM proofs WHERE address = $1")
+                .bind(address)
+                .fetch_one(&self.pool)
+                .await?;
+
+        Ok(count)
+    }
 }
