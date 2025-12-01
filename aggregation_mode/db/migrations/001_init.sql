@@ -1,0 +1,24 @@
+CREATE TYPE task_status AS ENUM ('pending', 'verified');
+
+CREATE TABLE tasks (
+    task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    status task_status
+);
+
+CREATE TABLE proofs (
+    proof_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    address CHAR(42), 
+    proving_system_id INT,
+    vm_program_code BYTEA,
+    proof BYTEA,
+    public_inputs BYTEA,
+    proof_commitment BYTEA,
+    task_id UUID REFERENCES tasks(task_id)
+);
+
+CREATE TABLE payment_events (
+    payment_event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    address CHAR(42),
+    started_at INTEGER,
+    valid_until INTEGER
+);

@@ -1,0 +1,14 @@
+[package]
+name = "agg_mode_db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1"}
+# TODO: enable tls
+sqlx = { version = "0.8", features = [ "runtime-tokio", "postgres", "migrate" ] }
+
+
+[[bin]]
+name = "migrate"
+path = "cmd/migrate.rs"

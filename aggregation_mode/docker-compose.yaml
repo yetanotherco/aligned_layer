@@ -20,4 +20,4 @@ services:
     depends_on:
       - postgres
     ports:
-      - 8090:8090
+      - 8090:8080

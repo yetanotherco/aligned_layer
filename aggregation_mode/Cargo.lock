@@ -262,6 +262,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "agg_mode_db"
+version = "0.1.0"
+dependencies = [
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
