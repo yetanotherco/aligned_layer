@@ -196,8 +196,7 @@ impl ProofsFetcher {
         match self.rpc_provider.get_gas_price().await {
             Ok(price) => Ok(price),
             Err(e1) => Err(ProofsFetcherError::GasPriceError(format!(
-                "gas price error: {:?}",
-                e1
+                "gas price error: {e1}"
             ))),
         }
     }

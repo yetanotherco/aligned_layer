@@ -152,11 +152,7 @@ impl ProofAggregator {
             let time_elapsed: Duration =
                 Instant::now().duration_since(start_time) + Duration::from_secs(24 * 3600);
 
-            let gas_price = self
-                .fetcher
-                .get_gas_price()
-                .await
-                .map_err(|err| FetchingProofs(err))?;
+            let gas_price = self.fetcher.get_gas_price().await.map_err(FetchingProofs)?;
 
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
