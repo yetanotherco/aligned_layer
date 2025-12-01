@@ -5,6 +5,8 @@ mod retry;
 mod s3;
 mod types;
 
+use crate::backend::AggregatedProofSubmissionError::FetchingProofs;
+
 use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
 
 use alloy::{
@@ -18,10 +20,13 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use config::Config;
+use ethers::types::U256;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
-use std::str::FromStr;
+use std::thread::sleep;
+use std::{str::FromStr, time::Duration};
+use tokio::time::Instant;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
@@ -136,23 +141,81 @@ impl ProofAggregator {
             hex::encode(blob_versioned_hash)
         );
 
-        info!("Sending proof to ProofAggregationService contract...");
-        let receipt = self
-            .send_proof_to_verify_on_chain(blob, blob_versioned_hash, aggregated_proof)
-            .await?;
-        info!(
-            "Proof sent and verified, tx hash {:?}",
-            receipt.transaction_hash
-        );
+        // Iterate until we can send the proof on-chain
+        let start_time = Instant::now();
+        const MONTHLY_ETH_BUDGET_GWEI: u64 = 15_000_000_000;
+
+        let mut sent_proof = false;
+        while !sent_proof {
+            // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
+            // should be considered over a 24h period.
+            let time_elapsed: Duration =
+                Instant::now().duration_since(start_time) + Duration::from_secs(24 * 3600);
+
+            let gas_price = self
+                .fetcher
+                .get_gas_price()
+                .await
+                .map_err(|err| FetchingProofs(err))?;
+
+            if self.should_send_proof_to_verify_on_chain(
+                time_elapsed,
+                MONTHLY_ETH_BUDGET_GWEI,
+                gas_price.into(),
+            ) {
+                info!("Sending proof to ProofAggregationService contract...");
+                let receipt = self
+                    .send_proof_to_verify_on_chain(&blob, blob_versioned_hash, &aggregated_proof)
+                    .await?;
+                info!(
+                    "Proof sent and verified, tx hash {:?}",
+                    receipt.transaction_hash
+                );
+
+                sent_proof = true;
+            } else {
+                info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
+            }
+
+            // Sleep for 5 minutes before re-evaluating
+            sleep(Duration::from_secs(300));
+        }
 
         Ok(())
     }
 
+    /// Decides whether to send the aggregated proof to be verified on-chain based on
+    /// time elapsed since last submission and monthly ETH budget.
+    /// We make a linear function with the eth to spend this month and the time elapsed since last submission.
+    /// If eth to spend / elapsed time is over the linear function, we skip the submission.
+    fn should_send_proof_to_verify_on_chain(
+        &self,
+        time_elapsed: Duration,
+        monthly_eth_to_spend: u64,
+        gas_price: U256,
+    ) -> bool {
+        const HOURS_PER_MONTH: f64 = 24.0 * 30.0;
+
+        let elapsed_hours = time_elapsed.as_secs_f64() / 3600.0;
+        if elapsed_hours <= 0.0 {
+            return false;
+        }
+
+        let elapsed_hours = elapsed_hours.min(HOURS_PER_MONTH);
+
+        let hourly_budget_gwei = monthly_eth_to_spend as f64 / HOURS_PER_MONTH;
+        let budget_so_far_gwei = hourly_budget_gwei * elapsed_hours;
+
+        let gas_price_gwei = gas_price.as_u64() as f64 / 1_000_000_000.0;
+
+        gas_price_gwei <= budget_so_far_gwei
+    }
+
     async fn send_proof_to_verify_on_chain(
         &self,
-        blob: BlobTransactionSidecar,
+        blob: &BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
-        aggregated_proof: AlignedProof,
+        aggregated_proof: &AlignedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         let tx_req = match aggregated_proof {
             AlignedProof::SP1(proof) => self
@@ -162,7 +225,7 @@ impl ProofAggregator {
                     proof.proof_with_pub_values.public_values.to_vec().into(),
                     proof.proof_with_pub_values.bytes().into(),
                 )
-                .sidecar(blob)
+                .sidecar(blob.clone())
                 .into_transaction_request(),
             AlignedProof::Risc0(proof) => {
                 let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
@@ -172,9 +235,9 @@ impl ProofAggregator {
                     .verifyRisc0(
                         blob_versioned_hash.into(),
                         encoded_seal.into(),
-                        proof.receipt.journal.bytes.into(),
+                        proof.receipt.journal.bytes.clone().into(),
                     )
-                    .sidecar(blob)
+                    .sidecar(blob.clone())
                     .into_transaction_request()
             }
         };
@@ -282,5 +345,72 @@ impl ProofAggregator {
             .0;
 
         Ok((blob, blob_versioned_hash))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use super::config::Config;
+
+    #[test]
+    fn test_should_send_proof_to_verify_on_chain() {
+        // These config values are taken from config-files/config-proof-aggregator.yaml
+        let config = Config {
+            eth_rpc_url: "http://localhost:8545".to_string(),
+            eth_ws_url: "ws://localhost:8545".to_string(),
+            max_proofs_in_queue: 1000,
+            proof_aggregation_service_address: "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc"
+                .to_string(),
+            aligned_service_manager_address: "0x851356ae760d987E095750cCeb3bC6014560891C"
+                .to_string(),
+            last_aggregated_block_filepath:
+                "/Users/maximopalopoli/Desktop/aligned/repo/aligned_layer/config-files/proof-aggregator.last_aggregated_block.json".to_string(),
+            ecdsa: config::ECDSAConfig {
+                private_key_store_path: "/Users/maximopalopoli/Desktop/aligned/repo/aligned_layer/config-files/anvil.proof-aggregator.ecdsa.key.json"
+                    .to_string(),
+                private_key_store_password: "".to_string(),
+            },
+            proofs_per_chunk: 512,
+            total_proofs_limit: 3968,
+        };
+
+        let aggregator = ProofAggregator::new(config);
+
+        // Test case 1: Just started, should not send
+        assert!(!aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(0),
+            15_000_000_000,
+            20_000_000_000u64.into(),
+        ));
+
+        // Test case 2: Halfway through the month, low spend, should send
+        assert!(aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(15 * 24 * 3600),
+            5_000_000_000,
+            20_000_000_000u64.into(),
+        ));
+
+        // Test case 3: Near end of month, high spend -> should send (budget_so_far >> gas_price)
+        assert!(aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(28 * 24 * 3600),
+            18_000_000_000,
+            20_000_000_000u64.into(),
+        ));
+
+        // Test case 5: End of month, over budget -> with these units still sends
+        assert!(aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(30 * 24 * 3600),
+            25_000_000_000,
+            20_000_000_000u64.into(),
+        ));
+
+        // Test case 6: Early month, budget_so_far still > gas_price -> should send
+        assert!(aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(5 * 24 * 3600),
+            10_000_000_000,
+            20_000_000_000u64.into(),
+        ));
     }
 }

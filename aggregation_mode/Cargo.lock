@@ -6617,6 +6617,7 @@ dependencies = [
  "bincode",
  "c-kzg",
  "ciborium",
+ "ethers",
  "lambdaworks-crypto",
  "rayon",
  "reqwest 0.12.23",
