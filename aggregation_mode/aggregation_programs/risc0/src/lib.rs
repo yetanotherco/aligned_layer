@@ -2,6 +2,8 @@ use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::{Hasher, Keccak};
 
+const RISC0_PROVING_SYSTEM_ID: u16 = 2;
+
 #[derive(Serialize, Deserialize)]
 pub struct Risc0ImageIdAndPubInputs {
     pub image_id: [u8; 32],
@@ -11,6 +13,7 @@ pub struct Risc0ImageIdAndPubInputs {
 impl Risc0ImageIdAndPubInputs {
     pub fn commitment(&self) -> [u8; 32] {
         let mut hasher = Keccak::v256();
+        hasher.update(&RISC0_PROVING_SYSTEM_ID.to_be_bytes());
         for &word in &self.image_id {
             hasher.update(&word.to_be_bytes());
         }

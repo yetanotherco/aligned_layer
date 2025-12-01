@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use alloy::{
     network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
     rpc::types::TransactionReceipt, signers::local::LocalSigner, sol,
@@ -36,7 +37,11 @@ pub async fn send_state_transition_to_chain(
     let merkle_proof = merkle_proof.iter().map(|e| e.into()).collect();
 
     let res = state_transition_contract
-        .updateState(public_inputs.into(), merkle_proof)
+        .updateState(
+            AggregationModeProvingSystem::SP1.id(),
+            public_inputs.into(),
+            merkle_proof,
+        )
         .send()
         .await
         .expect("State transition tx to not revert");
