@@ -97,7 +97,12 @@ impl BatcherServer {
             ));
         }
 
-        let db_result = state.db.get_merkle_path_by_proof_id(&id).await;
+        let Ok(proof_id) = sqlx::types::Uuid::parse_str(&id) else {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Proof id invalid uuid", 400));
+        };
+
+        let db_result = state.db.get_merkle_path_by_proof_id(proof_id).await;
         let merkle_path = match db_result {
             Ok(Some(merkle_path)) => merkle_path,
             Ok(None) => {
@@ -106,9 +111,9 @@ impl BatcherServer {
                     404,
                 ))
             }
-            Err(_) => {
+            Err(s) => {
                 return HttpResponse::InternalServerError()
-                    .json(AppResponse::new_unsucessfull("Internal server error", 500))
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
             }
         };
 

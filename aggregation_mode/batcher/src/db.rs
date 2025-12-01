@@ -1,4 +1,4 @@
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::{postgres::PgPoolOptions, types::Uuid, Pool, Postgres};
 
 #[derive(Clone, Debug)]
 pub struct Db {
@@ -33,7 +33,7 @@ impl Db {
 
     pub async fn get_merkle_path_by_proof_id(
         &self,
-        proof_id: &str,
+        proof_id: Uuid,
     ) -> Result<Option<Vec<u8>>, sqlx::Error> {
         sqlx::query_scalar::<_, Option<Vec<u8>>>(
             "SELECT merkle_path FROM proofs WHERE proof_id = $1",
