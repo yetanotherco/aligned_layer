@@ -351,6 +351,9 @@ mod tests {
 
     #[test]
     fn test_should_send_proof_to_verify_on_chain() {
+        // Set the AGGREGATOR env variable to "sp1" or "risc0" as its needed by ProofAggregator::new
+        std::env::set_var("AGGREGATOR", "sp1");
+
         // These config values are taken from config-files/config-proof-aggregator.yaml
         let config = Config {
             eth_rpc_url: "http://localhost:8545".to_string(),
