@@ -354,6 +354,8 @@ mod tests {
         // Set the AGGREGATOR env variable to "sp1" or "risc0" as its needed by ProofAggregator::new
         std::env::set_var("AGGREGATOR", "sp1");
 
+        let current_dir = env!("CARGO_MANIFEST_DIR");
+
         // These config values are taken from config-files/config-proof-aggregator.yaml
         let config = Config {
             eth_rpc_url: "http://localhost:8545".to_string(),
@@ -363,11 +365,14 @@ mod tests {
                 .to_string(),
             aligned_service_manager_address: "0x851356ae760d987E095750cCeb3bC6014560891C"
                 .to_string(),
-            last_aggregated_block_filepath:
-                "/Users/maximopalopoli/Desktop/aligned/repo/aligned_layer/config-files/proof-aggregator.last_aggregated_block.json".to_string(),
+            // Use a path relative to the crate so tests work both locally and in CI
+            last_aggregated_block_filepath: format!(
+                "{current_dir}/../config-files/proof-aggregator.last_aggregated_block.json"
+            ),
             ecdsa: config::ECDSAConfig {
-                private_key_store_path: "/Users/maximopalopoli/Desktop/aligned/repo/aligned_layer/config-files/anvil.proof-aggregator.ecdsa.key.json"
-                    .to_string(),
+                private_key_store_path: format!(
+                    "{current_dir}/../config-files/anvil.proof-aggregator.ecdsa.key.json"
+                ),
                 private_key_store_password: "".to_string(),
             },
             proofs_per_chunk: 512,
