@@ -53,8 +53,8 @@ pub async fn get_aligned_batch_from_s3_with_multiple_urls(
                 return Ok(data);
             }
             Err(err) => {
-                warn!("Failed to fetch batch from URL {}: {:?}", url, err);
-                errors.push(format!("URL {}: {:?}", url, err));
+                warn!("Failed to fetch batch from URL {url}: {err:?}");
+                errors.push(format!("URL {url}: {err:?}"));
             }
         }
     }
@@ -84,7 +84,7 @@ fn parse_batch_urls(batch_urls: &str) -> Vec<String> {
 async fn get_aligned_batch_from_s3_retryable(
     url: String,
 ) -> Result<Vec<VerificationData>, RetryError<GetBatchProofsError>> {
-    info!("Fetching batch from S3 URL: {}", url);
+    info!("Fetching batch from S3 URL: {url}");
     let client = reqwest::Client::builder()
         .user_agent(DEFAULT_USER_AGENT)
         .connect_timeout(CONNECT_TIMEOUT_SECONDS)
@@ -95,7 +95,7 @@ async fn get_aligned_batch_from_s3_retryable(
         })?;
 
     let response = client.get(&url).send().await.map_err(|e| {
-        warn!("Failed to send request to {}: {}", url, e);
+        warn!("Failed to send request to {url}: {e}");
         RetryError::Transient(GetBatchProofsError::FetchingS3Batch(e.to_string()))
     })?;
 
@@ -122,13 +122,13 @@ async fn get_aligned_batch_from_s3_retryable(
     }
 
     let bytes = response.bytes().await.map_err(|e| {
-        warn!("Failed to read response body from {}: {}", url, e);
+        warn!("Failed to read response body from {url}: {e}");
         RetryError::Transient(GetBatchProofsError::EmptyBody(e.to_string()))
     })?;
     let bytes: &[u8] = bytes.iter().as_slice();
 
     let data: Vec<VerificationData> = ciborium::from_reader(bytes).map_err(|e| {
-        warn!("Failed to deserialize batch data from {}: {}", url, e);
+        warn!("Failed to deserialize batch data from {url}: {e}");
         RetryError::Permanent(GetBatchProofsError::Deserialization(e.to_string()))
     })?;
 

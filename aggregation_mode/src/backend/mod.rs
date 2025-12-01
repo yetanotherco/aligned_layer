@@ -8,12 +8,12 @@ mod types;
 use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
 
 use alloy::{
-    consensus::BlobTransactionSidecar,
-    eips::eip4844::BYTES_PER_BLOB,
+    consensus::{BlobTransactionSidecar, EnvKzgSettings, EthereumTxEnvelope, TxEip4844WithSidecar},
+    eips::{eip4844::BYTES_PER_BLOB, eip7594::BlobTransactionSidecarEip7594, Encodable2718},
     hex,
     network::EthereumWallet,
     primitives::Address,
-    providers::{PendingTransactionError, ProviderBuilder},
+    providers::{PendingTransactionError, Provider, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::local::LocalSigner,
 };
@@ -31,7 +31,7 @@ pub enum AggregatedProofSubmissionError {
     BuildingBlobProof,
     BuildingBlobVersionedHash,
     Risc0EncodingSeal(String),
-    SendVerifyAggregatedProofTransaction(alloy::contract::Error),
+    SendVerifyAggregatedProofTransaction(String),
     ReceiptError(PendingTransactionError),
     FetchingProofs(ProofsFetcherError),
     ZKVMAggregation(ProofAggregationError),
@@ -154,18 +154,16 @@ impl ProofAggregator {
         blob_versioned_hash: [u8; 32],
         aggregated_proof: AlignedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
-        let res = match aggregated_proof {
-            AlignedProof::SP1(proof) => {
-                self.proof_aggregation_service
-                    .verifySP1(
-                        blob_versioned_hash.into(),
-                        proof.proof_with_pub_values.public_values.to_vec().into(),
-                        proof.proof_with_pub_values.bytes().into(),
-                    )
-                    .sidecar(blob)
-                    .send()
-                    .await
-            }
+        let tx_req = match aggregated_proof {
+            AlignedProof::SP1(proof) => self
+                .proof_aggregation_service
+                .verifySP1(
+                    blob_versioned_hash.into(),
+                    proof.proof_with_pub_values.public_values.to_vec().into(),
+                    proof.proof_with_pub_values.bytes().into(),
+                )
+                .sidecar(blob)
+                .into_transaction_request(),
             AlignedProof::Risc0(proof) => {
                 let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
@@ -177,15 +175,41 @@ impl ProofAggregator {
                         proof.receipt.journal.bytes.into(),
                     )
                     .sidecar(blob)
-                    .send()
-                    .await
+                    .into_transaction_request()
             }
-        }
-        .map_err(AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction)?;
+        };
 
-        res.get_receipt()
+        let provider = self.proof_aggregation_service.provider();
+        let envelope = provider
+            .fill(tx_req)
             .await
-            .map_err(AggregatedProofSubmissionError::ReceiptError)
+            .map_err(Self::send_verify_aggregated_proof_err)?
+            .try_into_envelope()
+            .map_err(Self::send_verify_aggregated_proof_err)?;
+        let tx: EthereumTxEnvelope<TxEip4844WithSidecar<BlobTransactionSidecarEip7594>> = envelope
+            .try_into_pooled()
+            .map_err(Self::send_verify_aggregated_proof_err)?
+            .try_map_eip4844(|tx| {
+                tx.try_map_sidecar(|sidecar| sidecar.try_into_7594(EnvKzgSettings::Default.get()))
+            })
+            .map_err(Self::send_verify_aggregated_proof_err)?;
+
+        let encoded_tx = tx.encoded_2718();
+        let pending_tx = provider
+            .send_raw_transaction(&encoded_tx)
+            .await
+            .map_err(Self::send_verify_aggregated_proof_err)?;
+
+        let receipt = pending_tx
+            .get_receipt()
+            .await
+            .map_err(Self::send_verify_aggregated_proof_err)?;
+
+        Ok(receipt)
+    }
+
+    fn send_verify_aggregated_proof_err<E: ToString>(err: E) -> AggregatedProofSubmissionError {
+        AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(err.to_string())
     }
 
     /// ### Blob capacity

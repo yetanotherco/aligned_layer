@@ -50,7 +50,7 @@ impl From<Bytes> for TransactionSendError {
 
 pub enum BatcherError {
     TcpListenerError(String),
-    ConnectionError(tungstenite::Error),
+    ConnectionError(String),
     BatchVerifiedEventStreamError(String),
     EthereumSubscriptionError(String),
     SignatureError(SignatureError),
@@ -72,7 +72,7 @@ pub enum BatcherError {
 
 impl From<tungstenite::Error> for BatcherError {
     fn from(e: tungstenite::Error) -> Self {
-        BatcherError::ConnectionError(e)
+        BatcherError::ConnectionError(e.to_string())
     }
 }
 

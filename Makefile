@@ -1444,7 +1444,7 @@ ansible_telemetry_deploy: ## Deploy the Telemetry. Parameters: INVENTORY
 __ETHEREUM_PACKAGE__:  ## ____
 
 ethereum_package_start: ## Starts the ethereum_package environment
-	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package@5.0.1 --args-file network_params.yaml
+	kurtosis run --enclave aligned github.com/ethpandaops/ethereum-package@905bf4fe7e558ce4fa3dd843fb6dbe711fdc3049 --args-file network_params.yaml
 
 ethereum_package_inspect: ## Prints detailed information about the net
 	kurtosis enclave inspect aligned

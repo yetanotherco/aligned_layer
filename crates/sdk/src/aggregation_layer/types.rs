@@ -3,6 +3,39 @@ use sha3::{Digest, Keccak256};
 
 use crate::beacon::BeaconClientError;
 
+#[repr(u16)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AggregationModeProvingSystem {
+    SP1 = 1,
+    RISC0 = 2,
+}
+
+impl AggregationModeProvingSystem {
+    pub const fn as_u16(self) -> u16 {
+        self as u16
+    }
+
+    pub const fn id(self) -> u16 {
+        self.as_u16()
+    }
+
+    pub const fn id_bytes(self) -> [u8; 2] {
+        self.as_u16().to_be_bytes()
+    }
+}
+
+impl TryFrom<u8> for AggregationModeProvingSystem {
+    type Error = ();
+
+    fn try_from(v: u8) -> Result<Self, Self::Error> {
+        match v {
+            0 => Ok(AggregationModeProvingSystem::SP1),
+            1 => Ok(AggregationModeProvingSystem::RISC0),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum AggregationModeVerificationData {
     SP1 {
@@ -30,10 +63,25 @@ impl AggregationModeVerificationData {
         }
     }
 
+    pub fn proving_system_id(&self) -> u16 {
+        match self {
+            Self::SP1 { .. } => AggregationModeProvingSystem::SP1.id(),
+            Self::Risc0 { .. } => AggregationModeProvingSystem::RISC0.id(),
+        }
+    }
+
+    pub fn proving_system_id_bytes(&self) -> [u8; 2] {
+        match self {
+            Self::SP1 { .. } => AggregationModeProvingSystem::SP1.id_bytes(),
+            Self::Risc0 { .. } => AggregationModeProvingSystem::RISC0.id_bytes(),
+        }
+    }
+
     pub fn commitment(&self) -> [u8; 32] {
         match self {
             AggregationModeVerificationData::SP1 { vk, public_inputs } => {
                 let mut hasher = Keccak256::new();
+                hasher.update(self.proving_system_id_bytes());
                 hasher.update(vk);
                 hasher.update(public_inputs);
                 hasher.finalize().into()
@@ -43,6 +91,7 @@ impl AggregationModeVerificationData {
                 public_inputs,
             } => {
                 let mut hasher = Keccak256::new();
+                hasher.update(self.proving_system_id_bytes());
                 hasher.update(image_id);
                 hasher.update(public_inputs);
                 hasher.finalize().into()
