@@ -2,7 +2,7 @@ use std::{fs::File, io::Read};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub port: u16,
     pub db_connection_url: String,

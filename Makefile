@@ -303,9 +303,11 @@ proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
 	@cd aggregation_mode/proof_aggregator && ./scripts/build_programs.sh
 
 agg_mode_batcher_start_local:
+	@cd aggregation_mode && docker-compose up -d
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher -- config-files/config-agg-mode-batcher.yaml
 
 agg_mode_batcher_start_ethereum_package:
+	@cd aggregation_mode && docker-compose up -d
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher -- config-files/config-agg-mode-batcher-ethereum-package.yaml
 
 __AGGREGATOR__: ## ____
