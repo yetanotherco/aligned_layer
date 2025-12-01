@@ -78,10 +78,7 @@ contract AlignedProofAggregationService is
             revert InvalidVerifyingProgram(verifierProgramCommitment, SP1_ID, allowedVerifiersProvingSystem[verifierProgramCommitment]);
         }
 
-        // In dev mode, proofs are mocked, so we skip the verification part
-        if (_isSP1VerificationEnabled()) {
-            ISP1Verifier(sp1VerifierAddress).verifyProof(verifierProgramCommitment, sp1PublicValues, sp1ProofBytes);
-        }
+        ISP1Verifier(sp1VerifierAddress).verifyProof(verifierProgramCommitment, sp1PublicValues, sp1ProofBytes);
 
         isMerkleRootVerified[merkleRoot] = true;
         emit AggregatedProofVerified(merkleRoot, blobVersionedHash);
@@ -97,13 +94,10 @@ contract AlignedProofAggregationService is
             revert InvalidVerifyingProgram(verifierProgramCommitment, RISC0_ID, allowedVerifiersProvingSystem[verifierProgramCommitment]);
         }
 
-        // In dev mode, proofs are mocked, so we skip the verification part
-        if (_isRisc0VerificationEnabled()) {
-            bytes32 risc0JournalDigest = sha256(risc0JournalBytes);
-            IRiscZeroVerifier(risc0VerifierAddress).verify(
-                risc0ReceiptSeal, verifierProgramCommitment, risc0JournalDigest
-            );
-        }
+        bytes32 risc0JournalDigest = sha256(risc0JournalBytes);
+        IRiscZeroVerifier(risc0VerifierAddress).verify(
+            risc0ReceiptSeal, verifierProgramCommitment, risc0JournalDigest
+        );
 
         isMerkleRootVerified[merkleRoot] = true;
         emit AggregatedProofVerified(merkleRoot, blobVersionedHash);
@@ -134,14 +128,6 @@ contract AlignedProofAggregationService is
         bytes32 proofCommitment = keccak256(abi.encodePacked(provingSystemId, programCommitment, publicInputs));
         bytes32 merkleRoot = MerkleProof.processProofCalldata(merklePath, proofCommitment);
         return isMerkleRootVerified[merkleRoot];
-    }
-
-    function _isSP1VerificationEnabled() internal view returns (bool) {
-        return sp1VerifierAddress != VERIFIER_MOCK_ADDRESS;
-    }
-
-    function _isRisc0VerificationEnabled() internal view returns (bool) {
-        return risc0VerifierAddress != VERIFIER_MOCK_ADDRESS;
     }
 
     function _authorizeUpgrade(address newImplementation)
