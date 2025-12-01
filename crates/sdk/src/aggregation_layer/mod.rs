@@ -3,7 +3,9 @@ mod helpers;
 mod types;
 
 // Makes only the two types on this use public
-pub use types::{AggregationModeVerificationData, ProofVerificationAggModeError};
+pub use types::{
+    AggregationModeProvingSystem, AggregationModeVerificationData, ProofVerificationAggModeError,
+};
 
 use crate::{
     common::types::Network, eth::aligned_proof_agg_service::aligned_proof_aggregation_service,
@@ -128,6 +130,7 @@ pub async fn is_proof_verified_on_chain(
     let res = contract_provider
         .verify_proof_inclusion(
             merkle_path,
+            verification_data.proving_system_id(),
             verification_data.program_id(),
             Bytes::from(verification_data.public_inputs().clone()),
         )

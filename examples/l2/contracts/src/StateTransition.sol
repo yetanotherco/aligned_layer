@@ -22,9 +22,16 @@ contract StateTransition {
         stateRoot = initialStateRoot;
     }
 
-    function updateState(bytes calldata publicInputs, bytes32[] calldata merkleProof) public onlyOwner {
+    function updateState(uint16 provingSystemId, bytes calldata publicInputs, bytes32[] calldata merkleProof)
+        public
+        onlyOwner
+    {
         bytes memory callData = abi.encodeWithSignature(
-            "verifyProofInclusion(bytes32[],bytes32,bytes)", merkleProof, PROGRAM_ID, publicInputs
+            "verifyProofInclusion(bytes32[],uint16,bytes32,bytes)",
+            merkleProof,
+            provingSystemId,
+            PROGRAM_ID,
+            publicInputs
         );
         (bool callResult, bytes memory response) = alignedProofAggregator.staticcall(callData);
         if (!callResult) {
