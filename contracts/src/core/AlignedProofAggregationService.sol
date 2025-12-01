@@ -111,16 +111,18 @@ contract AlignedProofAggregationService is
     /// - The function returns `true` if this Merkle root is known to correspond to a valid aggregated proof.
     ///
     /// @param merklePath The Merkle proof (sibling hashes) needed to reconstruct the Merkle root.
+    /// @param provingSystemId The id of the proving system (1 for SP1, 2 for RISC0).
     /// @param programId The identifier for the ZK program (image_id in RISC0 or vk hash in SP1).
     /// @param publicInputs The public inputs bytes of the proof.
     ///
     /// @return bool Returns true if the computed Merkle root is a recognized valid aggregated proof.
-    function verifyProofInclusion(bytes32[] calldata merklePath, bytes32 programId, bytes calldata publicInputs)
-        public
-        view
-        returns (bool)
-    {
-        bytes32 proofCommitment = keccak256(abi.encodePacked(programId, publicInputs));
+    function verifyProofInclusion(
+        bytes32[] calldata merklePath,
+        uint16 provingSystemId,
+        bytes32 programId,
+        bytes calldata publicInputs
+    ) public view returns (bool) {
+        bytes32 proofCommitment = keccak256(abi.encodePacked(provingSystemId, programId, publicInputs));
         bytes32 merkleRoot = MerkleProof.processProofCalldata(merklePath, proofCommitment);
         return aggregatedProofs[merkleRoot];
     }
