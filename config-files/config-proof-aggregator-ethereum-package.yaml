@@ -12,6 +12,8 @@ proofs_per_chunk: 512 # Amount of proofs to process per chunk
 # Since each proof commitments takes 32 bytes hash
 # We can aggregate as much proofs as 126.976 / 32 = 3968 per blob
 total_proofs_limit: 3968
+# Monthly ETH budget for on-chain proof verification
+monthly_eth_budget_gwei: 15_000_000_000
 
 ecdsa:
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"

@@ -143,7 +143,6 @@ impl ProofAggregator {
 
         // Iterate until we can send the proof on-chain
         let start_time = Instant::now();
-        const MONTHLY_ETH_BUDGET_GWEI: u64 = 15_000_000_000;
 
         let mut sent_proof = false;
         while !sent_proof {
@@ -156,7 +155,7 @@ impl ProofAggregator {
 
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
-                MONTHLY_ETH_BUDGET_GWEI,
+                self.config.monthly_eth_budget_gwei,
                 gas_price.into(),
             ) {
                 info!("Sending proof to ProofAggregationService contract...");
@@ -370,6 +369,7 @@ mod tests {
             },
             proofs_per_chunk: 512,
             total_proofs_limit: 3968,
+            monthly_eth_budget_gwei: 15_000_000_000,
         };
 
         let aggregator = ProofAggregator::new(config);
