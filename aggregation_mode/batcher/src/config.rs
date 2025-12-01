@@ -1,0 +1,20 @@
+use std::{fs::File, io::Read};
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Config {
+    pub port: u16,
+    pub db_connection_url: String,
+    pub eth_rpc_url: String,
+}
+
+impl Config {
+    pub fn from_file(file_path: &str) -> Result<Config, Box<dyn std::error::Error>> {
+        let mut file = File::open(file_path)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        let config: Config = serde_yaml::from_str(&contents)?;
+        Ok(config)
+    }
+}

@@ -1,0 +1,3 @@
+port: 8089
+db_connection_url: "postgres://postgres:postgres@localhost/"
+eth_rpc_url: "http://localhost:8545"
