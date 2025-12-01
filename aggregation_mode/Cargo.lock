@@ -253,6 +253,7 @@ name = "agg_mode_batcher"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "hex",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -9637,6 +9638,7 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
+ "uuid 1.18.1",
 ]
 
 [[package]]
@@ -9716,6 +9718,7 @@ dependencies = [
  "stringprep",
  "thiserror 2.0.17",
  "tracing",
+ "uuid 1.18.1",
  "whoami",
 ]
 
@@ -9753,6 +9756,7 @@ dependencies = [
  "stringprep",
  "thiserror 2.0.17",
  "tracing",
+ "uuid 1.18.1",
  "whoami",
 ]
 
@@ -9778,6 +9782,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tracing",
  "url",
+ "uuid 1.18.1",
 ]
 
 [[package]]

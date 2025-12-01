@@ -1,9 +1,13 @@
 use actix_web::{
-    web::{self, Data},
+    web::{self, Data, Query},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
+use serde::Deserialize;
 
-use super::types::AppResponse;
+use super::{
+    helpers::format_merkle_path,
+    types::{AppResponse, ProofMerkleQuery},
+};
 
 use crate::{config::Config, db::Db};
 
@@ -27,10 +31,7 @@ impl BatcherServer {
             App::new()
                 .app_data(Data::new(state.clone()))
                 .route("/nonce/{address}", web::get().to(Self::get_nonce))
-                .route(
-                    "/proof/merkle/:receipt",
-                    web::get().to(Self::get_proof_merkle_path),
-                )
+                .route("/proof/merkle", web::get().to(Self::get_proof_merkle_path))
                 .route("/proof", web::post().to(Self::post_proof))
         })
         .bind(("127.0.0.1", port))?
@@ -70,8 +71,57 @@ impl BatcherServer {
         HttpResponse::Ok()
     }
 
-    // TODO: get the proof merkle path for the receipt id (proof commitment)
-    async fn get_proof_merkle_path(req: HttpRequest) -> impl Responder {
-        HttpResponse::Ok()
+    async fn get_proof_merkle_path(
+        req: HttpRequest,
+        params: web::Query<ProofMerkleQuery>,
+    ) -> impl Responder {
+        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let state = state.get_ref();
+
+        // TODO: maybe also accept proof commitment in query param
+        let Some(id) = params.id.clone() else {
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                "Provide proof `id` query param",
+                400,
+            ));
+        };
+
+        if id.is_empty() {
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                "Proof id cannot be empty",
+                400,
+            ));
+        }
+
+        let db_result = state.db.get_merkle_path_by_proof_id(&id).await;
+        let merkle_path = match db_result {
+            Ok(Some(merkle_path)) => merkle_path,
+            Ok(None) => {
+                return HttpResponse::NotFound().json(AppResponse::new_unsucessfull(
+                    "Proof merkle path not found",
+                    404,
+                ))
+            }
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500))
+            }
+        };
+
+        match format_merkle_path(&merkle_path) {
+            Ok(merkle_path) => {
+                HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
+                    "merkle_path": merkle_path
+                })))
+            }
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500))
+            }
+        }
     }
 }

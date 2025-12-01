@@ -25,3 +25,8 @@ impl AppResponse {
         }
     }
 }
+
+#[derive(Deserialize, Clone)]
+pub(super) struct ProofMerkleQuery {
+    pub id: Option<String>,
+}

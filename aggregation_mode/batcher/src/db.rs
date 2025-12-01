@@ -30,4 +30,17 @@ impl Db {
 
         Ok(count)
     }
+
+    pub async fn get_merkle_path_by_proof_id(
+        &self,
+        proof_id: &str,
+    ) -> Result<Option<Vec<u8>>, sqlx::Error> {
+        sqlx::query_scalar::<_, Option<Vec<u8>>>(
+            "SELECT merkle_path FROM proofs WHERE proof_id = $1",
+        )
+        .bind(proof_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map(|res| res.flatten())
+    }
 }
