@@ -15,8 +15,8 @@ contract AlignedProofAggregationService is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-    /// @notice Map the merkle root to a boolean to indicate it was verified
-    mapping(bytes32 => bool) public aggregatedProofs;
+    /// @notice true if merkle root is verified
+    mapping(bytes32 => bool) public isMerkleRootVerified;
 
     /// @notice The address of the SP1 verifier contract.
     /// @dev This can either be a specific SP1Verifier for a specific version, or the
@@ -37,10 +37,14 @@ contract AlignedProofAggregationService is
     /// if the sp1 verifier address is set to this address, then we skip verification
     address public constant VERIFIER_MOCK_ADDRESS = address(0xFF);
 
-    /// @notice A map to track aggregation program IDs (image IDs for RISC Zero or vk hashes for SP1)
-    /// with their proving system. These program IDs are used to validate that the proofs to verify are indeed from
-    /// a trusted aggregation program.
-    mapping(bytes32 => uint8) public programIds;
+    /// @notice Proving system ID for SP1
+    uint8 public constant SP1_ID = 1;
+
+    /// @notice Proving system ID for RISC0
+    uint8 public constant RISC0_ID = 2;
+
+    /// @notice Maps allowed verifiers commitments to their proving system. If the verifier is not a valid one, it returns 0 and is considered invalid
+    mapping(bytes32 => uint8) public allowedVerifiersProvingSystem;
 
     constructor() {
         _disableInitializers();
@@ -51,8 +55,8 @@ contract AlignedProofAggregationService is
         address _alignedAggregatorAddress,
         address _sp1VerifierAddress,
         address _risc0VerifierAddress,
-        bytes32[] memory _programIds,
-        uint8[] memory _verifierTypes
+        bytes32 _risc0AggregatorProgramImageId,
+        bytes32 _sp1AggregatorProgramVKHash
     ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
@@ -60,77 +64,76 @@ contract AlignedProofAggregationService is
         alignedAggregatorAddress = _alignedAggregatorAddress;
         sp1VerifierAddress = _sp1VerifierAddress;
         risc0VerifierAddress = _risc0VerifierAddress;
-        for (uint256 i = 0; i < _programIds.length; i++) {
-            programIds[_programIds[i]] = _verifierTypes[i];
-        }
+        allowedVerifiersProvingSystem[_risc0AggregatorProgramImageId] = RISC0_ID;
+        allowedVerifiersProvingSystem[_sp1AggregatorProgramVKHash] = SP1_ID;
     }
 
-    function verifySP1(bytes32 blobVersionedHash, bytes calldata sp1PublicValues, bytes calldata sp1ProofBytes, bytes32 programId)
+    function verifyAggregationSP1(bytes32 blobVersionedHash, bytes calldata sp1PublicValues, bytes calldata sp1ProofBytes, bytes32 verifierProgramCommitment)
         public
         onlyAlignedAggregator
     {
         (bytes32 merkleRoot) = abi.decode(sp1PublicValues, (bytes32));
 
-        if (programIds[programId] != uint8(IAlignedProofAggregationService.VerifierType.SP1)) {
-            revert InvalidProgramId(programId, IAlignedProofAggregationService.VerifierType.SP1, programIds[programId]);
+        if (allowedVerifiersProvingSystem[verifierProgramCommitment] != SP1_ID) {
+            revert InvalidVerifyingProgram(verifierProgramCommitment, SP1_ID, allowedVerifiersProvingSystem[verifierProgramCommitment]);
         }
 
         // In dev mode, proofs are mocked, so we skip the verification part
         if (_isSP1VerificationEnabled()) {
-            ISP1Verifier(sp1VerifierAddress).verifyProof(programId, sp1PublicValues, sp1ProofBytes);
+            ISP1Verifier(sp1VerifierAddress).verifyProof(verifierProgramCommitment, sp1PublicValues, sp1ProofBytes);
         }
 
-        aggregatedProofs[merkleRoot] = true;
+        isMerkleRootVerified[merkleRoot] = true;
         emit AggregatedProofVerified(merkleRoot, blobVersionedHash);
     }
 
-    function verifyRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes, bytes32 programId)
+    function verifyAggregationRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes, bytes32 verifierProgramCommitment)
         public
         onlyAlignedAggregator
     {
         (bytes32 merkleRoot) = abi.decode(risc0JournalBytes, (bytes32));
 
-        if (programIds[programId] != uint8(IAlignedProofAggregationService.VerifierType.RISC0)) {
-            revert InvalidProgramId(programId, IAlignedProofAggregationService.VerifierType.RISC0, programIds[programId]);
+        if (allowedVerifiersProvingSystem[verifierProgramCommitment] != RISC0_ID) {
+            revert InvalidVerifyingProgram(verifierProgramCommitment, RISC0_ID, allowedVerifiersProvingSystem[verifierProgramCommitment]);
         }
 
         // In dev mode, proofs are mocked, so we skip the verification part
         if (_isRisc0VerificationEnabled()) {
             bytes32 risc0JournalDigest = sha256(risc0JournalBytes);
             IRiscZeroVerifier(risc0VerifierAddress).verify(
-                risc0ReceiptSeal, programId, risc0JournalDigest
+                risc0ReceiptSeal, verifierProgramCommitment, risc0JournalDigest
             );
         }
 
-        aggregatedProofs[merkleRoot] = true;
+        isMerkleRootVerified[merkleRoot] = true;
         emit AggregatedProofVerified(merkleRoot, blobVersionedHash);
     }
 
     /// @notice Verifies the inclusion of proof in an aggregated proof via Merkle tree proof.
     ///
     /// @dev
-    /// - The `programId` parameter represents the unique identifier for the vm program:
+    /// - The `programCommitment` parameter represents the unique identifier for the vm program:
     ///   - In RISC Zero, this corresponds to the `image_id`.
     ///   - In SP1, this corresponds to the `vk` (verification key) hash.
-    /// - The proof commitment is derived by hashing together the `programId` and the `publicInputs`.
+    /// - The proof commitment is derived by hashing together the `programCommitment` and the `publicInputs`.
     /// - The `merklePath` is then used to compute the Merkle root from this commitment.
     /// - The function returns `true` if this Merkle root is known to correspond to a valid aggregated proof.
     ///
     /// @param merklePath The Merkle proof (sibling hashes) needed to reconstruct the Merkle root.
     /// @param provingSystemId The id of the proving system (1 for SP1, 2 for RISC0).
-    /// @param programId The identifier for the ZK program (image_id in RISC0 or vk hash in SP1).
-    /// @param publicInputs The public inputs bytes of the proof.
+    /// @param programCommitment The commitment of the program sent to Aligned (image_id in RISC0 or vk hash in SP1).
+    /// @param publicInputs The public inputs bytes of the proof sent to Aligned.
     ///
     /// @return bool Returns true if the computed Merkle root is a recognized valid aggregated proof.
-    function verifyProofInclusion(
+    function isProofVerified(
         bytes32[] calldata merklePath,
         uint16 provingSystemId,
-        bytes32 programId,
+        bytes32 programCommitment,
         bytes calldata publicInputs
     ) public view returns (bool) {
-        bytes32 proofCommitment = keccak256(abi.encodePacked(provingSystemId, programId, publicInputs));
+        bytes32 proofCommitment = keccak256(abi.encodePacked(provingSystemId, programCommitment, publicInputs));
         bytes32 merkleRoot = MerkleProof.processProofCalldata(merklePath, proofCommitment);
-        return aggregatedProofs[merkleRoot];
+        return isMerkleRootVerified[merkleRoot];
     }
 
     function _isSP1VerificationEnabled() internal view returns (bool) {
@@ -154,13 +157,13 @@ contract AlignedProofAggregationService is
         _;
     }
 
-    /// @notice Modifier to ensure the provided verifier type is one of the valid enum values.
-    modifier onValidVerifierType(IAlignedProofAggregationService.VerifierType verifierType) {
-        if (verifierType != IAlignedProofAggregationService.VerifierType.SP1 &&
-            verifierType != IAlignedProofAggregationService.VerifierType.RISC0){
-                revert IAlignedProofAggregationService.InvalidVerifierType(uint8(verifierType));
+    /// @notice Modifier to ensure the provided proving system ID is one of the valid values.
+    modifier onValidProvingSystemId(uint8 provingSystemId) {
+        if (provingSystemId != SP1_ID &&
+            provingSystemId != RISC0_ID){
+                revert IAlignedProofAggregationService.InvalidProvingSystemId(provingSystemId);
             }
-            
+
         _;
     }
 
@@ -178,31 +181,30 @@ contract AlignedProofAggregationService is
         emit SP1VerifierAddressUpdated(_sp1VerifierAddress);
     }
 
-    /// @notice Adds a new program ID to the list of valid program IDs.
-    /// @param programId The program ID to add (image ID for RISC0 or vk hash for SP1).
-    /// @param verifierType The type of verifier associated with the program ID.
-    function addProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType)
+    /// @notice Allows a new verifying program commitment to the list of valid verifying programs.
+    /// @param verifierProgramCommitment The verifying program commitment to allow (image ID for RISC0 or vk hash for SP1).
+    /// @param provingSystemId The proving system ID associated with the verifying program.
+    function allowVerifyingProgram(bytes32 verifierProgramCommitment, uint8 provingSystemId)
         external
         onlyOwner
-        onValidVerifierType(verifierType)
+        onValidProvingSystemId(provingSystemId)
     {
-        programIds[programId] = uint8(verifierType);
-        emit ProgramIdAdded(programId, verifierType);
+        allowedVerifiersProvingSystem[verifierProgramCommitment] = provingSystemId;
+        emit VerifierProgramAllowed(verifierProgramCommitment, provingSystemId);
     }
 
-    /// @notice Deletes a program ID from the list of valid program IDs.
-    /// @param programId The program ID to delete (image ID for RISC0 or vk hash for SP1).
-    function deleteProgramId(bytes32 programId, IAlignedProofAggregationService.VerifierType verifierType) external onlyOwner onValidVerifierType(verifierType) {
-        // Preserve the verifier type so we can emit it with the event
-        uint8 verifierTypeRaw = programIds[programId];
-        uint8 rawReceivedVerifierType = uint8(verifierType);
+    /// @notice Disallows a verifying program commitment from the list of valid verifying programs.
+    /// @param verifierProgramCommitment The verifying program commitment to disallow (image ID for RISC0 or vk hash for SP1).
+    function disallowVerifyingProgram(bytes32 verifierProgramCommitment, uint8 provingSystemId) external onlyOwner onValidProvingSystemId(provingSystemId) {
+        // Preserve the proving system ID so we can emit it with the event
+        uint8 provingSystemIdRaw = allowedVerifiersProvingSystem[verifierProgramCommitment];
 
-        // Check if the obtained verifier type matches the one received by param
-        if (verifierTypeRaw != rawReceivedVerifierType) {
-            revert IAlignedProofAggregationService.VerifierTypeMismatch(verifierTypeRaw, rawReceivedVerifierType);
+        // Check if the obtained proving system ID matches the one received by param
+        if (provingSystemIdRaw != provingSystemId) {
+            revert IAlignedProofAggregationService.ProvingSystemIdMismatch(provingSystemIdRaw, provingSystemId);
         }
 
-        delete programIds[programId];
-        emit ProgramIdDeleted(programId, IAlignedProofAggregationService.VerifierType(verifierTypeRaw));
+        delete allowedVerifiersProvingSystem[verifierProgramCommitment];
+        emit VerifierProgramDisallowed(verifierProgramCommitment, provingSystemIdRaw);
     }
 }

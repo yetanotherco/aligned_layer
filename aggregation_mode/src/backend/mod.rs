@@ -173,7 +173,7 @@ impl ProofAggregator {
         let tx_req = match aggregated_proof {
             AlignedProof::SP1(proof) => self
                 .proof_aggregation_service
-                .verifySP1(
+                .verifyAggregationSP1(
                     blob_versioned_hash.into(),
                     proof.proof_with_pub_values.public_values.to_vec().into(),
                     proof.proof_with_pub_values.bytes().into(),
@@ -186,7 +186,7 @@ impl ProofAggregator {
                     AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
                 })?;
                 self.proof_aggregation_service
-                    .verifyRisc0(
+                    .verifyAggregationRisc0(
                         blob_versioned_hash.into(),
                         encoded_seal.into(),
                         proof.receipt.journal.bytes.into(),

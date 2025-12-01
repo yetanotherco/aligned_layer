@@ -25,24 +25,16 @@ contract AlignedProofAggregationServiceDeployer is Script {
 
         AlignedProofAggregationService alignedProofAggregationService = new AlignedProofAggregationService();
 
-        bytes32[] memory programIds = new bytes32[](2);
-        programIds[0] = risc0AggregationProgramImageId;
-        programIds[1] = sp1AggregationProgramVKHash;
-
-        uint8[] memory verifierTypes = new uint8[](2);
-        verifierTypes[0] = uint8(IAlignedProofAggregationService.VerifierType.RISC0);
-        verifierTypes[1] = uint8(IAlignedProofAggregationService.VerifierType.SP1);
-
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(alignedProofAggregationService),
             abi.encodeWithSignature(
-                "initialize(address,address,address,address,bytes32[],uint8[])",
+                "initialize(address,address,address,address,bytes32,bytes32)",
                 ownerAddress,
                 alignedAggregatorAddress,
                 sp1VerifierAddress,
                 risc0VerifierAddress,
-                programIds,
-                verifierTypes
+                risc0AggregationProgramImageId,
+                sp1AggregationProgramVKHash
             )
         );
 

@@ -74,11 +74,11 @@ make proof_aggregator_write_program_ids
 
 We are using docker to produce deterministic builds so that the program ids are the same for all systems.
 
-### Updating the program id in `AlignedProofAggregationService` contract
+### Updating the verifier program commitment in `AlignedProofAggregationService` contract
 
-If the program ids have changed, you will also need to add the updated one to the `AlignedProofAggregationService` contract. You can do this by calling the `addProgramId` method with the new image ID and the verifier type number as parameters (you can check the last parameter in the VerifierType definition at `contracts/src/core/AlignedProofAggregationService.sol`).
+If the verifier program commitments have changed, you will also need to add the updated one to the `AlignedProofAggregationService` contract. You can do this by calling the `allowVerifyingProgram` method with the new commitment and the proving system ID as parameters (you can check the last parameter in the ProvingSystemId definition at `contracts/src/core/IAlignedProofAggregationService.sol`).
 
-You can fetch the program ID values from the following:
+You can fetch the verifier program commitment values from the following:
 
 - Risc0: Use the value of `risc0_chunk_aggregator_image_id` from `aggregation_mode/program_ids.json`.
 - SP1: Use the value of `sp1_chunk_aggregator_vk_hash` from `aggregation_mode/program_ids.json`.

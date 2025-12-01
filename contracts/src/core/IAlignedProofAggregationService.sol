@@ -10,11 +10,11 @@ interface IAlignedProofAggregationService {
     /// @notice Event emitted when the SP1 verifier address is updated
     event SP1VerifierAddressUpdated(address indexed newAddress);
     
-    /// @notice Event emitted when a new program ID is added
-    event ProgramIdAdded(bytes32 indexed programId, VerifierType verifierType);
+    /// @notice Event emitted when a verifier program is allowed
+    event VerifierProgramAllowed(bytes32 indexed verifierProgramCommitment, uint8 provingSystemId);
 
-    /// @notice Event emitted when a program ID is deleted
-    event ProgramIdDeleted(bytes32 indexed programId, VerifierType verifierType);
+    /// @notice Event emitted when a verifier program is disallowed
+    event VerifierProgramDisallowed(bytes32 indexed verifierProgramCommitment, uint8 provingSystemId);
 
     /// @notice Method to verify an aggregated proof from aligned
     /// @dev This function is called by the aligned proof aggregator after collecting the proofs and aggregating them
@@ -22,17 +22,17 @@ interface IAlignedProofAggregationService {
     /// @param blobVersionedHash the versioned hash of the blob transaction that contains the leaves that compose the merkle root.
     /// @param sp1PublicValues Values used to perform the execution
     /// @param sp1ProofBytes Groth16 proof
-    /// @param programId The chunk aggregator program ID against which the proof should be verified
-    function verifySP1(bytes32 blobVersionedHash, bytes calldata sp1PublicValues, bytes calldata sp1ProofBytes, bytes32 programId)
+    /// @param verifierProgramCommitment The chunk aggregator verifier program commitment against which the proof should be verified
+    function verifyAggregationSP1(bytes32 blobVersionedHash, bytes calldata sp1PublicValues, bytes calldata sp1ProofBytes, bytes32 verifierProgramCommitment)
         external;
 
-    function verifyRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes, bytes32 programId)
+    function verifyAggregationRisc0(bytes32 blobVersionedHash, bytes calldata risc0ReceiptSeal, bytes calldata risc0JournalBytes, bytes32 verifierProgramCommitment)
         external;
 
-    function verifyProofInclusion(
+    function isProofVerified(
         bytes32[] calldata merklePath,
         uint16 provingSystemId,
-        bytes32 programId,
+        bytes32 programCommitment,
         bytes calldata publicInputs
     ) external view returns (bool);
 
@@ -44,27 +44,21 @@ interface IAlignedProofAggregationService {
     /// @param _sp1VerifierAddress The new address for the SP1 verifier contract
     function setSP1VerifierAddress(address _sp1VerifierAddress) external;
 
-    /// @notice Adds a new program ID with its verifier type
-    /// @param programId The program ID to add
-    /// @param verifierType The type of verifier (SP1 or RISC0)
-    function addProgramId(bytes32 programId, VerifierType verifierType) external;
+    /// @notice Allows a new verifier program commitment with its proving system ID
+    /// @param verifierProgramCommitment The verifier program commitment to allow
+    /// @param provingSystemId The proving system ID (1 for SP1, 2 for RISC0)
+    function allowVerifyingProgram(bytes32 verifierProgramCommitment, uint8 provingSystemId) external;
 
-    /// @notice Deletes an existing program ID
-    /// @param programId The program ID to delete
-    /// @param verifierType The type of verifier (SP1 or RISC0)
-    function deleteProgramId(bytes32 programId, VerifierType verifierType) external;
+    /// @notice Disallows an existing verifier program commitment
+    /// @param verifierProgramCommitment The verifier program commitment to disallow
+    /// @param provingSystemId The proving system ID (1 for SP1, 2 for RISC0)
+    function disallowVerifyingProgram(bytes32 verifierProgramCommitment, uint8 provingSystemId) external;
 
     error OnlyAlignedAggregator(address sender);
 
-    error InvalidProgramId(bytes32 programId, VerifierType expected, uint8 actual);
+    error InvalidVerifyingProgram(bytes32 verifierProgramCommitment, uint8 expected, uint8 actual);
 
-    error InvalidVerifierType(uint8 actual);
+    error InvalidProvingSystemId(uint8 actual);
 
-    error VerifierTypeMismatch(uint8 expected, uint8 received);
-
-    enum VerifierType {
-        INVALID,  // If a given program does not exist in the `programId` map, it defaults to 0. This prevents non-existing keys to be considered valid in case SP1 or RISC0 were in this position
-        SP1,
-        RISC0
-    }
+    error ProvingSystemIdMismatch(uint8 expected, uint8 received);
 }
