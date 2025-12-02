@@ -23,7 +23,7 @@ pub struct Config {
     pub ecdsa: ECDSAConfig,
     pub proofs_per_chunk: u16,
     pub total_proofs_limit: u16,
-    pub monthly_eth_budget_gwei: u64,
+    pub monthly_budget_eth: f64,
 }
 
 impl Config {

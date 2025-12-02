@@ -155,7 +155,7 @@ impl ProofAggregator {
 
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
-                self.config.monthly_eth_budget_gwei,
+                self.config.monthly_budget_eth,
                 gas_price.into(),
             ) {
                 info!("Sending proof to ProofAggregationService contract...");
@@ -179,6 +179,25 @@ impl ProofAggregator {
         Ok(())
     }
 
+    fn floating_eth_to_wei(eth: f64) -> U256 {
+        let wei_in_eth = 1_000_000_000_000_000_000f64;
+        let wei = eth * wei_in_eth;
+        U256::from(wei as u64)
+    }
+
+    fn max_to_spend_in_wei(time_elapsed: Duration, monthly_eth_budget: f64) -> U256 {
+        const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
+
+        let monthly_budget_in_wei = Self::floating_eth_to_wei(monthly_eth_budget);
+
+        let elapsed_seconds = U256::from(time_elapsed.as_secs());
+
+        let budget_available_per_second_in_wei =
+            U256::from(monthly_budget_in_wei / SECONDS_PER_MONTH);
+
+        budget_available_per_second_in_wei * elapsed_seconds
+    }
+
     /// Decides whether to send the aggregated proof to be verified on-chain based on
     /// time elapsed since last submission and monthly ETH budget.
     /// We make a linear function with the eth to spend this month and the time elapsed since last submission.
@@ -186,24 +205,17 @@ impl ProofAggregator {
     fn should_send_proof_to_verify_on_chain(
         &self,
         time_elapsed: Duration,
-        monthly_eth_to_spend: u64,
-        gas_price: U256,
+        monthly_eth_budget: f64,
+        gas_price_in_wei: U256,
     ) -> bool {
-        const HOURS_PER_MONTH: f64 = 24.0 * 30.0;
+        const ON_CHAIN_COST_IN_GAS_UNITS: u64 = 600_000u64;
 
-        let elapsed_hours = time_elapsed.as_secs_f64() / 3600.0;
-        if elapsed_hours <= 0.0 {
-            return false;
-        }
+        let on_chain_cost_in_gas: U256 = U256::from(ON_CHAIN_COST_IN_GAS_UNITS);
+        let max_to_spend_in_wei = Self::max_to_spend_in_wei(time_elapsed, monthly_eth_budget);
 
-        let elapsed_hours = elapsed_hours.min(HOURS_PER_MONTH);
+        let expected_cost_in_wei = gas_price_in_wei * on_chain_cost_in_gas; // assuming 300,000 gas units per transaction
 
-        let hourly_budget_gwei = monthly_eth_to_spend as f64 / HOURS_PER_MONTH;
-        let budget_so_far_gwei = hourly_budget_gwei * elapsed_hours;
-
-        let gas_price_gwei = gas_price.as_u64() as f64 / 1_000_000_000.0;
-
-        gas_price_gwei <= budget_so_far_gwei
+        expected_cost_in_wei <= max_to_spend_in_wei
     }
 
     async fn send_proof_to_verify_on_chain(
@@ -349,9 +361,8 @@ mod tests {
 
     use super::config::Config;
 
-    #[test]
-    fn test_should_send_proof_to_verify_on_chain() {
-        // Set the AGGREGATOR env variable to "sp1" or "risc0" as its needed by ProofAggregator::new
+    fn make_aggregator() -> ProofAggregator {
+        // Set the AGGREGATOR env variable to "sp1" or "risc0" as it's needed by ProofAggregator::new
         std::env::set_var("AGGREGATOR", "sp1");
 
         let current_dir = env!("CARGO_MANIFEST_DIR");
@@ -377,44 +388,53 @@ mod tests {
             },
             proofs_per_chunk: 512,
             total_proofs_limit: 3968,
-            monthly_eth_budget_gwei: 15_000_000_000,
+            monthly_budget_eth: 15.0,
         };
 
-        let aggregator = ProofAggregator::new(config);
+        ProofAggregator::new(config)
+    }
 
-        // Test case 1: Just started, should not send
+    #[test]
+    fn test_should_send_proof_to_verify_on_chain_updated_cases() {
+        let aggregator = make_aggregator();
+
+        let gas_price_20gwei: U256 = U256::from(20_000_000_000u64);
+
         assert!(!aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(0),
-            15_000_000_000,
-            20_000_000_000u64.into(),
+            Duration::from_secs(24 * 60 * 60), // 1 day
+            1.0,
+            gas_price_20gwei,
         ));
 
-        // Test case 2: Halfway through the month, low spend, should send
         assert!(aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(24 * 3600),
+            1.0,
+            gas_price_20gwei,
+        ));
+
+        assert!(!aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(30 * 24 * 3600),
+            0.001,
+            gas_price_20gwei,
+        ));
+
+        let gas_price_high: U256 = U256::from(2_000_000_000_000u64); // 2e12 wei (~2,000 gwei)
+        assert!(!aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(15 * 24 * 3600),
-            5_000_000_000,
-            20_000_000_000u64.into(),
+            10.0,
+            gas_price_high,
         ));
 
-        // Test case 3: Near end of month, high spend -> should send (budget_so_far >> gas_price)
-        assert!(aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(28 * 24 * 3600),
-            18_000_000_000,
-            20_000_000_000u64.into(),
-        ));
-
-        // Test case 5: End of month, over budget -> with these units still sends
         assert!(aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(30 * 24 * 3600),
-            25_000_000_000,
-            20_000_000_000u64.into(),
+            0.012,
+            gas_price_20gwei,
         ));
 
-        // Test case 6: Early month, budget_so_far still > gas_price -> should send
         assert!(aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(5 * 24 * 3600),
-            10_000_000_000,
-            20_000_000_000u64.into(),
+            Duration::from_secs(2 * 24 * 3600),
+            5.0,
+            gas_price_20gwei,
         ));
     }
 }
