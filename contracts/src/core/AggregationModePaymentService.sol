@@ -32,10 +32,11 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     receive() external payable {
         uint256 amount = msg.value;
 
-        if (amount < 1) {
+        // 1 eth
+        if (amount < 1000000000000000000) {
             revert InvalidDepositAmount(amount);
         }
 
-        emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentValidUntilSeconds * amount);
+        emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentValidUntilSeconds);
     }
 }
