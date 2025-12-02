@@ -39,5 +39,6 @@ async fn main() {
     let http_server_handle = tokio::spawn(async move { http_server.start().await });
 
     // TODO: abort the process if one stops instead of waiting for them both
+    // TODO: ctrl + c handler for aborting the process should work
     let _ = tokio::join!(payment_poller_handle, http_server_handle);
 }

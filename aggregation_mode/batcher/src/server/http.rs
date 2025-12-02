@@ -1,10 +1,14 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    str::FromStr,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use sqlx::types::BigDecimal;
 
 use super::{
     helpers::format_merkle_path,
@@ -83,7 +87,7 @@ impl BatcherServer {
         let data = body.into_inner();
 
         // TODO: validate signature
-        let recovered_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+        let recovered_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".to_lowercase();
 
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
@@ -91,7 +95,7 @@ impl BatcherServer {
         };
         let state = state.get_ref();
 
-        let Ok(count) = state.db.count_proofs_by_address(recovered_address).await else {
+        let Ok(count) = state.db.count_proofs_by_address(&recovered_address).await else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
@@ -104,7 +108,7 @@ impl BatcherServer {
         }
 
         let now_epoch = match SystemTime::now().duration_since(UNIX_EPOCH) {
-            Ok(duration) => duration.as_secs() as i64,
+            Ok(duration) => duration.as_secs(),
             Err(_) => {
                 return HttpResponse::InternalServerError()
                     .json(AppResponse::new_unsucessfull("Internal server error", 500));
@@ -113,7 +117,11 @@ impl BatcherServer {
 
         let has_payment = match state
             .db
-            .has_active_payment_event(recovered_address, now_epoch)
+            .has_active_payment_event(
+                &recovered_address,
+                // safe unwrap the number comes from a valid u64 primitive
+                BigDecimal::from_str(&now_epoch.to_string()).unwrap(),
+            )
             .await
         {
             Ok(result) => result,
@@ -135,7 +143,7 @@ impl BatcherServer {
         match state
             .db
             .insert_proof(
-                recovered_address,
+                &recovered_address,
                 AggregationModeProvingSystem::SP1.as_u16() as i32,
                 &data.message.proof,
                 &data.message.program_vk_commitment,

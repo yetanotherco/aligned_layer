@@ -104,10 +104,10 @@ impl Db {
     pub async fn has_active_payment_event(
         &self,
         address: &str,
-        epoch: i64,
+        epoch: BigDecimal,
     ) -> Result<bool, sqlx::Error> {
         sqlx::query_scalar::<_, bool>(
-            "SELECT EXISTS(
+            "SELECT EXISTS (
                 SELECT 1 FROM payment_events
                 WHERE address = $1 AND started_at < $2 AND $2 < valid_until
             )",
