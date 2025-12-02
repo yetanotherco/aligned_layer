@@ -1,6 +1,7 @@
 use std::env;
 
 use agg_mode_batcher::config::Config;
+use agg_mode_batcher::payments::PaymentsPooler;
 use agg_mode_batcher::{db::Db, server::http::BatcherServer};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -16,7 +17,7 @@ fn read_config_filepath_from_args() -> String {
     args[1].clone()
 }
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() {
     let filter = EnvFilter::new("info,sp1_cuda=warn");
     let subscriber = FmtSubscriber::builder().with_env_filter(filter).finish();
@@ -31,8 +32,12 @@ async fn main() {
         .await
         .expect("db to start");
 
-    let http_server = BatcherServer::new(db.clone(), config.clone());
+    let payment_poller = PaymentsPooler::new(db.clone(), config.clone());
+    let http_server = BatcherServer::new(db, config.clone());
 
-    tracing::info!("Starting server at port {}", config.port);
-    http_server.start().await.expect("Server to keep running");
+    let payment_poller_handle = tokio::spawn(async move { payment_poller.start().await });
+    let http_server_handle = tokio::spawn(async move { http_server.start().await });
+
+    // TODO: abort the process if one stops instead of waiting for them both
+    let _ = tokio::join!(payment_poller_handle, http_server_handle);
 }

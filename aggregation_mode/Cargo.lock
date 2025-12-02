@@ -254,11 +254,13 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "aligned-sdk",
+ "alloy",
  "hex",
  "serde",
  "serde_json",
  "serde_yaml",
  "sqlx",
+ "tokio",
  "tracing",
  "tracing-subscriber 0.3.22",
 ]
@@ -2045,6 +2047,19 @@ name = "bech32"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d86b93f97252c47b41663388e6d155714a9d0c398b99f1005cbc5f978b29f445"
+
+[[package]]
+name = "bigdecimal"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a22f228ab7a1b23027ccc6c350b72868017af7ea8356fbdf19f8d991c690013"
+dependencies = [
+ "autocfg",
+ "libm",
+ "num-bigint 0.4.6",
+ "num-integer",
+ "num-traits",
+]
 
 [[package]]
 name = "bincode"
@@ -9614,6 +9629,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee6798b1838b6a0f69c007c133b8df5866302197e404e8b6ee8ed3e3a5e68dc6"
 dependencies = [
  "base64 0.22.1",
+ "bigdecimal",
  "bytes",
  "crc",
  "crossbeam-queue",
@@ -9688,6 +9704,7 @@ checksum = "aa003f0038df784eb8fecbbac13affe3da23b45194bd57dba231c8f48199c526"
 dependencies = [
  "atoi",
  "base64 0.22.1",
+ "bigdecimal",
  "bitflags 2.10.0",
  "byteorder",
  "bytes",
@@ -9731,6 +9748,7 @@ checksum = "db58fcd5a53cf07c184b154801ff91347e4c30d17a3562a635ff028ad5deda46"
 dependencies = [
  "atoi",
  "base64 0.22.1",
+ "bigdecimal",
  "bitflags 2.10.0",
  "byteorder",
  "crc",
@@ -9747,6 +9765,7 @@ dependencies = [
  "log",
  "md-5",
  "memchr",
+ "num-bigint 0.4.6",
  "once_cell",
  "rand 0.8.5",
  "serde",

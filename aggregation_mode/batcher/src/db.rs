@@ -1,4 +1,8 @@
-use sqlx::{postgres::PgPoolOptions, types::Uuid, Pool, Postgres};
+use sqlx::{
+    postgres::PgPoolOptions,
+    types::{BigDecimal, Uuid},
+    Pool, Postgres,
+};
 
 #[derive(Clone, Debug)]
 pub struct Db {
@@ -74,10 +78,33 @@ impl Db {
         .await
     }
 
+    pub async fn insert_payment_event(
+        &self,
+        address: &str,
+        started_at: &BigDecimal,
+        amount: &BigDecimal,
+        valid_until: &BigDecimal,
+        tx_hash: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            "INSERT INTO payment_events (address, started_at, amount, valid_until, tx_hash)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (tx_hash) DO NOTHING",
+        )
+        .bind(address)
+        .bind(started_at)
+        .bind(amount)
+        .bind(valid_until)
+        .bind(tx_hash)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
     pub async fn has_active_payment_event(
         &self,
         address: &str,
-        now_ts: i64,
+        epoch: i64,
     ) -> Result<bool, sqlx::Error> {
         sqlx::query_scalar::<_, bool>(
             "SELECT EXISTS(
@@ -86,7 +113,7 @@ impl Db {
             )",
         )
         .bind(address)
-        .bind(now_ts)
+        .bind(epoch)
         .fetch_one(&self.pool)
         .await
     }

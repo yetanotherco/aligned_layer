@@ -18,6 +18,8 @@ CREATE TABLE proofs (
 CREATE TABLE payment_events (
     payment_event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     address CHAR(42),
-    started_at INTEGER,
-    valid_until INTEGER
+    amount BIGINT,
+    started_at BIGINT,
+    valid_until BIGINT,
+    tx_hash CHAR(66) UNIQUE
 );
