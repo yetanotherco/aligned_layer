@@ -208,12 +208,13 @@ impl ProofAggregator {
         monthly_eth_budget: f64,
         gas_price_in_wei: U256,
     ) -> bool {
+        // We assume a fixed gas cost of 300,000 for each of the 2 transactions
         const ON_CHAIN_COST_IN_GAS_UNITS: u64 = 600_000u64;
 
         let on_chain_cost_in_gas: U256 = U256::from(ON_CHAIN_COST_IN_GAS_UNITS);
         let max_to_spend_in_wei = Self::max_to_spend_in_wei(time_elapsed, monthly_eth_budget);
 
-        let expected_cost_in_wei = gas_price_in_wei * on_chain_cost_in_gas; // assuming 300,000 gas units per transaction
+        let expected_cost_in_wei = gas_price_in_wei * on_chain_cost_in_gas;
 
         expected_cost_in_wei <= max_to_spend_in_wei
     }
@@ -400,41 +401,67 @@ mod tests {
 
         let gas_price_20gwei: U256 = U256::from(20_000_000_000u64);
 
+        // With 0 seconds elapsed and 1 ETH budget, we cannot send the proof
         assert!(!aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(24 * 60 * 60), // 1 day
+            Duration::from_secs(0),
             1.0,
             gas_price_20gwei,
         ));
 
+        // After 24 hours and 1 ETH monthly budget, we can send the proof
         assert!(aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(24 * 3600),
             1.0,
             gas_price_20gwei,
         ));
 
+        // After 24 hours and a very low budget, we cannot send the proof
+        assert!(!aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(24 * 3600),
+            0.00325,
+            U256::from(0_200_000_000u64),
+        ));
+
+        // After 27 hours with the same budget as before, we can send the proof
+        assert!(aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(27 * 3600),
+            0.00325,
+            U256::from(0_200_000_000u64),
+        ));
+
+        // After 30 days but with a very low budget, we cannot send the proof
         assert!(!aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(30 * 24 * 3600),
             0.001,
             gas_price_20gwei,
         ));
 
-        let gas_price_high: U256 = U256::from(2_000_000_000_000u64); // 2e12 wei (~2,000 gwei)
-        assert!(!aggregator.should_send_proof_to_verify_on_chain(
+        // After 15 days, a moderate budget and a high gas price, we can still send the proof
+        assert!(aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(15 * 24 * 3600),
             10.0,
-            gas_price_high,
+            U256::from(2_000_000_000_000u64),
         ));
 
-        assert!(aggregator.should_send_proof_to_verify_on_chain(
+        // After 30 days and a medium budget, we cannot send the proof
+        assert!(!aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(30 * 24 * 3600),
             0.012,
             gas_price_20gwei,
         ));
 
+        // After 2 days and a reasonable budget, we can send the proof
         assert!(aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(2 * 24 * 3600),
             5.0,
             gas_price_20gwei,
+        ));
+
+        // After 10 days and a medium budget with a very high gas price, we cannot send the proof
+        assert!(!aggregator.should_send_proof_to_verify_on_chain(
+            Duration::from_secs(10 * 24 * 3600),
+            2.0,
+            U256::from(100_000_000_000_000u64),
         ));
     }
 }
