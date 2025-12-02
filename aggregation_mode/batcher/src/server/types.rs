@@ -1,4 +1,3 @@
-use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

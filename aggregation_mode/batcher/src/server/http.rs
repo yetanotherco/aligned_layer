@@ -1,7 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use actix_web::{
-    http::StatusCode,
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
@@ -31,11 +30,12 @@ impl BatcherServer {
         Self { db, config }
     }
 
-    pub async fn start(&self) -> Result<(), std::io::Error> {
+    pub async fn start(&self) {
         // Note: BatcherServer is thread safe so we can just clone it (no need to add mutexes)
         let port = self.config.port;
         let state = self.clone();
 
+        tracing::info!("Starting server at port {}", self.config.port);
         HttpServer::new(move || {
             App::new()
                 .app_data(Data::new(state.clone()))
@@ -44,9 +44,11 @@ impl BatcherServer {
                 .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
                 .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
         })
-        .bind(("127.0.0.1", port))?
+        .bind(("127.0.0.1", port))
+        .expect("To bind socket correctly")
         .run()
         .await
+        .expect("Server to never end");
     }
 
     async fn get_nonce(req: HttpRequest) -> impl Responder {
@@ -74,7 +76,6 @@ impl BatcherServer {
         }
     }
 
-    // TODO: receive the proof and 1. decode it, 2. verify it, 3. add to the db
     async fn post_proof_sp1(
         req: HttpRequest,
         body: web::Json<SubmitProofRequest<SubmitProofRequestMessageSP1>>,
@@ -82,7 +83,7 @@ impl BatcherServer {
         let data = body.into_inner();
 
         // TODO: validate signature
-        let recovered_address = "0x0000000000000000000000000000000000000000";
+        let recovered_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
@@ -102,7 +103,7 @@ impl BatcherServer {
             ));
         }
 
-        let now_ts = match SystemTime::now().duration_since(UNIX_EPOCH) {
+        let now_epoch = match SystemTime::now().duration_since(UNIX_EPOCH) {
             Ok(duration) => duration.as_secs() as i64,
             Err(_) => {
                 return HttpResponse::InternalServerError()
@@ -112,7 +113,7 @@ impl BatcherServer {
 
         let has_payment = match state
             .db
-            .has_active_payment_event(recovered_address, now_ts)
+            .has_active_payment_event(recovered_address, now_epoch)
             .await
         {
             Ok(result) => result,
@@ -128,6 +129,8 @@ impl BatcherServer {
                 400,
             ));
         }
+
+        // TODO: decode proof and validate it
 
         match state
             .db
