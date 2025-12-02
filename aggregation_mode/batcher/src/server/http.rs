@@ -1,4 +1,7 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use actix_web::{
+    http::StatusCode,
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
@@ -9,7 +12,13 @@ use super::{
     types::{AppResponse, ProofMerkleQuery},
 };
 
-use crate::{config::Config, db::Db, server::types::SubmitProofRequest};
+use crate::{
+    config::Config,
+    db::Db,
+    server::types::{
+        SubmitProofRequest, SubmitProofRequestMessageRisc0, SubmitProofRequestMessageSP1,
+    },
+};
 
 #[derive(Clone, Debug)]
 pub struct BatcherServer {
@@ -60,23 +69,20 @@ impl BatcherServer {
                     "nonce": count
                 }
             ))),
-            Err(err) => {
-                tracing::error!(error = ?err, "failed to count proofs");
-                HttpResponse::InternalServerError()
-                    .json(AppResponse::new_unsucessfull("Internal server error", 500))
-            }
+            Err(_) => HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500)),
         }
     }
 
     // TODO: receive the proof and 1. decode it, 2. verify it, 3. add to the db
     async fn post_proof_sp1(
         req: HttpRequest,
-        body: web::Json<SubmitProofRequest>,
+        body: web::Json<SubmitProofRequest<SubmitProofRequestMessageSP1>>,
     ) -> impl Responder {
         let data = body.into_inner();
 
         // TODO: validate signature
-        let recovered_address = "";
+        let recovered_address = "0x0000000000000000000000000000000000000000";
 
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
@@ -85,16 +91,68 @@ impl BatcherServer {
         let state = state.get_ref();
 
         let Ok(count) = state.db.count_proofs_by_address(recovered_address).await else {
-            return HttpResponse::InternalServerError().finish();
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
-        HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
+        if data.nonce != (count as u64) {
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                &format!("Invalid nonce, expected nonce = {count}"),
+                400,
+            ));
+        }
+
+        let now_ts = match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(duration) => duration.as_secs() as i64,
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            }
+        };
+
+        let has_payment = match state
+            .db
+            .has_active_payment_event(recovered_address, now_ts)
+            .await
+        {
+            Ok(result) => result,
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            }
+        };
+
+        if !has_payment {
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                "You have to pay before submitting a proof",
+                400,
+            ));
+        }
+
+        match state
+            .db
+            .insert_proof(
+                recovered_address,
+                AggregationModeProvingSystem::SP1.as_u16() as i32,
+                &data.message.proof,
+                &data.message.program_vk_commitment,
+                None,
+                None,
+            )
+            .await
+        {
+            Ok(proof_id) => HttpResponse::Ok().json(AppResponse::new_sucessfull(
+                serde_json::json!({ "proof_id": proof_id.to_string() }),
+            )),
+            Err(_) => HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500)),
+        }
     }
 
     /// TODO: complete for risc0 (see `post_proof_sp1`)
     async fn post_proof_risc0(
         _req: HttpRequest,
-        _body: web::Json<SubmitProofRequest>,
+        _body: web::Json<SubmitProofRequest<SubmitProofRequestMessageRisc0>>,
     ) -> impl Responder {
         HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
     }

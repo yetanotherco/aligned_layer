@@ -27,24 +27,26 @@ impl AppResponse {
     }
 }
 
-// TODO: move this to the sdk once ready
-
 #[derive(Deserialize, Clone)]
 pub(super) struct ProofMerkleQuery {
     pub id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub(super) struct SubmitProofRequest {
-    pub message: SubmitProofRequestMessage,
+pub(super) struct SubmitProofRequest<T> {
+    pub nonce: u64,
+    pub message: T,
     pub signature: String,
+}
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub(super) struct SubmitProofRequestMessageSP1 {
+    pub proof: Vec<u8>,
+    pub program_vk_commitment: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub(super) struct SubmitProofRequestMessage {
-    pub nonce: u64,
-    pub proving_system_id: AggregationModeProvingSystem,
+pub(super) struct SubmitProofRequestMessageRisc0 {
     pub proof: Vec<u8>,
-    pub public_inputs: Option<Vec<u8>>,
-    pub program_id: Vec<u8>,
+    pub program_image_id: Vec<u8>,
+    pub public_inputs: Vec<u8>,
 }

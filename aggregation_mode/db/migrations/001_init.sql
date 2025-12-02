@@ -9,10 +9,8 @@ CREATE TABLE proofs (
     proof_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     address CHAR(42), 
     proving_system_id INT,
-    vm_program_code BYTEA,
     proof BYTEA,
-    public_inputs BYTEA,
-    proof_commitment BYTEA,
+    program_commitment BYTEA,
     merkle_path BYTEA,
     task_id UUID REFERENCES tasks(task_id)
 );
