@@ -10,6 +10,7 @@
     "risc0AggregationProgramImageId": "0xd8cfdd5410c70395c0a1af1842a0148428cc46e353355faccfba694dd4862dbf"
   },
   "permissions": {
-    "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
+    "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+    "paymentServiceOwner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
   }
 }
