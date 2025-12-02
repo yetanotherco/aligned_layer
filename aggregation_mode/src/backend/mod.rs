@@ -192,8 +192,7 @@ impl ProofAggregator {
 
         let elapsed_seconds = U256::from(time_elapsed.as_secs());
 
-        let budget_available_per_second_in_wei =
-            U256::from(monthly_budget_in_wei / SECONDS_PER_MONTH);
+        let budget_available_per_second_in_wei = monthly_budget_in_wei / SECONDS_PER_MONTH;
 
         budget_available_per_second_in_wei * elapsed_seconds
     }
