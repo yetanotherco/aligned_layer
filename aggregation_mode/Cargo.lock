@@ -253,6 +253,7 @@ name = "agg_mode_batcher"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "aligned-sdk",
  "hex",
  "serde",
  "serde_json",

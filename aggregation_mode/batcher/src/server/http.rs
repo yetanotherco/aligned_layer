@@ -1,15 +1,15 @@
 use actix_web::{
-    web::{self, Data, Query},
+    web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use serde::Deserialize;
+use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 
 use super::{
     helpers::format_merkle_path,
     types::{AppResponse, ProofMerkleQuery},
 };
 
-use crate::{config::Config, db::Db};
+use crate::{config::Config, db::Db, server::types::SubmitProofRequest};
 
 #[derive(Clone, Debug)]
 pub struct BatcherServer {
@@ -32,7 +32,8 @@ impl BatcherServer {
                 .app_data(Data::new(state.clone()))
                 .route("/nonce/{address}", web::get().to(Self::get_nonce))
                 .route("/proof/merkle", web::get().to(Self::get_proof_merkle_path))
-                .route("/proof", web::post().to(Self::post_proof))
+                .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
+                .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
         })
         .bind(("127.0.0.1", port))?
         .run()
@@ -61,14 +62,41 @@ impl BatcherServer {
             ))),
             Err(err) => {
                 tracing::error!(error = ?err, "failed to count proofs");
-                HttpResponse::InternalServerError().finish()
+                HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500))
             }
         }
     }
 
     // TODO: receive the proof and 1. decode it, 2. verify it, 3. add to the db
-    async fn post_proof(req: HttpRequest) -> impl Responder {
-        HttpResponse::Ok()
+    async fn post_proof_sp1(
+        req: HttpRequest,
+        body: web::Json<SubmitProofRequest>,
+    ) -> impl Responder {
+        let data = body.into_inner();
+
+        // TODO: validate signature
+        let recovered_address = "";
+
+        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+        let state = state.get_ref();
+
+        let Ok(count) = state.db.count_proofs_by_address(recovered_address).await else {
+            return HttpResponse::InternalServerError().finish();
+        };
+
+        HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
+    }
+
+    /// TODO: complete for risc0 (see `post_proof_sp1`)
+    async fn post_proof_risc0(
+        _req: HttpRequest,
+        _body: web::Json<SubmitProofRequest>,
+    ) -> impl Responder {
+        HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
     }
 
     async fn get_proof_merkle_path(
@@ -111,7 +139,7 @@ impl BatcherServer {
                     404,
                 ))
             }
-            Err(s) => {
+            Err(_) => {
                 return HttpResponse::InternalServerError()
                     .json(AppResponse::new_unsucessfull("Internal server error", 500));
             }

@@ -2,7 +2,7 @@ CREATE TYPE task_status AS ENUM ('pending', 'verified');
 
 CREATE TABLE tasks (
     task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    status task_status
+    status task_status DEFAULT 'pending'
 );
 
 CREATE TABLE proofs (
