@@ -1,7 +1,7 @@
 use std::env;
 
 use agg_mode_batcher::config::Config;
-use agg_mode_batcher::payments::PaymentsPooler;
+use agg_mode_batcher::payments::PaymentsPoller;
 use agg_mode_batcher::{db::Db, server::http::BatcherServer};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -9,7 +9,7 @@ fn read_config_filepath_from_args() -> String {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         panic!(
-            "You mus provide a config file. Usage: {} <config-file-path>",
+            "You must provide a config file. Usage: {} <config-file-path>",
             args[0]
         );
     }
@@ -32,7 +32,7 @@ async fn main() {
         .await
         .expect("db to start");
 
-    let payment_poller = PaymentsPooler::new(db.clone(), config.clone());
+    let payment_poller = PaymentsPoller::new(db.clone(), config.clone());
     let http_server = BatcherServer::new(db, config.clone());
 
     let payment_poller_handle = tokio::spawn(async move { payment_poller.start().await });

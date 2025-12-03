@@ -12,7 +12,7 @@ use sqlx::types::BigDecimal;
 
 use super::{
     helpers::format_merkle_path,
-    types::{AppResponse, ProofMerkleQuery},
+    types::{AppResponse, GetProofMerklePathQueryParams},
 };
 
 use crate::{
@@ -169,7 +169,7 @@ impl BatcherServer {
 
     async fn get_proof_merkle_path(
         req: HttpRequest,
-        params: web::Query<ProofMerkleQuery>,
+        params: web::Query<GetProofMerklePathQueryParams>,
     ) -> impl Responder {
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()

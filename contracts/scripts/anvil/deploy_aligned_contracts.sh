@@ -106,7 +106,7 @@ aggregation_mode_payment_service_output=./script/output/devnet/aggregation_mode_
 proof_aggregation_service_temp1=$proof_aggregation_service_output.temp1.json
 proof_aggregation_service_temp2=$proof_aggregation_service_output.temp2.json
 
-forge script script/deploy/AggregationModePaymentService.s.sol \
+forge script script/deploy/AggregationModePaymentServiceDeployer.s.sol \
     ./script/deploy/config/devnet/proof-aggregator-service.devnet.config.json \
     $aggregation_mode_payment_service_output \
     --rpc-url "http://localhost:8545" \

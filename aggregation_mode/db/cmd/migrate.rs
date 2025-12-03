@@ -4,7 +4,7 @@ fn read_db_conn_from_args() -> String {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
         panic!(
-            "You mus provide a config file. Usage: {} <config-file-path>",
+            "You must provide a config file. Usage: {} <config-file-path>",
             args[0]
         );
     }

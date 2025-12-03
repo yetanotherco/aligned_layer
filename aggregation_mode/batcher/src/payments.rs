@@ -50,13 +50,13 @@ type RpcProvider = alloy::providers::fillers::FillProvider<
     alloy::providers::RootProvider,
 >;
 
-pub struct PaymentsPooler {
+pub struct PaymentsPoller {
     db: Db,
     proof_aggregation_service: AggregationModePaymentServiceContract,
     rpc_provider: RpcProvider,
 }
 
-impl PaymentsPooler {
+impl PaymentsPoller {
     pub fn new(db: Db, config: Config) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let rpc_provider = ProviderBuilder::new().connect_http(rpc_url);
