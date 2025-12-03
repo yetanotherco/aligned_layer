@@ -33,10 +33,6 @@ contract AlignedProofAggregationService is
     /// https://dev.risczero.com/api/blockchain-integration/contracts/verifier#contract-addresses
     address public risc0VerifierAddress;
 
-    /// @notice whether we are in dev mode or not
-    /// if the sp1 verifier address is set to this address, then we skip verification
-    address public constant VERIFIER_MOCK_ADDRESS = address(0xFF);
-
     /// @notice Proving system ID for SP1
     uint8 public constant SP1_ID = 1;
 
