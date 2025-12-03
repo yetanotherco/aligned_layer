@@ -6,8 +6,6 @@ mod s3;
 mod types;
 mod utils;
 
-use crate::backend::AggregatedProofSubmissionError::FetchingProofs;
-
 use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
 
 use alloy::{
@@ -42,6 +40,7 @@ pub enum AggregatedProofSubmissionError {
     ZKVMAggregation(ProofAggregationError),
     BuildingMerkleRoot,
     MerkleRootMisMatch,
+    GasPriceError(String),
 }
 
 pub struct ProofAggregator {
@@ -49,6 +48,7 @@ pub struct ProofAggregator {
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
     config: Config,
+    rpc_provider: dyn Provider<EthereumWallet>,
 }
 
 impl ProofAggregator {
@@ -64,7 +64,7 @@ impl ProofAggregator {
         let proof_aggregation_service = AlignedProofAggregationService::new(
             Address::from_str(&config.proof_aggregation_service_address)
                 .expect("AlignedProofAggregationService address should be valid"),
-            rpc_provider,
+            rpc_provider.clone(),
         );
 
         let engine =
@@ -76,6 +76,7 @@ impl ProofAggregator {
             proof_aggregation_service,
             fetcher,
             config,
+            rpc_provider,
         }
     }
 
@@ -148,7 +149,7 @@ impl ProofAggregator {
             // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
             // should be considered over a 24h period.
 
-            let gas_price = self.fetcher.get_gas_price().await.map_err(FetchingProofs)?;
+            let gas_price = self.get_gas_price().await?;
 
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
@@ -333,6 +334,17 @@ impl ProofAggregator {
             .0;
 
         Ok((blob, blob_versioned_hash))
+    }
+
+    /// Try to obtain a sensible gas price from two providers.
+    /// Tries `primary` first, falls back to `fallback` if the first fails.
+    pub async fn get_gas_price(&self) -> Result<u128, AggregatedProofSubmissionError> {
+        match self.rpc_provider.get_gas_price().await {
+            Ok(price) => Ok(price),
+            Err(e1) => Err(AggregatedProofSubmissionError::GasPriceError(format!(
+                "gas price error: {e1}"
+            ))),
+        }
     }
 }
 

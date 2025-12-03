@@ -24,7 +24,6 @@ use tracing::{error, info};
 pub enum ProofsFetcherError {
     GetLogs(String),
     GetBlockNumber(String),
-    GasPriceError(String),
 }
 
 pub struct ProofsFetcher {
@@ -188,16 +187,5 @@ impl ProofsFetcher {
 
     pub fn get_last_aggregated_block(&self) -> u64 {
         self.last_aggregated_block
-    }
-
-    /// Try to obtain a sensible gas price from two providers.
-    /// Tries `primary` first, falls back to `fallback` if the first fails.
-    pub async fn get_gas_price(&self) -> Result<u128, ProofsFetcherError> {
-        match self.rpc_provider.get_gas_price().await {
-            Ok(price) => Ok(price),
-            Err(e1) => Err(ProofsFetcherError::GasPriceError(format!(
-                "gas price error: {e1}"
-            ))),
-        }
     }
 }
