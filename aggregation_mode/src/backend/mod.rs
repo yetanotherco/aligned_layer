@@ -142,13 +142,12 @@ impl ProofAggregator {
         );
 
         // Iterate until we can send the proof on-chain
-        let start_time = Instant::now();
+        let mut time_elapsed: Duration =
+            Instant::now().duration_since(start_time) + Duration::from_secs(24 * 3600);
 
         loop {
             // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
             // should be considered over a 24h period.
-            let time_elapsed: Duration =
-                Instant::now().duration_since(start_time) + Duration::from_secs(24 * 3600);
 
             let gas_price = self.fetcher.get_gas_price().await.map_err(FetchingProofs)?;
 
@@ -172,7 +171,9 @@ impl ProofAggregator {
             }
 
             // Sleep for 3 minutes (15 blocks) before re-evaluating
-            sleep(Duration::from_secs(180));
+            let time_to_sleep = Duration::from_secs(180);
+            time_elapsed += time_to_sleep;
+            sleep(time_to_sleep);
         }
 
         Ok(())
