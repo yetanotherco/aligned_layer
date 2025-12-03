@@ -4,7 +4,6 @@ mod merkle_tree;
 mod retry;
 mod s3;
 mod types;
-mod utils;
 
 use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
 
@@ -20,6 +19,7 @@ use alloy::{
 };
 use config::Config;
 use ethers::types::U256;
+use ethers::utils::parse_ether;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
@@ -179,6 +179,19 @@ impl ProofAggregator {
         Ok(())
     }
 
+    fn max_to_spend_in_wei(time_elapsed: Duration, monthly_eth_budget: f64) -> U256 {
+        const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
+
+        // Note: this unwrap is safe because parse_ether only fails for negative numbers or invalid strings
+        let monthly_budget_in_wei = parse_ether(monthly_eth_budget).unwrap_or(U256::zero());
+
+        let elapsed_seconds = U256::from(time_elapsed.as_secs());
+
+        let budget_available_per_second_in_wei = monthly_budget_in_wei / SECONDS_PER_MONTH;
+
+        budget_available_per_second_in_wei * elapsed_seconds
+    }
+
     /// Decides whether to send the aggregated proof to be verified on-chain based on
     /// time elapsed since last submission and monthly ETH budget.
     /// We make a linear function with the eth to spend this month and the time elapsed since last submission.
@@ -193,7 +206,7 @@ impl ProofAggregator {
         const ON_CHAIN_COST_IN_GAS_UNITS: u64 = 600_000u64;
 
         let on_chain_cost_in_gas: U256 = U256::from(ON_CHAIN_COST_IN_GAS_UNITS);
-        let max_to_spend_in_wei = utils::max_to_spend_in_wei(time_elapsed, monthly_eth_budget);
+        let max_to_spend_in_wei = Self::max_to_spend_in_wei(time_elapsed, monthly_eth_budget);
 
         let expected_cost_in_wei = network_gas_price * on_chain_cost_in_gas;
 
