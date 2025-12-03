@@ -28,7 +28,7 @@ impl Db {
     pub async fn count_proofs_by_address(&self, address: &str) -> Result<i64, sqlx::Error> {
         let (count,) =
             sqlx::query_as::<_, (i64,)>("SELECT COUNT(*) FROM proofs WHERE address = $1")
-                .bind(address)
+                .bind(address.to_lowercase())
                 .fetch_one(&self.pool)
                 .await?;
 
@@ -66,7 +66,7 @@ impl Db {
             ) VALUES ($1, $2, $3, $4, $5)
             RETURNING proof_id",
         )
-        .bind(address)
+        .bind(address.to_lowercase())
         .bind(proving_system_id)
         .bind(proof)
         .bind(program_commitment)
@@ -88,7 +88,7 @@ impl Db {
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (tx_hash) DO NOTHING",
         )
-        .bind(address)
+        .bind(address.to_lowercase())
         .bind(started_at)
         .bind(amount)
         .bind(valid_until)
@@ -109,7 +109,7 @@ impl Db {
                 WHERE address = $1 AND started_at < $2 AND $2 < valid_until
             )",
         )
-        .bind(address)
+        .bind(address.to_lowercase())
         .bind(epoch)
         .fetch_one(&self.pool)
         .await
