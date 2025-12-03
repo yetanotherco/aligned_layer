@@ -144,8 +144,7 @@ impl ProofAggregator {
         // Iterate until we can send the proof on-chain
         let start_time = Instant::now();
 
-        let mut sent_proof = false;
-        while !sent_proof {
+        loop {
             // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
             // should be considered over a 24h period.
             let time_elapsed: Duration =
@@ -167,7 +166,7 @@ impl ProofAggregator {
                     receipt.transaction_hash
                 );
 
-                sent_proof = true;
+                break;
             } else {
                 info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
             }
