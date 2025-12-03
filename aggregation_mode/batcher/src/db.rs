@@ -55,7 +55,6 @@ impl Db {
         proof: &[u8],
         program_commitment: &[u8],
         merkle_path: Option<&[u8]>,
-        task_id: Option<Uuid>,
     ) -> Result<Uuid, sqlx::Error> {
         sqlx::query_scalar::<_, Uuid>(
             "INSERT INTO proofs (
@@ -63,9 +62,8 @@ impl Db {
                 proving_system_id,
                 proof,
                 program_commitment,
-                merkle_path,
-                task_id
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+                merkle_path
+            ) VALUES ($1, $2, $3, $4, $5)
             RETURNING proof_id",
         )
         .bind(address)
@@ -73,7 +71,6 @@ impl Db {
         .bind(proof)
         .bind(program_commitment)
         .bind(merkle_path)
-        .bind(task_id)
         .fetch_one(&self.pool)
         .await
     }

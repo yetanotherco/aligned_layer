@@ -1,9 +1,4 @@
-CREATE TYPE task_status AS ENUM ('pending', 'verified');
-
-CREATE TABLE tasks (
-    task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    status task_status DEFAULT 'pending'
-);
+CREATE TYPE proof_status AS ENUM ('pending', 'processing', 'verified');
 
 CREATE TABLE proofs (
     proof_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -12,7 +7,7 @@ CREATE TABLE proofs (
     proof BYTEA,
     program_commitment BYTEA,
     merkle_path BYTEA,
-    task_id UUID REFERENCES tasks(task_id)
+    status proof_status DEFAULT 'pending'
 );
 
 CREATE TABLE payment_events (
