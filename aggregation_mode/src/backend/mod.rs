@@ -171,8 +171,8 @@ impl ProofAggregator {
                 info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
             }
 
-            // Sleep for 5 minutes before re-evaluating
-            sleep(Duration::from_secs(300));
+            // Sleep for 3 minutes (15 blocks) before re-evaluating
+            sleep(Duration::from_secs(180));
         }
 
         Ok(())
