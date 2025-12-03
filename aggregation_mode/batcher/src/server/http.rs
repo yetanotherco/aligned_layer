@@ -219,10 +219,8 @@ impl BatcherServer {
                     "merkle_path": merkle_path
                 })))
             }
-            Err(_) => {
-                return HttpResponse::InternalServerError()
-                    .json(AppResponse::new_unsucessfull("Internal server error", 500))
-            }
+            Err(_) => HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500)),
         }
     }
 }

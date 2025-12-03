@@ -33,8 +33,7 @@ pub fn main() {
             .expect("Public input to be the hash of the chunk tree");
 
         // Reconstruct the merkle tree and verify that the roots match
-        let leaves_commitment: Vec<Hash32> =
-            leaves_commitment.into_iter().map(|el| Hash32(el)).collect();
+        let leaves_commitment: Vec<Hash32> = leaves_commitment.into_iter().map(Hash32).collect();
         let merkle_tree: MerkleTree<Hash32> = MerkleTree::build(&leaves_commitment).unwrap();
         assert!(merkle_tree.root == merkle_root);
 

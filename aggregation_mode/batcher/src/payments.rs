@@ -69,7 +69,7 @@ impl PaymentsPoller {
         Self {
             db,
             proof_aggregation_service,
-            rpc_provider: rpc_provider,
+            rpc_provider,
         }
     }
 
@@ -109,7 +109,7 @@ impl PaymentsPoller {
                     tracing::warn!("Skipping payment event for {address}: missing tx hash");
                     continue;
                 };
-                let tx_hash = format!("{:#x}", tx_hash);
+                let tx_hash = format!("{tx_hash:#x}");
 
                 let Ok(amount) = BigDecimal::from_str(&payment_event.amount.to_string()) else {
                     continue;
