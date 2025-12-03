@@ -69,7 +69,7 @@ impl BatcherServer {
         };
 
         let state = state.get_ref();
-        match state.db.count_proofs_by_address(address).await {
+        match state.db.count_tasks_by_address(address).await {
             Ok(count) => HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!(
                 {
                     "nonce": count
@@ -95,7 +95,7 @@ impl BatcherServer {
         };
         let state = state.get_ref();
 
-        let Ok(count) = state.db.count_proofs_by_address(&recovered_address).await else {
+        let Ok(count) = state.db.count_tasks_by_address(&recovered_address).await else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
@@ -142,7 +142,7 @@ impl BatcherServer {
 
         match state
             .db
-            .insert_proof(
+            .insert_task(
                 &recovered_address,
                 AggregationModeProvingSystem::SP1.as_u16() as i32,
                 &data.message.proof,
@@ -151,8 +151,8 @@ impl BatcherServer {
             )
             .await
         {
-            Ok(proof_id) => HttpResponse::Ok().json(AppResponse::new_sucessfull(
-                serde_json::json!({ "proof_id": proof_id.to_string() }),
+            Ok(task_id) => HttpResponse::Ok().json(AppResponse::new_sucessfull(
+                serde_json::json!({ "task_id": task_id.to_string() }),
             )),
             Err(_) => HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500)),
@@ -181,7 +181,7 @@ impl BatcherServer {
         // TODO: maybe also accept proof commitment in query param
         let Some(id) = params.id.clone() else {
             return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
-                "Provide proof `id` query param",
+                "Provide task `id` query param",
                 400,
             ));
         };
@@ -198,7 +198,7 @@ impl BatcherServer {
                 .json(AppResponse::new_unsucessfull("Proof id invalid uuid", 400));
         };
 
-        let db_result = state.db.get_merkle_path_by_proof_id(proof_id).await;
+        let db_result = state.db.get_merkle_path_by_task_id(proof_id).await;
         let merkle_path = match db_result {
             Ok(Some(merkle_path)) => merkle_path,
             Ok(None) => {
