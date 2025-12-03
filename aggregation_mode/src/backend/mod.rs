@@ -26,7 +26,6 @@ use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
 use std::thread::sleep;
 use std::{str::FromStr, time::Duration};
-use tokio::time::Instant;
 use tracing::{error, info, warn};
 use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
@@ -142,8 +141,7 @@ impl ProofAggregator {
         );
 
         // Iterate until we can send the proof on-chain
-        let mut time_elapsed: Duration =
-            Instant::now().duration_since(start_time) + Duration::from_secs(24 * 3600);
+        let mut time_elapsed: Duration = Duration::from_secs(24 * 3600);
 
         loop {
             // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
@@ -156,15 +154,6 @@ impl ProofAggregator {
                 self.config.monthly_budget_eth,
                 gas_price.into(),
             ) {
-                info!("Sending proof to ProofAggregationService contract...");
-                let receipt = self
-                    .send_proof_to_verify_on_chain(&blob, blob_versioned_hash, &aggregated_proof)
-                    .await?;
-                info!(
-                    "Proof sent and verified, tx hash {:?}",
-                    receipt.transaction_hash
-                );
-
                 break;
             } else {
                 info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
@@ -175,6 +164,15 @@ impl ProofAggregator {
             time_elapsed += time_to_sleep;
             sleep(time_to_sleep);
         }
+
+        info!("Sending proof to ProofAggregationService contract...");
+        let receipt = self
+            .send_proof_to_verify_on_chain(blob, blob_versioned_hash, aggregated_proof)
+            .await?;
+        info!(
+            "Proof sent and verified, tx hash {:?}",
+            receipt.transaction_hash
+        );
 
         Ok(())
     }
@@ -220,9 +218,9 @@ impl ProofAggregator {
 
     async fn send_proof_to_verify_on_chain(
         &self,
-        blob: &BlobTransactionSidecar,
+        blob: BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
-        aggregated_proof: &AlignedProof,
+        aggregated_proof: AlignedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         let tx_req = match aggregated_proof {
             AlignedProof::SP1(proof) => self
@@ -232,7 +230,7 @@ impl ProofAggregator {
                     proof.proof_with_pub_values.public_values.to_vec().into(),
                     proof.proof_with_pub_values.bytes().into(),
                 )
-                .sidecar(blob.clone())
+                .sidecar(blob)
                 .into_transaction_request(),
             AlignedProof::Risc0(proof) => {
                 let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
@@ -242,9 +240,9 @@ impl ProofAggregator {
                     .verifyRisc0(
                         blob_versioned_hash.into(),
                         encoded_seal.into(),
-                        proof.receipt.journal.bytes.clone().into(),
+                        proof.receipt.journal.bytes.into(),
                     )
-                    .sidecar(blob.clone())
+                    .sidecar(blob)
                     .into_transaction_request()
             }
         };
