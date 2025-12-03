@@ -204,7 +204,7 @@ impl ProofAggregator {
         &self,
         time_elapsed: Duration,
         monthly_eth_budget: f64,
-        gas_price_in_wei: U256,
+        network_gas_price: U256,
     ) -> bool {
         // We assume a fixed gas cost of 300,000 for each of the 2 transactions
         const ON_CHAIN_COST_IN_GAS_UNITS: u64 = 600_000u64;
@@ -212,7 +212,7 @@ impl ProofAggregator {
         let on_chain_cost_in_gas: U256 = U256::from(ON_CHAIN_COST_IN_GAS_UNITS);
         let max_to_spend_in_wei = Self::max_to_spend_in_wei(time_elapsed, monthly_eth_budget);
 
-        let expected_cost_in_wei = gas_price_in_wei * on_chain_cost_in_gas;
+        let expected_cost_in_wei = network_gas_price * on_chain_cost_in_gas;
 
         expected_cost_in_wei <= max_to_spend_in_wei
     }
