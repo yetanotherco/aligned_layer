@@ -26,7 +26,7 @@ use risc0_ethereum_contracts::encode_seal;
 use std::thread::sleep;
 use std::{str::FromStr, time::Duration};
 use tracing::{error, info, warn};
-use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
+use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract, RPCProvider};
 
 #[derive(Debug)]
 pub enum AggregatedProofSubmissionError {
@@ -48,7 +48,7 @@ pub struct ProofAggregator {
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
     config: Config,
-    rpc_provider: dyn Provider<EthereumWallet>,
+    rpc_provider: RPCProvider,
 }
 
 impl ProofAggregator {
