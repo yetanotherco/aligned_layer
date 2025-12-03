@@ -21,6 +21,7 @@ use alloy::{
 };
 use config::Config;
 use ethers::types::U256;
+use ethers::utils::parse_ether;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
@@ -177,16 +178,11 @@ impl ProofAggregator {
         Ok(())
     }
 
-    fn floating_eth_to_wei(eth: f64) -> U256 {
-        let wei_in_eth = 1_000_000_000_000_000_000f64;
-        let wei = eth * wei_in_eth;
-        U256::from(wei as u64)
-    }
-
     fn max_to_spend_in_wei(time_elapsed: Duration, monthly_eth_budget: f64) -> U256 {
         const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
 
-        let monthly_budget_in_wei = Self::floating_eth_to_wei(monthly_eth_budget);
+        // Note: this unwrap is safe because parse_ether only fails for negative numbers or invalid strings
+        let monthly_budget_in_wei = parse_ether(monthly_eth_budget).unwrap_or(U256::zero());
 
         let elapsed_seconds = U256::from(time_elapsed.as_secs());
 
