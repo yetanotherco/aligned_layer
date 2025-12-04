@@ -128,7 +128,7 @@ pub async fn is_proof_verified_on_chain(
     .map_err(|e| ProofVerificationAggModeError::EthereumProviderError(e.to_string()))?;
 
     let res = contract_provider
-        .verify_proof_inclusion(
+        .is_proof_verified(
             merkle_path,
             verification_data.proving_system_id(),
             verification_data.program_id(),

@@ -13,7 +13,7 @@ on:
       - "common/**"
       - "core/**"
       - "metrics/**"
-      - ".github/workflows/build-go.yml"
+      - ".github/workflows/build-and-test-go.yml"
 env:
   FFI_FOR_RELEASE: false
 jobs:
@@ -34,18 +34,33 @@ jobs:
       - name: Build SP1 bindings
         run: make build_sp1_linux
 
+      - name: Clean SP1 build artifacts
+        run: rm -rf operator/sp1/lib/target
+
       - name: Build Risc Zero go bindings
         run: make build_risc_zero_linux
 
+      - name: Clean Risc Zero build artifacts
+        run: rm -rf operator/risc_zero/lib/target
+
       - name: Build Merkle Tree bindings
         run: make build_merkle_tree_linux
-        
+
+      - name: Clean Merkle Tree build artifacts
+        run: rm -rf operator/merkle_tree/lib/target
+
       - name: Build Mina bindings
         run: make build_mina_linux
-      
+
+      - name: Clean Mina build artifacts
+        run: rm -rf operator/mina/lib/target
+
       - name: Build Mina Account bindings
         run: make build_mina_account_linux
-      
+
+      - name: Clean Mina Account build artifacts
+        run: rm -rf operator/mina_account/lib/target
+
       - name: Build operator
         run: go build operator/cmd/main.go
 

@@ -3,22 +3,22 @@ pragma solidity ^0.8.13;
 
 contract StateTransition {
     event StateUpdated(bytes32);
-    event ProgramIdUpdated(bytes32);
+    event VerifierProgramUpdated(bytes32);
 
     error OnlyOwner(address);
     error AlignedVerifyProofInclusionCallFailed();
     error ProofVerificationFailed();
     error PrevStateRootDidNotMatch();
 
-    bytes32 public PROGRAM_ID;
+    bytes32 public VERIFIER_PROGRAM_COMMITMENT;
     bytes32 public stateRoot;
     address public alignedProofAggregator;
     address public owner;
 
-    constructor(bytes32 programId, bytes32 initialStateRoot, address _alignedProofAggregator, address _owner) {
+    constructor(bytes32 verifierProgramCommitment, bytes32 initialStateRoot, address _alignedProofAggregator, address _owner) {
         alignedProofAggregator = _alignedProofAggregator;
         owner = _owner;
-        PROGRAM_ID = programId;
+        VERIFIER_PROGRAM_COMMITMENT = verifierProgramCommitment;
         stateRoot = initialStateRoot;
     }
 
@@ -27,10 +27,10 @@ contract StateTransition {
         onlyOwner
     {
         bytes memory callData = abi.encodeWithSignature(
-            "verifyProofInclusion(bytes32[],uint16,bytes32,bytes)",
+            "isProofVerified(bytes32[],uint16,bytes32,bytes)",
             merkleProof,
             provingSystemId,
-            PROGRAM_ID,
+            VERIFIER_PROGRAM_COMMITMENT,
             publicInputs
         );
         (bool callResult, bytes memory response) = alignedProofAggregator.staticcall(callData);
@@ -52,10 +52,10 @@ contract StateTransition {
         emit StateUpdated(stateRoot);
     }
 
-    function setProgramId(bytes32 programId) public onlyOwner {
-        PROGRAM_ID = programId;
+    function setVerifierProgramCommitment(bytes32 verifierProgramCommitment) public onlyOwner {
+        VERIFIER_PROGRAM_COMMITMENT = verifierProgramCommitment;
 
-        emit ProgramIdUpdated(PROGRAM_ID);
+        emit VerifierProgramUpdated(VERIFIER_PROGRAM_COMMITMENT);
     }
 
     modifier onlyOwner() {
