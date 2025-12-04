@@ -300,7 +300,25 @@ proof_aggregator_install: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator_gpu --locked
 
 proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
-	@cd aggregation_mode && ./scripts/build_programs.sh
+	@cd aggregation_mode/proof_aggregator && ./scripts/build_programs.sh
+
+agg_mode_docker_up:
+	@cd aggregation_mode && docker-compose up -d
+
+agg_mode_docker_down:
+	@cd aggregation_mode && docker-compose down
+
+agg_mode_docker_clean: agg_mode_docker_down
+	docker volume rm aggregation-mode_postgres_data
+
+agg_mode_run_migrations: agg_mode_docker_up
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin migrate -- postgres://postgres:postgres@localhost:5435/
+
+agg_mode_batcher_start_local: agg_mode_run_migrations
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher -- config-files/config-agg-mode-batcher.yaml
+
+agg_mode_batcher_start_ethereum_package: agg_mode_run_migrations
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher -- config-files/config-agg-mode-batcher-ethereum-package.yaml
 
 __AGGREGATOR__: ## ____
 

@@ -8,8 +8,8 @@ risc0_zkvm::guest::entry!(main);
 
 // Generated with `make proof_aggregator_write_program_ids` and copied from program_ids.json
 pub const USER_PROOFS_AGGREGATOR_PROGRAM_IMAGE_ID: [u8; 32] = [
-    253, 36, 51, 43, 163, 223, 190, 136, 60, 123, 233, 240, 170, 213, 170, 76, 117, 219, 15, 0, 47,
-    81, 218, 228, 232, 218, 86, 42, 145, 190, 144, 161,
+    86, 146, 102, 198, 206, 75, 142, 66, 123, 251, 236, 150, 2, 205, 75, 142, 237, 255, 93, 54, 2,
+    16, 190, 188, 246, 3, 188, 241, 235, 64, 220, 228,
 ];
 
 fn main() {
@@ -33,8 +33,7 @@ fn main() {
             .try_into()
             .expect("Public input to be the chunk merkle root");
 
-        let leaves_commitment: Vec<Hash32> =
-            leaves_commitment.into_iter().map(|el| Hash32(el)).collect();
+        let leaves_commitment: Vec<Hash32> = leaves_commitment.into_iter().map(Hash32).collect();
         let merkle_tree = MerkleTree::<Hash32>::build(&leaves_commitment).unwrap();
         assert!(merkle_root == merkle_tree.root);
 

@@ -1,4 +1,4 @@
-use alloy::hex::hex;
+use alloy::hex;
 use proof_aggregator::aggregators::{risc0_aggregator, sp1_aggregator};
 use serde_json::json;
 use sp1_sdk::HashableKey;
