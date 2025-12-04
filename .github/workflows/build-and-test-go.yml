@@ -46,7 +46,7 @@ jobs:
       - name: Build aggregator
         run: go build aggregator/cmd/main.go
 
-  build-mina:
+  build-mina-bindings:
     runs-on: ubuntu-latest
 
     steps:
