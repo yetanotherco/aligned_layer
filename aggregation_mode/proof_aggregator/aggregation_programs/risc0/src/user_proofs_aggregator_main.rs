@@ -10,8 +10,7 @@ fn main() {
     let input = env::read::<UserProofsAggregatorInput>();
 
     for proof in &input.proofs_image_id_and_pub_inputs {
-        env::verify(proof.image_id.clone(), &proof.public_inputs)
-            .expect("proof to be verified correctly");
+        env::verify(proof.image_id, &proof.public_inputs).expect("proof to be verified correctly");
     }
 
     let merkle_tree =

@@ -7,7 +7,7 @@ use sp1_aggregation_program::{ChunkAggregatorInput, Hash32};
 
 // Generated with `make proof_aggregator_write_program_ids` and copied from program_ids.json
 pub const USER_PROOFS_AGGREGATOR_PROGRAM_VK_HASH: [u32; 8] = [
-    1783055897, 486133361, 187778113, 1130718359, 781594768, 1430967573, 1107098593, 1119970919,
+    1350508345, 1966561241, 1188269068, 690044042, 29282343, 1675238547, 289586595, 1376390494,
 ];
 
 pub fn main() {
@@ -33,8 +33,7 @@ pub fn main() {
             .expect("Public input to be the hash of the chunk tree");
 
         // Reconstruct the merkle tree and verify that the roots match
-        let leaves_commitment: Vec<Hash32> =
-            leaves_commitment.into_iter().map(|el| Hash32(el)).collect();
+        let leaves_commitment: Vec<Hash32> = leaves_commitment.into_iter().map(Hash32).collect();
         let merkle_tree: MerkleTree<Hash32> = MerkleTree::build(&leaves_commitment).unwrap();
         assert!(merkle_tree.root == merkle_root);
 

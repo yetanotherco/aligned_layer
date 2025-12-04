@@ -9,14 +9,14 @@ contract StateTransitionDeployer is Script {
 
     function setUp() public {}
 
-    function run(bytes32 programId, bytes32 initialStateRoot, address _alignedProofAggregationService, address owner)
+    function run(bytes32 verifierProgramCommitment, bytes32 initialStateRoot, address _alignedProofAggregationService, address owner)
         public
         returns (address)
     {
         vm.startBroadcast();
 
         stateTransitionContract =
-            new StateTransition(programId, initialStateRoot, _alignedProofAggregationService, owner);
+            new StateTransition(verifierProgramCommitment, initialStateRoot, _alignedProofAggregationService, owner);
 
         vm.stopBroadcast();
 
