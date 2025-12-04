@@ -45,21 +45,64 @@ impl Db {
             .map(|res| res.flatten())
     }
 
-    pub async fn get_tasks_by_address(
+    pub async fn get_tasks_by_address_and_nonce(
         &self,
-        address: &str,
+        address: Option<&str>,
+        nonce: Option<i64>,
         limit: i64,
     ) -> Result<Vec<Option<Vec<u8>>>, sqlx::Error> {
-        sqlx::query_scalar::<_, Option<Vec<u8>>>(
-            "SELECT merkle_path FROM tasks
-            WHERE address = $1
-            ORDER BY created_at DESC
-            LIMIT $2",
-        )
-        .bind(address.to_lowercase())
-        .bind(limit)
-        .fetch_all(&self.pool)
-        .await
+        // TODO: Return merkle paths, task status, address and nonce for each task
+        // TODO: use dynamic query building instead of match
+        match (address, nonce) {
+            (Some(addr), Some(n)) => {
+                sqlx::query_scalar::<_, Option<Vec<u8>>>(
+                    "SELECT merkle_path FROM tasks
+                WHERE address = $1
+                AND nonce = $2
+                ORDER BY created_at DESC
+                LIMIT $3",
+                )
+                .bind(addr.to_lowercase())
+                .bind(n)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+            }
+            (Some(addr), None) => {
+                sqlx::query_scalar::<_, Option<Vec<u8>>>(
+                    "SELECT merkle_path FROM tasks
+                WHERE address = $1
+                ORDER BY created_at DESC
+                LIMIT $2",
+                )
+                .bind(addr.to_lowercase())
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+            }
+            (None, Some(n)) => {
+                sqlx::query_scalar::<_, Option<Vec<u8>>>(
+                    "SELECT merkle_path FROM tasks
+                WHERE nonce = $1
+                ORDER BY created_at DESC
+                LIMIT $2",
+                )
+                .bind(n)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+            }
+            (None, None) => {
+                sqlx::query_scalar::<_, Option<Vec<u8>>>(
+                    "SELECT merkle_path FROM tasks
+                ORDER BY created_at DESC
+                LIMIT $1",
+                )
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await
+            }
+        }
     }
 
     pub async fn insert_task(

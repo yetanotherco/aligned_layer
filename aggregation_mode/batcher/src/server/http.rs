@@ -11,7 +11,7 @@ use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use sqlx::types::BigDecimal;
 
 use super::{
-    helpers::format_merkle_path,
+    helpers::format_merkle_paths,
     types::{AppResponse, GetReceiptsParams},
 };
 
@@ -184,21 +184,10 @@ impl BatcherServer {
         let state = state.get_ref();
 
         // TODO: maybe also accept proof commitment in query param
-        let Some(address) = params.address.clone() else {
-            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
-                "Provide task `address` query param",
-                400,
-            ));
-        };
-
-        if address.is_empty() {
-            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
-                "Address cannot be empty",
-                400,
-            ));
-        }
-
-        let db_result = state.db.get_tasks_by_address(&address, 100).await;
+        let db_result = state
+            .db
+            .get_tasks_by_address_and_nonce(params.address.as_deref(), params.nonce, 100)
+            .await;
         let merkle_paths = match db_result {
             Ok(merkle_paths) => merkle_paths,
             Err(_) => {
@@ -207,10 +196,10 @@ impl BatcherServer {
             }
         };
 
-        match format_merkle_path(&merkle_path) {
-            Ok(merkle_path) => {
+        match format_merkle_paths(merkle_paths) {
+            Ok(merkle_paths) => {
                 HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
-                    "merkle_path": merkle_path
+                    "merkle_paths": merkle_paths
                 })))
             }
             Err(_) => HttpResponse::InternalServerError()

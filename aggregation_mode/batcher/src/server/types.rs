@@ -30,7 +30,7 @@ impl AppResponse {
 #[derive(Deserialize, Clone)]
 pub(super) struct GetReceiptsParams {
     pub address: Option<String>,
-    pub nonce: Option<u64>,
+    pub nonce: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
