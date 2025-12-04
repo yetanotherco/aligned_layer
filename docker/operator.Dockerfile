@@ -27,6 +27,6 @@ COPY --from=builder /aligned_layer/operator/ ./operator/
 COPY config-files/ ./config-files/
 COPY contracts ./contracts
 
-ENV LD_LIBRARY_PATH=/aligned_layer/operator/risc_zero/lib/
+ENV LD_LIBRARY_PATH=/aligned_layer/operator/risc_zero/lib/:/aligned_layer/operator/mina/lib:/aligned_layer/operator/mina_account/lib
 
 CMD ["aligned-layer-operator", "start", "--config", "./config-files/config-operator-docker.yaml"]

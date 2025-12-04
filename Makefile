@@ -32,8 +32,8 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib
-	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
+	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -721,6 +721,58 @@ batcher_send_circom_groth16_bn256_no_pub_input_burst: crates/target/release/alig
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
+batcher_send_mina_task:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_task_bad_hash:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state_bad_hash.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_account_task:
+	@echo "Sending Mina account task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system MinaAccount \
+		--proof ../../scripts/test_files/mina_account/mina_account.proof \
+		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_account_burst:
+	@echo "Sending Mina account task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system MinaAccount \
+		--proof ../../scripts/test_files/mina_account/mina_account.proof \
+		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
 batcher_send_proof_with_random_address: ## Send a proof with a random address to Batcher. Parameters: RPC_URL, NETWORK, PROOF_TYPE, REPETITIONS
 	@cd crates/cli/ && ./send_proof_with_random_address.sh
 
@@ -986,6 +1038,48 @@ test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
 
+__MINA_FFI__: ##
+build_mina_macos:
+	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.dylib operator/mina/lib/libmina_state_verifier_ffi.dylib
+
+build_mina_linux:
+	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.so operator/mina/lib/libmina_state_verifier_ffi.so
+
+test_mina_rust_ffi:
+	@echo "Testing Mina Rust FFI source code..."
+	@cd operator/mina/lib && cargo t --release
+
+test_mina_go_bindings_macos: build_mina_macos
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
+
+test_mina_go_bindings_linux: build_mina_linux
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
+
+__MINA_ACCOUNT_FFI__: ##
+build_mina_account_macos:
+	@cd operator/mina_account/lib && cargo build --release
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.dylib operator/mina_account/lib/libmina_account_verifier_ffi.dylib
+
+build_mina_account_linux:
+	@cd operator/mina_account/lib && cargo build --release
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.so operator/mina_account/lib/libmina_account_verifier_ffi.so
+
+test_mina_account_rust_ffi:
+	@echo "Testing Mina Account Rust FFI source code..."
+	@cd operator/mina_account/lib && cargo t --release
+
+test_mina_account_go_bindings_macos: build_mina_account_macos
+	@echo "Testing Mina Account Go bindings..."
+	go test ./operator/mina_account/... -v
+
+test_mina_account_go_bindings_linux: build_mina_account_linux
+	@echo "Testing Mina Account Go bindings..."
+	go test ./operator/mina_account/... -v
+
 __FFI__: ## ____
 
 build_all_ffi: ## Build all FFIs
@@ -997,6 +1091,8 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_mina_macos
+	@$(MAKE) build_mina_account_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -1004,6 +1100,8 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_mina_linux
+	@$(MAKE) build_mina_account_linux
 	@echo "All Linux FFIs built successfully."
 
 __EXPLORER__: ## ____
@@ -1211,6 +1309,30 @@ docker_batcher_send_circom_groth16_bn256_no_pub_input_burst:
 			  --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
 
+docker_batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system Mina \
+              --proof ./scripts/test_files/mina/devnet_mina_state.proof \
+              --public_input ./scripts/test_files/mina/devnet_mina_state.pub \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
+docker_batcher_send_mina_account_burst:
+	@echo "Sending Mina account task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system MinaAccount \
+              --proof ./scripts/test_files/mina_account/mina_account.proof \
+              --public_input ./scripts/test_files/mina_account/mina_account.pub \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_sp1_burst
@@ -1220,6 +1342,8 @@ docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_gnark_groth16_burst
 	@$(MAKE) docker_batcher_send_circom_groth16_bn256_burst
 	@$(MAKE) docker_batcher_send_circom_groth16_bn256_no_pub_input_burst
+	@$(MAKE) docker_batcher_send_mina_burst
+	@$(MAKE) docker_batcher_send_mina_account_burst
 
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
@@ -1257,7 +1381,7 @@ docker_verify_proofs_onchain:
 	  '
 
 DOCKER_PROOFS_WAIT_TIME=60
-DOCKER_SENT_PROOFS=7
+DOCKER_SENT_PROOFS=9
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."

@@ -23,6 +23,8 @@ pub struct Config {
     pub ecdsa: ECDSAConfig,
     pub proofs_per_chunk: u16,
     pub total_proofs_limit: u16,
+    pub sp1_chunk_aggregator_vk_hash: String,
+    pub risc0_chunk_aggregator_image_id: String,
 }
 
 impl Config {
