@@ -61,6 +61,14 @@ impl ProofAggregator {
         .expect("Keystore signer should be `cast wallet` compliant");
         let wallet = EthereumWallet::from(signer);
 
+        // Check if the monthly budget is non-negative to avoid runtime errors later
+        let monthly_budget_in_wei = parse_ether(config.monthly_budget_eth).expect("Monthly budget must be a non-negative value");
+        
+        info!(
+            "Monthly budget set to {} wei",
+            monthly_budget_in_wei
+        );
+
         let rpc_provider = ProviderBuilder::new().connect_http(rpc_url.clone());
 
         let signed_rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
@@ -186,8 +194,8 @@ impl ProofAggregator {
     fn max_to_spend_in_wei(time_elapsed: Duration, monthly_eth_budget: f64) -> U256 {
         const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
 
-        // Note: this unwrap is safe because parse_ether only fails for negative numbers or invalid strings
-        let monthly_budget_in_wei = parse_ether(monthly_eth_budget).unwrap_or(U256::zero());
+        // Note: this expect is safe because in case it was invalid, should have been caught at startup
+        let monthly_budget_in_wei = parse_ether(monthly_eth_budget).expect("The monthly budget should be a non-negative value");
 
         let elapsed_seconds = U256::from(time_elapsed.as_secs());
 
