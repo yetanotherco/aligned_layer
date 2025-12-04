@@ -1,0 +1,19 @@
+aligned_service_manager_address: "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8"
+proof_aggregation_service_address: "0xFD471836031dc5108809D173A067e8486B9047A3"
+eth_rpc_url: "http://anvil:8545"
+eth_ws_url: "ws://anvil:8545"
+max_proofs_in_queue: 1000
+last_aggregated_block_filepath: /aligned_layer/config-files/proof-aggregator.last_aggregated_block.json
+proofs_per_chunk: 512 # Amount of proofs to process per chunk
+# This number comes from the blob data limit
+# Since each blob has a capacity of (4096 * 32) = 131.072 bytes
+# But to not surpass the field modulus we pad with a 0xo byte so we have (4096 * 31) = 126.976 bytes
+# of usable data
+# Since each proof commitments takes 32 bytes hash
+# We can aggregate as much proofs as 126.976 / 32 = 3968 per blob
+total_proofs_limit: 3968
+
+
+ecdsa:
+  private_key_store_path: "/aligned_layer/config-files/anvil.proof-aggregator.ecdsa.key.json"
+  private_key_store_password: ""

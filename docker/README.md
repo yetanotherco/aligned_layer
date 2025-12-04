@@ -92,6 +92,26 @@ And you can run this to attach to the anvil/foundry container and run `cast` wit
 make docker_attach_foundry
 ```
 
+## Aggregation
+
+To aggregate SP1 proofs:
+
+```shell
+make docker_proof_aggregator_run_sp1
+```
+
+For Risc0:
+
+```shell
+make docker_proof_aggregator_run_risc0
+```
+
+To verify that the proofs have been aggregated correctly:
+
+```shell
+make docker_proof_aggregator_verify
+```
+
 ## Logs
 
 You can watch logs for the components with the following commands:
@@ -110,4 +130,8 @@ make docker_logs_operator
 
 ```shell
 make docker_logs_batcher
+```
+
+```shell
+make docker_logs_proof_aggregator
 ```

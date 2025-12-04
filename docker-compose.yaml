@@ -130,6 +130,19 @@ services:
       dockerfile: docker/batcher.Dockerfile
     profiles:
       - batcher
+  
+  proof-aggregator:
+    image: ghcr.io/yetanotherco/aligned_layer/proof-aggregator:latest
+    build:
+      context: .
+      dockerfile: docker/proof-aggregator.Dockerfile
+    # Privileged so that it can run docker in docker (necessary for proving)
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.sp1/circuits/:/root/.sp1/circuits/
+    profiles:
+      - proof-aggregator
 
   aligned_base:
     image: ghcr.io/yetanotherco/aligned_layer/aligned_base:latest

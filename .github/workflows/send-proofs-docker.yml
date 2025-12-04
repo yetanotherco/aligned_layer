@@ -46,6 +46,17 @@ jobs:
 
     - name: Verify all sent proofs
       run: make docker_verify_proof_submission_success
+    
+    - name: Aggregate sp1 proofs
+      run: make docker_proof_aggregator_run_sp1
+    - name: Verify SP1 aggregation
+      run: make docker_proof_aggregator_verify
+
+    - name: Aggregate risc0 proofs
+      run: make docker_proof_aggregator_run_risc0
+    
+    - name: Verify Risc0 aggregation
+      run: make docker_proof_aggregator_verify
 
     - name: Stop containers
       continue-on-error: true

@@ -1154,6 +1154,9 @@ docker_build_operator:
 docker_build_batcher:
 	docker compose -f docker-compose.yaml --profile batcher build
 
+docker_build_proof_aggregator:
+	docker compose -f docker-compose.yaml --profile proof-aggregator build
+
 docker_restart_aggregator:
 	docker compose -f docker-compose.yaml --profile aggregator down
 	docker compose -f docker-compose.yaml --profile aggregator up -d --remove-orphans --force-recreate
@@ -1174,6 +1177,7 @@ docker_build:
 	docker compose -f docker-compose.yaml --profile operator build
 	docker compose -f docker-compose.yaml --profile batcher build
 	docker compose -f docker-compose.yaml --profile aggregator build
+	docker compose -f docker-compose.yaml --profile proof-aggregator build
 
 docker_up:
 	docker compose -f docker-compose.yaml --profile base up -d --remove-orphans --force-recreate
@@ -1188,10 +1192,12 @@ docker_up:
 	docker compose -f docker-compose.yaml --profile operator up -d --remove-orphans --force-recreate
 	docker compose -f docker-compose.yaml run --rm user-fund-payment-service-devnet
 	docker compose -f docker-compose.yaml --profile batcher up -d --remove-orphans --force-recreate
+	docker compose -f docker-compose.yaml --profile proof-aggregator up -d --remove-orphans --force-recreate
 	@echo "Up and running"
 
 docker_down:
 	docker compose -f docker-compose.yaml --profile batcher down
+	docker compose -f docker-compose.yaml --profile proof-aggregator down
 	docker compose -f docker-compose.yaml --profile operator down
 	docker compose -f docker-compose.yaml --profile base down
 	@echo "Everything down"
@@ -1399,6 +1405,21 @@ docker_verify_proof_submission_success:
 			echo "All proofs verified successfully!"; \
 		'
 
+docker_proof_aggregator_run_sp1:
+	docker exec $(shell docker ps | grep proof-aggregator | awk '{print $$1}') \
+	sh -c 'AGGREGATOR=sp1 \
+	/aligned_layer/proof_aggregator_cpu /aligned_layer/config-files/config-proof-aggregator-docker.yaml \
+	&& echo "{\"last_aggregated_block\":0}" > config-files/proof-aggregator.last_aggregated_block.json'
+
+docker_proof_aggregator_run_risc0:
+	docker exec $(shell docker ps | grep proof-aggregator | awk '{print $$1}') \
+	sh -c 'AGGREGATOR=risc0 \
+	/aligned_layer/proof_aggregator_cpu /aligned_layer/config-files/config-proof-aggregator-docker.yaml \
+	&& echo "{\"last_aggregated_block\":0}" > config-files/proof-aggregator.last_aggregated_block.json'
+
+docker_proof_aggregator_verify:
+	@(docker logs $$(docker ps | grep proof-aggregator | awk '{print $$1}') | grep -q "Error while aggregating and submitting proofs" && exit 1) || exit 0
+
 docker_attach_foundry:
 	docker exec -ti $(shell docker ps | grep anvil | awk '{print $$1}') /bin/bash
 
@@ -1414,6 +1435,9 @@ docker_attach_operator:
 docker_attach_batcher:
 	docker exec -ti $(shell docker ps | grep batcher | awk '{print $$1}') /bin/bash
 
+docker_attach_proof_aggregator:
+	docker exec -ti $(shell docker ps | grep proof-aggregator | awk '{print $$1}') /bin/bash
+
 docker_logs_anvil:
 	docker compose -f docker-compose.yaml logs anvil -f
 
@@ -1425,6 +1449,9 @@ docker_logs_operator:
 
 docker_logs_batcher:
 	docker compose -f docker-compose.yaml logs batcher -f
+
+docker_logs_proof_aggregator:
+	docker compose -f docker-compose.yaml logs proof-aggregator -f
 
 __TELEMETRY__: ## ____
 # TODO maybe add a target to run both metrics and telemetry
