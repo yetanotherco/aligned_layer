@@ -25,6 +25,7 @@ pub struct Config {
     pub total_proofs_limit: u16,
     pub sp1_chunk_aggregator_vk_hash: String,
     pub risc0_chunk_aggregator_image_id: String,
+    pub db_connection_url: String,
 }
 
 impl Config {

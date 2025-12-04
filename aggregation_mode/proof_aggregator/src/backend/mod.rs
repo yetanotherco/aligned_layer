@@ -1,11 +1,15 @@
 pub mod config;
+mod db;
 pub mod fetcher;
 mod merkle_tree;
 mod retry;
 mod s3;
 mod types;
 
-use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
+use crate::{
+    aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
+    backend::db::Db,
+};
 
 use alloy::{
     consensus::{BlobTransactionSidecar, EnvKzgSettings, EthereumTxEnvelope, TxEip4844WithSidecar},
@@ -79,6 +83,8 @@ impl ProofAggregator {
                 .expect("Failed to decode Risc0 chunk aggregator image id")
                 .try_into()
                 .expect("Risc0 chunk aggregator image id must be 32 bytes");
+
+        let db = Db::try_new(self.config.db_connection_url).expect("To connect to db");
 
         Self {
             engine,

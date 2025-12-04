@@ -7051,6 +7051,7 @@ dependencies = [
  "sp1-build",
  "sp1-sdk",
  "sp1_aggregation_program",
+ "sqlx",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.22",
