@@ -5,6 +5,8 @@ use crate::sp1::verify_sp1_proof;
 use aligned_sdk::common::types::{ProvingSystemId, VerificationData};
 use ethers::types::U256;
 use log::{debug, warn};
+use mina_account_verifier_ffi::verify_account_inclusion;
+use mina_state_verifier_ffi::verify_mina_state;
 
 pub(crate) async fn verify(verification_data: &VerificationData) -> bool {
     let verification_data = verification_data.clone();
@@ -84,6 +86,22 @@ fn verify_internal(verification_data: &VerificationData) -> bool {
             debug!("Circom Groth16 proof is valid: {}", is_valid);
             is_valid
         }
+        ProvingSystemId::Mina => {
+            let Some(pub_input) = verification_data.pub_input.as_ref() else {
+                warn!("Mina public input is missing");
+                return false;
+            };
+
+            verify_mina_state(&verification_data.proof, pub_input)
+        }
+        ProvingSystemId::MinaAccount => {
+            let Some(pub_input) = verification_data.pub_input.as_ref() else {
+                warn!("Mina Account public input is missing");
+                return false;
+            };
+
+            verify_account_inclusion(&verification_data.proof, pub_input)
+        }
     }
 }
 
@@ -118,6 +136,8 @@ mod test {
                 ProvingSystemId::GnarkPlonkBn254 => (),
                 ProvingSystemId::GnarkGroth16Bn254 => (),
                 ProvingSystemId::CircomGroth16Bn256 => (),
+                ProvingSystemId::Mina => (),
+                ProvingSystemId::MinaAccount => (),
             }
         }
         verifiers

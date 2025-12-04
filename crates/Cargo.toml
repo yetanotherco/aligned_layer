@@ -1,3 +1,15 @@
 [workspace]
 resolver = "2"
 members = ["./batcher", "./sdk", "./cli", "./task-sender"]
+
+[patch.crates-io]
+ark-ff = { git = "https://github.com/lambdaclass/openmina_algebra", rev = "017531e7aaa15a2c856532b0843876e371b01122" }
+ark-ec = { git = "https://github.com/lambdaclass/openmina_algebra", rev = "017531e7aaa15a2c856532b0843876e371b01122" }
+ark-poly = { git = "https://github.com/lambdaclass/openmina_algebra", rev = "017531e7aaa15a2c856532b0843876e371b01122" }
+ark-serialize = { git = "https://github.com/lambdaclass/openmina_algebra", rev = "017531e7aaa15a2c856532b0843876e371b01122" }
+
+[patch.'https://github.com/openmina/algebra']
+ark-ff = { git = "https://github.com/lambdaclass/openmina_algebra", rev = "017531e7aaa15a2c856532b0843876e371b01122" }
+ark-ec = { git = "https://github.com/lambdaclass/openmina_algebra", rev = "017531e7aaa15a2c856532b0843876e371b01122" }
+ark-poly = { git = "https://github.com/lambdaclass/openmina_algebra", rev = "017531e7aaa15a2c856532b0843876e371b01122" }
+ark-serialize = { git = "https://github.com/lambdaclass/openmina_algebra", rev = "017531e7aaa15a2c856532b0843876e371b01122" }

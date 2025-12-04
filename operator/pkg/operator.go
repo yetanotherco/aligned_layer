@@ -20,6 +20,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/urfave/cli/v2"
+	"github.com/yetanotherco/aligned_layer/operator/mina"
+	"github.com/yetanotherco/aligned_layer/operator/mina_account"
 	"github.com/yetanotherco/aligned_layer/operator/risc_zero"
 	"golang.org/x/crypto/sha3"
 
@@ -423,6 +425,16 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 			verificationData.PubInput, verificationData.VerificationKey)
 		o.Logger.Infof("Circom Groth16 BN256 proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, nil, "Circom Groth16 BN256 proof verification")
+
+	case common.Mina:
+		verificationResult, err := mina.VerifyMinaState(verificationData.Proof, verificationData.PubInput)
+		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
+		o.handleVerificationResult(results, verificationResult, err, "Mina state proof verification")
+
+	case common.MinaAccount:
+		verificationResult, err := mina_account.VerifyAccountInclusion(verificationData.Proof, verificationData.PubInput)
+		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
+		o.handleVerificationResult(results, verificationResult, err, "Mina account state proof verification")
 
 	default:
 		o.Logger.Error("Unrecognized proving system ID")
