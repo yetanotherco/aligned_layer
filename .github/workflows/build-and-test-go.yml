@@ -31,34 +31,81 @@ jobs:
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
 
+      - name: Cache SP1 bindings
+        id: cache-sp1
+        uses: actions/cache@v4
+        with:
+          path: operator/sp1/lib/libsp1_verifier_ffi.so
+          key: sp1-bindings-${{ runner.os }}-${{ hashFiles('operator/sp1/lib/**/*.rs', 'operator/sp1/lib/Cargo.*') }}
+
       - name: Build SP1 bindings
+        if: steps.cache-sp1.outputs.cache-hit != 'true'
         run: make build_sp1_linux
 
       - name: Clean SP1 build artifacts
+        if: steps.cache-sp1.outputs.cache-hit != 'true'
         run: rm -rf operator/sp1/lib/target
 
+      - name: Cache Risc Zero bindings
+        id: cache-risc-zero
+        uses: actions/cache@v4
+        with:
+          path: operator/risc_zero/lib/librisc_zero_verifier_ffi.so
+          key: risc-zero-bindings-${{ runner.os }}-${{ hashFiles('operator/risc_zero/lib/**/*.rs', 'operator/risc_zero/lib/Cargo.*') }}
+
       - name: Build Risc Zero go bindings
+        if: steps.cache-risc-zero.outputs.cache-hit != 'true'
         run: make build_risc_zero_linux
 
       - name: Clean Risc Zero build artifacts
+        if: steps.cache-risc-zero.outputs.cache-hit != 'true'
         run: rm -rf operator/risc_zero/lib/target
 
+      - name: Cache Merkle Tree bindings
+        id: cache-merkle-tree
+        uses: actions/cache@v4
+        with:
+          path: |
+            operator/merkle_tree/lib/libmerkle_tree.so
+            operator/merkle_tree/lib/libmerkle_tree.a
+          key: merkle-tree-bindings-${{ runner.os }}-${{ hashFiles('operator/merkle_tree/lib/**/*.rs', 'operator/merkle_tree/lib/Cargo.*') }}
+
       - name: Build Merkle Tree bindings
+        if: steps.cache-merkle-tree.outputs.cache-hit != 'true'
         run: make build_merkle_tree_linux
 
       - name: Clean Merkle Tree build artifacts
+        if: steps.cache-merkle-tree.outputs.cache-hit != 'true'
         run: rm -rf operator/merkle_tree/lib/target
 
+      - name: Cache Mina bindings
+        id: cache-mina
+        uses: actions/cache@v4
+        with:
+          path: operator/mina/lib/libmina_state_verifier_ffi.so
+          key: mina-bindings-${{ runner.os }}-${{ hashFiles('operator/mina/lib/**/*.rs', 'operator/mina/lib/Cargo.*') }}
+
       - name: Build Mina bindings
+        if: steps.cache-mina.outputs.cache-hit != 'true'
         run: make build_mina_linux
 
       - name: Clean Mina build artifacts
+        if: steps.cache-mina.outputs.cache-hit != 'true'
         run: rm -rf operator/mina/lib/target
 
+      - name: Cache Mina Account bindings
+        id: cache-mina-account
+        uses: actions/cache@v4
+        with:
+          path: operator/mina_account/lib/libmina_account_verifier_ffi.so
+          key: mina-account-bindings-${{ runner.os }}-${{ hashFiles('operator/mina_account/lib/**/*.rs', 'operator/mina_account/lib/Cargo.*') }}
+
       - name: Build Mina Account bindings
+        if: steps.cache-mina-account.outputs.cache-hit != 'true'
         run: make build_mina_account_linux
 
       - name: Clean Mina Account build artifacts
+        if: steps.cache-mina-account.outputs.cache-hit != 'true'
         run: rm -rf operator/mina_account/lib/target
 
       - name: Build operator
