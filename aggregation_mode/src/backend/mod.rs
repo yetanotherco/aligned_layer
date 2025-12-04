@@ -12,14 +12,12 @@ use alloy::{
     eips::{eip4844::BYTES_PER_BLOB, eip7594::BlobTransactionSidecarEip7594, Encodable2718},
     hex,
     network::EthereumWallet,
-    primitives::Address,
+    primitives::{utils::parse_ether, Address, U256},
     providers::{PendingTransactionError, Provider, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::local::LocalSigner,
 };
 use config::Config;
-use ethers::types::U256;
-use ethers::utils::parse_ether;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
@@ -62,7 +60,7 @@ impl ProofAggregator {
         let wallet = EthereumWallet::from(signer);
 
         // Check if the monthly budget is non-negative to avoid runtime errors later
-        let monthly_budget_in_wei = parse_ether(config.monthly_budget_eth)
+        let monthly_budget_in_wei = parse_ether(&config.monthly_budget_eth.to_string())
             .expect("Monthly budget must be a non-negative value");
 
         info!("Monthly budget set to {} wei", monthly_budget_in_wei);
@@ -160,7 +158,7 @@ impl ProofAggregator {
             // should be considered over a 24h period.
 
             let gas_price = match self.rpc_provider.get_gas_price().await {
-                Ok(price) => Ok(price),
+                Ok(price) => Ok(U256::from(price)),
                 Err(e1) => Err(AggregatedProofSubmissionError::GasPriceError(
                     e1.to_string(),
                 )),
@@ -169,7 +167,7 @@ impl ProofAggregator {
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
                 self.config.monthly_budget_eth,
-                gas_price.into(),
+                gas_price,
             ) {
                 break;
             } else {
@@ -198,12 +196,13 @@ impl ProofAggregator {
         const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
 
         // Note: this expect is safe because in case it was invalid, should have been caught at startup
-        let monthly_budget_in_wei = parse_ether(monthly_eth_budget)
+        let monthly_budget_in_wei = parse_ether(&monthly_eth_budget.to_string())
             .expect("The monthly budget should be a non-negative value");
 
         let elapsed_seconds = U256::from(time_elapsed.as_secs());
 
-        let budget_available_per_second_in_wei = monthly_budget_in_wei / SECONDS_PER_MONTH;
+        let budget_available_per_second_in_wei =
+            monthly_budget_in_wei / U256::from(SECONDS_PER_MONTH);
 
         budget_available_per_second_in_wei * elapsed_seconds
     }
