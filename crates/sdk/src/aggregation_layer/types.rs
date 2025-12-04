@@ -1,10 +1,11 @@
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
+use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
 use crate::beacon::BeaconClientError;
 
 #[repr(u16)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum AggregationModeProvingSystem {
     SP1 = 1,
     RISC0 = 2,
