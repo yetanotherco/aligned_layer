@@ -10,6 +10,7 @@ serde_yaml = { workspace = true }
 alloy = { workspace = true }
 bincode = { workspace = true }
 aligned-sdk = { workspace = true }
+db = { workspace = true }
 
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }

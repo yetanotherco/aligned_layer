@@ -1,3 +1,4 @@
+use db::types::Task;
 use sqlx::{
     postgres::PgPoolOptions,
     types::{BigDecimal, Uuid},
@@ -12,6 +13,7 @@ pub struct Db {
 #[derive(Debug, Clone)]
 pub enum DbError {
     ConnectError(String),
+    Query(String),
 }
 
 impl Db {
@@ -25,13 +27,22 @@ impl Db {
         Ok(Self { pool })
     }
 
-    pub async fn get_tasks_and_mark_them_as_processed() {}
+    pub async fn get_pending_tasks_and_mark_them_as_processed(
+        &self,
+        limit: i64,
+    ) -> Result<Vec<Task>, DbError> {
+        sqlx::query_as::<_, Task>("SELECT * FROM tasks WHERE status = 'pending' LIMIT $1")
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| DbError::Query(e.to_string()))
+    }
 
-    pub async fn mark_tasks_as_pending() {}
+    pub async fn mark_tasks_as_pending(&self) {}
 
-    pub async fn mark_tasks_as_processing() {}
+    pub async fn mark_tasks_as_processing(&self) {}
 
-    pub async fn mark_tasks_as_verified() {}
+    pub async fn mark_tasks_as_verified(&self) {}
 
-    pub async fn mark_tasks_as_submitted() {}
+    pub async fn mark_tasks_as_submitted(&self) {}
 }

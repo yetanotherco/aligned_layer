@@ -53,7 +53,7 @@ pub struct ProofAggregator {
 }
 
 impl ProofAggregator {
-    pub fn new(config: Config) -> Self {
+    pub async fn new(config: Config) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::decrypt_keystore(
             config.ecdsa.private_key_store_path.clone(),
@@ -84,7 +84,9 @@ impl ProofAggregator {
                 .try_into()
                 .expect("Risc0 chunk aggregator image id must be 32 bytes");
 
-        let db = Db::try_new(self.config.db_connection_url).expect("To connect to db");
+        let db = Db::try_new(&config.db_connection_url)
+            .await
+            .expect("To connect to db");
 
         Self {
             engine,
