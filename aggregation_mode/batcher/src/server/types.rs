@@ -28,8 +28,9 @@ impl AppResponse {
 
 /// Query parameters accepted by `GET /proof/merkle`, containing an optional proof id.
 #[derive(Deserialize, Clone)]
-pub(super) struct GetProofMerklePathQueryParams {
-    pub id: Option<String>,
+pub(super) struct GetReceiptsParams {
+    pub address: Option<String>,
+    pub nonce: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

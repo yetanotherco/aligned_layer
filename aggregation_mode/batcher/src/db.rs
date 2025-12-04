@@ -45,6 +45,23 @@ impl Db {
             .map(|res| res.flatten())
     }
 
+    pub async fn get_tasks_by_address(
+        &self,
+        address: &str,
+        limit: i64,
+    ) -> Result<Vec<Option<Vec<u8>>>, sqlx::Error> {
+        sqlx::query_scalar::<_, Option<Vec<u8>>>(
+            "SELECT merkle_path FROM tasks
+            WHERE address = $1
+            ORDER BY created_at DESC
+            LIMIT $2",
+        )
+        .bind(address.to_lowercase())
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+    }
+
     pub async fn insert_task(
         &self,
         address: &str,

@@ -12,7 +12,7 @@ use sqlx::types::BigDecimal;
 
 use super::{
     helpers::format_merkle_path,
-    types::{AppResponse, GetProofMerklePathQueryParams},
+    types::{AppResponse, GetReceiptsParams},
 };
 
 use crate::{
@@ -44,7 +44,7 @@ impl BatcherServer {
             App::new()
                 .app_data(Data::new(state.clone()))
                 .route("/nonce/{address}", web::get().to(Self::get_nonce))
-                .route("/proof/merkle", web::get().to(Self::get_proof_merkle_path))
+                .route("/receipts", web::get().to(Self::get_receipts))
                 .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
                 .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
         })
@@ -55,6 +55,7 @@ impl BatcherServer {
         .expect("Server to never end");
     }
 
+    // Returns the nonce (number of submitted tasks) for a given address
     async fn get_nonce(req: HttpRequest) -> impl Responder {
         let Some(address) = req.match_info().get("address") else {
             return HttpResponse::BadRequest()
@@ -80,6 +81,7 @@ impl BatcherServer {
         }
     }
 
+    // Posts an SP1 proof to the batcher, recovering the address from the signature
     async fn post_proof_sp1(
         req: HttpRequest,
         body: web::Json<SubmitProofRequest<SubmitProofRequestMessageSP1>>,
@@ -160,6 +162,7 @@ impl BatcherServer {
     }
 
     /// TODO: complete for risc0 (see `post_proof_sp1`)
+    // Posts a Risc0 proof to the batcher, recovering the address from the signature
     async fn post_proof_risc0(
         _req: HttpRequest,
         _body: web::Json<SubmitProofRequest<SubmitProofRequestMessageRisc0>>,
@@ -167,9 +170,11 @@ impl BatcherServer {
         HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
     }
 
-    async fn get_proof_merkle_path(
+    // Returns the last 100 receipt merkle proofs for the address received in the URL.
+    // In case of also receiving a nonce on the query param, it returns only the merkle proof for that nonce.
+    async fn get_receipts(
         req: HttpRequest,
-        params: web::Query<GetProofMerklePathQueryParams>,
+        params: web::Query<GetReceiptsParams>,
     ) -> impl Responder {
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
@@ -179,34 +184,23 @@ impl BatcherServer {
         let state = state.get_ref();
 
         // TODO: maybe also accept proof commitment in query param
-        let Some(id) = params.id.clone() else {
+        let Some(address) = params.address.clone() else {
             return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
-                "Provide task `id` query param",
+                "Provide task `address` query param",
                 400,
             ));
         };
 
-        if id.is_empty() {
+        if address.is_empty() {
             return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
-                "Proof id cannot be empty",
+                "Address cannot be empty",
                 400,
             ));
         }
 
-        let Ok(proof_id) = sqlx::types::Uuid::parse_str(&id) else {
-            return HttpResponse::BadRequest()
-                .json(AppResponse::new_unsucessfull("Proof id invalid uuid", 400));
-        };
-
-        let db_result = state.db.get_merkle_path_by_task_id(proof_id).await;
-        let merkle_path = match db_result {
-            Ok(Some(merkle_path)) => merkle_path,
-            Ok(None) => {
-                return HttpResponse::NotFound().json(AppResponse::new_unsucessfull(
-                    "Proof merkle path not found",
-                    404,
-                ))
-            }
+        let db_result = state.db.get_tasks_by_address(&address, 100).await;
+        let merkle_paths = match db_result {
+            Ok(merkle_paths) => merkle_paths,
             Err(_) => {
                 return HttpResponse::InternalServerError()
                     .json(AppResponse::new_unsucessfull("Internal server error", 500));
