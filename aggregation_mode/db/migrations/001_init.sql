@@ -7,7 +7,8 @@ CREATE TABLE tasks (
     proof BYTEA,
     program_commitment BYTEA,
     merkle_path BYTEA,
-    status task_status DEFAULT 'pending'
+    status task_status DEFAULT 'pending',
+    nonce BIGINT
 );
 
 CREATE TABLE payment_events (
