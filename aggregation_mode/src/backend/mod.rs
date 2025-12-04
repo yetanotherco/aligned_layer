@@ -62,12 +62,10 @@ impl ProofAggregator {
         let wallet = EthereumWallet::from(signer);
 
         // Check if the monthly budget is non-negative to avoid runtime errors later
-        let monthly_budget_in_wei = parse_ether(config.monthly_budget_eth).expect("Monthly budget must be a non-negative value");
-        
-        info!(
-            "Monthly budget set to {} wei",
-            monthly_budget_in_wei
-        );
+        let monthly_budget_in_wei = parse_ether(config.monthly_budget_eth)
+            .expect("Monthly budget must be a non-negative value");
+
+        info!("Monthly budget set to {} wei", monthly_budget_in_wei);
 
         let rpc_provider = ProviderBuilder::new().connect_http(rpc_url.clone());
 
@@ -163,7 +161,9 @@ impl ProofAggregator {
 
             let gas_price = match self.rpc_provider.get_gas_price().await {
                 Ok(price) => Ok(price),
-                Err(e1) => Err(AggregatedProofSubmissionError::GasPriceError(e1.to_string())),
+                Err(e1) => Err(AggregatedProofSubmissionError::GasPriceError(
+                    e1.to_string(),
+                )),
             }?;
 
             if self.should_send_proof_to_verify_on_chain(
@@ -198,7 +198,8 @@ impl ProofAggregator {
         const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
 
         // Note: this expect is safe because in case it was invalid, should have been caught at startup
-        let monthly_budget_in_wei = parse_ether(monthly_eth_budget).expect("The monthly budget should be a non-negative value");
+        let monthly_budget_in_wei = parse_ether(monthly_eth_budget)
+            .expect("The monthly budget should be a non-negative value");
 
         let elapsed_seconds = U256::from(time_elapsed.as_secs());
 
