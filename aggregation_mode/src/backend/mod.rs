@@ -161,7 +161,10 @@ impl ProofAggregator {
             // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
             // should be considered over a 24h period.
 
-            let gas_price = self.get_gas_price().await?;
+            let gas_price = match self.rpc_provider.get_gas_price().await {
+                Ok(price) => Ok(price),
+                Err(e1) => Err(AggregatedProofSubmissionError::GasPriceError(e1.to_string())),
+            }?;
 
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
@@ -359,17 +362,6 @@ impl ProofAggregator {
             .0;
 
         Ok((blob, blob_versioned_hash))
-    }
-
-    /// Try to obtain a sensible gas price from two providers.
-    /// Tries `primary` first, falls back to `fallback` if the first fails.
-    pub async fn get_gas_price(&self) -> Result<u128, AggregatedProofSubmissionError> {
-        match self.rpc_provider.get_gas_price().await {
-            Ok(price) => Ok(price),
-            Err(e1) => Err(AggregatedProofSubmissionError::GasPriceError(format!(
-                "gas price error: {e1}"
-            ))),
-        }
     }
 }
 
