@@ -53,7 +53,7 @@ pub struct ProofAggregator {
 
 impl ProofAggregator {
     pub fn new(config: Config) -> Self {
-        let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
+        let rpc_url: reqwest::Url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::decrypt_keystore(
             config.ecdsa.private_key_store_path.clone(),
             config.ecdsa.private_key_store_password.clone(),
