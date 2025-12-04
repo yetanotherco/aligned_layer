@@ -157,12 +157,9 @@ impl ProofAggregator {
             // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
             // should be considered over a 24h period.
 
-            let gas_price = match self.rpc_provider.get_gas_price().await {
-                Ok(price) => Ok(U256::from(price)),
-                Err(e1) => Err(AggregatedProofSubmissionError::GasPriceError(
-                    e1.to_string(),
-                )),
-            }?;
+            let gas_price = match self.rpc_provider.get_gas_price().await.map_err(|e| AggregatedProofSubmissionError::GasPriceError(
+                    e.to_string(),
+                ))?;
 
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
