@@ -147,7 +147,7 @@ impl ProofAggregator {
         );
 
         // Iterate until we can send the proof on-chain
-        let mut time_elapsed: Duration = Duration::from_secs(24 * 3600);
+        let mut time_elapsed = Duration::from_secs(24 * 3600);
 
         loop {
             // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
