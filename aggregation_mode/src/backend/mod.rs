@@ -60,10 +60,10 @@ impl ProofAggregator {
         let wallet = EthereumWallet::from(signer);
 
         // Check if the monthly budget is non-negative to avoid runtime errors later
-        let monthly_budget_in_wei = parse_ether(&config.monthly_budget_eth.to_string())
+        let _monthly_budget_in_wei = parse_ether(&config.monthly_budget_eth.to_string())
             .expect("Monthly budget must be a non-negative value");
 
-        info!("Monthly budget set to {} wei", monthly_budget_in_wei);
+        info!("Monthly budget set to {} eth", config.monthly_budget_eth);
 
         let rpc_provider = ProviderBuilder::new().connect_http(rpc_url.clone());
 
@@ -157,9 +157,11 @@ impl ProofAggregator {
             // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
             // should be considered over a 24h period.
 
-            let gas_price = match self.rpc_provider.get_gas_price().await.map_err(|e| AggregatedProofSubmissionError::GasPriceError(
-                    e.to_string(),
-                ))?;
+            let gas_price = self
+                .rpc_provider
+                .get_gas_price()
+                .await
+                .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?;
 
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
