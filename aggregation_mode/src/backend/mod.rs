@@ -60,11 +60,15 @@ impl ProofAggregator {
         )
         .expect("Keystore signer should be `cast wallet` compliant");
         let wallet = EthereumWallet::from(signer);
-        let rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
+
+        let rpc_provider = ProviderBuilder::new().connect_http(rpc_url.clone());
+
+        let signed_rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
+
         let proof_aggregation_service = AlignedProofAggregationService::new(
             Address::from_str(&config.proof_aggregation_service_address)
                 .expect("AlignedProofAggregationService address should be valid"),
-            rpc_provider.clone(),
+            signed_rpc_provider.clone(),
         );
 
         let engine =
