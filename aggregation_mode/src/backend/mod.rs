@@ -166,7 +166,7 @@ impl ProofAggregator {
             if self.should_send_proof_to_verify_on_chain(
                 time_elapsed,
                 self.config.monthly_budget_eth,
-                gas_price,
+                U256::from(gas_price),
             ) {
                 break;
             } else {
