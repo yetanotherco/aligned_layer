@@ -1,0 +1,38 @@
+#cloud-config
+hostname: ${hostname}
+fqdn: ${hostname}
+manage_etc_hosts: true
+
+users:
+  - name: app
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+  - name: admin
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - wget
+  - gnupg
+  - vim
+  - git
+  - zip
+  - unzip
+  - openssl
+  - libssl-dev
+  - build-essential
+  - rsyslog
+  - htop
+  - rsync
+  - pkg-config
+
+runcmd:
+  - loginctl enable-linger app
