@@ -24,9 +24,9 @@ enum TaskStatus {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, sqlx::Type, serde::Serialize)]
-pub(crate) struct Receipt {
+pub struct Receipt {
     status: TaskStatus,
-    pub(crate) merkle_path: Option<Vec<u8>>,
+    pub merkle_path: Option<Vec<u8>>,
     nonce: i64,
     address: String,
 }
