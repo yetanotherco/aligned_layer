@@ -10,3 +10,7 @@ module "postgres_monitor" {
 module "postgres_primary" {
   source = "./postgres_primary"
 }
+
+module "postgres_secondary" {
+  source = "./postgres_secondary"
+}
