@@ -1,9 +1,5 @@
 use db::types::Task;
-use sqlx::{
-    postgres::PgPoolOptions,
-    types::{BigDecimal, Uuid},
-    Pool, Postgres,
-};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 #[derive(Clone, Debug)]
 pub struct Db {
@@ -29,13 +25,17 @@ impl Db {
 
     pub async fn get_pending_tasks_and_mark_them_as_processed(
         &self,
+        proving_system_id: i64,
         limit: i64,
     ) -> Result<Vec<Task>, DbError> {
-        sqlx::query_as::<_, Task>("SELECT * FROM tasks WHERE status = 'pending' LIMIT $1")
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| DbError::Query(e.to_string()))
+        sqlx::query_as::<_, Task>(
+            "SELECT * FROM tasks WHERE status = 'pending' AND proving_system_id = $1 LIMIT $2",
+        )
+        .bind(proving_system_id)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DbError::Query(e.to_string()))
     }
 
     pub async fn mark_tasks_as_pending(&self) {}

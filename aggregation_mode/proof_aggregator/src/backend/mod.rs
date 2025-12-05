@@ -3,7 +3,6 @@ mod db;
 pub mod fetcher;
 mod merkle_tree;
 mod retry;
-mod s3;
 mod types;
 
 use crate::{
@@ -50,6 +49,7 @@ pub struct ProofAggregator {
     config: Config,
     sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
     risc0_chunk_aggregator_image_id_bytes: [u8; 32],
+    db: Db,
 }
 
 impl ProofAggregator {
@@ -70,7 +70,12 @@ impl ProofAggregator {
 
         let engine =
             ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
-        let fetcher = ProofsFetcher::new(&config);
+
+        let db = Db::try_new(&config.db_connection_url)
+            .await
+            .expect("To connect to db");
+
+        let fetcher = ProofsFetcher::new(db.clone());
 
         let sp1_chunk_aggregator_vk_hash_bytes: [u8; 32] =
             hex::decode(&config.sp1_chunk_aggregator_vk_hash)
@@ -84,10 +89,6 @@ impl ProofAggregator {
                 .try_into()
                 .expect("Risc0 chunk aggregator image id must be 32 bytes");
 
-        let db = Db::try_new(&config.db_connection_url)
-            .await
-            .expect("To connect to db");
-
         Self {
             engine,
             proof_aggregation_service,
@@ -95,6 +96,7 @@ impl ProofAggregator {
             config,
             sp1_chunk_aggregator_vk_hash_bytes,
             risc0_chunk_aggregator_image_id_bytes,
+            db,
         }
     }
 
@@ -106,9 +108,6 @@ impl ProofAggregator {
 
         match res {
             Ok(()) => {
-                self.config
-                    .update_last_aggregated_block(self.fetcher.get_last_aggregated_block())
-                    .unwrap();
                 info!("Process finished successfully");
             }
             Err(err) => {
@@ -122,7 +121,7 @@ impl ProofAggregator {
     ) -> Result<(), AggregatedProofSubmissionError> {
         let proofs = self
             .fetcher
-            .fetch(self.engine.clone(), self.config.total_proofs_limit)
+            .query(self.engine.clone(), self.config.total_proofs_limit)
             .await
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
@@ -168,6 +167,8 @@ impl ProofAggregator {
             "Proof sent and verified, tx hash {:?}",
             receipt.transaction_hash
         );
+
+        // TODO: mark them as verified and store their merkle paths
 
         Ok(())
     }
