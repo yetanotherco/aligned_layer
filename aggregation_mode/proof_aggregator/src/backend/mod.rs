@@ -394,7 +394,7 @@ mod tests {
 
         let current_dir = env!("CARGO_MANIFEST_DIR");
 
-        info!("Current dir for tests: {}", current_dir);
+        panic!("Current dir for tests: {}", current_dir);
 
         // Check that the config file paths exist
         let ecdsa_key_path =
