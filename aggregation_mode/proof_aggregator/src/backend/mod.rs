@@ -475,10 +475,10 @@ mod tests {
         // gas_price * 600_000 <= (seconds_elapsed) * (monthly_eth_budget / (30 * 24 * 60 * 60))
 
         // Case 1: Base case -> should return true
-        // Monthly Budget: 0.15 ETH -> 0.5 ETH per day -> 0.000058 ETH per hour
+        // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
         // Elapsed Time: 24 hours
         // Gas Price: 1 Gwei
-        // Max to spend: 0.000058 ETH/hour * 24 hours = 0.005 ETH
+        // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
         assert!(aggregator.should_send_proof_to_verify_on_chain(
@@ -488,10 +488,10 @@ mod tests {
         ));
 
         // Case 2: Slightly Increased Gas Price -> should return false
-        // Monthly Budget: 0.15 ETH -> 0.5 ETH per day -> 0.000058 ETH per hour
+        // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
         // Elapsed Time: 24 hours
         // Gas Price: 10 Gwei
-        // Max to spend: 0.000058 ETH/hour * 24 hours = 0.005 ETH
+        // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 8 Gwei = 0.0048 ETH
         // Expected cost < Max to spend, so we can send the proof
         assert!(aggregator.should_send_proof_to_verify_on_chain(
@@ -501,10 +501,10 @@ mod tests {
         ));
 
         // Case 3: Increased Gas Price -> should return false
-        // Monthly Budget: 0.15 ETH -> 0.5 ETH per day -> 0.000058 ETH per hour
+        // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
         // Elapsed Time: 24 hours
         // Gas Price: 10 Gwei
-        // Max to spend: 0.000058 ETH/hour * 24 hours = 0.001392 ETH
+        // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 10 Gwei = 0.006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
         assert!(!aggregator.should_send_proof_to_verify_on_chain(
@@ -514,7 +514,7 @@ mod tests {
         ));
 
         // Case 4: Slightly Reduced Time Elapsed -> should return true
-        // Monthly Budget: 0.15 ETH -> 0.5 ETH per day -> 0.000000058 ETH per hour
+        // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
         // Elapsed Time: 2 hours
         // Gas Price: 1 Gwei
         // Max to spend: 0.000000058 ETH/hour * 3 hours = 0.000625 ETH
@@ -527,7 +527,7 @@ mod tests {
         ));
 
         // Case 5: Reduced Time Elapsed -> should return false
-        // Monthly Budget: 0.15 ETH -> 0.5 ETH per day -> 0.000000058 ETH per hour
+        // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
         // Elapsed Time: 1.2 hours
         // Gas Price: 1 Gwei
         // Max to spend: 0.000000058 ETH/hour * 1.2 hours = 0.00025 ETH
