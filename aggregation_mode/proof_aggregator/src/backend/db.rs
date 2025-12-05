@@ -1,5 +1,5 @@
 use db::types::Task;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::{postgres::PgPoolOptions, types::Uuid, Pool, Postgres};
 
 #[derive(Clone, Debug)]
 pub struct Db {
@@ -29,7 +29,18 @@ impl Db {
         limit: i64,
     ) -> Result<Vec<Task>, DbError> {
         sqlx::query_as::<_, Task>(
-            "SELECT * FROM tasks WHERE status = 'pending' AND proving_system_id = $1 LIMIT $2",
+            "WITH selected AS (
+                    SELECT task_id
+                    FROM tasks
+                    WHERE proving_system_id = $1 AND status = 'pending'
+                    LIMIT $2
+                    FOR UPDATE SKIP LOCKED
+                )
+                UPDATE tasks t
+                SET status = 'processing'
+                FROM selected s
+                WHERE t.task_id = s.task_id
+                RETURNING t.*;",
         )
         .bind(proving_system_id)
         .bind(limit)
@@ -38,11 +49,40 @@ impl Db {
         .map_err(|e| DbError::Query(e.to_string()))
     }
 
+    pub async fn insert_tasks_merkle_path_and_mark_them_as_submitted(
+        &self,
+        updates: Vec<(Uuid, Vec<u8>)>,
+    ) -> Result<(), DbError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| DbError::Query(e.to_string()))?;
+
+        for (task_id, merkle_path) in updates {
+            if let Err(e) = sqlx::query(
+                "UPDATE tasks SET merkle_path = $1, status = 'verified' WHERE task_id = $2",
+            )
+            .bind(merkle_path)
+            .bind(task_id)
+            .execute(&mut *tx)
+            .await
+            {
+                tx.rollback()
+                    .await
+                    .map_err(|e| DbError::Query(e.to_string()))?;
+                tracing::error!("Error while updating task merkle path and status {}", e);
+                return Err(DbError::Query(e.to_string()));
+            }
+        }
+
+        tx.commit()
+            .await
+            .map_err(|e| DbError::Query(e.to_string()))?;
+
+        Ok(())
+    }
+
+    // TODO: this should be used when rolling back processing proofs on unexpected errors
     pub async fn mark_tasks_as_pending(&self) {}
-
-    pub async fn mark_tasks_as_processing(&self) {}
-
-    pub async fn mark_tasks_as_verified(&self) {}
-
-    pub async fn mark_tasks_as_submitted(&self) {}
 }

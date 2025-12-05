@@ -5,7 +5,8 @@ use crate::{
     },
     backend::db::{Db, DbError},
 };
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use sqlx::types::Uuid;
 use tracing::{error, info};
 
 #[derive(Debug)]
@@ -26,48 +27,56 @@ impl ProofsFetcher {
         &self,
         engine: ZKVMEngine,
         limit: i64,
-    ) -> Result<Vec<AlignedProof>, ProofsFetcherError> {
+    ) -> Result<(Vec<AlignedProof>, Vec<Uuid>), ProofsFetcherError> {
         let tasks = self
             .db
             .get_pending_tasks_and_mark_them_as_processed(engine.proving_system_id() as i64, limit)
             .await
             .map_err(ProofsFetcherError::Query)?;
 
-        let proofs_to_aggregate: Vec<AlignedProof> = match engine {
-            ZKVMEngine::SP1 => tasks
-                .into_par_iter()
-                .filter_map(|task| {
-                    let vk = bincode::deserialize(&task.program_commitment).ok()?;
-                    let proof_with_pub_values = bincode::deserialize(&task.proof).ok()?;
-                    let sp1_proof = SP1ProofWithPubValuesAndVk::new(proof_with_pub_values, vk);
+        let (tasks_id, proofs_to_aggregate): (Vec<Uuid>, Vec<AlignedProof>) = match engine {
+            ZKVMEngine::SP1 => {
+                let pairs: Vec<(Uuid, AlignedProof)> = tasks
+                    .into_par_iter()
+                    .filter_map(|task| {
+                        let vk = bincode::deserialize(&task.program_commitment).ok()?;
+                        let proof_with_pub_values = bincode::deserialize(&task.proof).ok()?;
 
-                    match sp1_proof {
-                        Ok(proof) => Some(AlignedProof::SP1(proof.into())),
-                        Err(err) => {
-                            error!("Could not add proof, verification failed: {:?}", err);
-                            None
+                        match SP1ProofWithPubValuesAndVk::new(proof_with_pub_values, vk) {
+                            Ok(proof) => Some((task.task_id, AlignedProof::SP1(proof.into()))),
+                            Err(err) => {
+                                error!("Could not add proof, verification failed: {:?}", err);
+                                None
+                            }
                         }
-                    }
-                })
-                .collect(),
-            ZKVMEngine::RISC0 => tasks
-                .into_par_iter()
-                .filter_map(|task| {
-                    let mut image_id = [0u8; 32];
-                    image_id.copy_from_slice(&task.program_commitment);
-                    let receipt: risc0_zkvm::Receipt = bincode::deserialize(&task.proof).ok()?;
+                    })
+                    .collect();
 
-                    let risc0_proof = Risc0ProofReceiptAndImageId::new(image_id, receipt);
+                pairs.into_iter().unzip()
+            }
+            ZKVMEngine::RISC0 => {
+                let pairs: Vec<(Uuid, AlignedProof)> = tasks
+                    .into_par_iter()
+                    .filter_map(|task| {
+                        let mut image_id = [0u8; 32];
+                        image_id.copy_from_slice(&task.program_commitment);
+                        // we are inside a for_each callback so it returns for this particular iteration only
+                        let receipt = bincode::deserialize(&task.proof).ok()?;
 
-                    match risc0_proof {
-                        Ok(proof) => Some(AlignedProof::Risc0(proof.into())),
-                        Err(err) => {
-                            error!("Could not add proof, verification failed: {:?}", err);
-                            None
+                        let risc0_proof = Risc0ProofReceiptAndImageId::new(image_id, receipt);
+
+                        match risc0_proof {
+                            Ok(proof) => Some((task.task_id, AlignedProof::Risc0(proof.into()))),
+                            Err(err) => {
+                                error!("Could not add proof, verification failed: {:?}", err);
+                                None
+                            }
                         }
-                    }
-                })
-                .collect(),
+                    })
+                    .collect();
+
+                pairs.into_iter().unzip()
+            }
         };
 
         info!(
@@ -76,6 +85,6 @@ impl ProofsFetcher {
             proofs_to_aggregate.len()
         );
 
-        Ok(proofs_to_aggregate)
+        Ok((proofs_to_aggregate, tasks_id))
     }
 }

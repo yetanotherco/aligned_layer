@@ -1,4 +1,4 @@
-CREATE TYPE task_status AS ENUM ('pending', 'processing', 'verified', 'submitted');
+CREATE TYPE task_status AS ENUM ('pending', 'processing', 'verified');
 
 CREATE TABLE tasks (
     task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

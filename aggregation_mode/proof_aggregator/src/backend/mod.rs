@@ -6,7 +6,7 @@ mod types;
 
 use crate::{
     aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
-    backend::db::Db,
+    backend::db::{Db, DbError},
 };
 
 use alloy::{
@@ -39,6 +39,7 @@ pub enum AggregatedProofSubmissionError {
     ZKVMAggregation(ProofAggregationError),
     BuildingMerkleRoot,
     MerkleRootMisMatch,
+    StoringMerklePaths(DbError),
 }
 
 pub struct ProofAggregator {
@@ -115,10 +116,11 @@ impl ProofAggregator {
         }
     }
 
+    // TODO: on failure, mark proofs as pending again
     async fn aggregate_and_submit_proofs_on_chain(
         &mut self,
     ) -> Result<(), AggregatedProofSubmissionError> {
-        let proofs = self
+        let (proofs, tasks_id) = self
             .fetcher
             .query(self.engine.clone(), self.config.total_proofs_limit)
             .await
@@ -167,7 +169,27 @@ impl ProofAggregator {
             receipt.transaction_hash
         );
 
-        // TODO: mark them as verified and store their merkle paths
+        info!("Storing merkle paths for each task...",);
+        let mut merkle_paths_for_tasks = vec![];
+        for task_id in tasks_id {
+            let Some(proof) = merkle_tree.get_proof_by_pos(0) else {
+                warn!("Proof not found for task id {task_id}");
+                continue;
+            };
+            let proof_bytes = proof
+                .merkle_path
+                .iter()
+                .map(|e| e.to_vec())
+                .flatten()
+                .collect::<Vec<_>>();
+
+            merkle_paths_for_tasks.push((task_id, proof_bytes))
+        }
+        self.db
+            .insert_tasks_merkle_path_and_mark_them_as_submitted(merkle_paths_for_tasks)
+            .await
+            .map_err(AggregatedProofSubmissionError::StoringMerklePaths)?;
+        info!("Merkle path inserted sucessfully",);
 
         Ok(())
     }

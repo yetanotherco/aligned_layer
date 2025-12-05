@@ -8,9 +8,8 @@ use sqlx::{
 #[sqlx(type_name = "task_status", rename_all = "lowercase")]
 pub enum TaskStatus {
     Pending,
-    Running,
-    Done,
-    Failed,
+    Processing,
+    Verified,
 }
 
 #[derive(Debug, Clone, FromRow)]
