@@ -2,7 +2,6 @@ pub mod config;
 mod db;
 pub mod fetcher;
 mod merkle_tree;
-mod retry;
 mod types;
 
 use crate::{

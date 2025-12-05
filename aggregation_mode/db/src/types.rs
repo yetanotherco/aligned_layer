@@ -20,7 +20,7 @@ pub struct Task {
     pub proving_system_id: i32,
     pub proof: Vec<u8>,
     pub program_commitment: Vec<u8>,
-    pub merkle_path: Vec<u8>,
+    pub merkle_path: Option<Vec<u8>>,
     pub status: TaskStatus,
 }
 
