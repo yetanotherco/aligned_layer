@@ -481,10 +481,15 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
+
+        const BUDGET_PER_MONTH_IN_ETH: f64 = 0.15;
+        const ONE_DAY_SECONDS: u64 = 24 * 60 * 60;
+        let gas_price = U256::from(1_000_000_000u64); // 10 GWEI
+
         assert!(aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(24 * 3600), // 24 hours
-            0.15,                           // 0.15 ETH monthly budget
-            U256::from(1_000_000_000u64),   // 1 Gwei gas price
+            Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
+            BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
+            gas_price,                            // 1 Gwei gas price
         ));
 
         // Case 2: Slightly Increased Gas Price -> should return false
@@ -495,9 +500,9 @@ mod tests {
         // Expected cost: 600,000 * 8 Gwei = 0.0048 ETH
         // Expected cost < Max to spend, so we can send the proof
         assert!(aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(24 * 3600), // 24 hours
-            0.15,                           // 0.15 ETH monthly budget
-            U256::from(8_000_000_000u64),   // 10 Gwei gas price
+            Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
+            BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
+            U256::from(8_000_000_000u64),         // 10 Gwei gas price
         ));
 
         // Case 3: Increased Gas Price -> should return false
@@ -508,9 +513,9 @@ mod tests {
         // Expected cost: 600,000 * 10 Gwei = 0.006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
         assert!(!aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(24 * 3600), // 24 hours
-            0.15,                           // 0.15 ETH monthly budget
-            U256::from(10_000_000_000u64),  // 10 Gwei gas price
+            Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
+            BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
+            U256::from(10_000_000_000u64),        // 10 Gwei gas price
         ));
 
         // Case 4: Slightly Reduced Time Elapsed -> should return true
@@ -522,8 +527,8 @@ mod tests {
         // Expected cost < Max to spend, so we can send the proof
         assert!(aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(3 * 3600), // 3 hours
-            0.15,                          // 0.15 ETH monthly budget
-            U256::from(1_000_000_000u64),  // 1 Gwei gas price
+            BUDGET_PER_MONTH_IN_ETH,       // 0.15 ETH monthly budget
+            gas_price,                     // 1 Gwei gas price
         ));
 
         // Case 5: Reduced Time Elapsed -> should return false
@@ -535,8 +540,8 @@ mod tests {
         // Expected cost > Max to spend, so we cannot send the proof
         assert!(!aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs_f64(1.2 * 3600.0), // 1.2 hours
-            0.15,                                  // 0.15 ETH monthly budget
-            U256::from(1_000_000_000u64),          // 1 Gwei gas price
+            BUDGET_PER_MONTH_IN_ETH,               // 0.15 ETH monthly budget
+            gas_price,                             // 1 Gwei gas price
         ));
 
         // Case 6: Slightly Reduced Monthly Budget -> should return true
@@ -547,9 +552,9 @@ mod tests {
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
         assert!(aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(24 * 3600), // 24 hours
-            0.1,                            // 0.1 ETH monthly budget
-            U256::from(1_000_000_000u64),   // 1 Gwei gas price
+            Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
+            0.1,                                  // 0.1 ETH monthly budget
+            gas_price,                            // 1 Gwei gas price
         ));
 
         // Case 7: Decreased Monthly Budget -> should return false
@@ -560,9 +565,9 @@ mod tests {
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
         assert!(!aggregator.should_send_proof_to_verify_on_chain(
-            Duration::from_secs(24 * 3600), // 24 hours
-            0.01,                           // 0.01 ETH monthly budget
-            U256::from(1_000_000_000u64),   // 1 Gwei gas price
+            Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
+            0.01,                                 // 0.01 ETH monthly budget
+            gas_price,                            // 1 Gwei gas price
         ));
     }
 }
