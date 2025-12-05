@@ -52,6 +52,48 @@ pub struct ProofAggregator {
 }
 
 impl ProofAggregator {
+    pub fn new_for_testing(config: Config) -> Self {
+        let rpc_url: reqwest::Url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
+        let signer = LocalSigner::random();
+        let wallet = EthereumWallet::from(signer);
+
+        let rpc_provider = ProviderBuilder::new().connect_http(rpc_url.clone());
+
+        let signed_rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
+
+        let proof_aggregation_service = AlignedProofAggregationService::new(
+            Address::from_str(&config.proof_aggregation_service_address)
+                .expect("AlignedProofAggregationService address should be valid"),
+            signed_rpc_provider.clone(),
+        );
+
+        let engine =
+            ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
+        let fetcher = ProofsFetcher::new_for_testing(&config);
+
+        let sp1_chunk_aggregator_vk_hash_bytes: [u8; 32] =
+            hex::decode(&config.sp1_chunk_aggregator_vk_hash)
+                .expect("Failed to decode SP1 chunk aggregator VK hash")
+                .try_into()
+                .expect("SP1 chunk aggregator VK hash must be 32 bytes");
+
+        let risc0_chunk_aggregator_image_id_bytes: [u8; 32] =
+            hex::decode(&config.risc0_chunk_aggregator_image_id)
+                .expect("Failed to decode Risc0 chunk aggregator image id")
+                .try_into()
+                .expect("Risc0 chunk aggregator image id must be 32 bytes");
+
+        Self {
+            engine,
+            proof_aggregation_service,
+            fetcher,
+            config,
+            rpc_provider,
+            sp1_chunk_aggregator_vk_hash_bytes,
+            risc0_chunk_aggregator_image_id_bytes,
+        }
+    }
+
     pub fn new(config: Config) -> Self {
         let rpc_url: reqwest::Url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::decrypt_keystore(
@@ -394,16 +436,6 @@ mod tests {
 
         let current_dir = env!("CARGO_MANIFEST_DIR");
 
-        panic!("Current dir for tests: {}", current_dir);
-
-        // Check that the config file paths exist
-        let ecdsa_key_path =
-            format!("{current_dir}/../config-files/anvil.proof-aggregator.ecdsa.key.json");
-
-        if !std::path::Path::new(&ecdsa_key_path).exists() {
-            info!("ECDSA key file does not exist at path: {}", ecdsa_key_path);
-        }
-
         // These config values are taken from config-files/config-proof-aggregator.yaml
         let config = Config {
             eth_rpc_url: "http://localhost:8545".to_string(),
@@ -432,7 +464,7 @@ mod tests {
                 "d8cfdd5410c70395c0a1af1842a0148428cc46e353355faccfba694dd4862dbf".to_string(),
         };
 
-        ProofAggregator::new(config)
+        ProofAggregator::new_for_testing(config)
     }
 
     #[test]
