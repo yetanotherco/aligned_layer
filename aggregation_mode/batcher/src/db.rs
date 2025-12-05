@@ -59,7 +59,6 @@ impl Db {
                     "SELECT merkle_path FROM tasks
                 WHERE address = $1
                 AND nonce = $2
-                ORDER BY created_at DESC
                 LIMIT $3",
                 )
                 .bind(addr.to_lowercase())
@@ -72,7 +71,6 @@ impl Db {
                 sqlx::query_scalar::<_, Option<Vec<u8>>>(
                     "SELECT merkle_path FROM tasks
                 WHERE address = $1
-                ORDER BY created_at DESC
                 LIMIT $2",
                 )
                 .bind(addr.to_lowercase())
@@ -84,7 +82,6 @@ impl Db {
                 sqlx::query_scalar::<_, Option<Vec<u8>>>(
                     "SELECT merkle_path FROM tasks
                 WHERE nonce = $1
-                ORDER BY created_at DESC
                 LIMIT $2",
                 )
                 .bind(n)
@@ -95,7 +92,6 @@ impl Db {
             (None, None) => {
                 sqlx::query_scalar::<_, Option<Vec<u8>>>(
                     "SELECT merkle_path FROM tasks
-                ORDER BY created_at DESC
                 LIMIT $1",
                 )
                 .bind(limit)
