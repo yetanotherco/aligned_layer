@@ -416,6 +416,10 @@ mod tests {
             proofs_per_chunk: 512,
             total_proofs_limit: 3968,
             monthly_budget_eth: 15.0,
+            sp1_chunk_aggregator_vk_hash:
+                "00ba19eed0aaeb0151f07b8d3ee7c659bcd29f3021e48fb42766882f55b84509".to_string(),
+            risc0_chunk_aggregator_image_id:
+                "d8cfdd5410c70395c0a1af1842a0148428cc46e353355faccfba694dd4862dbf".to_string(),
         };
 
         ProofAggregator::new(config)
