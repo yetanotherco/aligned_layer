@@ -94,18 +94,7 @@ impl Db {
                 .fetch_all(&self.pool)
                 .await
             }
-            (None, Some(n)) => {
-                sqlx::query_as::<_, Receipt>(
-                    "SELECT status,merkle_path,nonce,address FROM tasks
-                WHERE nonce = $1
-                LIMIT $2",
-                )
-                .bind(n)
-                .bind(limit)
-                .fetch_all(&self.pool)
-                .await
-            }
-            (None, None) => {
+            _ => {
                 sqlx::query_as::<_, Receipt>(
                     "SELECT status,merkle_path,nonce,address FROM tasks
                 LIMIT $1",

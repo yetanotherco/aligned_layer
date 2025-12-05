@@ -186,6 +186,13 @@ impl BatcherServer {
 
         let state = state.get_ref();
 
+        if params.address.is_none() && params.nonce.is_some() {
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                "Bad request: Cannot specify nonce without address",
+                400,
+            ));
+        }
+
         // TODO: maybe also accept proof commitment in query param
         let db_result = state
             .db
