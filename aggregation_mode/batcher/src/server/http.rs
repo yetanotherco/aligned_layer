@@ -178,8 +178,10 @@ impl BatcherServer {
         params: web::Query<GetReceiptsParams>,
     ) -> impl Responder {
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                "Internal server error: Failed to get app data",
+                500,
+            ));
         };
 
         let state = state.get_ref();
@@ -189,22 +191,27 @@ impl BatcherServer {
             .db
             .get_tasks_by_address_and_nonce(params.address.as_deref(), params.nonce, 100)
             .await;
-        let merkle_paths = match db_result {
-            Ok(merkle_paths) => merkle_paths,
-            Err(_) => {
-                return HttpResponse::InternalServerError()
-                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        let receipts = match db_result {
+            Ok(receipts) => receipts,
+            Err(e) => {
+                return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                    format!("Internal server error: Failed to get tasks by address and nonce: {e}")
+                        .as_str(),
+                    500,
+                ));
             }
         };
 
-        match format_merkle_paths(merkle_paths) {
-            Ok(merkle_paths) => {
+        match format_merkle_paths(receipts) {
+            Ok(receipts) => {
                 HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
-                    "merkle_paths": merkle_paths
+                    "receipts": receipts
                 })))
             }
-            Err(_) => HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500)),
+            Err(e) => HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                format!("Internal server error: {e}").as_str(),
+                500,
+            )),
         }
     }
 }

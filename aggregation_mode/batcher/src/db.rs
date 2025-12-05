@@ -14,6 +14,23 @@ pub enum DbError {
     ConnectError(String),
 }
 
+#[derive(Debug, Clone, sqlx::Type, serde::Serialize)]
+#[sqlx(type_name = "task_status")]
+#[sqlx(rename_all = "lowercase")]
+enum TaskStatus {
+    Pending,
+    Processing,
+    Verified,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, sqlx::Type, serde::Serialize)]
+pub(crate) struct Receipt {
+    status: TaskStatus,
+    pub(crate) merkle_path: Option<Vec<u8>>,
+    nonce: i64,
+    address: String,
+}
+
 impl Db {
     pub async fn try_new(connection_url: &str) -> Result<Self, DbError> {
         let pool = PgPoolOptions::new()
@@ -50,13 +67,12 @@ impl Db {
         address: Option<&str>,
         nonce: Option<i64>,
         limit: i64,
-    ) -> Result<Vec<Option<Vec<u8>>>, sqlx::Error> {
-        // TODO: Return merkle paths, task status, address and nonce for each task
+    ) -> Result<Vec<Receipt>, sqlx::Error> {
         // TODO: use dynamic query building instead of match
         match (address, nonce) {
             (Some(addr), Some(n)) => {
-                sqlx::query_scalar::<_, Option<Vec<u8>>>(
-                    "SELECT merkle_path FROM tasks
+                sqlx::query_as::<_, Receipt>(
+                    "SELECT status,merkle_path,nonce,address FROM tasks
                 WHERE address = $1
                 AND nonce = $2
                 LIMIT $3",
@@ -68,8 +84,8 @@ impl Db {
                 .await
             }
             (Some(addr), None) => {
-                sqlx::query_scalar::<_, Option<Vec<u8>>>(
-                    "SELECT merkle_path FROM tasks
+                sqlx::query_as::<_, Receipt>(
+                    "SELECT status,merkle_path,nonce,address FROM tasks
                 WHERE address = $1
                 LIMIT $2",
                 )
@@ -79,8 +95,8 @@ impl Db {
                 .await
             }
             (None, Some(n)) => {
-                sqlx::query_scalar::<_, Option<Vec<u8>>>(
-                    "SELECT merkle_path FROM tasks
+                sqlx::query_as::<_, Receipt>(
+                    "SELECT status,merkle_path,nonce,address FROM tasks
                 WHERE nonce = $1
                 LIMIT $2",
                 )
@@ -90,8 +106,8 @@ impl Db {
                 .await
             }
             (None, None) => {
-                sqlx::query_scalar::<_, Option<Vec<u8>>>(
-                    "SELECT merkle_path FROM tasks
+                sqlx::query_as::<_, Receipt>(
+                    "SELECT status,merkle_path,nonce,address FROM tasks
                 LIMIT $1",
                 )
                 .bind(limit)
