@@ -12,6 +12,7 @@ fn main() {
             ],
             // We use Docker to generate a reproducible ELF that will be identical across all platforms
             // (https://docs.succinct.xyz/docs/sp1/writing-programs/compiling#production-builds)
+            docker: true,
             ..Default::default()
         }
     });
@@ -20,7 +21,10 @@ fn main() {
     // regardless of the machine or local environment, will produce the same ImageID
     let docker_options = DockerOptionsBuilder::default().build().unwrap();
     // Reference: https://github.com/risc0/risc0/blob/main/risc0/build/src/config.rs#L73-L90
-    let guest_options = GuestOptionsBuilder::default().build().unwrap();
+    let guest_options = GuestOptionsBuilder::default()
+        .use_docker(docker_options)
+        .build()
+        .unwrap();
 
     risc0_build::embed_methods_with_options(HashMap::from([(
         "risc0_aggregation_program",
