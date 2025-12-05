@@ -179,8 +179,7 @@ impl ProofAggregator {
             let proof_bytes = proof
                 .merkle_path
                 .iter()
-                .map(|e| e.to_vec())
-                .flatten()
+                .flat_map(|e| e.to_vec())
                 .collect::<Vec<_>>();
 
             merkle_paths_for_tasks.push((task_id, proof_bytes))
