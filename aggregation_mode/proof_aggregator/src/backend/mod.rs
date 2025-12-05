@@ -394,6 +394,16 @@ mod tests {
 
         let current_dir = env!("CARGO_MANIFEST_DIR");
 
+        info!("Current dir for tests: {}", current_dir);
+
+        // Check that the config file paths exist
+        let ecdsa_key_path =
+            format!("{current_dir}/../config-files/anvil.proof-aggregator.ecdsa.key.json");
+
+        if !std::path::Path::new(&ecdsa_key_path).exists() {
+            info!("ECDSA key file does not exist at path: {}", ecdsa_key_path);
+        }
+
         // These config values are taken from config-files/config-proof-aggregator.yaml
         let config = Config {
             eth_rpc_url: "http://localhost:8545".to_string(),
