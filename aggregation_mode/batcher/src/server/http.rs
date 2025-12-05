@@ -150,6 +150,7 @@ impl BatcherServer {
                 &data.message.proof,
                 &data.message.program_vk_commitment,
                 None,
+                count,
             )
             .await
         {
