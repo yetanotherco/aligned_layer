@@ -198,13 +198,10 @@ impl BatcherServer {
                 .await
             {
                 Ok(receipts) => receipts,
-                Err(e) => {
+                Err(_) => {
                     return HttpResponse::InternalServerError().json(
                         AppResponse::new_unsucessfull(
-                            format!(
-                            "Internal server error: Failed to get tasks by address and nonce: {e}"
-                        )
-                            .as_str(),
+                            "Internal server error: Failed to get tasks by address and nonce",
                             500,
                         ),
                     );
@@ -213,13 +210,10 @@ impl BatcherServer {
         } else {
             match state.db.get_tasks_by_address(&address, 100).await {
                 Ok(receipts) => receipts,
-                Err(e) => {
+                Err(_) => {
                     return HttpResponse::InternalServerError().json(
                         AppResponse::new_unsucessfull(
-                            format!(
-                            "Internal server error: Failed to get tasks by address and nonce: {e}"
-                        )
-                            .as_str(),
+                            "Internal server error: Failed to get tasks by address and nonce",
                             500,
                         ),
                     );
@@ -233,10 +227,8 @@ impl BatcherServer {
                     "receipts": receipts
                 })))
             }
-            Err(e) => HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
-                format!("Internal server error: {e}").as_str(),
-                500,
-            )),
+            Err(_) => HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500)),
         }
     }
 }
