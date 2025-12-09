@@ -474,6 +474,10 @@ mod tests {
         // The should_send_proof_to_verify_on_chain function returns true when:
         // gas_price * 600_000 <= (seconds_elapsed) * (monthly_eth_budget / (30 * 24 * 60 * 60))
 
+        const BUDGET_PER_MONTH_IN_ETH: f64 = 0.15;
+        const ONE_DAY_SECONDS: u64 = 24 * 60 * 60;
+        let gas_price = U256::from(1_000_000_000u64); // 10 GWEI
+
         // Case 1: Base case -> should return true
         // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
         // Elapsed Time: 24 hours
@@ -481,11 +485,6 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
-
-        const BUDGET_PER_MONTH_IN_ETH: f64 = 0.15;
-        const ONE_DAY_SECONDS: u64 = 24 * 60 * 60;
-        let gas_price = U256::from(1_000_000_000u64); // 10 GWEI
-
         assert!(aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
