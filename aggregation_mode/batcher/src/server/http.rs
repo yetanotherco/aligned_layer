@@ -208,34 +208,20 @@ impl BatcherServer {
 
         let address = params.address.to_lowercase();
 
-        let receipts = if let Some(nonce) = params.nonce {
-            match state
+        let query = if let Some(nonce) = params.nonce {
+            state
                 .db
                 .get_tasks_by_address_and_nonce(&address, nonce)
                 .await
-            {
-                Ok(receipts) => receipts,
-                Err(_) => {
-                    return HttpResponse::InternalServerError().json(
-                        AppResponse::new_unsucessfull(
-                            "Internal server error: Failed to get tasks by address and nonce",
-                            500,
-                        ),
-                    );
-                }
-            }
         } else {
-            match state.db.get_tasks_by_address(&address, 100).await {
-                Ok(receipts) => receipts,
-                Err(_) => {
-                    return HttpResponse::InternalServerError().json(
-                        AppResponse::new_unsucessfull(
-                            "Internal server error: Failed to get tasks by address and nonce",
-                            500,
-                        ),
-                    );
-                }
-            }
+            state.db.get_tasks_by_address(&address, 100).await
+        };
+
+        let Ok(receipts) = query else {
+            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                "Internal server error: Failed to get tasks by address and nonce",
+                500,
+            ));
         };
 
         match format_merkle_paths(receipts) {
