@@ -3,11 +3,13 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use actix_multipart::form::MultipartForm;
 use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 use sqlx::types::BigDecimal;
 
 use super::{
@@ -18,9 +20,8 @@ use super::{
 use crate::{
     config::Config,
     db::Db,
-    server::types::{
-        SubmitProofRequest, SubmitProofRequestMessageRisc0, SubmitProofRequestMessageSP1,
-    },
+    server::types::{SubmitProofRequestRisc0, SubmitProofRequestSP1},
+    verifiers::{verify_sp1_proof, VerificationError},
 };
 
 #[derive(Clone, Debug)]
@@ -62,7 +63,6 @@ impl BatcherServer {
         };
 
         // TODO: validate valid ethereum address
-
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
@@ -82,11 +82,8 @@ impl BatcherServer {
 
     async fn post_proof_sp1(
         req: HttpRequest,
-        body: web::Json<SubmitProofRequest<SubmitProofRequestMessageSP1>>,
+        MultipartForm(data): MultipartForm<SubmitProofRequestSP1>,
     ) -> impl Responder {
-        let data = body.into_inner();
-
-        // TODO: validate signature
         let recovered_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".to_lowercase();
 
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
@@ -100,7 +97,7 @@ impl BatcherServer {
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
-        if data.nonce != (count as u64) {
+        if data.nonce.0 != (count as u64) {
             return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
                 &format!("Invalid nonce, expected nonce = {count}"),
                 400,
@@ -138,15 +135,42 @@ impl BatcherServer {
             ));
         }
 
-        // TODO: decode proof and validate it
+        let Ok(proof_content) = tokio::fs::read(data.proof.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let Ok(proof) = bincode::deserialize::<SP1ProofWithPublicValues>(&proof_content) else {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Invalid SP1 proof", 400));
+        };
+
+        let Ok(vk_content) = tokio::fs::read(data.program_vk.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let Ok(vk) = bincode::deserialize::<SP1VerifyingKey>(&vk_content) else {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Invalid vk", 400));
+        };
+
+        if let Err(e) = verify_sp1_proof(&proof, &vk) {
+            let message = match e {
+                VerificationError::InvalidProof => "Proof verification failed",
+                VerificationError::UnsupportedProof => "Unsupported proof",
+            };
+
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(message, 400));
+        };
 
         match state
             .db
             .insert_task(
                 &recovered_address,
                 AggregationModeProvingSystem::SP1.as_u16() as i32,
-                &data.message.proof,
-                &data.message.program_vk_commitment,
+                &proof_content,
+                &vk_content,
                 None,
             )
             .await
@@ -162,7 +186,7 @@ impl BatcherServer {
     /// TODO: complete for risc0 (see `post_proof_sp1`)
     async fn post_proof_risc0(
         _req: HttpRequest,
-        _body: web::Json<SubmitProofRequest<SubmitProofRequestMessageRisc0>>,
+        MultipartForm(_): MultipartForm<SubmitProofRequestRisc0>,
     ) -> impl Responder {
         HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
     }

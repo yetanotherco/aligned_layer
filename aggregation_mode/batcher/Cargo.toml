@@ -8,9 +8,12 @@ serde =  { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 aligned-sdk = { workspace = true }
+sp1-sdk = { workspace = true }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
+bincode = "1.3.3"
 actix-web = "4"
+actix-multipart = "0.7.2"
 alloy = { workspace = true }
 tokio = { version = "1", features = ["time"]}
 # TODO: enable tls
