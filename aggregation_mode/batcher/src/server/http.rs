@@ -34,6 +34,14 @@ impl BatcherServer {
         Self { db, config }
     }
 
+    fn is_valid_eth_address(addr: &str) -> bool {
+        let addr = addr.strip_prefix("0x").unwrap_or(addr);
+        if addr.len() != 40 {
+            return false;
+        }
+        addr.chars().all(|c| c.is_ascii_hexdigit())
+    }
+
     pub async fn start(&self) {
         // Note: BatcherServer is thread safe so we can just clone it (no need to add mutexes)
         let port = self.config.port;
@@ -57,10 +65,17 @@ impl BatcherServer {
 
     // Returns the nonce (number of submitted tasks) for a given address
     async fn get_nonce(req: HttpRequest) -> impl Responder {
-        let Some(address) = req.match_info().get("address") else {
+        let Some(address_raw) = req.match_info().get("address") else {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Missing address", 400));
         };
+
+        if !Self::is_valid_eth_address(address_raw) {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Invalid address", 400));
+        }
+
+        let address = address_raw.to_lowercase();
 
         // TODO: validate valid ethereum address
 
@@ -70,7 +85,7 @@ impl BatcherServer {
         };
 
         let state = state.get_ref();
-        match state.db.count_tasks_by_address(address).await {
+        match state.db.count_tasks_by_address(&address).await {
             Ok(count) => HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!(
                 {
                     "nonce": count
@@ -186,10 +201,17 @@ impl BatcherServer {
 
         let state = state.get_ref();
 
-        let Some(address) = params.address.clone() else {
+        let Some(address_raw) = params.address.clone() else {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Missing address", 400));
         };
+
+        if !Self::is_valid_eth_address(&address_raw) {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Invalid address", 400));
+        }
+
+        let address = address_raw.to_lowercase();
 
         let receipts = if let Some(nonce) = params.nonce {
             match state
