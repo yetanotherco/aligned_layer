@@ -64,46 +64,34 @@ impl Db {
 
     pub async fn get_tasks_by_address_and_nonce(
         &self,
-        address: Option<&str>,
-        nonce: Option<i64>,
+        address: &str,
+        nonce: i64,
+    ) -> Result<Vec<Receipt>, sqlx::Error> {
+        sqlx::query_as::<_, Receipt>(
+            "SELECT status,merkle_path,nonce,address FROM tasks
+                WHERE address = $1
+                AND nonce = $2",
+        )
+        .bind(address.to_lowercase())
+        .bind(nonce)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn get_tasks_by_address(
+        &self,
+        address: &str,
         limit: i64,
     ) -> Result<Vec<Receipt>, sqlx::Error> {
-        // TODO: use dynamic query building instead of match
-        match (address, nonce) {
-            (Some(addr), Some(n)) => {
-                sqlx::query_as::<_, Receipt>(
-                    "SELECT status,merkle_path,nonce,address FROM tasks
-                WHERE address = $1
-                AND nonce = $2
-                LIMIT $3",
-                )
-                .bind(addr.to_lowercase())
-                .bind(n)
-                .bind(limit)
-                .fetch_all(&self.pool)
-                .await
-            }
-            (Some(addr), None) => {
-                sqlx::query_as::<_, Receipt>(
-                    "SELECT status,merkle_path,nonce,address FROM tasks
+        sqlx::query_as::<_, Receipt>(
+            "SELECT status,merkle_path,nonce,address FROM tasks
                 WHERE address = $1
                 LIMIT $2",
-                )
-                .bind(addr.to_lowercase())
-                .bind(limit)
-                .fetch_all(&self.pool)
-                .await
-            }
-            _ => {
-                sqlx::query_as::<_, Receipt>(
-                    "SELECT status,merkle_path,nonce,address FROM tasks
-                LIMIT $1",
-                )
-                .bind(limit)
-                .fetch_all(&self.pool)
-                .await
-            }
-        }
+        )
+        .bind(address.to_lowercase())
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
     }
 
     pub async fn insert_task(

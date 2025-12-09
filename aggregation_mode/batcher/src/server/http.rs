@@ -186,26 +186,45 @@ impl BatcherServer {
 
         let state = state.get_ref();
 
-        if params.address.is_none() && params.nonce.is_some() {
-            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
-                "Bad request: Cannot specify nonce without address",
-                400,
-            ));
-        }
+        let Some(address) = params.address.clone() else {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Missing address", 400));
+        };
 
         // TODO: maybe also accept proof commitment in query param
-        let db_result = state
-            .db
-            .get_tasks_by_address_and_nonce(params.address.as_deref(), params.nonce, 100)
-            .await;
-        let receipts = match db_result {
-            Ok(receipts) => receipts,
-            Err(e) => {
-                return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
-                    format!("Internal server error: Failed to get tasks by address and nonce: {e}")
-                        .as_str(),
-                    500,
-                ));
+        let receipts = if let Some(nonce) = params.nonce {
+            match state
+                .db
+                .get_tasks_by_address_and_nonce(&address, nonce)
+                .await
+            {
+                Ok(receipts) => receipts,
+                Err(e) => {
+                    return HttpResponse::InternalServerError().json(
+                        AppResponse::new_unsucessfull(
+                            format!(
+                            "Internal server error: Failed to get tasks by address and nonce: {e}"
+                        )
+                            .as_str(),
+                            500,
+                        ),
+                    );
+                }
+            }
+        } else {
+            match state.db.get_tasks_by_address(&address, 100).await {
+                Ok(receipts) => receipts,
+                Err(e) => {
+                    return HttpResponse::InternalServerError().json(
+                        AppResponse::new_unsucessfull(
+                            format!(
+                            "Internal server error: Failed to get tasks by address and nonce: {e}"
+                        )
+                            .as_str(),
+                            500,
+                        ),
+                    );
+                }
             }
         };
 
