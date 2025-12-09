@@ -191,7 +191,6 @@ impl BatcherServer {
                 .json(AppResponse::new_unsucessfull("Missing address", 400));
         };
 
-        // TODO: maybe also accept proof commitment in query param
         let receipts = if let Some(nonce) = params.nonce {
             match state
                 .db
