@@ -165,7 +165,7 @@ impl BatcherServer {
                 &data.message.proof,
                 &data.message.program_vk_commitment,
                 None,
-                data.nonce,
+                data.nonce as i64,
             )
             .await
         {
@@ -201,17 +201,12 @@ impl BatcherServer {
 
         let state = state.get_ref();
 
-        let Some(address_raw) = params.address.clone() else {
-            return HttpResponse::BadRequest()
-                .json(AppResponse::new_unsucessfull("Missing address", 400));
-        };
-
-        if !Self::is_valid_eth_address(&address_raw) {
+        if !Self::is_valid_eth_address(&params.address.clone()) {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
 
-        let address = address_raw.to_lowercase();
+        let address = params.address.to_lowercase();
 
         let receipts = if let Some(nonce) = params.nonce {
             match state
