@@ -52,6 +52,7 @@ pub struct ProofAggregator {
 }
 
 impl ProofAggregator {
+    #[cfg(test)]
     pub fn new_for_testing(config: Config) -> Self {
         let rpc_url: reqwest::Url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::random();

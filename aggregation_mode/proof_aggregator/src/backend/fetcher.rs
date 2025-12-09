@@ -33,6 +33,7 @@ pub struct ProofsFetcher {
 }
 
 impl ProofsFetcher {
+    #[cfg(test)]
     pub fn new_for_testing(config: &Config) -> Self {
         let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let rpc_provider = ProviderBuilder::new().connect_http(rpc_url);
