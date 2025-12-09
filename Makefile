@@ -252,6 +252,9 @@ proof_aggregator_start_dev: is_aggregator_set reset_last_aggregated_block ./aggr
 proof_aggregator_start_dev_ethereum_package: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_dev ## Starts proof aggregator with mock proofs (DEV mode) in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 ./aggregation_mode/target/release/proof_aggregator_dev config-files/config-proof-aggregator-mock-ethereum-package.yaml
 
+proof_aggregator_test_without_compiling_agg_programs:
+	cd aggregation_mode && SKIP_AGG_PROGRAMS_BUILD=1 cargo test -p proof_aggregator --tests -- --nocapture
+
 ### All CPU proof aggregator receipts
 ./aggregation_mode/target/release/proof_aggregator_cpu: $(AGGREGATION_MODE_SOURCES)
 	AGGREGATOR=$(AGGREGATOR) cargo build --features prove --manifest-path ./aggregation_mode/Cargo.toml --release --bin proof_aggregator_cpu

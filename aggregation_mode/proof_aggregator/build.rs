@@ -1,8 +1,29 @@
 use risc0_build::{DockerOptionsBuilder, GuestOptionsBuilder};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 // Reference: https://docs.succinct.xyz/docs/sp1/writing-programs/compiling#advanced-build-options-1
 fn main() {
+    // This allows us to skip the guest build in CI or local environments where it's not needed (reducing the build time)
+    // Note: To use this flag, the aggregation programs should be already compiled, otherwise the compilation will be done anyway.
+    if std::env::var("SKIP_AGG_PROGRAMS_BUILD")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        let out_dir = std::env::var("OUT_DIR").unwrap();
+        let methods_path = PathBuf::from(out_dir).join("methods.rs");
+
+        if methods_path.exists() {
+            println!("cargo:warning=SKIP_AGG_PROGRAMS_BUILD=1: methods.rs already exists, skipping aggregation programs build");
+            return;
+        } else {
+            println!(
+                "cargo:warning=SKIP_AGG_PROGRAMS_BUILD=1 set, but {path} does not exist, running full build",
+                path = methods_path.display()
+            );
+        }
+    }
+
     sp1_build::build_program_with_args("./aggregation_programs/sp1", {
         sp1_build::BuildArgs {
             output_directory: Some("./aggregation_programs/sp1/elf".to_string()),
