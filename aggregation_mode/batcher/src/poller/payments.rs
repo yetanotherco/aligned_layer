@@ -4,51 +4,12 @@ use crate::{config::Config, db::Db};
 use alloy::{
     primitives::Address,
     providers::{Provider, ProviderBuilder},
-    sol,
 };
 use sqlx::types::BigDecimal;
 
-sol!(
-    #[sol(rpc)]
-    AggregationModePaymentService,
-    "abi/AggregationModePaymentService.json"
-);
-
-type AggregationModePaymentServiceContract =
-    AggregationModePaymentService::AggregationModePaymentServiceInstance<
-        alloy::providers::fillers::FillProvider<
-            alloy::providers::fillers::JoinFill<
-                alloy::providers::Identity,
-                alloy::providers::fillers::JoinFill<
-                    alloy::providers::fillers::GasFiller,
-                    alloy::providers::fillers::JoinFill<
-                        alloy::providers::fillers::BlobGasFiller,
-                        alloy::providers::fillers::JoinFill<
-                            alloy::providers::fillers::NonceFiller,
-                            alloy::providers::fillers::ChainIdFiller,
-                        >,
-                    >,
-                >,
-            >,
-            alloy::providers::RootProvider,
-        >,
-    >;
-type RpcProvider = alloy::providers::fillers::FillProvider<
-    alloy::providers::fillers::JoinFill<
-        alloy::providers::Identity,
-        alloy::providers::fillers::JoinFill<
-            alloy::providers::fillers::GasFiller,
-            alloy::providers::fillers::JoinFill<
-                alloy::providers::fillers::BlobGasFiller,
-                alloy::providers::fillers::JoinFill<
-                    alloy::providers::fillers::NonceFiller,
-                    alloy::providers::fillers::ChainIdFiller,
-                >,
-            >,
-        >,
-    >,
-    alloy::providers::RootProvider,
->;
+use crate::poller::types::{
+    AggregationModePaymentService, AggregationModePaymentServiceContract, RpcProvider,
+};
 
 pub struct PaymentsPoller {
     db: Db,

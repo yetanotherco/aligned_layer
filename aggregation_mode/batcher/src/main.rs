@@ -1,7 +1,7 @@
 use std::env;
 
 use agg_mode_batcher::config::Config;
-use agg_mode_batcher::payments::PaymentsPoller;
+use agg_mode_batcher::poller::payments::PaymentsPoller;
 use agg_mode_batcher::{db::Db, server::http::BatcherServer};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
