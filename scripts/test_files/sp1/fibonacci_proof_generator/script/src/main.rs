@@ -55,7 +55,7 @@ fn main() {
         format!("../../sp1_fibonacci_{}_vk.bin", SP1_VERSION),
         bincode::serialize(&vk).unwrap()
     )
-    .expect("failed to save vk hash");
+    .expect("failed to save vk bin");
 
     let elf_file_path = format!("../../sp1_fibonacci_{}.elf", SP1_VERSION);
     let mut file = std::fs::File::create(elf_file_path).unwrap();

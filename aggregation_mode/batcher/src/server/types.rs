@@ -38,13 +38,13 @@ pub(super) struct SubmitProofRequestSP1 {
     pub nonce: Text<u64>,
     pub proof: TempFile,
     pub program_vk: TempFile,
-    pub signature_hex: Text<String>,
+    pub _signature_hex: Text<String>,
 }
 
 #[derive(Debug, MultipartForm)]
 pub(super) struct SubmitProofRequestRisc0 {
-    pub nonce: Text<u64>,
-    pub risc0_receipt: TempFile,
-    pub program_image_id_hex: Text<String>,
-    pub signature_hex: Text<String>,
+    pub _nonce: Text<u64>,
+    pub _risc0_receipt: TempFile,
+    pub _program_image_id_hex: Text<String>,
+    pub _signature_hex: Text<String>,
 }
