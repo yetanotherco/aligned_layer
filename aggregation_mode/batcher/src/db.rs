@@ -70,7 +70,8 @@ impl Db {
         sqlx::query_as::<_, Receipt>(
             "SELECT status,merkle_path,nonce,address FROM tasks
                 WHERE address = $1
-                AND nonce = $2",
+                AND nonce = $2
+                ORDER BY nonce DESC",
         )
         .bind(address.to_lowercase())
         .bind(nonce)
@@ -86,7 +87,8 @@ impl Db {
         sqlx::query_as::<_, Receipt>(
             "SELECT status,merkle_path,nonce,address FROM tasks
                 WHERE address = $1
-                LIMIT $2",
+                LIMIT $2
+                ORDER BY nonce DESC",
         )
         .bind(address.to_lowercase())
         .bind(limit)
