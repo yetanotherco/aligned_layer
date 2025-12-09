@@ -17,7 +17,7 @@ pub enum DbError {
 #[derive(Debug, Clone, sqlx::Type, serde::Serialize)]
 #[sqlx(type_name = "task_status")]
 #[sqlx(rename_all = "lowercase")]
-enum TaskStatus {
+pub enum TaskStatus {
     Pending,
     Processing,
     Verified,
@@ -25,10 +25,10 @@ enum TaskStatus {
 
 #[derive(Debug, Clone, sqlx::FromRow, sqlx::Type, serde::Serialize)]
 pub struct Receipt {
-    status: TaskStatus,
+    pub status: TaskStatus,
     pub merkle_path: Option<Vec<u8>>,
-    nonce: i64,
-    address: String,
+    pub nonce: i64,
+    pub address: String,
 }
 
 impl Db {
