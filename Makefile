@@ -320,6 +320,22 @@ agg_mode_batcher_start_local: agg_mode_run_migrations
 agg_mode_batcher_start_ethereum_package: agg_mode_run_migrations
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher -- config-files/config-agg-mode-batcher-ethereum-package.yaml
 
+AGG_MODE_SENDER ?= 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+agg_mode_batcher_send_payment:
+	@cast send --value 1ether \
+		0x922D6956C99E12DFeB3224DEA977D0939758A1Fe \
+		--private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+
+agg_mode_batcher_send_sp1_proof:
+	@NONCE=$$(curl -s http://127.0.0.1:8089/nonce/0x70997970C51812dc3A010C7d01b50e0d17dc79C8 | jq -r '.data.nonce'); \
+	curl -X POST \
+		-H "Content-Type: multipart/form-data" \
+		-F "nonce=$${NONCE}" \
+		-F "proof=@scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof" \
+		-F "program_vk=@scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin" \
+		-F "signature_hex=0x0" \
+		http://127.0.0.1:8089/proof/sp1
+
 __AGGREGATOR__: ## ____
 
 aggregator_start: ## Start the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, AGG_CONFIG_FILE
