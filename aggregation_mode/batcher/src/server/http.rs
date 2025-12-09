@@ -12,7 +12,7 @@ use sqlx::types::BigDecimal;
 
 use super::{
     helpers::format_merkle_paths,
-    types::{AppResponse, GetReceiptsParams},
+    types::{AppResponse, GetReceiptsQueryParams},
 };
 
 use crate::{
@@ -175,7 +175,7 @@ impl BatcherServer {
     // In case of also receiving a nonce on the query param, it returns only the merkle proof for that nonce.
     async fn get_receipts(
         req: HttpRequest,
-        params: web::Query<GetReceiptsParams>,
+        params: web::Query<GetReceiptsQueryParams>,
     ) -> impl Responder {
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
