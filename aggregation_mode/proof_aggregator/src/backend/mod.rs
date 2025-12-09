@@ -477,7 +477,7 @@ mod tests {
 
         const BUDGET_PER_MONTH_IN_ETH: f64 = 0.15;
         const ONE_DAY_SECONDS: u64 = 24 * 60 * 60;
-        let gas_price = U256::from(1_000_000_000u64); // 10 GWEI
+        let gas_price = U256::from(1_000_000_000u64); // 1 Gwei
 
         // Case 1: Base case -> should return true
         // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
@@ -495,14 +495,14 @@ mod tests {
         // Case 2: Slightly Increased Gas Price -> should return false
         // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
         // Elapsed Time: 24 hours
-        // Gas Price: 10 Gwei
+        // Gas Price: 8 Gwei
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 8 Gwei = 0.0048 ETH
         // Expected cost < Max to spend, so we can send the proof
         assert!(aggregator.should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
-            U256::from(8_000_000_000u64),         // 10 Gwei gas price
+            U256::from(8_000_000_000u64),         // 8 Gwei gas price
         ));
 
         // Case 3: Increased Gas Price -> should return false
