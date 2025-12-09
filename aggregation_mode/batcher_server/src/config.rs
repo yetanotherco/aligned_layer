@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub port: u16,
     pub db_connection_url: String,
-    pub eth_rpc_url: String,
-    pub payment_service_address: String,
 }
 
 impl Config {

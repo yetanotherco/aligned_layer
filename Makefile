@@ -315,10 +315,16 @@ agg_mode_run_migrations: agg_mode_docker_up
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin migrate -- postgres://postgres:postgres@localhost:5435/
 
 agg_mode_batcher_start_local: agg_mode_run_migrations
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher -- config-files/config-agg-mode-batcher.yaml
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin batcher_server -- config-files/config-agg-mode-batcher.yaml
 
 agg_mode_batcher_start_ethereum_package: agg_mode_run_migrations
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher -- config-files/config-agg-mode-batcher-ethereum-package.yaml
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin batcher_server -- config-files/config-agg-mode-batcher-ethereum-package.yaml
+
+agg_mode_batcher_poller_start_local: agg_mode_run_migrations
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher_poller -- config-files/config-agg-mode-batcher.yaml
+
+agg_mode_batcher_poller_start_ethereum_package: agg_mode_run_migrations
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_batcher_poller -- config-files/config-agg-mode-batcher-ethereum-package.yaml
 
 __AGGREGATOR__: ## ____
 

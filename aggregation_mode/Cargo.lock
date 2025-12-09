@@ -249,7 +249,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "agg_mode_batcher"
+name = "agg_mode_batcher_poller"
 version = "0.1.0"
 dependencies = [
  "actix-web",
@@ -2041,6 +2041,23 @@ name = "base64ct"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55248b47b0caf0546f7988906588779981c43bb1bc9d0c44087278f80cdb44ba"
+
+[[package]]
+name = "batcher_server"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "aligned-sdk",
+ "alloy",
+ "hex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.22",
+]
 
 [[package]]
 name = "bech32"

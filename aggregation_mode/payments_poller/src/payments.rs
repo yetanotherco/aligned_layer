@@ -1,15 +1,15 @@
 use std::str::FromStr;
 
-use crate::{config::Config, db::Db};
+use crate::{
+    config::Config,
+    db::Db,
+    types::{AggregationModePaymentService, AggregationModePaymentServiceContract, RpcProvider},
+};
 use alloy::{
     primitives::Address,
     providers::{Provider, ProviderBuilder},
 };
 use sqlx::types::BigDecimal;
-
-use crate::poller::types::{
-    AggregationModePaymentService, AggregationModePaymentServiceContract, RpcProvider,
-};
 
 pub struct PaymentsPoller {
     db: Db,

@@ -18,9 +18,7 @@ use super::{
 use crate::{
     config::Config,
     db::Db,
-    server::types::{
-        SubmitProofRequest, SubmitProofRequestMessageRisc0, SubmitProofRequestMessageSP1,
-    },
+    types::{SubmitProofRequest, SubmitProofRequestMessageRisc0, SubmitProofRequestMessageSP1},
 };
 
 #[derive(Clone, Debug)]
