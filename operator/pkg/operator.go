@@ -427,11 +427,21 @@ func (o *Operator) verify(verificationData VerificationData, disabledVerifiersBi
 		o.handleVerificationResult(results, verificationResult, nil, "Circom Groth16 BN256 proof verification")
 
 	case common.Mina:
+		if !o.Config.Operator.MinaVerifierEnabled {
+			o.Logger.Infof("Mina verifier is disabled. Set mina_verifier_enabled: true in config to enable")
+			results <- false
+			return
+		}
 		verificationResult, err := mina.VerifyMinaState(verificationData.Proof, verificationData.PubInput)
 		o.Logger.Infof("Mina state proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, err, "Mina state proof verification")
 
 	case common.MinaAccount:
+		if !o.Config.Operator.MinaVerifierEnabled {
+			o.Logger.Infof("Mina account verifier is disabled. Set mina_verifier_enabled: true in config to enable")
+			results <- false
+			return
+		}
 		verificationResult, err := mina_account.VerifyAccountInclusion(verificationData.Proof, verificationData.PubInput)
 		o.Logger.Infof("Mina account inclusion proof verification result: %t", verificationResult)
 		o.handleVerificationResult(results, verificationResult, err, "Mina account state proof verification")

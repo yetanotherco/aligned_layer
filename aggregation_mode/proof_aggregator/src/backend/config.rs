@@ -16,9 +16,10 @@ pub struct Config {
     pub aligned_service_manager_address: String,
     pub ecdsa: ECDSAConfig,
     pub proofs_per_chunk: u16,
-    pub total_proofs_limit: i64,
-    pub sp1_chunk_aggregator_vk_hash: String,
+    pub total_proofs_limit: u16,
     pub risc0_chunk_aggregator_image_id: String,
+    pub sp1_chunk_aggregator_vk_hash: String,
+    pub monthly_budget_eth: f64,
     pub db_connection_url: String,
 }
 
