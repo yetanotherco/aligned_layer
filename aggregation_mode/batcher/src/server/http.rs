@@ -248,34 +248,37 @@ impl BatcherServer {
             ));
         };
 
-        let mut responses: Vec<GetReceiptsResponse> = Vec::new();
-        for receipt in receipts {
-            let Some(merkle_path) = receipt.merkle_path else {
-                responses.push(GetReceiptsResponse {
+        let responses: Result<Vec<GetReceiptsResponse>, String> = receipts
+            .into_iter()
+            .map(|receipt| {
+                let Some(merkle_path) = receipt.merkle_path else {
+                    return Ok(GetReceiptsResponse {
+                        status: receipt.status,
+                        merkle_path: Vec::new(),
+                        nonce: receipt.nonce,
+                        address: receipt.address,
+                    });
+                };
+
+                let Ok(formatted) = format_merkle_path(&merkle_path) else {
+                    return Err("Error formatting merkle path".into());
+                };
+
+                Ok(GetReceiptsResponse {
                     status: receipt.status,
-                    merkle_path: Vec::new(),
+                    merkle_path: formatted,
                     nonce: receipt.nonce,
                     address: receipt.address,
-                });
+                })
+            })
+            .collect();
 
-                continue;
-            };
-
-            let Ok(formatted_merkle_path) = format_merkle_path(&merkle_path) else {
-                return HttpResponse::InternalServerError()
-                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
-            };
-
-            responses.push(GetReceiptsResponse {
-                status: receipt.status,
-                merkle_path: formatted_merkle_path,
-                nonce: receipt.nonce,
-                address: receipt.address,
-            });
+        match responses {
+            Ok(resp) => HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
+                "receipts": resp
+            }))),
+            Err(_) => HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500)),
         }
-
-        HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
-            "receipts": responses
-        })))
     }
 }
