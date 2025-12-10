@@ -64,7 +64,7 @@ impl BatcherServer {
         };
 
         // Check that the address is a valid ethereum address
-        if !alloy::primitives::Address::from_str(address_raw.trim()).is_ok() {
+        if alloy::primitives::Address::from_str(address_raw.trim()).is_err() {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
@@ -217,7 +217,7 @@ impl BatcherServer {
 
         let state = state.get_ref();
 
-        if !alloy::primitives::Address::from_str(&params.address.clone().trim()).is_ok() {
+        if alloy::primitives::Address::from_str(params.address.clone().trim()).is_err() {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
