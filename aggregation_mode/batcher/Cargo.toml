@@ -1,5 +1,5 @@
 [package]
-name = "batcher_server"
+name = "batcher"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,6 +1,6 @@
 use std::env;
 
-use batcher_server::{config::Config, db::Db, http::BatcherServer};
+use batcher::{config::Config, db::Db, http::BatcherServer};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 fn read_config_filepath_from_args() -> String {
