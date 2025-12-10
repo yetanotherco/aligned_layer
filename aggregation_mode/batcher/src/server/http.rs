@@ -11,7 +11,7 @@ use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use sqlx::types::BigDecimal;
 
 use super::{
-    helpers::format_merkle_paths,
+    helpers::format_merkle_path,
     types::{AppResponse, GetReceiptsQueryParams},
 };
 
@@ -19,7 +19,8 @@ use crate::{
     config::Config,
     db::Db,
     server::types::{
-        SubmitProofRequest, SubmitProofRequestMessageRisc0, SubmitProofRequestMessageSP1,
+        GetReceiptsResponse, SubmitProofRequest, SubmitProofRequestMessageRisc0,
+        SubmitProofRequestMessageSP1,
     },
 };
 
@@ -232,14 +233,34 @@ impl BatcherServer {
             ));
         };
 
-        match format_merkle_paths(receipts) {
-            Ok(receipts) => {
-                HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
-                    "receipts": receipts
-                })))
-            }
-            Err(_) => HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500)),
+        let mut responses: Vec<GetReceiptsResponse> = Vec::new();
+        for receipt in receipts {
+            let Some(merkle_path) = receipt.merkle_path else {
+                responses.push(GetReceiptsResponse {
+                    status: receipt.status,
+                    merkle_path: Vec::new(),
+                    nonce: receipt.nonce,
+                    address: receipt.address,
+                });
+
+                continue;
+            };
+
+            let Ok(formatted_merkle_path) = format_merkle_path(&merkle_path) else {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            };
+
+            responses.push(GetReceiptsResponse {
+                status: receipt.status,
+                merkle_path: formatted_merkle_path,
+                nonce: receipt.nonce,
+                address: receipt.address,
+            });
         }
+
+        HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
+            "receipts": responses
+        })))
     }
 }
