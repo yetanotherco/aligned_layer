@@ -1,3 +1,4 @@
+use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -32,21 +33,18 @@ pub(super) struct GetProofMerklePathQueryParams {
     pub id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub(super) struct SubmitProofRequest<T> {
-    pub nonce: u64,
-    pub message: T,
-    pub signature: String,
-}
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub(super) struct SubmitProofRequestMessageSP1 {
-    pub proof: Vec<u8>,
-    pub program_vk_commitment: Vec<u8>,
+#[derive(Debug, MultipartForm)]
+pub(super) struct SubmitProofRequestSP1 {
+    pub nonce: Text<u64>,
+    pub proof: TempFile,
+    pub program_vk: TempFile,
+    pub _signature_hex: Text<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub(super) struct SubmitProofRequestMessageRisc0 {
-    pub proof: Vec<u8>,
-    pub program_image_id: Vec<u8>,
-    pub public_inputs: Vec<u8>,
+#[derive(Debug, MultipartForm)]
+pub(super) struct SubmitProofRequestRisc0 {
+    pub _nonce: Text<u64>,
+    pub _risc0_receipt: TempFile,
+    pub _program_image_id_hex: Text<String>,
+    pub _signature_hex: Text<String>,
 }

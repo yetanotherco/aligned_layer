@@ -13,6 +13,12 @@ proofs_per_chunk: 512 # Amount of proofs to process per chunk
 # We can aggregate as much proofs as 126.976 / 32 = 3968 per blob
 total_proofs_limit: 3968
 
+# Monthly ETH budget for on-chain proof verification. This value must be non-negative.
+# This value will be used to calculate how much gas we can spend per second to send proofs on-chain.
+# Note that this value is for the entire month. For example, if you set it to 15.0 ETH,
+# then after 24 hours you can spend (15.0 ETH / 30 days) = 0.5 ETH.
+monthly_budget_eth: 15.0
+
 # These program ids are the ones from the chunk aggregator programs
 # Can be found in the Proof Aggregation Service deployment config
 # (remember to trim the 0x prefix)
