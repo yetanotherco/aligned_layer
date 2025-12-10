@@ -30,20 +30,20 @@ impl ProofsFetcher {
     ) -> Result<(Vec<AlignedProof>, Vec<Uuid>), ProofsFetcherError> {
         let tasks = self
             .db
-            .get_pending_tasks_and_mark_them_as_processed(engine.proving_system_id() as i64, limit)
+            .get_pending_tasks_and_mark_them_as_processing(engine.proving_system_id() as i64, limit)
             .await
             .map_err(ProofsFetcherError::Query)?;
 
-        let (tasks_id, proofs_to_aggregate): (Vec<Uuid>, Vec<AlignedProof>) = match engine {
+        let (proofs_to_aggregate, tasks_id): (Vec<Uuid>, Vec<AlignedProof>) = match engine {
             ZKVMEngine::SP1 => {
-                let pairs: Vec<(Uuid, AlignedProof)> = tasks
+                let pairs: Vec<(AlignedProof, Uuid)> = tasks
                     .into_par_iter()
                     .filter_map(|task| {
                         let vk = bincode::deserialize(&task.program_commitment).ok()?;
                         let proof_with_pub_values = bincode::deserialize(&task.proof).ok()?;
 
                         match SP1ProofWithPubValuesAndVk::new(proof_with_pub_values, vk) {
-                            Ok(proof) => Some((task.task_id, AlignedProof::SP1(proof.into()))),
+                            Ok(proof) => Some((AlignedProof::SP1(proof.into()), task.task_id)),
                             Err(err) => {
                                 error!("Could not add proof, verification failed: {:?}", err);
                                 None
@@ -55,7 +55,7 @@ impl ProofsFetcher {
                 pairs.into_iter().unzip()
             }
             ZKVMEngine::RISC0 => {
-                let pairs: Vec<(Uuid, AlignedProof)> = tasks
+                let pairs: Vec<(AlignedProof, Uuid)> = tasks
                     .into_par_iter()
                     .filter_map(|task| {
                         let mut image_id = [0u8; 32];
@@ -66,7 +66,7 @@ impl ProofsFetcher {
                         let risc0_proof = Risc0ProofReceiptAndImageId::new(image_id, receipt);
 
                         match risc0_proof {
-                            Ok(proof) => Some((task.task_id, AlignedProof::Risc0(proof.into()))),
+                            Ok(proof) => Some((AlignedProof::Risc0(proof.into()), task.task_id)),
                             Err(err) => {
                                 error!("Could not add proof, verification failed: {:?}", err);
                                 None

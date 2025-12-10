@@ -23,7 +23,7 @@ impl Db {
         Ok(Self { pool })
     }
 
-    pub async fn get_pending_tasks_and_mark_them_as_processed(
+    pub async fn get_pending_tasks_and_mark_them_as_processing(
         &self,
         proving_system_id: i64,
         limit: i64,
