@@ -206,7 +206,10 @@ impl BatcherServer {
                 .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
 
-        let limit = params.limit.unwrap_or(100); // We take 100 as the default limit value
+        let limit = match params.limit {
+            Some(received_limit) => received_limit.min(100),
+            None => 100,
+        };
 
         let address = params.address.to_lowercase();
 
