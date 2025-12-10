@@ -29,7 +29,7 @@ impl AppResponse {
     }
 }
 
-/// Query parameters accepted by `GET /proof/merkle`. Requires an address, and accepts a nonce
+/// Query parameters accepted by `GET /receipts`. Requires an address, and accepts a nonce
 /// and a limit for the amount of tasks included in the query (the maximum value is 100).
 /// Note: The limit value will only be taken into account if nonce is None.
 #[derive(Deserialize, Clone)]
