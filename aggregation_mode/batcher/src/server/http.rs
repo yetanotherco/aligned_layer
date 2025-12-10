@@ -71,7 +71,6 @@ impl BatcherServer {
 
         let address = address_raw.to_lowercase();
 
-        // TODO: validate valid ethereum address
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
