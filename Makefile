@@ -306,10 +306,10 @@ proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
 	@cd aggregation_mode/proof_aggregator && ./scripts/build_programs.sh
 
 agg_mode_docker_up:
-	@cd aggregation_mode && docker-compose up -d
+	@cd aggregation_mode && docker compose up -d
 
 agg_mode_docker_down:
-	@cd aggregation_mode && docker-compose down
+	@cd aggregation_mode && docker compose down
 
 agg_mode_docker_clean: agg_mode_docker_down
 	docker volume rm aggregation-mode_postgres_data
