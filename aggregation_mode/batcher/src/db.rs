@@ -79,7 +79,7 @@ impl Db {
         .await
     }
 
-    pub async fn get_tasks_by_address(
+    pub async fn get_tasks_by_address_with_limit(
         &self,
         address: &str,
         limit: i64,
@@ -87,8 +87,8 @@ impl Db {
         sqlx::query_as::<_, Receipt>(
             "SELECT status,merkle_path,nonce,address FROM tasks
                 WHERE address = $1
-                LIMIT $2
-                ORDER BY nonce DESC",
+                ORDER BY nonce DESC
+                LIMIT $2",
         )
         .bind(address.to_lowercase())
         .bind(limit)

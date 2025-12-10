@@ -206,6 +206,8 @@ impl BatcherServer {
                 .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
 
+        let limit = params.limit.unwrap_or(100); // We take 100 as the default limit value
+
         let address = params.address.to_lowercase();
 
         let query = if let Some(nonce) = params.nonce {
@@ -214,7 +216,10 @@ impl BatcherServer {
                 .get_tasks_by_address_and_nonce(&address, nonce)
                 .await
         } else {
-            state.db.get_tasks_by_address(&address, 100).await
+            state
+                .db
+                .get_tasks_by_address_with_limit(&address, limit)
+                .await
         };
 
         let Ok(receipts) = query else {

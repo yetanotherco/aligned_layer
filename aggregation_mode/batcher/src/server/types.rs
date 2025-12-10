@@ -28,11 +28,14 @@ impl AppResponse {
     }
 }
 
-/// Query parameters accepted by `GET /proof/merkle`, containing an optional proof id.
+/// Query parameters accepted by `GET /proof/merkle`. Requires an address, and accepts a nonce
+/// and a limit for the amount of tasks included in the query (the maximum value is 100).
+/// Note: The limit value will only be taken into account if nonce is None.
 #[derive(Deserialize, Clone)]
 pub(super) struct GetReceiptsQueryParams {
     pub address: String,
     pub nonce: Option<i64>,
+    pub limit: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
