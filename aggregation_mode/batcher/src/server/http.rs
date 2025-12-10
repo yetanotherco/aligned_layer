@@ -189,7 +189,7 @@ impl BatcherServer {
                 &proof_content,
                 &vk_content,
                 None,
-                data.nonce as i64,
+                data.nonce.0 as i64,
             )
             .await
         {
