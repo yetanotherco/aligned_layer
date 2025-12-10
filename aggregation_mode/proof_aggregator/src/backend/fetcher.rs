@@ -34,7 +34,7 @@ impl ProofsFetcher {
             .await
             .map_err(ProofsFetcherError::Query)?;
 
-        let (proofs_to_aggregate, tasks_id): (Vec<Uuid>, Vec<AlignedProof>) = match engine {
+        let (proofs_to_aggregate, tasks_id): (Vec<AlignedProof>, Vec<Uuid>) = match engine {
             ZKVMEngine::SP1 => {
                 let pairs: Vec<(AlignedProof, Uuid)> = tasks
                     .into_par_iter()

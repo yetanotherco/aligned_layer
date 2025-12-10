@@ -57,7 +57,7 @@ pub struct ProofAggregator {
 
 impl ProofAggregator {
     pub async fn new(config: Config) -> Self {
-        let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
+        let rpc_url: reqwest::Url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::decrypt_keystore(
             config.ecdsa.private_key_store_path.clone(),
             config.ecdsa.private_key_store_password.clone(),
@@ -136,7 +136,7 @@ impl ProofAggregator {
     ) -> Result<(), AggregatedProofSubmissionError> {
         let (proofs, tasks_id) = self
             .fetcher
-            .query(self.engine.clone(), self.config.total_proofs_limit)
+            .query(self.engine.clone(), self.config.total_proofs_limit as i64)
             .await
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
