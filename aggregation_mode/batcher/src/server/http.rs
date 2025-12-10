@@ -35,14 +35,6 @@ impl BatcherServer {
         Self { db, config }
     }
 
-    fn is_valid_eth_address(addr: &str) -> bool {
-        let addr = addr.strip_prefix("0x").unwrap_or(addr);
-        if addr.len() != 40 {
-            return false;
-        }
-        addr.chars().all(|c| c.is_ascii_hexdigit())
-    }
-
     pub async fn start(&self) {
         // Note: BatcherServer is thread safe so we can just clone it (no need to add mutexes)
         let port = self.config.port;
@@ -71,7 +63,8 @@ impl BatcherServer {
                 .json(AppResponse::new_unsucessfull("Missing address", 400));
         };
 
-        if !Self::is_valid_eth_address(address_raw) {
+        // Check that the address is a valid ethereum address
+        if !alloy::primitives::Address::from_str(address_raw.trim()).is_ok() {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
@@ -225,7 +218,7 @@ impl BatcherServer {
 
         let state = state.get_ref();
 
-        if !Self::is_valid_eth_address(&params.address.clone()) {
+        if !alloy::primitives::Address::from_str(&params.address.clone().trim()).is_ok() {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
