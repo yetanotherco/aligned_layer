@@ -8,6 +8,10 @@ terraform {
       source = "scaleway/scaleway"
       version = "2.64.0"
     }
+    tailscale = {
+      source = "tailscale/tailscale"
+      version = "0.24.0"
+    }
   }
 
   required_version = ">= 1.2"

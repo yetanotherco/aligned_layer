@@ -36,3 +36,7 @@ packages:
 
 runcmd:
   - loginctl enable-linger app
+  # Tailscale installation https://tailscale.com/kb/1293/cloud-init
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  - tailscale up --ssh --advertise-tags=tag:server --auth-key=${tailscale_auth_key}
+  - tailscale set --auto-update

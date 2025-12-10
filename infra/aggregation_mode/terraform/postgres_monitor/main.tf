@@ -1,3 +1,21 @@
+terraform {
+  required_providers {
+    tailscale = {
+      source = "tailscale/tailscale"
+    }
+  }
+}
+
+# Create ephemeral Tailscale auth key
+resource "tailscale_tailnet_key" "postgres_monitor" {
+  reusable      = false
+  ephemeral     = true
+  preauthorized = true
+  expiry        = 3600
+  description   = "Ephemeral key for postgres-monitor"
+  tags          = ["tag:server"]
+}
+
 # Upload existing SSH public key to AWS
 resource "aws_key_pair" "ssh_key" {
   key_name   = var.ssh_key_name
@@ -58,8 +76,9 @@ resource "aws_instance" "postgres_monitor" {
   vpc_security_group_ids = [aws_security_group.ssh_access.id]
 
   user_data = templatefile("${path.module}/../cloudinit/postgres-monitor-cloud-init.yaml", {
-    hostname       = var.hostname
-    ssh_public_key = trimspace(file(var.ssh_public_key_path))
+    hostname           = var.hostname
+    ssh_public_key     = trimspace(file(var.ssh_public_key_path))
+    tailscale_auth_key = tailscale_tailnet_key.postgres_monitor.key
   })
 
   user_data_replace_on_change = true

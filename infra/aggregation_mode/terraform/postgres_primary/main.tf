@@ -3,7 +3,20 @@ terraform {
     scaleway = {
       source = "scaleway/scaleway"
     }
+    tailscale = {
+      source = "tailscale/tailscale"
+    }
   }
+}
+
+# Create ephemeral Tailscale auth key
+resource "tailscale_tailnet_key" "postgres_primary" {
+  reusable      = false
+  ephemeral     = true
+  preauthorized = true
+  expiry        = 3600
+  description   = "Ephemeral key for postgres-primary"
+  tags          = ["tag:server"]
 }
 
 # Get available bare metal offer
@@ -41,8 +54,9 @@ resource "scaleway_baremetal_server" "postgres_primary" {
 
   # Cloud-init configuration
 #   cloud_init = templatefile("${path.module}/../cloudinit/scaleway-cloud-init.yaml", {
-#     hostname       = var.hostname
-#     ssh_public_key = trimspace(file(var.ssh_public_key_path))
+#     hostname           = var.hostname
+#     ssh_public_key     = trimspace(file(var.ssh_public_key_path))
+#     tailscale_auth_key = tailscale_tailnet_key.postgres_primary.key
 #   })
 
   tags = var.tags
