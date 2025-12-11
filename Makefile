@@ -306,10 +306,10 @@ proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
 	@cd aggregation_mode/proof_aggregator && ./scripts/build_programs.sh
 
 agg_mode_docker_up:
-	@cd aggregation_mode && docker-compose up -d
+	@cd aggregation_mode && docker compose up -d
 
 agg_mode_docker_down:
-	@cd aggregation_mode && docker-compose down
+	@cd aggregation_mode && docker compose down
 
 agg_mode_docker_clean: agg_mode_docker_down
 	docker volume rm aggregation-mode_postgres_data
@@ -342,7 +342,7 @@ agg_mode_batcher_send_sp1_proof:
 		-F "nonce=$${NONCE}" \
 		-F "proof=@scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof" \
 		-F "program_vk=@scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin" \
-		-F "signature_hex=0x0" \
+		-F "_signature_hex=0x0" \
 		http://127.0.0.1:8089/proof/sp1
 
 __AGGREGATOR__: ## ____
