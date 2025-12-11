@@ -569,9 +569,17 @@ impl Network {
         }
     }
 
-    // TODO: complete this
     pub fn chain_id(&self) -> u64 {
-        todo!()
+        match self {
+            Self::Devnet => 31_337,
+            Self::Holesky | Self::HoleskyStage => 17_000,
+            Self::Hoodi => 560_048,
+            Self::Mainnet | Self::MainnetStage => 1,
+            Self::Sepolia => 11_155_111,
+            Self::Custom(_, _, _) => {
+                panic!("Custom networks must supply their chain id separately")
+            }
+        }
     }
 }
 
