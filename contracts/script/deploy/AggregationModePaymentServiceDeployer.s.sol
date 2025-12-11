@@ -11,12 +11,13 @@ contract AggregationModePaymentServiceDeployer is Script {
         string memory configData = vm.readFile(configPath);
 
         address owner = stdJson.readAddress(configData, ".permissions.paymentServiceOwner");
+        address recipient = stdJson.readAddress(configData, ".permissions.recipient");
 
         vm.startBroadcast();
 
         AggregationModePaymentService implementation = new AggregationModePaymentService();
         ERC1967Proxy proxy =
-            new ERC1967Proxy(address(implementation), abi.encodeWithSignature("initialize(address)", owner));
+            new ERC1967Proxy(address(implementation), abi.encodeWithSignature("initialize(address,address)", owner, recipient));
 
         vm.stopBroadcast();
 
