@@ -414,8 +414,6 @@ impl ProofAggregator {
 mod tests {
     use super::*;
 
-    use super::config::Config;
-
     #[test]
     fn test_should_send_proof_to_verify_on_chain_updated_cases() {
         // The should_send_proof_to_verify_on_chain function returns true when:

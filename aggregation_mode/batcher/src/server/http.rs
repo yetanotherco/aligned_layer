@@ -170,7 +170,7 @@ impl BatcherServer {
             .db
             .insert_task(
                 &recovered_address,
-                AggregationModeProvingSystem::SP1.as_u16() as i32,
+                AggregationModeProvingSystem::SP1.as_u16() as i64,
                 &proof_content,
                 &vk_content,
                 None,
