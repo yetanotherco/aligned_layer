@@ -34,10 +34,10 @@ pub(super) struct ReceiptsResponse {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SubmitSP1ProofMessage {
-    nonce: u64,
-    proof: Vec<u8>,
-    program_vk: Vec<u8>,
-    signature: Vec<u8>,
+    pub nonce: u64,
+    pub proof: Vec<u8>,
+    pub program_vk: Vec<u8>,
+    pub signature: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

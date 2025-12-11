@@ -1,15 +1,18 @@
-use reqwest::Client;
+use alloy::network::EthereumWallet;
+use reqwest::{multipart, Client};
 use serde::de::DeserializeOwned;
 
 use crate::{
     aggregation_layer::gateway::types::{
         GatewayResponse, NonceResponse, Receipt, ReceiptsQuery, ReceiptsResponse,
+        SubmitProofResponse, SubmitSP1ProofMessage,
     },
     common::types::Network,
 };
 
 pub struct AggregationModeGatewayProvider {
     gateway_url: String,
+    signer: Option<EthereumWallet>,
     http_client: Client,
 }
 
@@ -18,6 +21,7 @@ pub enum AggregationModeError {
     UnsupportedNetwork,
     Request(String),
     Api { status: u16, message: String },
+    SignerNotConfigured,
 }
 
 impl AggregationModeGatewayProvider {
@@ -31,12 +35,29 @@ impl AggregationModeGatewayProvider {
         Ok(Self {
             gateway_url,
             http_client: Client::new(),
+            signer: None,
         })
     }
 
-    pub fn new_with_signer() {}
+    pub fn new_with_signer(
+        network: Network,
+        signer: EthereumWallet,
+    ) -> Result<Self, AggregationModeError> {
+        let gateway_url = match network {
+            Network::Devnet => "http://127.0.0.1:8089".into(),
+            _ => return Err(AggregationModeError::UnsupportedNetwork),
+        };
 
-    pub fn signer() {}
+        Ok(Self {
+            gateway_url,
+            http_client: Client::new(),
+            signer: Some(signer),
+        })
+    }
+
+    pub fn signer(&self) -> Option<&EthereumWallet> {
+        self.signer.as_ref()
+    }
 }
 
 impl AggregationModeGatewayProvider {
@@ -71,7 +92,37 @@ impl AggregationModeGatewayProvider {
         Ok(response.receipts)
     }
 
-    pub async fn submit_sp1_proof(&self, serialized_proof: Vec<u8>, serialized_vk: Vec<u8>) {}
+    pub async fn submit_sp1_proof(
+        &self,
+        serialized_proof: Vec<u8>,
+        serialized_vk: Vec<u8>,
+    ) -> Result<SubmitProofResponse, AggregationModeError> {
+        let Some(signer) = &self.signer else {
+            return Err(AggregationModeError::SignerNotConfigured);
+        };
+        let signer_address = signer.default_signer().address().to_string();
+
+        let nonce = self.get_nonce_for(signer_address).await?;
+        let message = SubmitSP1ProofMessage::new(nonce, serialized_proof, serialized_vk).sign();
+        let form = multipart::Form::new()
+            .text("nonce", message.nonce.to_string())
+            .part(
+                "proof",
+                multipart::Part::bytes(message.proof).file_name("proof.bin"),
+            )
+            .part(
+                "program_vk",
+                multipart::Part::bytes(message.program_vk).file_name("program_vk.bin"),
+            )
+            .text("signature_hex", hex::encode(message.signature));
+
+        let request = self
+            .http_client
+            .post(format!("{}/proof/sp1", self.gateway_url))
+            .multipart(form);
+
+        self.send_request(request).await
+    }
 
     // TODO: verify proof from receipt merkle path
 
