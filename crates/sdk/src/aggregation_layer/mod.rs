@@ -1,4 +1,5 @@
 // Modules
+pub mod gateway;
 mod helpers;
 mod types;
 
