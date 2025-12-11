@@ -30,9 +30,6 @@ async fn main() {
         .await
         .expect("db to start");
 
-    let http_server = GatewayServer::new(db, config.clone());
-
-    let http_server_handle = tokio::spawn(async move { http_server.start().await });
-
-    let _ = tokio::join!(http_server_handle);
+    let http_server = GatewayServer::new(db, config);
+    http_server.start().await
 }

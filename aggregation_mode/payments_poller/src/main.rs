@@ -30,9 +30,6 @@ async fn main() {
         .await
         .expect("db to start");
 
-    let payment_poller = PaymentsPoller::new(db.clone(), config.clone());
-
-    let payment_poller_handle = tokio::spawn(async move { payment_poller.start().await });
-
-    let _ = tokio::join!(payment_poller_handle);
+    let payment_poller = PaymentsPoller::new(db, config);
+    payment_poller.start().await;
 }
