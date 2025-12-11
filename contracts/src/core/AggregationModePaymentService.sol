@@ -17,6 +17,9 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /// @notice for how much time the payment is valid in seconds
     uint256 public paymentExpirationTimeSeconds;
 
+    /// @notice The amount to pay for a subscription in wei.
+    uint256 public amountToPayInWei;
+
     /**
      * @notice Emitted when a user deposits funds to purchase service time.
      * @param user Address that sent the payment.
@@ -30,7 +33,11 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /// @param newExpirationTime the new expiration time in seconds
     event PaymentExpirationTimeUpdated(uint256 indexed newExpirationTime);
 
-    error InvalidDepositAmount(uint256 amount);
+    /// @notice Event emitted when the payment expiration time is updated
+    /// @param newAmountToPay the new amount to pay for a subscription in wei.
+    event AmountToPayUpdated(uint256 indexed newAmountToPay);
+
+    error InvalidDepositAmount(uint256 amountReceived, uint256 amountRequired);
 
     /**
      * @notice Disables initializers for the implementation contract.
@@ -49,6 +56,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
         _transferOwnership(_owner);
 
         paymentExpirationTimeSeconds = PAYMENT_VALID_UNTIL_SECONDS;
+        amountToPayInWei = 1000000000000000000; // 1 ETH
     }
 
     /**
@@ -72,14 +80,23 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     }
 
     /**
+     * @notice Ensures only the owner can authorize upgrades.
+     * @param newAmountToPay The new amount to pay for subscription in wei.
+     */
+    function setAmountToPay(uint256 newAmountToPay) public onlyOwner() {
+        amountToPayInWei = newAmountToPay;
+
+        emit AmountToPayUpdated(newAmountToPay);
+    }
+
+    /**
      * @notice Accepts payments and validates they meet the minimum requirement.
      */
     receive() external payable {
         uint256 amount = msg.value;
 
-        // 1 eth
-        if (amount < 1000000000000000000) {
-            revert InvalidDepositAmount(amount);
+        if (amount < amountToPayInWei) {
+            revert InvalidDepositAmount(amount, amountToPayInWei);
         }
 
         emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentExpirationTimeSeconds);
