@@ -8,7 +8,8 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use aligned_sdk::aggregation_layer::{self, AggregationModeProvingSystem};
+use alloy::signers::Signature;
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 use sqlx::types::BigDecimal;
 
@@ -95,7 +96,34 @@ impl BatcherServer {
         req: HttpRequest,
         MultipartForm(data): MultipartForm<SubmitProofRequestSP1>,
     ) -> impl Responder {
-        let recovered_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".to_lowercase();
+        let Ok(signature) = Signature::from_str(&data.signature_hex.0) else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Invalid signature", 500));
+        };
+
+        let Ok(proof_content) = tokio::fs::read(data.proof.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let Ok(vk_content) = tokio::fs::read(data.program_vk.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let msg = aggregation_layer::gateway::types::SubmitSP1ProofMessage::new(
+            data.nonce.0,
+            proof_content.clone(),
+            vk_content.clone(),
+        );
+        let Ok(recovered_address) = signature.recover_address_from_prehash(
+            &msg.eip712_hash(&aligned_sdk::common::types::Network::Devnet)
+                .into(),
+        ) else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+        let recovered_address = recovered_address.to_string().to_lowercase();
 
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
@@ -145,20 +173,9 @@ impl BatcherServer {
                 400,
             ));
         }
-
-        let Ok(proof_content) = tokio::fs::read(data.proof.file.path()).await else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
-        };
-
         let Ok(proof) = bincode::deserialize::<SP1ProofWithPublicValues>(&proof_content) else {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Invalid SP1 proof", 400));
-        };
-
-        let Ok(vk_content) = tokio::fs::read(data.program_vk.file.path()).await else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
         let Ok(vk) = bincode::deserialize::<SP1VerifyingKey>(&vk_content) else {

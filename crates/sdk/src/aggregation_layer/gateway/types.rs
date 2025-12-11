@@ -75,7 +75,7 @@ impl SubmitSP1ProofMessage {
         output
     }
 
-    pub async fn sign<S: Signer>(mut self, signer: &S, network: &Network) -> Self {
+    pub fn eip712_hash(&self, network: &Network) -> [u8; 32] {
         let domain_value = DynSolValue::Tuple(vec![
             DynSolValue::String("Aligned".to_string()),
             DynSolValue::String("1".to_string()),
@@ -92,10 +92,15 @@ impl SubmitSP1ProofMessage {
 
         let domain_separator = keccak256(&encoded_domain);
         let message_hash = keccak256(&encoded_message);
-        let eip712_hash =
-            keccak256([&[0x19, 0x01], &domain_separator[..], &message_hash[..]].concat());
 
-        let signature = signer.sign_hash(&eip712_hash).await.unwrap();
+        keccak256([&[0x19, 0x01], &domain_separator[..], &message_hash[..]].concat()).0
+    }
+
+    pub async fn sign<S: Signer>(mut self, signer: &S, network: &Network) -> Self {
+        let signature = signer
+            .sign_hash(&self.eip712_hash(network).into())
+            .await
+            .unwrap();
 
         self.signature = signature.as_bytes().to_vec();
 
