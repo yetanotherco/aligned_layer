@@ -96,6 +96,21 @@ impl Db {
         .await
     }
 
+    pub async fn get_daily_tasks_by_address(
+        &self,
+        address: &str,
+    ) -> Result<Vec<Receipt>, sqlx::Error> {
+        sqlx::query_as::<_, Receipt>(
+            "SELECT status,merkle_path,nonce,address
+            FROM tasks
+            WHERE address = $1
+            AND inserted_at::date = CURRENT_DATE",
+        )
+        .bind(address.to_lowercase())
+        .fetch_all(&self.pool)
+        .await
+    }
+
     pub async fn insert_task(
         &self,
         address: &str,
