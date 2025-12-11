@@ -102,8 +102,6 @@ impl BatcherServer {
         let state = state.get_ref();
 
         // Checking if this address has submited more proofs than the ones allowed per day
-        const MAX_PROOFS_PER_DAY: usize = 4;
-
         let daily_tasks_by_address = match state
             .db
             .get_daily_tasks_by_address(&recovered_address)
@@ -116,7 +114,7 @@ impl BatcherServer {
             }
         };
 
-        if daily_tasks_by_address >= MAX_PROOFS_PER_DAY {
+        if daily_tasks_by_address >= state.config.max_proofs_per_day {
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
                 "Request denied: Query limit exceeded.",
                 400,
