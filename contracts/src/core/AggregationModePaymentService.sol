@@ -14,6 +14,9 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /// @notice for how much time the payment is valid in seconds (86400s = 24hs)
     uint256 public constant PAYMENT_VALID_UNTIL_SECONDS = 86400;
 
+    /// @notice for how much time the payment is valid in seconds
+    uint256 public paymentExpirationTimeSeconds;
+
     /**
      * @notice Emitted when a user deposits funds to purchase service time.
      * @param user Address that sent the payment.
@@ -22,6 +25,10 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @param until Timestamp until when the payment is valid.
      */
     event UserPayment(address user, uint256 indexed amount, uint256 indexed from, uint256 indexed until);
+
+    /// @notice Event emitted when the payment expiration time is updated
+    /// @param newExpirationTime the new expiration time in seconds
+    event PaymentExpirationTimeUpdated(uint256 indexed newExpirationTime);
 
     error InvalidDepositAmount(uint256 amount);
 
@@ -40,6 +47,8 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
         __Ownable_init();
         __UUPSUpgradeable_init();
         _transferOwnership(_owner);
+
+        paymentExpirationTimeSeconds = PAYMENT_VALID_UNTIL_SECONDS;
     }
 
     /**
@@ -53,6 +62,16 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     {}
 
     /**
+     * @notice Ensures only the owner can authorize upgrades.
+     * @param newExpirationTimeInSeconds The new expiration time for the users payments in seconds.
+     */
+    function setPaymentExpirationTimeSeconds(uint256 newExpirationTimeInSeconds) public onlyOwner() {
+        paymentExpirationTimeSeconds = newExpirationTimeInSeconds;
+
+        emit PaymentExpirationTimeUpdated(newExpirationTimeInSeconds);
+    }
+
+    /**
      * @notice Accepts payments and validates they meet the minimum requirement.
      */
     receive() external payable {
@@ -63,6 +82,6 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
             revert InvalidDepositAmount(amount);
         }
 
-        emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + PAYMENT_VALID_UNTIL_SECONDS);
+        emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentExpirationTimeSeconds);
     }
 }
