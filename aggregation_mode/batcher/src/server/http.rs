@@ -14,13 +14,13 @@ use sqlx::types::BigDecimal;
 
 use super::{
     helpers::format_merkle_path,
-    types::{AppResponse, GetProofMerklePathQueryParams},
+    types::{AppResponse, GetReceiptsQueryParams},
 };
 
 use crate::{
     config::Config,
     db::Db,
-    server::types::{SubmitProofRequestRisc0, SubmitProofRequestSP1},
+    server::types::{GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1},
     verifiers::{verify_sp1_proof, VerificationError},
 };
 
@@ -47,7 +47,7 @@ impl BatcherServer {
                 // Note: this is temporary and should be lowered when we accept proofs via multipart form data instead of json
                 .app_data(web::JsonConfig::default().limit(50 * 1024 * 1024)) // 50mb
                 .route("/nonce/{address}", web::get().to(Self::get_nonce))
-                .route("/proof/merkle", web::get().to(Self::get_proof_merkle_path))
+                .route("/receipts", web::get().to(Self::get_receipts))
                 .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
                 .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
         })
@@ -58,20 +58,28 @@ impl BatcherServer {
         .expect("Server to never end");
     }
 
+    // Returns the nonce (number of submitted tasks) for a given address
     async fn get_nonce(req: HttpRequest) -> impl Responder {
-        let Some(address) = req.match_info().get("address") else {
+        let Some(address_raw) = req.match_info().get("address") else {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Missing address", 400));
         };
 
-        // TODO: validate valid ethereum address
+        // Check that the address is a valid ethereum address
+        if alloy::primitives::Address::from_str(address_raw.trim()).is_err() {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Invalid address", 400));
+        }
+
+        let address = address_raw.to_lowercase();
+
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
         let state = state.get_ref();
-        match state.db.count_tasks_by_address(address).await {
+        match state.db.count_tasks_by_address(&address).await {
             Ok(count) => HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!(
                 {
                     "nonce": count
@@ -82,6 +90,7 @@ impl BatcherServer {
         }
     }
 
+    // Posts an SP1 proof to the batcher, recovering the address from the signature
     async fn post_proof_sp1(
         req: HttpRequest,
         MultipartForm(data): MultipartForm<SubmitProofRequestSP1>,
@@ -174,6 +183,7 @@ impl BatcherServer {
                 &proof_content,
                 &vk_content,
                 None,
+                data.nonce.0 as i64,
             )
             .await
         {
@@ -186,6 +196,7 @@ impl BatcherServer {
     }
 
     /// TODO: complete for risc0 (see `post_proof_sp1`)
+    // Posts a Risc0 proof to the batcher, recovering the address from the signature
     async fn post_proof_risc0(
         _req: HttpRequest,
         MultipartForm(_): MultipartForm<SubmitProofRequestRisc0>,
@@ -193,58 +204,81 @@ impl BatcherServer {
         HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
     }
 
-    async fn get_proof_merkle_path(
+    // Returns the last 100 receipt merkle proofs for the address received in the URL.
+    // In case of also receiving a nonce on the query param, it returns only the merkle proof for that nonce.
+    async fn get_receipts(
         req: HttpRequest,
-        params: web::Query<GetProofMerklePathQueryParams>,
+        params: web::Query<GetReceiptsQueryParams>,
     ) -> impl Responder {
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                "Internal server error: Failed to get app data",
+                500,
+            ));
         };
 
         let state = state.get_ref();
 
-        // TODO: maybe also accept proof commitment in query param
-        let Some(id) = params.id.clone() else {
-            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
-                "Provide task `id` query param",
-                400,
-            ));
-        };
-
-        if id.is_empty() {
-            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
-                "Proof id cannot be empty",
-                400,
-            ));
+        if alloy::primitives::Address::from_str(params.address.clone().trim()).is_err() {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
 
-        let Ok(proof_id) = sqlx::types::Uuid::parse_str(&id) else {
-            return HttpResponse::BadRequest()
-                .json(AppResponse::new_unsucessfull("Proof id invalid uuid", 400));
+        let limit = match params.limit {
+            Some(received_limit) => received_limit.min(100),
+            None => 100,
         };
 
-        let db_result = state.db.get_merkle_path_by_task_id(proof_id).await;
-        let merkle_path = match db_result {
-            Ok(Some(merkle_path)) => merkle_path,
-            Ok(None) => {
-                return HttpResponse::NotFound().json(AppResponse::new_unsucessfull(
-                    "Proof merkle path not found",
-                    404,
-                ))
-            }
-            Err(_) => {
-                return HttpResponse::InternalServerError()
-                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
-            }
+        let address = params.address.to_lowercase();
+
+        let query = if let Some(nonce) = params.nonce {
+            state
+                .db
+                .get_tasks_by_address_and_nonce(&address, nonce)
+                .await
+        } else {
+            state
+                .db
+                .get_tasks_by_address_with_limit(&address, limit)
+                .await
         };
 
-        match format_merkle_path(&merkle_path) {
-            Ok(merkle_path) => {
-                HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
-                    "merkle_path": merkle_path
-                })))
-            }
+        let Ok(receipts) = query else {
+            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                "Internal server error: Failed to get tasks by address and nonce",
+                500,
+            ));
+        };
+
+        let responses: Result<Vec<GetReceiptsResponse>, String> = receipts
+            .into_iter()
+            .map(|receipt| {
+                let Some(merkle_path) = receipt.merkle_path else {
+                    return Ok(GetReceiptsResponse {
+                        status: receipt.status,
+                        merkle_path: Vec::new(),
+                        nonce: receipt.nonce,
+                        address: receipt.address,
+                    });
+                };
+
+                let Ok(formatted) = format_merkle_path(&merkle_path) else {
+                    return Err("Error formatting merkle path".into());
+                };
+
+                Ok(GetReceiptsResponse {
+                    status: receipt.status,
+                    merkle_path: formatted,
+                    nonce: receipt.nonce,
+                    address: receipt.address,
+                })
+            })
+            .collect();
+
+        match responses {
+            Ok(resp) => HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
+                "receipts": resp
+            }))),
             Err(_) => HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500)),
         }
