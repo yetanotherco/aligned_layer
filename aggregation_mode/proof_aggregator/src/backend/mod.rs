@@ -136,7 +136,7 @@ impl ProofAggregator {
     ) -> Result<(), AggregatedProofSubmissionError> {
         let (proofs, tasks_id) = self
             .fetcher
-            .query(self.engine.clone(), self.config.total_proofs_limit as i64)
+            .fetch_pending_proofs(self.engine.clone(), self.config.total_proofs_limit as i64)
             .await
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 

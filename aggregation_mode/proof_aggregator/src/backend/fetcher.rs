@@ -23,7 +23,7 @@ impl ProofsFetcher {
         Self { db }
     }
 
-    pub async fn query(
+    pub async fn fetch_pending_proofs(
         &self,
         engine: ZKVMEngine,
         limit: i64,
