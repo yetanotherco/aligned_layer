@@ -568,6 +568,11 @@ impl Network {
             Self::Custom(_, _, s) => s.as_str(),
         }
     }
+
+    // TODO: complete this
+    pub fn chain_id(&self) -> u64 {
+        todo!()
+    }
 }
 
 // Helper functions for serializing Option<Vec<u8>> with serde_bytes

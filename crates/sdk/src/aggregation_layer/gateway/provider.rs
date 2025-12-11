@@ -1,4 +1,4 @@
-use alloy::network::EthereumWallet;
+use alloy::signers::Signer;
 use reqwest::{multipart, Client};
 use serde::de::DeserializeOwned;
 
@@ -10,10 +10,11 @@ use crate::{
     common::types::Network,
 };
 
-pub struct AggregationModeGatewayProvider {
+pub struct AggregationModeGatewayProvider<S: Signer> {
     gateway_url: String,
-    signer: Option<EthereumWallet>,
+    signer: Option<S>,
     http_client: Client,
+    network: Network,
 }
 
 #[derive(Debug)]
@@ -24,7 +25,7 @@ pub enum AggregationModeError {
     SignerNotConfigured,
 }
 
-impl AggregationModeGatewayProvider {
+impl<S: Signer> AggregationModeGatewayProvider<S> {
     pub fn new(network: Network) -> Result<Self, AggregationModeError> {
         let gateway_url = match network {
             Network::Devnet => "http://127.0.0.1:8089".into(),
@@ -36,13 +37,11 @@ impl AggregationModeGatewayProvider {
             gateway_url,
             http_client: Client::new(),
             signer: None,
+            network,
         })
     }
 
-    pub fn new_with_signer(
-        network: Network,
-        signer: EthereumWallet,
-    ) -> Result<Self, AggregationModeError> {
+    pub fn new_with_signer(network: Network, signer: S) -> Result<Self, AggregationModeError> {
         let gateway_url = match network {
             Network::Devnet => "http://127.0.0.1:8089".into(),
             _ => return Err(AggregationModeError::UnsupportedNetwork),
@@ -52,15 +51,16 @@ impl AggregationModeGatewayProvider {
             gateway_url,
             http_client: Client::new(),
             signer: Some(signer),
+            network,
         })
     }
 
-    pub fn signer(&self) -> Option<&EthereumWallet> {
+    pub fn signer(&self) -> Option<&S> {
         self.signer.as_ref()
     }
 }
 
-impl AggregationModeGatewayProvider {
+impl<S: Signer> AggregationModeGatewayProvider<S> {
     pub async fn gateway_url(&self) -> &str {
         &self.gateway_url
     }
@@ -100,10 +100,12 @@ impl AggregationModeGatewayProvider {
         let Some(signer) = &self.signer else {
             return Err(AggregationModeError::SignerNotConfigured);
         };
-        let signer_address = signer.default_signer().address().to_string();
+        let signer_address = signer.address().to_string();
 
         let nonce = self.get_nonce_for(signer_address).await?;
-        let message = SubmitSP1ProofMessage::new(nonce, serialized_proof, serialized_vk).sign();
+        let message = SubmitSP1ProofMessage::new(nonce, serialized_proof, serialized_vk)
+            .sign(signer, &self.network)
+            .await;
         let form = multipart::Form::new()
             .text("nonce", message.nonce.to_string())
             .part(

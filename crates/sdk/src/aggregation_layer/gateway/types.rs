@@ -1,4 +1,11 @@
+use alloy::{
+    dyn_abi::DynSolValue,
+    primitives::{keccak256, Keccak256, U256},
+    signers::Signer,
+};
 use serde::{Deserialize, Serialize};
+
+use crate::common::types::Network;
 
 #[derive(Debug, Deserialize)]
 pub(super) struct GatewayResponse<T> {
@@ -55,7 +62,43 @@ impl SubmitSP1ProofMessage {
         }
     }
 
-    pub fn sign(mut self) -> Self {
+    fn hash_msg(&self) -> [u8; 32] {
+        let mut hasher = Keccak256::new();
+        let mut output = [0u8; 32];
+
+        let nonce_bytes: [u8; 32] = U256::from_be_slice(&self.nonce.to_be_bytes()).to_be_bytes();
+
+        hasher.update(&nonce_bytes);
+        hasher.update(&self.proof);
+        hasher.update(&self.program_vk);
+        hasher.finalize_into_array(&mut output);
+        output
+    }
+
+    pub async fn sign<S: Signer>(mut self, signer: &S, network: &Network) -> Self {
+        let domain_value = DynSolValue::Tuple(vec![
+            DynSolValue::String("Aligned".to_string()),
+            DynSolValue::String("1".to_string()),
+            DynSolValue::Uint(U256::from(network.chain_id()), 256),
+        ]);
+
+        let message_value = DynSolValue::Tuple(vec![
+            DynSolValue::FixedBytes(self.hash_msg().into(), 32),
+            DynSolValue::Uint(U256::from(self.nonce), 256),
+        ]);
+
+        let encoded_domain = domain_value.abi_encode();
+        let encoded_message = message_value.abi_encode();
+
+        let domain_separator = keccak256(&encoded_domain);
+        let message_hash = keccak256(&encoded_message);
+        let eip712_hash =
+            keccak256([&[0x19, 0x01], &domain_separator[..], &message_hash[..]].concat());
+
+        let signature = signer.sign_hash(&eip712_hash).await.unwrap();
+
+        self.signature = signature.as_bytes().to_vec();
+
         self
     }
 }
