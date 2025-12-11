@@ -1,6 +1,6 @@
 use std::env;
 
-use batcher::{config::Config, db::Db, http::BatcherServer};
+use gateway::{config::Config, db::Db, http::GatewayServer};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 fn read_config_filepath_from_args() -> String {
@@ -30,7 +30,7 @@ async fn main() {
         .await
         .expect("db to start");
 
-    let http_server = BatcherServer::new(db, config.clone());
+    let http_server = GatewayServer::new(db, config.clone());
 
     let http_server_handle = tokio::spawn(async move { http_server.start().await });
 

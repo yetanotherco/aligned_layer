@@ -1,6 +1,6 @@
 use std::env;
 
-use agg_mode_batcher_poller::{config::Config, db::Db, payments::PaymentsPoller};
+use agg_mode_payments_poller::{config::Config, db::Db, payments::PaymentsPoller};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 fn read_config_filepath_from_args() -> String {

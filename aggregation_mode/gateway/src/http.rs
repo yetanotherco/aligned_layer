@@ -25,18 +25,18 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-pub struct BatcherServer {
+pub struct GatewayServer {
     db: Db,
     config: Config,
 }
 
-impl BatcherServer {
+impl GatewayServer {
     pub fn new(db: Db, config: Config) -> Self {
         Self { db, config }
     }
 
     pub async fn start(&self) {
-        // Note: BatcherServer is thread safe so we can just clone it (no need to add mutexes)
+        // Note: GatewayServer is thread safe so we can just clone it (no need to add mutexes)
         let port = self.config.port;
         let state = self.clone();
 
@@ -71,7 +71,7 @@ impl BatcherServer {
 
         let address = address_raw.to_lowercase();
 
-        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
@@ -88,14 +88,14 @@ impl BatcherServer {
         }
     }
 
-    // Posts an SP1 proof to the batcher, recovering the address from the signature
+    // Posts an SP1 proof to the gateway, recovering the address from the signature
     async fn post_proof_sp1(
         req: HttpRequest,
         MultipartForm(data): MultipartForm<SubmitProofRequestSP1>,
     ) -> impl Responder {
         let recovered_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".to_lowercase();
 
-        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
@@ -194,7 +194,7 @@ impl BatcherServer {
     }
 
     /// TODO: complete for risc0 (see `post_proof_sp1`)
-    // Posts a Risc0 proof to the batcher, recovering the address from the signature
+    // Posts a Risc0 proof to the gateway, recovering the address from the signature
     async fn post_proof_risc0(
         _req: HttpRequest,
         MultipartForm(_): MultipartForm<SubmitProofRequestRisc0>,
@@ -208,7 +208,7 @@ impl BatcherServer {
         req: HttpRequest,
         params: web::Query<GetReceiptsQueryParams>,
     ) -> impl Responder {
-        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
                 "Internal server error: Failed to get app data",
                 500,
