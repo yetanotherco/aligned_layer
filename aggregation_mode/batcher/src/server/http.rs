@@ -111,16 +111,14 @@ impl BatcherServer {
         {
             Ok(receipts) => receipts.len(),
             Err(_) => {
-                return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
-                    format!("Internal server error").as_str(),
-                    500,
-                ))
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500))
             }
         };
 
         if daily_tasks_by_address >= MAX_PROOFS_PER_DAY {
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
-                format!("Request denied: Query limit exceeded.").as_str(),
+                "Request denied: Query limit exceeded.",
                 400,
             ));
         }
