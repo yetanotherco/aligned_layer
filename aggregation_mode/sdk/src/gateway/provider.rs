@@ -5,7 +5,7 @@ use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 
 use crate::{
     gateway::types::{
-        EmptyData, GatewayResponse, NonceResponse, ReceiptsQueryParams, ReceiptsResponse,
+        EmptyDataResponse, GatewayResponse, NonceResponse, ReceiptsQueryParams, ReceiptsResponse,
         SubmitProofResponse, SubmitSP1ProofMessage,
     },
     types::Network,
@@ -135,7 +135,7 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
             .map_err(|e| GatewayError::Request(e.to_string()))?;
 
         if !(200..300).contains(&response.status().as_u16()) {
-            let payload: GatewayResponse<EmptyData> = response
+            let payload: GatewayResponse<EmptyDataResponse> = response
                 .json()
                 .await
                 .map_err(|e| GatewayError::Request(e.to_string()))?;

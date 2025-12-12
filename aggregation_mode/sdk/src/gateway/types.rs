@@ -15,7 +15,7 @@ pub struct GatewayResponse<T> {
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct EmptyData {}
+pub(super) struct EmptyDataResponse {}
 
 #[derive(Debug, Deserialize)]
 pub struct NonceResponse {
