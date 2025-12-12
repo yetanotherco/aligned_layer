@@ -8,14 +8,17 @@ use serde::{Deserialize, Serialize};
 use crate::types::Network;
 
 #[derive(Debug, Deserialize)]
-pub(super) struct GatewayResponse<T> {
+pub struct GatewayResponse<T> {
     pub status: u16,
     pub message: String,
     pub data: T,
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct NonceResponse {
+pub(super) struct EmptyData {}
+
+#[derive(Debug, Deserialize)]
+pub struct NonceResponse {
     pub nonce: u64,
 }
 

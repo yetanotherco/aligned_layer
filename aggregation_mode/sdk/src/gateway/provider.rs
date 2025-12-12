@@ -5,7 +5,7 @@ use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 
 use crate::{
     gateway::types::{
-        GatewayResponse, NonceResponse, Receipt, ReceiptsQueryParams, ReceiptsResponse,
+        EmptyData, GatewayResponse, NonceResponse, Receipt, ReceiptsQueryParams,
         SubmitProofResponse, SubmitSP1ProofMessage,
     },
     types::Network,
@@ -56,18 +56,19 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
         &self.gateway_url
     }
 
-    pub async fn get_nonce_for(&self, address: String) -> Result<u64, GatewayError> {
+    pub async fn get_nonce_for(
+        &self,
+        address: String,
+    ) -> Result<GatewayResponse<NonceResponse>, GatewayError> {
         let url = format!("{}/nonce/{}", self.gateway_url, address);
-        let response: NonceResponse = self.send_request(self.http_client.get(url)).await?;
-
-        Ok(response.nonce)
+        self.send_request(self.http_client.get(url)).await
     }
 
     pub async fn get_receipts_for(
         &self,
         address: String,
         nonce: Option<u64>,
-    ) -> Result<Vec<Receipt>, GatewayError> {
+    ) -> Result<GatewayResponse<Vec<Receipt>>, GatewayError> {
         let query = ReceiptsQueryParams {
             address: address,
             nonce,
@@ -78,16 +79,14 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
             .get(format!("{}/receipts", self.gateway_url))
             .query(&query);
 
-        let response: ReceiptsResponse = self.send_request(request).await?;
-
-        Ok(response.receipts)
+        self.send_request(request).await
     }
 
     pub async fn submit_sp1_proof(
         &self,
         proof: &SP1ProofWithPublicValues,
         vk: &SP1VerifyingKey,
-    ) -> Result<SubmitProofResponse, GatewayError> {
+    ) -> Result<GatewayResponse<SubmitProofResponse>, GatewayError> {
         let serialized_proof = bincode::serialize(proof)
             .map_err(|e| GatewayError::ProofSerialization(e.to_string()))?;
         let serialized_vk =
@@ -97,11 +96,12 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
             return Err(GatewayError::SignerNotConfigured);
         };
         let signer_address = signer.address().to_string();
-        let nonce = self.get_nonce_for(signer_address).await?;
-        let message = SubmitSP1ProofMessage::new(nonce, serialized_proof, serialized_vk)
-            .sign(signer, &self.network)
-            .await
-            .map_err(|e| GatewayError::MessageSignature(e))?;
+        let nonce_response = self.get_nonce_for(signer_address).await?;
+        let message =
+            SubmitSP1ProofMessage::new(nonce_response.data.nonce, serialized_proof, serialized_vk)
+                .sign(signer, &self.network)
+                .await
+                .map_err(|e| GatewayError::MessageSignature(e))?;
 
         let form = multipart::Form::new()
             .text("nonce", message.nonce.to_string())
@@ -128,24 +128,29 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
     async fn send_request<T: DeserializeOwned>(
         &self,
         request: reqwest::RequestBuilder,
-    ) -> Result<T, GatewayError> {
+    ) -> Result<GatewayResponse<T>, GatewayError> {
         let response = request
             .send()
             .await
             .map_err(|e| GatewayError::Request(e.to_string()))?;
 
-        let payload: GatewayResponse<T> = response
-            .json()
-            .await
-            .map_err(|e| GatewayError::Request(e.to_string()))?;
+        if !(200..300).contains(&response.status().as_u16()) {
+            let payload: GatewayResponse<EmptyData> = response
+                .json()
+                .await
+                .map_err(|e| GatewayError::Request(e.to_string()))?;
 
-        if payload.status != 200 {
             return Err(GatewayError::Api {
                 status: payload.status,
                 message: payload.message,
             });
         }
 
-        Ok(payload.data)
+        let payload: GatewayResponse<T> = response
+            .json()
+            .await
+            .map_err(|e| GatewayError::Request(e.to_string()))?;
+
+        Ok(payload)
     }
 }

@@ -308,6 +308,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "agg_mode_cli"
+version = "0.1.0"
+dependencies = [
+ "agg_mode_sdk",
+ "alloy",
+ "bincode",
+ "clap",
+ "serde",
+ "sp1-sdk",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.22",
+]
+
+[[package]]
 name = "agg_mode_sdk"
 version = "0.1.0"
 dependencies = [
