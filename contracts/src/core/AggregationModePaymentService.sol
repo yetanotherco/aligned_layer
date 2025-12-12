@@ -127,6 +127,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
 
     /**
      * @notice Withdraws the contract balance to the recipient address.
+     * TODO: Check if we should have a reentrancy guard for this method.
      */
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
