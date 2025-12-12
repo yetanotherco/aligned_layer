@@ -23,6 +23,7 @@ use config::Config;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
+use sqlx::types::Uuid;
 use std::thread::sleep;
 use std::{str::FromStr, time::Duration};
 use tracing::{error, info, warn};
@@ -213,9 +214,9 @@ impl ProofAggregator {
         );
 
         info!("Storing merkle paths for each task...",);
-        let mut merkle_paths_for_tasks = vec![];
-        for task_id in tasks_id {
-            let Some(proof) = merkle_tree.get_proof_by_pos(0) else {
+        let mut merkle_paths_for_tasks: Vec<(Uuid, Vec<u8>)> = vec![];
+        for (idx, task_id) in tasks_id.into_iter().enumerate() {
+            let Some(proof) = merkle_tree.get_proof_by_pos(idx) else {
                 warn!("Proof not found for task id {task_id}");
                 continue;
             };
@@ -228,7 +229,7 @@ impl ProofAggregator {
             merkle_paths_for_tasks.push((task_id, proof_bytes))
         }
         self.db
-            .insert_tasks_merkle_path_and_mark_them_as_submitted(merkle_paths_for_tasks)
+            .insert_tasks_merkle_path_and_mark_them_as_verified(merkle_paths_for_tasks)
             .await
             .map_err(AggregatedProofSubmissionError::StoringMerklePaths)?;
         info!("Merkle path inserted sucessfully",);

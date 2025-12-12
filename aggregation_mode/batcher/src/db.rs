@@ -99,7 +99,7 @@ impl Db {
     pub async fn insert_task(
         &self,
         address: &str,
-        proving_system_id: i64,
+        proving_system_id: i32,
         proof: &[u8],
         program_commitment: &[u8],
         merkle_path: Option<&[u8]>,

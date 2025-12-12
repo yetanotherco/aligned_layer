@@ -52,8 +52,6 @@ impl BatcherServer {
         HttpServer::new(move || {
             App::new()
                 .app_data(Data::new(state.clone()))
-                // Note: this is temporary and should be lowered when we accept proofs via multipart form data instead of json
-                .app_data(web::JsonConfig::default().limit(50 * 1024 * 1024)) // 50mb
                 .route("/nonce/{address}", web::get().to(Self::get_nonce))
                 .route("/receipts", web::get().to(Self::get_receipts))
                 .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
@@ -203,7 +201,7 @@ impl BatcherServer {
             .db
             .insert_task(
                 &recovered_address,
-                AggregationModeProvingSystem::SP1.as_u16() as i64,
+                AggregationModeProvingSystem::SP1.as_u16() as i32,
                 &proof_content,
                 &vk_content,
                 None,

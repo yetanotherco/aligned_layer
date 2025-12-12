@@ -127,12 +127,12 @@ pub(crate) fn run_user_proofs_aggregator(
         .verify(&proof, &vk)
         .map_err(SP1AggregationError::Verification)?;
 
-    let proof_and_elf = SP1ProofWithPubValuesAndVk {
+    let proof_and_vk = SP1ProofWithPubValuesAndVk {
         proof_with_pub_values: proof,
         vk,
     };
 
-    Ok(proof_and_elf)
+    Ok(proof_and_vk)
 }
 
 pub(crate) fn run_chunk_aggregator(
@@ -199,12 +199,12 @@ pub(crate) fn run_chunk_aggregator(
         .verify(&proof, &vk)
         .map_err(SP1AggregationError::Verification)?;
 
-    let proof_and_elf = SP1ProofWithPubValuesAndVk {
+    let proof_and_vk = SP1ProofWithPubValuesAndVk {
         proof_with_pub_values: proof,
         vk,
     };
 
-    Ok(proof_and_elf)
+    Ok(proof_and_vk)
 }
 
 pub fn vk_from_elf(elf: &[u8]) -> SP1VerifyingKey {
