@@ -102,16 +102,13 @@ impl BatcherServer {
         let state = state.get_ref();
 
         // Checking if this address has submited more proofs than the ones allowed per day
-        let daily_tasks_by_address = match state
+        let Ok(daily_tasks_by_address) = state
             .db
             .get_daily_tasks_by_address(&recovered_address)
             .await
-        {
-            Ok(receipts) => receipts.len(),
-            Err(_) => {
-                return HttpResponse::InternalServerError()
-                    .json(AppResponse::new_unsucessfull("Internal server error", 500))
-            }
+        else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
         if daily_tasks_by_address >= state.config.max_proofs_per_day {
