@@ -49,7 +49,7 @@ impl Db {
         .map_err(|e| DbError::Query(e.to_string()))
     }
 
-    pub async fn insert_tasks_merkle_path_and_mark_them_as_submitted(
+    pub async fn insert_tasks_merkle_path_and_mark_them_as_verified(
         &self,
         updates: Vec<(Uuid, Vec<u8>)>,
     ) -> Result<(), DbError> {
