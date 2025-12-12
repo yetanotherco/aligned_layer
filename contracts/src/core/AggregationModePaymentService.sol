@@ -20,6 +20,16 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /// @notice The address where the payment funds will be sent.
     address public paymentFundsRecipient;
 
+    /// @notice The limit of subscriptions for different addresses per month
+    uint256 public subscriptionLimit;
+
+    /// @notice The amount of subscriptions for the current month
+    uint256 public monthlySubscriptionsAmount;
+
+    /// @notice The amount of addresses currently subscribed. expirationTime is UTC seconds, to be
+    /// compared against block timestamps
+    mapping(address subscriber => uint256 expirationTime) public subscribedAddresses;
+
     /**
      * @notice Emitted when a user deposits funds to purchase service time.
      * @param user Address that sent the payment.
@@ -37,6 +47,10 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /// @param newAmountToPay the new amount to pay for a subscription in wei.
     event AmountToPayUpdated(uint256 indexed newAmountToPay);
 
+    /// @notice Event emitted when the subscription limit is updated
+    /// @param newSubscriptionLimit the new monthly subscription limit.
+    event SubscriptionLimitUpdated(uint256 indexed newSubscriptionLimit);
+
     /// @notice Event emitted when the funds recipient is updated
     /// @param newFundsRecipient the new address for receiving the funds on withdrawal.
     event FundsRecipientUpdated(address indexed newFundsRecipient);
@@ -48,6 +62,10 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
 
     error InvalidDepositAmount(uint256 amountReceived, uint256 amountRequired);
 
+    error SubscriptionLimitReached(uint256 subscriptionLimit);
+
+    error SubscriptionNotExpired(uint256 expiration, uint256 currentTime);
+
     /**
      * @notice Disables initializers for the implementation contract.
      */
@@ -58,8 +76,19 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /**
      * @notice Initializes the contract and transfers ownership to the provided address.
      * @param _owner Address that becomes the contract owner.
+     * @param _paymentFundsRecipient Address that will receive the withdrawal funds.
+     * @param _amountToPayInWei Amount to pay in wei for the subscription.
+     * @param _paymentExpirationTimeSeconds The time in seconds that the subscription takes to expire.
+     * @param _subscriptionLimit The maximum subscribers that can be subscribed at the same time.
+     * 
      */
-    function initialize(address _owner, address _paymentFundsRecipient, uint256 _amountToPayInWei, uint256 _paymentExpirationTimeSeconds) public initializer {
+    function initialize(
+        address _owner,
+        address _paymentFundsRecipient,
+        uint256 _amountToPayInWei,
+        uint256 _paymentExpirationTimeSeconds,
+        uint256 _subscriptionLimit
+    ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         _transferOwnership(_owner);
@@ -67,6 +96,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
         paymentExpirationTimeSeconds = _paymentExpirationTimeSeconds;
         amountToPayInWei = _amountToPayInWei;
         paymentFundsRecipient = _paymentFundsRecipient;
+        subscriptionLimit = _subscriptionLimit;
     }
 
     /**
@@ -110,6 +140,23 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     }
 
     /**
+     * @notice Sets the new subscription limit. Only callable by the owner
+     * @param newSubscriptionLimit The new monthly subscription limit.
+     */
+    function setSubscriptionLimit(uint256 newSubscriptionLimit) public onlyOwner() {
+        subscriptionLimit = newSubscriptionLimit;
+
+        emit SubscriptionLimitUpdated(newSubscriptionLimit);
+    }
+
+    /**
+     * @notice Resets the monthly subscriptions mapping counter to zero.
+     */
+    function resetSubscriptions() public onlyOwner() {
+        monthlySubscriptionsAmount = 0;
+    }
+
+    /**
      * @notice Accepts payments and validates they meet the minimum requirement.
      */
     receive() external payable {
@@ -117,6 +164,23 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
 
         if (amount < amountToPayInWei) {
             revert InvalidDepositAmount(amount, amountToPayInWei);
+        }
+
+        if (monthlySubscriptionsAmount == subscriptionLimit) {
+            revert SubscriptionLimitReached(subscriptionLimit);
+        }
+
+        // Check if the user has already payed a subscription for this month
+        uint256 insertedExpiration = subscribedAddresses[msg.sender];
+        if (insertedExpiration == 0) {
+            // this means the sender has not payed for a subscription before
+            subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
+        } else if (insertedExpiration > block.timestamp) {
+            // this means the sender has an expired subscription
+            subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
+        } else {
+            // this means the sender has a subscription that has not expired yet
+            revert SubscriptionNotExpired(insertedExpiration, block.timestamp);
         }
 
         emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentExpirationTimeSeconds);
