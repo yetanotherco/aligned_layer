@@ -111,7 +111,7 @@ impl BatcherServer {
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
-        if daily_tasks_by_address >= state.config.max_proofs_per_day {
+        if daily_tasks_by_address >= state.config.max_daily_proofs_per_user {
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
                 "Request denied: Query limit exceeded.",
                 400,
