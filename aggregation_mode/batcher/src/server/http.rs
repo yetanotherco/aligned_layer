@@ -8,7 +8,7 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use aligned_sdk::aggregation_layer::{self, AggregationModeProvingSystem};
+use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use alloy::signers::Signature;
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 use sqlx::types::BigDecimal;
@@ -111,13 +111,14 @@ impl BatcherServer {
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
-        let msg = aggregation_layer::gateway::types::SubmitSP1ProofMessage::new(
+        // reconstruct message and recover address
+        let msg = agg_mode_sdk::gateway::types::SubmitSP1ProofMessage::new(
             data.nonce.0,
             proof_content.clone(),
             vk_content.clone(),
         );
         let Ok(recovered_address) = signature.recover_address_from_prehash(
-            &msg.eip712_hash(&aligned_sdk::common::types::Network::Devnet)
+            &msg.eip712_hash(&agg_mode_sdk::types::Network::Devnet)
                 .into(),
         ) else {
             return HttpResponse::InternalServerError()
