@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub port: u16,
     pub db_connection_url: String,
+    pub max_daily_proofs_per_user: i64,
 }
 
 impl Config {

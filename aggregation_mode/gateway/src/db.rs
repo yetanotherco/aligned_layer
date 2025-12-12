@@ -96,6 +96,18 @@ impl Db {
         .await
     }
 
+    pub async fn get_daily_tasks_by_address(&self, address: &str) -> Result<i64, sqlx::Error> {
+        sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*)
+            FROM tasks
+            WHERE address = $1
+            AND inserted_at::date = CURRENT_DATE",
+        )
+        .bind(address.to_lowercase())
+        .fetch_one(&self.pool)
+        .await
+    }
+
     pub async fn insert_task(
         &self,
         address: &str,
