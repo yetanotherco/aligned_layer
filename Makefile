@@ -324,10 +324,10 @@ agg_mode_gateway_start_ethereum_package: agg_mode_run_migrations
 	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin gateway -- config-files/config-agg-mode-gateway-ethereum-package.yaml
 
 agg_mode_payments_poller_start_local: agg_mode_run_migrations
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_payments_poller -- config-files/config-agg-mode-gateway.yaml
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin payments_poller -- config-files/config-agg-mode-gateway.yaml
 
 agg_mode_payments_poller_start_ethereum_package: agg_mode_run_migrations
-	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin agg_mode_payments_poller -- config-files/config-agg-mode-gateway-ethereum-package.yaml
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin payments_poller -- config-files/config-agg-mode-gateway-ethereum-package.yaml
 
 AGG_MODE_SENDER ?= 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 agg_mode_gateway_send_payment:
