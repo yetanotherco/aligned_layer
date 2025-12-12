@@ -25,7 +25,7 @@ impl Db {
 
     pub async fn get_pending_tasks_and_mark_them_as_processing(
         &self,
-        proving_system_id: i64,
+        proving_system_id: i32,
         limit: i64,
     ) -> Result<Vec<Task>, DbError> {
         sqlx::query_as::<_, Task>(
