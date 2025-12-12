@@ -61,7 +61,7 @@ impl Db {
 
         for (task_id, merkle_path) in updates {
             if let Err(e) = sqlx::query(
-                "UPDATE tasks SET merkle_path = $1, status = 'verified' WHERE task_id = $2",
+                "UPDATE tasks SET merkle_path = $1, status = 'verified', proof = NULL WHERE task_id = $2",
             )
             .bind(merkle_path)
             .bind(task_id)
