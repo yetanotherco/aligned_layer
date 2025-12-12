@@ -8,6 +8,7 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
+use agg_mode_sdk::types::Network;
 use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use alloy::signers::Signature;
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
@@ -29,11 +30,17 @@ use crate::{
 pub struct BatcherServer {
     db: Db,
     config: Config,
+    network: Network,
 }
 
 impl BatcherServer {
     pub fn new(db: Db, config: Config) -> Self {
-        Self { db, config }
+        let network = Network::from_str(&config.network).expect("A valid network in config file");
+        Self {
+            db,
+            config,
+            network,
+        }
     }
 
     pub async fn start(&self) {
@@ -96,6 +103,12 @@ impl BatcherServer {
         req: HttpRequest,
         MultipartForm(data): MultipartForm<SubmitProofRequestSP1>,
     ) -> impl Responder {
+        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let state = state.get_ref();
         let Ok(signature) = Signature::from_str(&data.signature_hex.0) else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Invalid signature", 500));
@@ -117,20 +130,13 @@ impl BatcherServer {
             proof_content.clone(),
             vk_content.clone(),
         );
-        let Ok(recovered_address) = signature.recover_address_from_prehash(
-            &msg.eip712_hash(&agg_mode_sdk::types::Network::Devnet)
-                .into(),
-        ) else {
+        let Ok(recovered_address) =
+            signature.recover_address_from_prehash(&msg.eip712_hash(&state.network).into())
+        else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
         let recovered_address = recovered_address.to_string().to_lowercase();
-
-        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
-        };
-        let state = state.get_ref();
 
         let Ok(count) = state.db.count_tasks_by_address(&recovered_address).await else {
             return HttpResponse::InternalServerError()

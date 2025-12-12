@@ -8,6 +8,7 @@ pub struct Config {
     pub db_connection_url: String,
     pub eth_rpc_url: String,
     pub payment_service_address: String,
+    pub network: String,
 }
 
 impl Config {
