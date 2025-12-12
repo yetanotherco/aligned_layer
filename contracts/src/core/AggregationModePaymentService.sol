@@ -62,13 +62,13 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @notice Initializes the contract and transfers ownership to the provided address.
      * @param _owner Address that becomes the contract owner.
      */
-    function initialize(address _owner, address _paymentFundsRecipient) public initializer {
+    function initialize(address _owner, address _paymentFundsRecipient, uint256 _amountToPayInWei) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         _transferOwnership(_owner);
 
         paymentExpirationTimeSeconds = PAYMENT_VALID_UNTIL_SECONDS;
-        amountToPayInWei = 1000000000000000000; // 1 ETH
+        amountToPayInWei = _amountToPayInWei;
         paymentFundsRecipient = _paymentFundsRecipient;
     }
 
