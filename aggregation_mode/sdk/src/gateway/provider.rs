@@ -5,7 +5,7 @@ use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 
 use crate::{
     gateway::types::{
-        EmptyData, GatewayResponse, NonceResponse, Receipt, ReceiptsQueryParams,
+        EmptyData, GatewayResponse, NonceResponse, ReceiptsQueryParams, ReceiptsResponse,
         SubmitProofResponse, SubmitSP1ProofMessage,
     },
     types::Network,
@@ -68,7 +68,7 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
         &self,
         address: String,
         nonce: Option<u64>,
-    ) -> Result<GatewayResponse<Vec<Receipt>>, GatewayError> {
+    ) -> Result<GatewayResponse<ReceiptsResponse>, GatewayError> {
         let query = ReceiptsQueryParams {
             address: address,
             nonce,

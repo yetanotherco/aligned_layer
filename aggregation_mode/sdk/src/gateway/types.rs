@@ -38,7 +38,7 @@ pub struct Receipt {
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct ReceiptsResponse {
+pub struct ReceiptsResponse {
     pub receipts: Vec<Receipt>,
 }
 
