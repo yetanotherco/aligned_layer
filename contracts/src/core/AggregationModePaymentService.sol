@@ -11,9 +11,6 @@ import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPS
  * @notice Handles deposits that grant time-limited access to aggregation services.
  */
 contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUPSUpgradeable {
-    /// @notice for how much time the payment is valid in seconds (86400s = 24hs)
-    uint256 public constant PAYMENT_VALID_UNTIL_SECONDS = 86400;
-
     /// @notice for how much time the payment is valid in seconds
     uint256 public paymentExpirationTimeSeconds;
 
@@ -62,12 +59,12 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @notice Initializes the contract and transfers ownership to the provided address.
      * @param _owner Address that becomes the contract owner.
      */
-    function initialize(address _owner, address _paymentFundsRecipient, uint256 _amountToPayInWei) public initializer {
+    function initialize(address _owner, address _paymentFundsRecipient, uint256 _amountToPayInWei, uint256 _paymentExpirationTimeSeconds) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         _transferOwnership(_owner);
 
-        paymentExpirationTimeSeconds = PAYMENT_VALID_UNTIL_SECONDS;
+        paymentExpirationTimeSeconds = _paymentExpirationTimeSeconds;
         amountToPayInWei = _amountToPayInWei;
         paymentFundsRecipient = _paymentFundsRecipient;
     }
