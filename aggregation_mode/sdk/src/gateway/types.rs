@@ -5,7 +5,7 @@ use alloy::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::types::Network;
+use crate::types::Network;
 
 #[derive(Debug, Deserialize)]
 pub(super) struct GatewayResponse<T> {
@@ -20,7 +20,7 @@ pub(super) struct NonceResponse {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ReceiptsQuery {
+pub struct ReceiptsQueryParams {
     pub address: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nonce: Option<u64>,
@@ -96,14 +96,14 @@ impl SubmitSP1ProofMessage {
         keccak256([&[0x19, 0x01], &domain_separator[..], &message_hash[..]].concat()).0
     }
 
-    pub async fn sign<S: Signer>(mut self, signer: &S, network: &Network) -> Self {
+    pub async fn sign<S: Signer>(mut self, signer: &S, network: &Network) -> Result<Self, String> {
         let signature = signer
             .sign_hash(&self.eip712_hash(network).into())
             .await
-            .unwrap();
+            .map_err(|e| e.to_string())?;
 
         self.signature = signature.as_bytes().to_vec();
 
-        self
+        Ok(self)
     }
 }

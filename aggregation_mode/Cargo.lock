@@ -307,6 +307,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "agg_mode_sdk"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "bincode",
+ "reqwest 0.12.24",
+ "serde",
+ "sp1-sdk",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.22",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -331,7 +345,6 @@ dependencies = [
 name = "aligned-sdk"
 version = "0.1.0"
 dependencies = [
- "alloy",
  "ciborium",
  "dialoguer",
  "ethers",

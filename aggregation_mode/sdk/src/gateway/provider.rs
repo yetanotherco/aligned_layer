@@ -1,13 +1,14 @@
-use alloy::signers::Signer;
+use alloy::{hex, signers::Signer};
 use reqwest::{multipart, Client};
 use serde::de::DeserializeOwned;
+use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 
 use crate::{
-    aggregation_layer::gateway::types::{
-        GatewayResponse, NonceResponse, Receipt, ReceiptsQuery, ReceiptsResponse,
+    gateway::types::{
+        GatewayResponse, NonceResponse, Receipt, ReceiptsQueryParams, ReceiptsResponse,
         SubmitProofResponse, SubmitSP1ProofMessage,
     },
-    common::types::Network,
+    types::Network,
 };
 
 pub struct AggregationModeGatewayProvider<S: Signer> {
@@ -18,37 +19,27 @@ pub struct AggregationModeGatewayProvider<S: Signer> {
 }
 
 #[derive(Debug)]
-pub enum AggregationModeError {
-    UnsupportedNetwork,
+pub enum GatewayError {
     Request(String),
     Api { status: u16, message: String },
     SignerNotConfigured,
+    ProofSerialization(String),
+    MessageSignature(String),
 }
 
 impl<S: Signer> AggregationModeGatewayProvider<S> {
-    pub fn new(network: Network) -> Result<Self, AggregationModeError> {
-        let gateway_url = match network {
-            Network::Devnet => "http://127.0.0.1:8089".into(),
-
-            _ => return Err(AggregationModeError::UnsupportedNetwork),
-        };
-
+    pub fn new(network: Network) -> Result<Self, GatewayError> {
         Ok(Self {
-            gateway_url,
+            gateway_url: network.gateway_url(),
             http_client: Client::new(),
             signer: None,
             network,
         })
     }
 
-    pub fn new_with_signer(network: Network, signer: S) -> Result<Self, AggregationModeError> {
-        let gateway_url = match network {
-            Network::Devnet => "http://127.0.0.1:8089".into(),
-            _ => return Err(AggregationModeError::UnsupportedNetwork),
-        };
-
+    pub fn new_with_signer(network: Network, signer: S) -> Result<Self, GatewayError> {
         Ok(Self {
-            gateway_url,
+            gateway_url: network.gateway_url(),
             http_client: Client::new(),
             signer: Some(signer),
             network,
@@ -65,7 +56,7 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
         &self.gateway_url
     }
 
-    pub async fn get_nonce_for(&self, address: String) -> Result<u64, AggregationModeError> {
+    pub async fn get_nonce_for(&self, address: String) -> Result<u64, GatewayError> {
         let url = format!("{}/nonce/{}", self.gateway_url, address);
         let response: NonceResponse = self.send_request(self.http_client.get(url)).await?;
 
@@ -76,8 +67,8 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
         &self,
         address: String,
         nonce: Option<u64>,
-    ) -> Result<Vec<Receipt>, AggregationModeError> {
-        let query = ReceiptsQuery {
+    ) -> Result<Vec<Receipt>, GatewayError> {
+        let query = ReceiptsQueryParams {
             address: address,
             nonce,
         };
@@ -94,18 +85,24 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
 
     pub async fn submit_sp1_proof(
         &self,
-        serialized_proof: Vec<u8>,
-        serialized_vk: Vec<u8>,
-    ) -> Result<SubmitProofResponse, AggregationModeError> {
+        proof: &SP1ProofWithPublicValues,
+        vk: &SP1VerifyingKey,
+    ) -> Result<SubmitProofResponse, GatewayError> {
+        let serialized_proof = bincode::serialize(proof)
+            .map_err(|e| GatewayError::ProofSerialization(e.to_string()))?;
+        let serialized_vk =
+            bincode::serialize(vk).map_err(|e| GatewayError::ProofSerialization(e.to_string()))?;
+
         let Some(signer) = &self.signer else {
-            return Err(AggregationModeError::SignerNotConfigured);
+            return Err(GatewayError::SignerNotConfigured);
         };
         let signer_address = signer.address().to_string();
-
         let nonce = self.get_nonce_for(signer_address).await?;
         let message = SubmitSP1ProofMessage::new(nonce, serialized_proof, serialized_vk)
             .sign(signer, &self.network)
-            .await;
+            .await
+            .map_err(|e| GatewayError::MessageSignature(e))?;
+
         let form = multipart::Form::new()
             .text("nonce", message.nonce.to_string())
             .part(
@@ -131,19 +128,19 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
     async fn send_request<T: DeserializeOwned>(
         &self,
         request: reqwest::RequestBuilder,
-    ) -> Result<T, AggregationModeError> {
+    ) -> Result<T, GatewayError> {
         let response = request
             .send()
             .await
-            .map_err(|e| AggregationModeError::Request(e.to_string()))?;
+            .map_err(|e| GatewayError::Request(e.to_string()))?;
 
         let payload: GatewayResponse<T> = response
             .json()
             .await
-            .map_err(|e| AggregationModeError::Request(e.to_string()))?;
+            .map_err(|e| GatewayError::Request(e.to_string()))?;
 
         if payload.status != 200 {
-            return Err(AggregationModeError::Api {
+            return Err(GatewayError::Api {
                 status: payload.status,
                 message: payload.message,
             });
