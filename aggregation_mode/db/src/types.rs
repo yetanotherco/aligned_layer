@@ -16,7 +16,7 @@ pub enum TaskStatus {
 pub struct Task {
     pub task_id: Uuid,
     pub address: String,
-    pub proving_system_id: i64,
+    pub proving_system_id: i32,
     pub proof: Vec<u8>,
     pub program_commitment: Vec<u8>,
     pub merkle_path: Option<Vec<u8>>,
