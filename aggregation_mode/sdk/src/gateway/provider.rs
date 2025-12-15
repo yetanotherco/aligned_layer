@@ -69,10 +69,7 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
         address: String,
         nonce: Option<u64>,
     ) -> Result<GatewayResponse<ReceiptsResponse>, GatewayError> {
-        let query = ReceiptsQueryParams {
-            address: address,
-            nonce,
-        };
+        let query = ReceiptsQueryParams { address, nonce };
 
         let request = self
             .http_client
@@ -101,7 +98,7 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
             SubmitSP1ProofMessage::new(nonce_response.data.nonce, serialized_proof, serialized_vk)
                 .sign(signer, &self.network)
                 .await
-                .map_err(|e| GatewayError::MessageSignature(e))?;
+                .map_err(GatewayError::MessageSignature)?;
 
         let form = multipart::Form::new()
             .text("nonce", message.nonce.to_string())

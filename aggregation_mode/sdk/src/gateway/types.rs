@@ -71,7 +71,7 @@ impl SubmitSP1ProofMessage {
 
         let nonce_bytes: [u8; 32] = U256::from_be_slice(&self.nonce.to_be_bytes()).to_be_bytes();
 
-        hasher.update(&nonce_bytes);
+        hasher.update(nonce_bytes);
         hasher.update(&self.proof);
         hasher.update(&self.program_vk);
         hasher.finalize_into_array(&mut output);
