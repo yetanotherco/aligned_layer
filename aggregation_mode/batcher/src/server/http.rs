@@ -116,8 +116,13 @@ impl BatcherServer {
         };
 
         if daily_tasks_by_address >= state.config.max_daily_proofs_per_user {
+            let formatted_time_left = get_time_left_day_formatted();
+
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
-                "Request denied: Query limit exceeded.",
+                format!(
+                    "Request denied: Query limit exceeded. Quotas renew in {formatted_time_left}"
+                )
+                .as_str(),
                 400,
             ));
         }
