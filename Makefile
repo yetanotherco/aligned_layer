@@ -339,6 +339,9 @@ agg_mode_batcher_send_sp1_proof:
 		-F "_signature_hex=0x0" \
 		http://127.0.0.1:8089/proof/sp1
 
+agg_mode_get_quotas:
+	curl -X GET http://127.0.0.1:8089/quotas/0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+
 __AGGREGATOR__: ## ____
 
 aggregator_start: ## Start the Aggregator. Parameters: ENVIRONMENT=<devnet|testnet|mainnet>, AGG_CONFIG_FILE
