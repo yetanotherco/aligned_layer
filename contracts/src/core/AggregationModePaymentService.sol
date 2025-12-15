@@ -159,16 +159,16 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /**
      * @notice Adds an array of addresses to the payment map and emits the Payment event.
      * @param addressesToAdd the addresses to be subscribed
-     * @param expiracy the expiracy date for that subscriptions
+     * @param expirationTimestamp the expiration timestamp (UTC seconds) for that subscriptions
      */
-    function addArbitraryExpirationSubscriptions(address[] memory addressesToAdd, uint256 expiracy) public onlyOwner() {
+    function addArbitraryExpirationSubscriptions(address[] memory addressesToAdd, uint256 expirationTimestamp) public onlyOwner() {
         for (uint256 i=0; i < addressesToAdd.length; ++i) {
             address addressToAdd = addressesToAdd[i];
 
-            subscribedAddresses[addressToAdd] = expiracy;
+            subscribedAddresses[addressToAdd] = expirationTimestamp;
 
             // TODO: Analyze if we should emit N events or just one
-            emit UserPayment(msg.sender, amountToPayInWei, block.timestamp, expiracy);
+            emit UserPayment(msg.sender, amountToPayInWei, block.timestamp, expirationTimestamp);
         }
     }
 
