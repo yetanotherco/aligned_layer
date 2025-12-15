@@ -20,7 +20,10 @@ use super::{
 use crate::{
     config::Config,
     db::Db,
-    server::types::{GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1},
+    server::{
+        helpers::get_time_left_day_formatted,
+        types::{GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1},
+    },
     verifiers::{verify_sp1_proof, VerificationError},
 };
 
@@ -48,6 +51,7 @@ impl BatcherServer {
                 .route("/receipts", web::get().to(Self::get_receipts))
                 .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
                 .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
+                .route("/quotas/{address}", web::get().to(Self::get_quotas))
         })
         .bind(("127.0.0.1", port))
         .expect("To bind socket correctly")
@@ -297,5 +301,42 @@ impl BatcherServer {
             Err(_) => HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500)),
         }
+    }
+
+    async fn get_quotas(req: HttpRequest) -> impl Responder {
+        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                "Internal server error: Failed to get app data",
+                500,
+            ));
+        };
+
+        let state = state.get_ref();
+
+        let Some(address_raw) = req.match_info().get("address") else {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Missing address", 400));
+        };
+
+        // Check that the address is a valid ethereum address
+        if alloy::primitives::Address::from_str(address_raw.trim()).is_err() {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Invalid address", 400));
+        }
+
+        let address = address_raw.to_lowercase();
+
+        let Ok(daily_tasks_by_address) = state.db.get_daily_tasks_by_address(&address).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let formatted_time_left = get_time_left_day_formatted();
+
+        HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
+            "amount-submitted": daily_tasks_by_address,
+            "amount-left": (state.config.max_daily_proofs_per_user - daily_tasks_by_address),
+            "time-left": formatted_time_left.as_str()
+        })))
     }
 }
