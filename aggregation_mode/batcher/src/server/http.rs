@@ -336,7 +336,7 @@ impl BatcherServer {
         HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
             "amount-submitted": daily_tasks_by_address,
             "amount-left": (state.config.max_daily_proofs_per_user - daily_tasks_by_address),
-            "time-left": formatted_time_left.as_str()
+            "quotas-renewal": formatted_time_left.as_str()
         })))
     }
 }
