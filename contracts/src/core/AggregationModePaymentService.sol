@@ -167,7 +167,6 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
 
             subscribedAddresses[addressToAdd] = expirationTimestamp;
 
-            // TODO: Analyze if we should emit N events or just one
             emit UserPayment(addressToAdd, amountToPayInWei, block.timestamp, expirationTimestamp);
         }
     }
