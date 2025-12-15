@@ -136,6 +136,23 @@ impl BatcherServer {
         };
         let recovered_address = recovered_address.to_string().to_lowercase();
 
+        // Checking if this address has submited more proofs than the ones allowed per day
+        let Ok(daily_tasks_by_address) = state
+            .db
+            .get_daily_tasks_by_address(&recovered_address)
+            .await
+        else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        if daily_tasks_by_address >= state.config.max_daily_proofs_per_user {
+            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                "Request denied: Query limit exceeded.",
+                400,
+            ));
+        }
+
         let Ok(count) = state.db.count_tasks_by_address(&recovered_address).await else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
