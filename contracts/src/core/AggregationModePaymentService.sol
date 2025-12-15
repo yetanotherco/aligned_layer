@@ -199,6 +199,8 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
             revert SubscriptionNotExpired(insertedExpiration, block.timestamp);
         }
 
+        ++monthlySubscriptionsAmount;
+
         emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentExpirationTimeSeconds);
     }
 
