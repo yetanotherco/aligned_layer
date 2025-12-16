@@ -2,15 +2,19 @@
 pragma solidity ^0.8.12;
 
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title AggregationModePaymentService
  * @author Aligned Layer
  * @notice Handles deposits that grant time-limited access to aggregation services.
  */
-contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+contract AggregationModePaymentService is Initializable, UUPSUpgradeable, AccessControl {
+
+    bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
     /// @notice for how much time the payment is valid in seconds
     uint256 public paymentExpirationTimeSeconds;
 
@@ -88,6 +92,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /**
      * @notice Initializes the contract and transfers ownership to the provided address.
      * @param _owner Address that becomes the contract owner.
+     * @param _admin Address that becomes the contract admin.
      * @param _paymentFundsRecipient Address that will receive the withdrawal funds.
      * @param _amountToPayInWei Amount to pay in wei for the subscription.
      * @param _paymentExpirationTimeSeconds The time in seconds that the subscription takes to expire.
@@ -96,15 +101,16 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      */
     function initialize(
         address _owner,
+        address _admin,
         address _paymentFundsRecipient,
         uint256 _amountToPayInWei,
         uint256 _paymentExpirationTimeSeconds,
         uint256 _subscriptionLimit,
         uint256 _maxSubscriptionTimeAhead
     ) public initializer {
-        __Ownable_init();
         __UUPSUpgradeable_init();
-        _transferOwnership(_owner);
+        _grantRole(OWNER_ROLE, _owner);
+        _grantRole(ADMIN_ROLE, _admin);
 
         paymentExpirationTimeSeconds = _paymentExpirationTimeSeconds;
         amountToPayInWei = _amountToPayInWei;
@@ -120,14 +126,14 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     function _authorizeUpgrade(address newImplementation)
         internal
         override
-        onlyOwner // solhint-disable-next-line no-empty-blocks
+        onlyRole(OWNER_ROLE) // solhint-disable-next-line no-empty-blocks
     {}
 
     /**
      * @notice Sets the new expiration time. Only callable by the owner
      * @param newExpirationTimeInSeconds The new expiration time for the users payments in seconds.
      */
-    function setPaymentExpirationTimeSeconds(uint256 newExpirationTimeInSeconds) public onlyOwner() {
+    function setPaymentExpirationTimeSeconds(uint256 newExpirationTimeInSeconds) public onlyRole(OWNER_ROLE) {
         paymentExpirationTimeSeconds = newExpirationTimeInSeconds;
 
         emit PaymentExpirationTimeUpdated(newExpirationTimeInSeconds);
@@ -137,7 +143,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @notice Sets the new amount to pay. Only callable by the owner
      * @param newRecipient The new address for receiving the funds on withdrawal.
      */
-    function setFundsRecipientAddress(address newRecipient) public onlyOwner() {
+    function setFundsRecipientAddress(address newRecipient) public onlyRole(OWNER_ROLE) {
         paymentFundsRecipient = newRecipient;
 
         emit FundsRecipientUpdated(newRecipient);
@@ -147,7 +153,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @notice Sets the new amount to pay. Only callable by the owner
      * @param newAmountToPay The new amount to pay for subscription in wei.
      */
-    function setAmountToPay(uint256 newAmountToPay) public onlyOwner() {
+    function setAmountToPay(uint256 newAmountToPay) public onlyRole(OWNER_ROLE) {
         amountToPayInWei = newAmountToPay;
 
         emit AmountToPayUpdated(newAmountToPay);
@@ -157,7 +163,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @notice Sets the new subscription limit. Only callable by the owner
      * @param newSubscriptionLimit The new monthly subscription limit.
      */
-    function setSubscriptionLimit(uint256 newSubscriptionLimit) public onlyOwner() {
+    function setSubscriptionLimit(uint256 newSubscriptionLimit) public onlyRole(OWNER_ROLE) {
         subscriptionLimit = newSubscriptionLimit;
 
         emit SubscriptionLimitUpdated(newSubscriptionLimit);
@@ -167,7 +173,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @notice Sets the monthly subscriptions counter to the value received by parameter. Only callable by the owner
      * @param newSubscriptionsAmount The new monthly subscription amount.
      */
-    function setMonthlySubscriptionsAmount(uint256 newSubscriptionsAmount) public onlyOwner() {
+    function setMonthlySubscriptionsAmount(uint256 newSubscriptionsAmount) public onlyRole(ADMIN_ROLE) {
         monthlySubscriptionsAmount = newSubscriptionsAmount;
 
         emit MonthlySubscriptionsAmountUpdated(newSubscriptionsAmount);
@@ -177,7 +183,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @notice Sets the  max subscription time ahead to the value received by parameter. Only callable by the owner
      * @param newMaxSubscriptionTimeAhead max time allowed to subscribe ahead the current timestamp.
      */
-    function setMaxSubscriptionTimeAhead(uint256 newMaxSubscriptionTimeAhead) public onlyOwner() {
+    function setMaxSubscriptionTimeAhead(uint256 newMaxSubscriptionTimeAhead) public onlyRole(OWNER_ROLE) {
         maxSubscriptionTimeAhead = newMaxSubscriptionTimeAhead;
 
         emit MaxSubscriptionTimeAheadUpdated(newMaxSubscriptionTimeAhead);
@@ -188,7 +194,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @param addressesToAdd the addresses to be subscribed
      * @param expirationTimestamp the expiration timestamp (UTC seconds) for that subscriptions
      */
-    function addSubscriptions(address[] memory addressesToAdd, uint256 expirationTimestamp) public onlyOwner() {
+    function addSubscriptions(address[] memory addressesToAdd, uint256 expirationTimestamp) public onlyRole(ADMIN_ROLE) {
         for (uint256 i=0; i < addressesToAdd.length; ++i) {
             address addressToAdd = addressesToAdd[i];
 
@@ -230,7 +236,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /**
      * @notice Withdraws the contract balance to the recipient address.
      */
-    function withdraw() external onlyOwner {
+    function withdraw() external onlyRole(OWNER_ROLE) {
         uint256 balance = address(this).balance;
         payable(paymentFundsRecipient).transfer(balance);
         emit FundsWithdrawn(paymentFundsRecipient, balance);
