@@ -51,6 +51,10 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /// @param newSubscriptionLimit the new monthly subscription limit.
     event SubscriptionLimitUpdated(uint256 indexed newSubscriptionLimit);
 
+    /// @notice Event emitted when the subscription amount is updated
+    /// @param newSubscriptionsAmount the new monthly subscription amount.
+    event MonthlySubscriptionsAmountUpdated(uint256 indexed newSubscriptionsAmount);
+
     /// @notice Event emitted when the funds recipient is updated
     /// @param newFundsRecipient the new address for receiving the funds on withdrawal.
     event FundsRecipientUpdated(address indexed newFundsRecipient);
@@ -150,10 +154,13 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     }
 
     /**
-     * @notice Resets the monthly subscriptions mapping counter to zero.
+     * @notice Sets the monthly subscriptions counter to the value received by parameter. Only callable by the owner
+     * @param newSubscriptionsAmount The new monthly subscription amount.
      */
-    function resetSubscriptions() public onlyOwner() {
-        monthlySubscriptionsAmount = 0;
+    function setMonthlySubscriptionsAmount(uint256 newSubscriptionsAmount) public onlyOwner() {
+        monthlySubscriptionsAmount = newSubscriptionsAmount;
+
+        emit MonthlySubscriptionsAmountUpdated(newSubscriptionsAmount);
     }
 
     /**
