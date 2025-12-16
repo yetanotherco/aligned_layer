@@ -161,11 +161,13 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
      * @param addressesToAdd the addresses to be subscribed
      * @param expirationTimestamp the expiration timestamp (UTC seconds) for that subscriptions
      */
-    function addArbitraryExpirationSubscriptions(address[] memory addressesToAdd, uint256 expirationTimestamp) public onlyOwner() {
+    function addSubscriptions(address[] memory addressesToAdd, uint256 expirationTimestamp) public onlyOwner() {
         for (uint256 i=0; i < addressesToAdd.length; ++i) {
             address addressToAdd = addressesToAdd[i];
 
             subscribedAddresses[addressToAdd] = expirationTimestamp;
+
+            ++monthlySubscriptionsAmount;
 
             emit UserPayment(addressToAdd, amountToPayInWei, block.timestamp, expirationTimestamp);
         }
