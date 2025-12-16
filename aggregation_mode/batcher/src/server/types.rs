@@ -44,7 +44,7 @@ pub(super) struct SubmitProofRequestSP1 {
     pub nonce: Text<u64>,
     pub proof: TempFile,
     pub program_vk: TempFile,
-    pub _signature_hex: Text<String>,
+    pub signature_hex: Text<String>,
 }
 
 #[derive(Debug, MultipartForm)]

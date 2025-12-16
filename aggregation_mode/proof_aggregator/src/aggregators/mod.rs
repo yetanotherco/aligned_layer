@@ -3,10 +3,11 @@ pub mod sp1_aggregator;
 
 use std::fmt::Display;
 
+use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use risc0_aggregator::{Risc0AggregationError, Risc0ProofReceiptAndImageId};
 use sha3::{Digest, Keccak256};
-use sp1_aggregator::{SP1AggregationError, SP1ProofWithPubValuesAndElf};
+use sp1_aggregator::{SP1AggregationError, SP1ProofWithPubValuesAndVk};
 use tracing::info;
 
 #[derive(Clone, Debug)]
@@ -44,6 +45,13 @@ impl ZKVMEngine {
         Some(engine)
     }
 
+    pub fn proving_system_id(&self) -> u16 {
+        match &self {
+            ZKVMEngine::SP1 => AggregationModeProvingSystem::SP1.as_u16(),
+            ZKVMEngine::RISC0 => AggregationModeProvingSystem::RISC0.as_u16(),
+        }
+    }
+
     /// Aggregates a list of [`AlignedProof`]s into a single [`AlignedProof`].
     ///
     /// Returns a tuple containing:
@@ -61,7 +69,7 @@ impl ZKVMEngine {
     ) -> Result<(AlignedProof, [u8; 32]), ProofAggregationError> {
         let res = match self {
             ZKVMEngine::SP1 => {
-                let proofs: Vec<SP1ProofWithPubValuesAndElf> = proofs
+                let proofs: Vec<SP1ProofWithPubValuesAndVk> = proofs
                     .into_iter()
                     // Fetcher already filtered for SP1
                     // We do this for type casting, as to avoid using generics
@@ -80,7 +88,7 @@ impl ZKVMEngine {
                     proofs_per_chunk,
                 );
 
-                let mut agg_proofs: Vec<(SP1ProofWithPubValuesAndElf, Vec<[u8; 32]>)> = vec![];
+                let mut agg_proofs: Vec<(SP1ProofWithPubValuesAndVk, Vec<[u8; 32]>)> = vec![];
                 for (i, chunk) in chunks.enumerate() {
                     let leaves_commitment =
                         chunk.iter().map(|e| e.hash_vk_and_pub_inputs()).collect();
@@ -154,7 +162,7 @@ impl ZKVMEngine {
 }
 
 pub enum AlignedProof {
-    SP1(Box<SP1ProofWithPubValuesAndElf>),
+    SP1(Box<SP1ProofWithPubValuesAndVk>),
     Risc0(Box<Risc0ProofReceiptAndImageId>),
 }
 

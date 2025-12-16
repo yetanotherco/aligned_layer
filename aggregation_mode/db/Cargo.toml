@@ -1,5 +1,5 @@
 [package]
-name = "agg_mode_db"
+name = "db"
 version = "0.1.0"
 edition = "2021"
 

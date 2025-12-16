@@ -1,11 +1,13 @@
 pub mod config;
+mod db;
 pub mod fetcher;
 mod merkle_tree;
-mod retry;
-mod s3;
 mod types;
 
-use crate::aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine};
+use crate::{
+    aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
+    backend::db::{Db, DbError},
+};
 
 use alloy::{
     consensus::{BlobTransactionSidecar, EnvKzgSettings, EthereumTxEnvelope, TxEip4844WithSidecar},
@@ -21,6 +23,7 @@ use config::Config;
 use fetcher::{ProofsFetcher, ProofsFetcherError};
 use merkle_tree::compute_proofs_merkle_root;
 use risc0_ethereum_contracts::encode_seal;
+use sqlx::types::Uuid;
 use std::thread::sleep;
 use std::{str::FromStr, time::Duration};
 use tracing::{error, info, warn};
@@ -38,6 +41,7 @@ pub enum AggregatedProofSubmissionError {
     ZKVMAggregation(ProofAggregationError),
     BuildingMerkleRoot,
     MerkleRootMisMatch,
+    StoringMerklePaths(DbError),
     GasPriceError(String),
 }
 
@@ -49,53 +53,11 @@ pub struct ProofAggregator {
     rpc_provider: RPCProvider,
     sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
     risc0_chunk_aggregator_image_id_bytes: [u8; 32],
+    db: Db,
 }
 
 impl ProofAggregator {
-    #[cfg(test)]
-    pub fn new_for_testing(config: Config) -> Self {
-        let rpc_url: reqwest::Url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
-        let signer = LocalSigner::random();
-        let wallet = EthereumWallet::from(signer);
-
-        let rpc_provider = ProviderBuilder::new().connect_http(rpc_url.clone());
-
-        let signed_rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
-
-        let proof_aggregation_service = AlignedProofAggregationService::new(
-            Address::from_str(&config.proof_aggregation_service_address)
-                .expect("AlignedProofAggregationService address should be valid"),
-            signed_rpc_provider.clone(),
-        );
-
-        let engine =
-            ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
-        let fetcher = ProofsFetcher::new_for_testing(&config);
-
-        let sp1_chunk_aggregator_vk_hash_bytes: [u8; 32] =
-            hex::decode(&config.sp1_chunk_aggregator_vk_hash)
-                .expect("Failed to decode SP1 chunk aggregator VK hash")
-                .try_into()
-                .expect("SP1 chunk aggregator VK hash must be 32 bytes");
-
-        let risc0_chunk_aggregator_image_id_bytes: [u8; 32] =
-            hex::decode(&config.risc0_chunk_aggregator_image_id)
-                .expect("Failed to decode Risc0 chunk aggregator image id")
-                .try_into()
-                .expect("Risc0 chunk aggregator image id must be 32 bytes");
-
-        Self {
-            engine,
-            proof_aggregation_service,
-            fetcher,
-            config,
-            rpc_provider,
-            sp1_chunk_aggregator_vk_hash_bytes,
-            risc0_chunk_aggregator_image_id_bytes,
-        }
-    }
-
-    pub fn new(config: Config) -> Self {
+    pub async fn new(config: Config) -> Self {
         let rpc_url: reqwest::Url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let signer = LocalSigner::decrypt_keystore(
             config.ecdsa.private_key_store_path.clone(),
@@ -122,7 +84,12 @@ impl ProofAggregator {
 
         let engine =
             ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
-        let fetcher = ProofsFetcher::new(&config);
+
+        let db = Db::try_new(&config.db_connection_url)
+            .await
+            .expect("To connect to db");
+
+        let fetcher = ProofsFetcher::new(db.clone());
 
         let sp1_chunk_aggregator_vk_hash_bytes: [u8; 32] =
             hex::decode(&config.sp1_chunk_aggregator_vk_hash)
@@ -144,6 +111,7 @@ impl ProofAggregator {
             rpc_provider,
             sp1_chunk_aggregator_vk_hash_bytes,
             risc0_chunk_aggregator_image_id_bytes,
+            db,
         }
     }
 
@@ -155,9 +123,6 @@ impl ProofAggregator {
 
         match res {
             Ok(()) => {
-                self.config
-                    .update_last_aggregated_block(self.fetcher.get_last_aggregated_block())
-                    .unwrap();
                 info!("Process finished successfully");
             }
             Err(err) => {
@@ -166,12 +131,13 @@ impl ProofAggregator {
         }
     }
 
+    // TODO: on failure, mark proofs as pending again
     async fn aggregate_and_submit_proofs_on_chain(
         &mut self,
     ) -> Result<(), AggregatedProofSubmissionError> {
-        let proofs = self
+        let (proofs, tasks_id) = self
             .fetcher
-            .fetch(self.engine.clone(), self.config.total_proofs_limit)
+            .fetch_pending_proofs(self.engine.clone(), self.config.total_proofs_limit as i64)
             .await
             .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
 
@@ -222,7 +188,7 @@ impl ProofAggregator {
                 .await
                 .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?;
 
-            if self.should_send_proof_to_verify_on_chain(
+            if Self::should_send_proof_to_verify_on_chain(
                 time_elapsed,
                 self.config.monthly_budget_eth,
                 U256::from(gas_price),
@@ -247,6 +213,27 @@ impl ProofAggregator {
             receipt.transaction_hash
         );
 
+        info!("Storing merkle paths for each task...",);
+        let mut merkle_paths_for_tasks: Vec<(Uuid, Vec<u8>)> = vec![];
+        for (idx, task_id) in tasks_id.into_iter().enumerate() {
+            let Some(proof) = merkle_tree.get_proof_by_pos(idx) else {
+                warn!("Proof not found for task id {task_id}");
+                continue;
+            };
+            let proof_bytes = proof
+                .merkle_path
+                .iter()
+                .flat_map(|e| e.to_vec())
+                .collect::<Vec<_>>();
+
+            merkle_paths_for_tasks.push((task_id, proof_bytes))
+        }
+        self.db
+            .insert_tasks_merkle_path_and_mark_them_as_verified(merkle_paths_for_tasks)
+            .await
+            .map_err(AggregatedProofSubmissionError::StoringMerklePaths)?;
+        info!("Merkle path inserted sucessfully",);
+
         Ok(())
     }
 
@@ -270,7 +257,6 @@ impl ProofAggregator {
     /// We make a linear function with the eth to spend this month and the time elapsed since last submission.
     /// If eth to spend / elapsed time is over the linear function, we skip the submission.
     fn should_send_proof_to_verify_on_chain(
-        &self,
         time_elapsed: Duration,
         monthly_eth_budget: f64,
         network_gas_price: U256,
@@ -429,49 +415,8 @@ impl ProofAggregator {
 mod tests {
     use super::*;
 
-    use super::config::Config;
-
-    fn make_aggregator() -> ProofAggregator {
-        // Set the AGGREGATOR env variable to "sp1" or "risc0" as it's needed by ProofAggregator::new
-        std::env::set_var("AGGREGATOR", "sp1");
-
-        let current_dir = env!("CARGO_MANIFEST_DIR");
-
-        // These config values are taken from config-files/config-proof-aggregator.yaml
-        let config = Config {
-            eth_rpc_url: "http://localhost:8545".to_string(),
-            eth_ws_url: "ws://localhost:8545".to_string(),
-            max_proofs_in_queue: 1000,
-            proof_aggregation_service_address: "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc"
-                .to_string(),
-            aligned_service_manager_address: "0x851356ae760d987E095750cCeb3bC6014560891C"
-                .to_string(),
-            // Use a path relative to the crate so tests work both locally and in CI
-            last_aggregated_block_filepath: format!(
-                "{current_dir}/../config-files/proof-aggregator.last_aggregated_block.json"
-            ),
-            ecdsa: config::ECDSAConfig {
-                private_key_store_path: format!(
-                    "{current_dir}/../config-files/anvil.proof-aggregator.ecdsa.key.json"
-                ),
-                private_key_store_password: "".to_string(),
-            },
-            proofs_per_chunk: 512,
-            total_proofs_limit: 3968,
-            monthly_budget_eth: 15.0,
-            sp1_chunk_aggregator_vk_hash:
-                "00ba19eed0aaeb0151f07b8d3ee7c659bcd29f3021e48fb42766882f55b84509".to_string(),
-            risc0_chunk_aggregator_image_id:
-                "d8cfdd5410c70395c0a1af1842a0148428cc46e353355faccfba694dd4862dbf".to_string(),
-        };
-
-        ProofAggregator::new_for_testing(config)
-    }
-
     #[test]
     fn test_should_send_proof_to_verify_on_chain_updated_cases() {
-        let aggregator = make_aggregator();
-
         // The should_send_proof_to_verify_on_chain function returns true when:
         // gas_price * 600_000 <= (seconds_elapsed) * (monthly_eth_budget / (30 * 24 * 60 * 60))
 
@@ -486,7 +431,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
-        assert!(aggregator.should_send_proof_to_verify_on_chain(
+        assert!(ProofAggregator::should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
             gas_price,                            // 1 Gwei gas price
@@ -499,7 +444,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 8 Gwei = 0.0048 ETH
         // Expected cost < Max to spend, so we can send the proof
-        assert!(aggregator.should_send_proof_to_verify_on_chain(
+        assert!(ProofAggregator::should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
             U256::from(8_000_000_000u64),         // 8 Gwei gas price
@@ -512,7 +457,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 10 Gwei = 0.006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
-        assert!(!aggregator.should_send_proof_to_verify_on_chain(
+        assert!(!ProofAggregator::should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
             U256::from(10_000_000_000u64),        // 10 Gwei gas price
@@ -525,7 +470,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 3 hours = 0.000625 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
-        assert!(aggregator.should_send_proof_to_verify_on_chain(
+        assert!(ProofAggregator::should_send_proof_to_verify_on_chain(
             Duration::from_secs(3 * 3600), // 3 hours
             BUDGET_PER_MONTH_IN_ETH,       // 0.15 ETH monthly budget
             gas_price,                     // 1 Gwei gas price
@@ -538,7 +483,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 1.2 hours = 0.00025 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
-        assert!(!aggregator.should_send_proof_to_verify_on_chain(
+        assert!(!ProofAggregator::should_send_proof_to_verify_on_chain(
             Duration::from_secs_f64(1.2 * 3600.0), // 1.2 hours
             BUDGET_PER_MONTH_IN_ETH,               // 0.15 ETH monthly budget
             gas_price,                             // 1 Gwei gas price
@@ -551,7 +496,7 @@ mod tests {
         // Max to spend: 0.000000038 ETH/hour * 24 hours = 0.0032832 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
-        assert!(aggregator.should_send_proof_to_verify_on_chain(
+        assert!(ProofAggregator::should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             0.1,                                  // 0.1 ETH monthly budget
             gas_price,                            // 1 Gwei gas price
@@ -564,7 +509,7 @@ mod tests {
         // Max to spend: 0.0000000038 ETH/hour * 24 hours = 0.00032832 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
-        assert!(!aggregator.should_send_proof_to_verify_on_chain(
+        assert!(!ProofAggregator::should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             0.01,                                 // 0.01 ETH monthly budget
             gas_price,                            // 1 Gwei gas price
