@@ -12,6 +12,7 @@ proofs_per_chunk: 512 # Amount of proofs to process per chunk
 # Since each proof commitments takes 32 bytes hash
 # We can aggregate as much proofs as 126.976 / 32 = 3968 per blob
 total_proofs_limit: 3968
+db_connection_url: "postgres://postgres:postgres@localhost:5435/"
 
 # Monthly ETH budget for on-chain proof verification. This value must be non-negative.
 # This value will be used to calculate how much gas we can spend per second to send proofs on-chain.

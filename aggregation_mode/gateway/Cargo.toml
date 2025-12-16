@@ -7,6 +7,7 @@ edition = "2021"
 serde =  { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
+agg_mode_sdk = { path = "../sdk"}
 aligned-sdk = { workspace = true }
 sp1-sdk = { workspace = true }
 tracing = { version = "0.1", features = ["log"] }
