@@ -10,7 +10,6 @@ use alloy::{
     providers::{Provider, ProviderBuilder},
 };
 use sqlx::types::BigDecimal;
-use tracing::info;
 
 pub struct PaymentsPoller {
     db: Db,
@@ -63,7 +62,7 @@ impl PaymentsPoller {
             };
 
             let from = last_block_fetched.saturating_sub(5);
-            info!("Fetching logs from block {from} to {current_block}");
+            tracing::info!("Fetching logs from block {from} to {current_block}");
 
             let Ok(logs) = self
                 .proof_aggregation_service
