@@ -53,11 +53,11 @@ resource "scaleway_baremetal_server" "postgres_primary" {
   ssh_key_ids = [scaleway_iam_ssh_key.main.id]
 
   # Cloud-init configuration
-#   cloud_init = templatefile("${path.module}/../cloudinit/scaleway-cloud-init.yaml", {
-#     hostname           = var.hostname
-#     ssh_public_key     = trimspace(file(var.ssh_public_key_path))
-#     tailscale_auth_key = tailscale_tailnet_key.postgres_primary.key
-#   })
+  cloud_init = templatefile("${path.module}/../cloudinit/scaleway-cloud-init.yaml", {
+    hostname           = var.hostname
+    ssh_public_key     = trimspace(file(var.ssh_public_key_path))
+    tailscale_auth_key = tailscale_tailnet_key.postgres_primary.key
+  })
 
   tags = var.tags
 }
