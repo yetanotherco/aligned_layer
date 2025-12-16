@@ -287,27 +287,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agg_mode_batcher"
-version = "0.1.0"
-dependencies = [
- "actix-multipart",
- "actix-web",
- "agg_mode_sdk",
- "aligned-sdk",
- "alloy",
- "bincode",
- "hex",
- "serde",
- "serde_json",
- "serde_yaml",
- "sp1-sdk",
- "sqlx",
- "tokio",
- "tracing",
- "tracing-subscriber 0.3.22",
-]
-
-[[package]]
 name = "agg_mode_cli"
 version = "0.1.0"
 dependencies = [
@@ -4507,6 +4486,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "gateway"
+version = "0.1.0"
+dependencies = [
+ "actix-multipart",
+ "actix-web",
+ "agg_mode_sdk",
+ "aligned-sdk",
+ "alloy",
+ "bincode",
+ "hex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sp1-sdk",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.22",
+]
+
+[[package]]
 name = "gcd"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6792,6 +6792,23 @@ name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
+
+[[package]]
+name = "payments_poller"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "aligned-sdk",
+ "alloy",
+ "hex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.22",
+]
 
 [[package]]
 name = "pbkdf2"

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["./batcher", "./proof_aggregator", "./db", "./sdk", "./cli"]
+members = ["./gateway", "./proof_aggregator", "./db", "./payments_poller", "./sdk", "./cli"]
 
 [workspace.package]
 version = "0.1.0"

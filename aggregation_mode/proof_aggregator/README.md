@@ -16,17 +16,17 @@ make anvil_deploy_aligned_contracts
 make anvil_start
 ```
 
-3. Start batcher
+3. Start gateway
 
 ```shell
-make batcher_start_local
+make gateway_start_local
 ```
 
 4. Send SP1/Risc0 proofs:
 
 ```shell
-make batcher_send_sp1_burst
-make batcher_send_risc0_burst
+make gateway_send_sp1_burst
+make gateway_send_risc0_burst
 ```
 
 Notes:
