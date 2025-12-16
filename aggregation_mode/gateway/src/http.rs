@@ -361,9 +361,10 @@ impl GatewayServer {
         let formatted_time_left = get_time_left_day_formatted();
 
         HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
-            "amount-submitted": daily_tasks_by_address,
-            "amount-left": (state.config.max_daily_proofs_per_user - daily_tasks_by_address),
-            "quotas-renewal": formatted_time_left.as_str()
+            "proofs_submitted": daily_tasks_by_address,
+            "quota_limit": state.config.max_daily_proofs_per_user,
+            "quota_remaining": (state.config.max_daily_proofs_per_user - daily_tasks_by_address),
+            "quota_resets_in": formatted_time_left.as_str()
         })))
     }
 }
