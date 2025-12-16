@@ -12,7 +12,8 @@
   "amounts": {
     "amountToPayInWei": 1000000000000000000,
     "paymentExpirationTimeSeconds": 86400,
-    "subscriptionLimit": 5
+    "subscriptionLimit": 5,
+    "maxSubscriptionTimeAhead": 7776000
   },
   "permissions": {
     "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",

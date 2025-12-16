@@ -15,6 +15,7 @@ contract AggregationModePaymentServiceDeployer is Script {
         uint256 amountToPay = stdJson.readUint(configData, ".amounts.amountToPayInWei");
         uint256 paymentExpirationTimeSeconds = stdJson.readUint(configData, ".amounts.paymentExpirationTimeSeconds");
         uint256 subscriptionLimit = stdJson.readUint(configData, ".amounts.subscriptionLimit");
+        uint256 maxSubscriptionTimeAhead = stdJson.readUint(configData, ".amounts.maxSubscriptionTimeAhead");
 
         vm.startBroadcast();
 
@@ -22,12 +23,13 @@ contract AggregationModePaymentServiceDeployer is Script {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
             abi.encodeWithSignature(
-                "initialize(address,address,uint256,uint256,uint256)",
+                "initialize(address,address,uint256,uint256,uint256,uint256)",
                 owner,
                 recipient,
                 amountToPay,
                 paymentExpirationTimeSeconds,
-                subscriptionLimit
+                subscriptionLimit,
+                maxSubscriptionTimeAhead
             )
         );
 

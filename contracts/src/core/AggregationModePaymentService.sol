@@ -26,6 +26,10 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /// @notice The amount of subscriptions for the current month
     uint256 public monthlySubscriptionsAmount;
 
+    /// @notice Maximum amount of time (in seconds) an address can be subscribed ahead of the current block timestamp.
+    /// Prevents stacking multiple short subscriptions and paying them over an extended period.
+    uint256 public maxSubscriptionTimeAhead;
+
     /// @notice The amount of addresses currently subscribed. expirationTime is UTC seconds, to be
     /// compared against block timestamps
     mapping(address subscriber => uint256 expirationTime) public subscribedAddresses;
@@ -55,6 +59,10 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
     /// @param newSubscriptionsAmount the new monthly subscription amount.
     event MonthlySubscriptionsAmountUpdated(uint256 indexed newSubscriptionsAmount);
 
+    /// @notice Event emitted when the max subscription time ahead is updated
+    /// @param newMaxSubscriptionTimeAhead the max time allowed to subscribe ahead the current timestamp.
+    event MaxSubscriptionTimeAheadUpdated(uint256 indexed newMaxSubscriptionTimeAhead);
+
     /// @notice Event emitted when the funds recipient is updated
     /// @param newFundsRecipient the new address for receiving the funds on withdrawal.
     event FundsRecipientUpdated(address indexed newFundsRecipient);
@@ -68,7 +76,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
 
     error SubscriptionLimitReached(uint256 subscriptionLimit);
 
-    error SubscriptionNotExpired(uint256 expiration, uint256 currentTime);
+    error SubscriptionTimeExceedsLimit(uint256 newSubscriptionTime, uint256 timeLimit);
 
     /**
      * @notice Disables initializers for the implementation contract.
@@ -91,7 +99,8 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
         address _paymentFundsRecipient,
         uint256 _amountToPayInWei,
         uint256 _paymentExpirationTimeSeconds,
-        uint256 _subscriptionLimit
+        uint256 _subscriptionLimit,
+        uint256 _maxSubscriptionTimeAhead
     ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
@@ -101,6 +110,7 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
         amountToPayInWei = _amountToPayInWei;
         paymentFundsRecipient = _paymentFundsRecipient;
         subscriptionLimit = _subscriptionLimit;
+        maxSubscriptionTimeAhead = _maxSubscriptionTimeAhead;
     }
 
     /**
@@ -162,6 +172,16 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
 
         emit MonthlySubscriptionsAmountUpdated(newSubscriptionsAmount);
     }
+    
+    /**
+     * @notice Sets the  max subscription time ahead to the value received by parameter. Only callable by the owner
+     * @param newMaxSubscriptionTimeAhead max time allowed to subscribe ahead the current timestamp.
+     */
+    function setMaxSubscriptionTimeAhead(uint256 newMaxSubscriptionTimeAhead) public onlyOwner() {
+        maxSubscriptionTimeAhead = newMaxSubscriptionTimeAhead;
+
+        emit MaxSubscriptionTimeAheadUpdated(newMaxSubscriptionTimeAhead);
+    }
 
     /**
      * @notice Adds an array of addresses to the payment map and emits the Payment event.
@@ -194,17 +214,12 @@ contract AggregationModePaymentService is Initializable, OwnableUpgradeable, UUP
             revert SubscriptionLimitReached(subscriptionLimit);
         }
 
-        // Check if the user has already payed a subscription for this month
-        uint256 insertedExpiration = subscribedAddresses[msg.sender];
-        if (insertedExpiration == 0) {
-            // this means the sender has not payed for a subscription before
-            subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
-        } else if (insertedExpiration > block.timestamp) {
-            // this means the sender has an expired subscription
-            subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
-        } else {
-            // this means the sender has a subscription that has not expired yet
-            revert SubscriptionNotExpired(insertedExpiration, block.timestamp);
+        subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
+
+        uint256 newExpiration = subscribedAddresses[msg.sender];
+
+        if (newExpiration - block.timestamp > maxSubscriptionTimeAhead) {
+            revert SubscriptionTimeExceedsLimit(newExpiration, maxSubscriptionTimeAhead);
         }
 
         ++monthlySubscriptionsAmount;
