@@ -9,8 +9,13 @@
     "sp1AggregationProgramVKHash": "0x00d6e32a34f68ea643362b96615591c94ee0bf99ee871740ab2337966a4f77af",
     "risc0AggregationProgramImageId": "0x8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c"
   },
+  "amounts": {
+    "amountToPayInWei": 1000000000000000000,
+    "paymentExpirationTimeSeconds": 86400
+  },
   "permissions": {
     "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
-    "paymentServiceOwner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
+    "paymentServiceOwner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+    "recipient": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f"
   }
 }
