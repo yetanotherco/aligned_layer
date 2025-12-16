@@ -61,13 +61,13 @@ impl PaymentsPoller {
                 continue;
             };
 
-            let from = last_block_fetched.saturating_sub(5);
-            tracing::info!("Fetching logs from block {from} to {current_block}");
+            let start_block = last_block_fetched.saturating_sub(5);
+            tracing::info!("Fetching logs from block {start_block} to {current_block}");
 
             let Ok(logs) = self
                 .proof_aggregation_service
                 .UserPayment_filter()
-                .from_block(last_block_fetched - 5)
+                .from_block(start_block)
                 .to_block(current_block)
                 .query()
                 .await
