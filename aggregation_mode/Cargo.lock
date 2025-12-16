@@ -287,20 +287,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "agg_mode_batcher"
+name = "agg_mode_cli"
 version = "0.1.0"
 dependencies = [
- "actix-multipart",
- "actix-web",
- "aligned-sdk",
+ "agg_mode_sdk",
  "alloy",
  "bincode",
- "hex",
+ "clap",
  "serde",
- "serde_json",
- "serde_yaml",
  "sp1-sdk",
- "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.22",
+]
+
+[[package]]
+name = "agg_mode_sdk"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "bincode",
+ "reqwest 0.12.24",
+ "serde",
+ "sp1-sdk",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.22",
@@ -4477,6 +4486,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "gateway"
+version = "0.1.0"
+dependencies = [
+ "actix-multipart",
+ "actix-web",
+ "agg_mode_sdk",
+ "aligned-sdk",
+ "alloy",
+ "bincode",
+ "hex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sp1-sdk",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.22",
+]
+
+[[package]]
 name = "gcd"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5880,6 +5910,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
+name = "mime_guess"
+version = "2.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7c44f8e672c00fe5308fa235f821cb4198414e1c77935c1ab6948d3fd78550e"
+dependencies = [
+ "mime",
+ "unicase",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6754,6 +6794,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
+name = "payments_poller"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "aligned-sdk",
+ "alloy",
+ "hex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.22",
+]
+
+[[package]]
 name = "pbkdf2"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7559,6 +7616,7 @@ dependencies = [
  "js-sys",
  "log",
  "mime",
+ "mime_guess",
  "native-tls",
  "percent-encoding",
  "pin-project-lite",
@@ -10842,6 +10900,12 @@ name = "unarray"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaea85b334db583fe3274d12b4cd1880032beab409c0d774be044d4480ab9a94"
+
+[[package]]
+name = "unicase"
+version = "2.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75b844d17643ee918803943289730bec8aac480150456169e647ed0b576ba539"
 
 [[package]]
 name = "unicode-bidi"

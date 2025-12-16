@@ -8,7 +8,9 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
+use agg_mode_sdk::types::Network;
 use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use alloy::signers::Signature;
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 use sqlx::types::BigDecimal;
 
@@ -20,26 +22,30 @@ use super::{
 use crate::{
     config::Config,
     db::Db,
-    server::{
-        helpers::get_time_left_day_formatted,
-        types::{GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1},
-    },
+    helpers::get_time_left_day_formatted,
+    types::{GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1},
     verifiers::{verify_sp1_proof, VerificationError},
 };
 
 #[derive(Clone, Debug)]
-pub struct BatcherServer {
+pub struct GatewayServer {
     db: Db,
     config: Config,
+    network: Network,
 }
 
-impl BatcherServer {
+impl GatewayServer {
     pub fn new(db: Db, config: Config) -> Self {
-        Self { db, config }
+        let network = Network::from_str(&config.network).expect("A valid network in config file");
+        Self {
+            db,
+            config,
+            network,
+        }
     }
 
     pub async fn start(&self) {
-        // Note: BatcherServer is thread safe so we can just clone it (no need to add mutexes)
+        // Note: GatewayServer is thread safe so we can just clone it (no need to add mutexes)
         let port = self.config.port;
         let state = self.clone();
 
@@ -75,7 +81,7 @@ impl BatcherServer {
 
         let address = address_raw.to_lowercase();
 
-        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
@@ -92,18 +98,45 @@ impl BatcherServer {
         }
     }
 
-    // Posts an SP1 proof to the batcher, recovering the address from the signature
+    // Posts an SP1 proof to the gateway, recovering the address from the signature
     async fn post_proof_sp1(
         req: HttpRequest,
         MultipartForm(data): MultipartForm<SubmitProofRequestSP1>,
     ) -> impl Responder {
-        let recovered_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".to_lowercase();
-
-        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
+
         let state = state.get_ref();
+        let Ok(signature) = Signature::from_str(&data.signature_hex.0) else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Invalid signature", 500));
+        };
+
+        let Ok(proof_content) = tokio::fs::read(data.proof.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let Ok(vk_content) = tokio::fs::read(data.program_vk.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        // reconstruct message and recover address
+        let msg = agg_mode_sdk::gateway::types::SubmitSP1ProofMessage::new(
+            data.nonce.0,
+            proof_content.clone(),
+            vk_content.clone(),
+        );
+        let Ok(recovered_address) =
+            signature.recover_address_from_prehash(&msg.eip712_hash(&state.network).into())
+        else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+        let recovered_address = recovered_address.to_string().to_lowercase();
 
         // Checking if this address has submited more proofs than the ones allowed per day
         let Ok(daily_tasks_by_address) = state
@@ -169,20 +202,9 @@ impl BatcherServer {
                 400,
             ));
         }
-
-        let Ok(proof_content) = tokio::fs::read(data.proof.file.path()).await else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
-        };
-
         let Ok(proof) = bincode::deserialize::<SP1ProofWithPublicValues>(&proof_content) else {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Invalid SP1 proof", 400));
-        };
-
-        let Ok(vk_content) = tokio::fs::read(data.program_vk.file.path()).await else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
         let Ok(vk) = bincode::deserialize::<SP1VerifyingKey>(&vk_content) else {
@@ -220,7 +242,7 @@ impl BatcherServer {
     }
 
     /// TODO: complete for risc0 (see `post_proof_sp1`)
-    // Posts a Risc0 proof to the batcher, recovering the address from the signature
+    // Posts a Risc0 proof to the gateway, recovering the address from the signature
     async fn post_proof_risc0(
         _req: HttpRequest,
         MultipartForm(_): MultipartForm<SubmitProofRequestRisc0>,
@@ -234,7 +256,7 @@ impl BatcherServer {
         req: HttpRequest,
         params: web::Query<GetReceiptsQueryParams>,
     ) -> impl Responder {
-        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
                 "Internal server error: Failed to get app data",
                 500,
@@ -309,7 +331,7 @@ impl BatcherServer {
     }
 
     async fn get_quotas(req: HttpRequest) -> impl Responder {
-        let Some(state) = req.app_data::<Data<BatcherServer>>() else {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
                 "Internal server error: Failed to get app data",
                 500,

@@ -1,5 +1,6 @@
 pub mod config;
 pub mod db;
-pub mod payments;
-pub mod server;
+mod helpers;
+pub mod http;
+mod types;
 mod verifiers;

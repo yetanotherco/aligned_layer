@@ -1,8 +1,6 @@
 use std::env;
 
-use agg_mode_batcher::config::Config;
-use agg_mode_batcher::payments::PaymentsPoller;
-use agg_mode_batcher::{db::Db, server::http::BatcherServer};
+use gateway::{config::Config, db::Db, http::GatewayServer};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 fn read_config_filepath_from_args() -> String {
@@ -32,14 +30,6 @@ async fn main() {
         .await
         .expect("db to start");
 
-    let payment_poller = PaymentsPoller::new(db.clone(), config.clone());
-    let http_server = BatcherServer::new(db, config.clone());
-
-    let payment_poller_handle = tokio::spawn(async move { payment_poller.start().await });
-    let http_server_handle = tokio::spawn(async move { http_server.start().await });
-
-    // TODO: maybe this could two different processes (started with different commands) instead of being in the same one
-    // TODO: abort the process if one stops instead of waiting for them both
-    // TODO: ctrl + c handler for aborting the process should work
-    let _ = tokio::join!(payment_poller_handle, http_server_handle);
+    let http_server = GatewayServer::new(db, config);
+    http_server.start().await
 }

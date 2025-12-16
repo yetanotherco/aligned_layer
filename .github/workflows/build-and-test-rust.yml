@@ -124,4 +124,5 @@ jobs:
       - name: Run AggregationMode tests
         run: |
           cd aggregation_mode/proof_aggregator && cargo test
-          cd ../batcher && cargo test
+          cd ../gateway && cargo test
+          cd ../payments_poller && cargo test
