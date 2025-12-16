@@ -8,7 +8,9 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
+use agg_mode_sdk::types::Network;
 use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use alloy::signers::Signature;
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 use sqlx::types::BigDecimal;
 
@@ -28,11 +30,17 @@ use crate::{
 pub struct BatcherServer {
     db: Db,
     config: Config,
+    network: Network,
 }
 
 impl BatcherServer {
     pub fn new(db: Db, config: Config) -> Self {
-        Self { db, config }
+        let network = Network::from_str(&config.network).expect("A valid network in config file");
+        Self {
+            db,
+            config,
+            network,
+        }
     }
 
     pub async fn start(&self) {
@@ -93,13 +101,57 @@ impl BatcherServer {
         req: HttpRequest,
         MultipartForm(data): MultipartForm<SubmitProofRequestSP1>,
     ) -> impl Responder {
-        let recovered_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".to_lowercase();
-
         let Some(state) = req.app_data::<Data<BatcherServer>>() else {
             return HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
+
         let state = state.get_ref();
+        let Ok(signature) = Signature::from_str(&data.signature_hex.0) else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Invalid signature", 500));
+        };
+
+        let Ok(proof_content) = tokio::fs::read(data.proof.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let Ok(vk_content) = tokio::fs::read(data.program_vk.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        // reconstruct message and recover address
+        let msg = agg_mode_sdk::gateway::types::SubmitSP1ProofMessage::new(
+            data.nonce.0,
+            proof_content.clone(),
+            vk_content.clone(),
+        );
+        let Ok(recovered_address) =
+            signature.recover_address_from_prehash(&msg.eip712_hash(&state.network).into())
+        else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+        let recovered_address = recovered_address.to_string().to_lowercase();
+
+        // Checking if this address has submited more proofs than the ones allowed per day
+        let Ok(daily_tasks_by_address) = state
+            .db
+            .get_daily_tasks_by_address(&recovered_address)
+            .await
+        else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        if daily_tasks_by_address >= state.config.max_daily_proofs_per_user {
+            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                "Request denied: Query limit exceeded.",
+                400,
+            ));
+        }
 
         let Ok(count) = state.db.count_tasks_by_address(&recovered_address).await else {
             return HttpResponse::InternalServerError()
@@ -143,20 +195,9 @@ impl BatcherServer {
                 400,
             ));
         }
-
-        let Ok(proof_content) = tokio::fs::read(data.proof.file.path()).await else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
-        };
-
         let Ok(proof) = bincode::deserialize::<SP1ProofWithPublicValues>(&proof_content) else {
             return HttpResponse::BadRequest()
                 .json(AppResponse::new_unsucessfull("Invalid SP1 proof", 400));
-        };
-
-        let Ok(vk_content) = tokio::fs::read(data.program_vk.file.path()).await else {
-            return HttpResponse::InternalServerError()
-                .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
         let Ok(vk) = bincode::deserialize::<SP1VerifyingKey>(&vk_content) else {

@@ -25,9 +25,8 @@ static SP1_PROVER_CLIENT: LazyLock<EnvProver> = LazyLock::new(ProverClient::from
 static SP1_PROVER_CLIENT_CPU: LazyLock<CpuProver> =
     LazyLock::new(|| ProverClient::builder().cpu().build());
 
-pub struct SP1ProofWithPubValuesAndElf {
+pub struct SP1ProofWithPubValuesAndVk {
     pub proof_with_pub_values: SP1ProofWithPublicValues,
-    pub elf: Vec<u8>,
     pub vk: SP1VerifyingKey,
 }
 
@@ -37,15 +36,13 @@ pub enum AlignedSP1VerificationError {
     UnsupportedProof,
 }
 
-impl SP1ProofWithPubValuesAndElf {
+impl SP1ProofWithPubValuesAndVk {
     /// Constructs a new instance of the struct by verifying a given SP1 proof with its public values.
     pub fn new(
         proof_with_pub_values: SP1ProofWithPublicValues,
-        elf: Vec<u8>,
+        vk: SP1VerifyingKey,
     ) -> Result<Self, AlignedSP1VerificationError> {
         let client = &*SP1_PROVER_CLIENT_CPU;
-
-        let (_pk, vk) = client.setup(&elf);
 
         // only sp1 compressed proofs are supported for aggregation now
         match proof_with_pub_values.proof {
@@ -57,7 +54,6 @@ impl SP1ProofWithPubValuesAndElf {
 
         Ok(Self {
             proof_with_pub_values,
-            elf,
             vk,
         })
     }
@@ -80,8 +76,8 @@ pub enum SP1AggregationError {
 }
 
 pub(crate) fn run_user_proofs_aggregator(
-    proofs: &[SP1ProofWithPubValuesAndElf],
-) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
+    proofs: &[SP1ProofWithPubValuesAndVk],
+) -> Result<SP1ProofWithPubValuesAndVk, SP1AggregationError> {
     let mut stdin = SP1Stdin::new();
 
     let mut program_input = sp1_aggregation_program::UserProofsAggregatorInput {
@@ -131,18 +127,17 @@ pub(crate) fn run_user_proofs_aggregator(
         .verify(&proof, &vk)
         .map_err(SP1AggregationError::Verification)?;
 
-    let proof_and_elf = SP1ProofWithPubValuesAndElf {
+    let proof_and_vk = SP1ProofWithPubValuesAndVk {
         proof_with_pub_values: proof,
-        elf: USER_PROOFS_PROGRAM_ELF.to_vec(),
         vk,
     };
 
-    Ok(proof_and_elf)
+    Ok(proof_and_vk)
 }
 
 pub(crate) fn run_chunk_aggregator(
-    proofs: &[(SP1ProofWithPubValuesAndElf, Vec<[u8; 32]>)],
-) -> Result<SP1ProofWithPubValuesAndElf, SP1AggregationError> {
+    proofs: &[(SP1ProofWithPubValuesAndVk, Vec<[u8; 32]>)],
+) -> Result<SP1ProofWithPubValuesAndVk, SP1AggregationError> {
     let mut stdin = SP1Stdin::new();
 
     let mut program_input = sp1_aggregation_program::ChunkAggregatorInput {
@@ -204,13 +199,12 @@ pub(crate) fn run_chunk_aggregator(
         .verify(&proof, &vk)
         .map_err(SP1AggregationError::Verification)?;
 
-    let proof_and_elf = SP1ProofWithPubValuesAndElf {
+    let proof_and_vk = SP1ProofWithPubValuesAndVk {
         proof_with_pub_values: proof,
-        elf: CHUNK_PROGRAM_ELF.to_vec(),
         vk,
     };
 
-    Ok(proof_and_elf)
+    Ok(proof_and_vk)
 }
 
 pub fn vk_from_elf(elf: &[u8]) -> SP1VerifyingKey {

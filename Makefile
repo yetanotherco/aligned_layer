@@ -330,14 +330,10 @@ agg_mode_batcher_send_payment:
 		--private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 
 agg_mode_batcher_send_sp1_proof:
-	@NONCE=$$(curl -s http://127.0.0.1:8089/nonce/0x70997970C51812dc3A010C7d01b50e0d17dc79C8 | jq -r '.data.nonce'); \
-	curl -X POST \
-		-H "Content-Type: multipart/form-data" \
-		-F "nonce=$${NONCE}" \
-		-F "proof=@scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof" \
-		-F "program_vk=@scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin" \
-		-F "_signature_hex=0x0" \
-		http://127.0.0.1:8089/proof/sp1
+	@cargo run --manifest-path aggregation_mode/cli/Cargo.toml -- submit sp1 \
+		--proof scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vk scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin \
+		--private-key "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 
 __AGGREGATOR__: ## ____
 

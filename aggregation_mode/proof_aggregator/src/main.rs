@@ -28,6 +28,6 @@ async fn main() {
     let config = Config::from_file(&config_file_path).expect("Config is valid");
     tracing::info!("Config loaded");
 
-    let mut proof_aggregator = ProofAggregator::new(config);
+    let mut proof_aggregator = ProofAggregator::new(config).await;
     proof_aggregator.start().await;
 }
