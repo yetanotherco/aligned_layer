@@ -38,3 +38,4 @@ aggregator:
   # The Gas formula is percentage (gas_base_bump_percentage + gas_bump_incremental_percentage * i) / 100) is checked against this value
   # If it is higher, it will default to `gas_bump_percentage_limit`
   time_to_wait_before_bump: 72s # The time to wait for the receipt when responding to task. Suggested value 72 seconds (6 blocks)
+  poll_latest_batch_interval: 20s # The interval to poll for latest batches. Default: 20s
