@@ -10,7 +10,7 @@ CREATE TABLE tasks (
     status task_status DEFAULT 'pending',
     nonce BIGINT NOT NULL,
     inserted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    status_updated_at TIMESTAMPTZ
+    status_updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE payment_events (
