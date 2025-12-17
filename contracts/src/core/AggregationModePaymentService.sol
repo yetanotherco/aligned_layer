@@ -222,7 +222,13 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert SubscriptionLimitReached(monthlySubscriptionLimit);
         }
 
-        subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
+        if (subscribedAddresses[msg.sender] < block.timestamp) {
+            // If user has not an active subscription, the next expiration date is the current time plus the expiration window
+            subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
+        } else {
+            // If user has already an active subscription, the next expiration date is the user expiration deadline plus the expiration window
+            subscribedAddresses[msg.sender] = subscribedAddresses[msg.sender] + paymentExpirationTimeSeconds;
+        }
 
         uint256 newExpiration = subscribedAddresses[msg.sender];
 
