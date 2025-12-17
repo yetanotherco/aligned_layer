@@ -216,7 +216,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert InvalidDepositAmount(amount, amountToPayInWei);
         }
 
-        if (monthlySubscriptionsAmount == subscriptionLimit) {
+        if (monthlySubscriptionsAmount >= subscriptionLimit) {
             revert SubscriptionLimitReached(subscriptionLimit);
         }
 
