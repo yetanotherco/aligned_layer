@@ -360,11 +360,47 @@ impl GatewayServer {
 
         let formatted_time_left = get_time_left_day_formatted();
 
-        HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
-            "proofs_submitted": daily_tasks_by_address,
-            "quota_limit": state.config.max_daily_proofs_per_user,
-            "quota_remaining": (state.config.max_daily_proofs_per_user - daily_tasks_by_address),
-            "quota_resets_in": formatted_time_left.as_str()
-        })))
+        let now_epoch = match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(duration) => duration.as_secs(),
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            }
+        };
+
+        let has_payment = match state
+            .db
+            .has_active_payment_event(
+                &address,
+                // safe unwrap the number comes from a valid u64 primitive
+                BigDecimal::from_str(&now_epoch.to_string()).unwrap(),
+            )
+            .await
+        {
+            Ok(result) => result,
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            }
+        };
+
+        if has_payment {
+            HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
+                "proofs_submitted": daily_tasks_by_address,
+                "quota_limit": state.config.max_daily_proofs_per_user,
+                "quota_remaining": (state.config.max_daily_proofs_per_user - daily_tasks_by_address),
+                "quota_resets_in": formatted_time_left.as_str()
+            })))
+        } else {
+            HttpResponse::Ok().json(AppResponse::new_sucessfull_with_message(
+                serde_json::json!({
+                    "proofs_submitted": 0,
+                    "quota_limit": 0,
+                    "quota_remaining": 0,
+                    "quota_resets_in": formatted_time_left.as_str()
+                }),
+                "You have to pay before submitting a proof".to_string(),
+            ))
+        }
     }
 }

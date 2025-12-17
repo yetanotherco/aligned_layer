@@ -20,6 +20,14 @@ impl AppResponse {
         }
     }
 
+    pub(super) fn new_sucessfull_with_message(data: Value, message: String) -> Self {
+        Self {
+            status: 200,
+            message: message,
+            data,
+        }
+    }
+
     pub(super) fn new_unsucessfull(message: &str, status: u16) -> Self {
         Self {
             status,
