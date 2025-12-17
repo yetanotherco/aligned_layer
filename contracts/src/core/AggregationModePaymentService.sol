@@ -27,15 +27,15 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
     /// @notice The limit of subscriptions for different addresses per month
     uint256 public monthlySubscriptionLimit;
 
-    /// @notice The amount of subscriptions for the current month
+    /// @notice Number of subscriptions in the current month
     uint256 public monthlySubscriptionsAmount;
 
     /// @notice Maximum amount of time (in seconds) an address can be subscribed ahead of the current block timestamp.
     /// Prevents stacking multiple short subscriptions and paying them over an extended period.
     uint256 public maxSubscriptionTimeAhead;
 
-    /// @notice The amount of addresses currently subscribed. expirationTime is UTC seconds, to be
-    /// compared against block timestamps
+    /// @notice Number of addresses currently subscribed. 
+    /// @dev `expirationTime` is a Unix timestamp (UTC seconds) compared against block timestamps.
     mapping(address subscriber => uint256 expirationTime) public subscribedAddresses;
 
     /**
