@@ -33,7 +33,7 @@ async fn main() {
     let payments_poller = match PaymentsPoller::new(db, config) {
         Ok(poller) => poller,
         Err(err) => {
-            tracing::error!("Failed to create Payments Poller: {err}");
+            tracing::error!("Failed to create Payments Poller: {err:?}");
             return;
         }
     };

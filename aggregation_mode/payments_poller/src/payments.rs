@@ -11,6 +11,11 @@ use alloy::{
 };
 use sqlx::types::BigDecimal;
 
+#[derive(Debug, Clone)]
+pub enum PaymentsPollerError {
+    ReadLastBlockError(String),
+}
+
 pub struct PaymentsPoller {
     db: Db,
     proof_aggregation_service: AggregationModePaymentServiceContract,
@@ -19,7 +24,7 @@ pub struct PaymentsPoller {
 }
 
 impl PaymentsPoller {
-    pub fn new(db: Db, config: Config) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(db: Db, config: Config) -> Result<Self, PaymentsPollerError> {
         let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let rpc_provider = ProviderBuilder::new().connect_http(rpc_url);
         let proof_aggregation_service = AggregationModePaymentService::new(
@@ -29,7 +34,9 @@ impl PaymentsPoller {
         );
 
         // This check is here to catch early failures on last block fetching
-        let _ = config.get_last_block_fetched()?;
+        let _ = config
+            .get_last_block_fetched()
+            .map_err(|err| PaymentsPollerError::ReadLastBlockError(err.to_string()));
 
         Ok(Self {
             db,
