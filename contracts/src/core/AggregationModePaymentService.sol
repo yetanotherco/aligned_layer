@@ -28,7 +28,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
     uint256 public subscriptionLimit;
 
     /// @notice Number of current subscriptions
-    uint256 public subscriptionsAmount;
+    uint256 public activeSubscriptionsAmount;
 
     /// @notice Maximum amount of time (in seconds) an address can be subscribed ahead of the current block timestamp.
     /// Prevents stacking multiple short subscriptions and paying them over an extended period.
@@ -61,7 +61,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
 
     /// @notice Event emitted when the subscription amount is updated
     /// @param newSubscriptionsAmount the new subscriptions amount.
-    event SubscriptionsAmountUpdated(uint256 indexed newSubscriptionsAmount);
+    event ActiveSubscriptionsAmountUpdated(uint256 indexed newSubscriptionsAmount);
 
     /// @notice Event emitted when the max subscription time ahead is updated
     /// @param newMaxSubscriptionTimeAhead the max time allowed to subscribe ahead the current timestamp.
@@ -173,10 +173,10 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
      * @notice Sets the subscriptions counter to the value received by parameter. Only callable by the owner
      * @param newSubscriptionsAmount The new subscriptions amount.
      */
-    function setSubscriptionsAmount(uint256 newSubscriptionsAmount) public onlyRole(ADMIN_ROLE) {
-        subscriptionsAmount = newSubscriptionsAmount;
+    function setActiveSubscriptionsAmount(uint256 newSubscriptionsAmount) public onlyRole(ADMIN_ROLE) {
+        activeSubscriptionsAmount = newSubscriptionsAmount;
 
-        emit SubscriptionsAmountUpdated(newSubscriptionsAmount);
+        emit ActiveSubscriptionsAmountUpdated(newSubscriptionsAmount);
     }
     
     /**
@@ -202,7 +202,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
 
             subscribedAddresses[addressToAdd] = expirationTimestamp;
 
-            ++subscriptionsAmount;
+            ++activeSubscriptionsAmount;
 
             emit UserPayment(addressToAdd, amountToPayInWei, block.timestamp, expirationTimestamp);
         }
@@ -218,7 +218,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert InvalidDepositAmount(amount, amountToPayInWei);
         }
 
-        if (subscriptionsAmount >= subscriptionLimit) {
+        if (activeSubscriptionsAmount >= subscriptionLimit) {
             revert SubscriptionLimitReached(subscriptionLimit);
         }
 
@@ -236,7 +236,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert SubscriptionTimeExceedsLimit(newExpiration, maxSubscriptionTimeAhead);
         }
 
-        ++subscriptionsAmount;
+        ++activeSubscriptionsAmount;
 
         emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentExpirationTimeSeconds);
     }
