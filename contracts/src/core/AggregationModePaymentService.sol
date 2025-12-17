@@ -223,10 +223,10 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         }
 
         if (subscribedAddresses[msg.sender] < block.timestamp) {
-            // If user has not an active subscription, the next expiration date is the current time plus the expiration window
+            // Subscription is inactive/expired: start a new period from now.
             subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
         } else {
-            // If user has already an active subscription, the next expiration date is the user expiration deadline plus the expiration window
+            // Subscription is still active: extend the current expiry by one period.
             subscribedAddresses[msg.sender] = subscribedAddresses[msg.sender] + paymentExpirationTimeSeconds;
         }
 
