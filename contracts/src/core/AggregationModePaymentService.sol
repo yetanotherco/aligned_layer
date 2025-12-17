@@ -24,8 +24,8 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
     /// @notice The address where the payment funds will be sent.
     address public paymentFundsRecipient;
 
-    /// @notice The limit of subscriptions for different addresses per month
-    uint256 public monthlySubscriptionLimit;
+    /// @notice The limit of subscriptions for different addresses
+    uint256 public subscriptionLimit;
 
     /// @notice Number of subscriptions in the current month
     uint256 public monthlySubscriptionsAmount;
@@ -56,7 +56,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
     event AmountToPayUpdated(uint256 indexed newAmountToPay);
 
     /// @notice Event emitted when the subscription limit is updated
-    /// @param newSubscriptionLimit the new monthly subscription limit.
+    /// @param newSubscriptionLimit the new subscription limit.
     event SubscriptionLimitUpdated(uint256 indexed newSubscriptionLimit);
 
     /// @notice Event emitted when the subscription amount is updated
@@ -78,7 +78,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
 
     error InvalidDepositAmount(uint256 amountReceived, uint256 amountRequired);
 
-    error SubscriptionLimitReached(uint256 monthlySubscriptionLimit);
+    error SubscriptionLimitReached(uint256 subscriptionLimit);
 
     error SubscriptionTimeExceedsLimit(uint256 newSubscriptionTime, uint256 timeLimit);
 
@@ -115,7 +115,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         paymentExpirationTimeSeconds = _paymentExpirationTimeSeconds;
         amountToPayInWei = _amountToPayInWei;
         paymentFundsRecipient = _paymentFundsRecipient;
-        monthlySubscriptionLimit = _subscriptionLimit;
+        subscriptionLimit = _subscriptionLimit;
         maxSubscriptionTimeAhead = _maxSubscriptionTimeAhead;
     }
 
@@ -161,10 +161,10 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
 
     /**
      * @notice Sets the new subscription limit. Only callable by the owner
-     * @param newSubscriptionLimit The new monthly subscription limit.
+     * @param newSubscriptionLimit The new subscription limit.
      */
     function setSubscriptionLimit(uint256 newSubscriptionLimit) public onlyRole(OWNER_ROLE) {
-        monthlySubscriptionLimit = newSubscriptionLimit;
+        subscriptionLimit = newSubscriptionLimit;
 
         emit SubscriptionLimitUpdated(newSubscriptionLimit);
     }
@@ -194,7 +194,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
      * @param addressesToAdd the addresses to be subscribed
      * @param expirationTimestamp the expiration timestamp (UTC seconds) for that subscriptions
      * Note: this method adds the subscriptions without checking if the final amount of subscriptions surpasses
-     * the monthlySubscriptionLimit
+     * the subscriptionLimit
      */
     function addSubscriptions(address[] memory addressesToAdd, uint256 expirationTimestamp) public onlyRole(ADMIN_ROLE) {
         for (uint256 i=0; i < addressesToAdd.length; ++i) {
@@ -218,8 +218,8 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert InvalidDepositAmount(amount, amountToPayInWei);
         }
 
-        if (monthlySubscriptionsAmount >= monthlySubscriptionLimit) {
-            revert SubscriptionLimitReached(monthlySubscriptionLimit);
+        if (monthlySubscriptionsAmount >= subscriptionLimit) {
+            revert SubscriptionLimitReached(subscriptionLimit);
         }
 
         if (subscribedAddresses[msg.sender] < block.timestamp) {
