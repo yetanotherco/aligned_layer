@@ -193,6 +193,8 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
      * @notice Adds an array of addresses to the payment map and emits the Payment event.
      * @param addressesToAdd the addresses to be subscribed
      * @param expirationTimestamp the expiration timestamp (UTC seconds) for that subscriptions
+     * Note: this method adds the subscriptions without checking if the final amount of subscriptions surpasses
+     * the monthlySubscriptionLimit
      */
     function addSubscriptions(address[] memory addressesToAdd, uint256 expirationTimestamp) public onlyRole(ADMIN_ROLE) {
         for (uint256 i=0; i < addressesToAdd.length; ++i) {
