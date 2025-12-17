@@ -175,13 +175,13 @@ impl ProofAggregator {
             hex::encode(blob_versioned_hash)
         );
 
-        // Iterate until we can send the proof on-chain
+        // We start on 24 hours because the proof aggregator runs once a day, so the time elapsed
+        // should be considered over a 24h period.
         let mut time_elapsed = Duration::from_secs(24 * 3600);
 
+        // Iterate until we can send the proof on-chain
         loop {
-            // We add 24 hours because the proof aggregator runs once a day, so the time elapsed
-            // should be considered over a 24h period.
-
+            // Fetch gas price from network
             let gas_price = self
                 .rpc_provider
                 .get_gas_price()
