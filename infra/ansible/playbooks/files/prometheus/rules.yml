@@ -17,7 +17,7 @@ groups:
 
   - alert: TaskDifferenceAggregatorBatcher
     # Condition for alerting
-    expr: floor(max(increase(aligned_aggregator_received_tasks{job="aligned-aggregator"}[15m]))) - on() floor(max(increase(sent_batches{job="aligned-batcher"}[15m]))) > 1
+    expr: floor(max(increase(aligned_aggregator_received_tasks{job="aligned-aggregator"}[15m]))) - on() floor(sum(increase(sent_batches{job="aligned-batcher"}[15m]))) > 1
     for: 30s
     # Annotation - additional informational labels to store more information
     annotations:
@@ -30,7 +30,7 @@ groups:
 
   - alert: TaskDifferenceAggregator
     # Condition for alerting
-    expr: floor(max(increase(aligned_aggregator_received_tasks{job="aligned-aggregator"}[15m]))) - floor(max(increase(aligned_aggregated_responses{job="aligned-aggregator"}[15m]))) > 1
+    expr: floor(max(increase(aligned_aggregator_received_tasks{job="aligned-aggregator"}[15m]))) - floor(sum(increase(aligned_aggregated_responses{job="aligned-aggregator"}[15m]))) > 1
     for: 30s
     # Annotation - additional informational labels to store more information
     annotations:
