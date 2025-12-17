@@ -27,8 +27,8 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
     /// @notice The limit of subscriptions for different addresses
     uint256 public subscriptionLimit;
 
-    /// @notice Number of subscriptions in the current month
-    uint256 public monthlySubscriptionsAmount;
+    /// @notice Number of current subscriptions
+    uint256 public subscriptionsAmount;
 
     /// @notice Maximum amount of time (in seconds) an address can be subscribed ahead of the current block timestamp.
     /// Prevents stacking multiple short subscriptions and paying them over an extended period.
@@ -60,8 +60,8 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
     event SubscriptionLimitUpdated(uint256 indexed newSubscriptionLimit);
 
     /// @notice Event emitted when the subscription amount is updated
-    /// @param newSubscriptionsAmount the new monthly subscription amount.
-    event MonthlySubscriptionsAmountUpdated(uint256 indexed newSubscriptionsAmount);
+    /// @param newSubscriptionsAmount the new subscriptions amount.
+    event SubscriptionsAmountUpdated(uint256 indexed newSubscriptionsAmount);
 
     /// @notice Event emitted when the max subscription time ahead is updated
     /// @param newMaxSubscriptionTimeAhead the max time allowed to subscribe ahead the current timestamp.
@@ -170,13 +170,13 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
     }
 
     /**
-     * @notice Sets the monthly subscriptions counter to the value received by parameter. Only callable by the owner
-     * @param newSubscriptionsAmount The new monthly subscription amount.
+     * @notice Sets the subscriptions counter to the value received by parameter. Only callable by the owner
+     * @param newSubscriptionsAmount The new subscriptions amount.
      */
-    function setMonthlySubscriptionsAmount(uint256 newSubscriptionsAmount) public onlyRole(ADMIN_ROLE) {
-        monthlySubscriptionsAmount = newSubscriptionsAmount;
+    function setSubscriptionsAmount(uint256 newSubscriptionsAmount) public onlyRole(ADMIN_ROLE) {
+        subscriptionsAmount = newSubscriptionsAmount;
 
-        emit MonthlySubscriptionsAmountUpdated(newSubscriptionsAmount);
+        emit SubscriptionsAmountUpdated(newSubscriptionsAmount);
     }
     
     /**
@@ -202,7 +202,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
 
             subscribedAddresses[addressToAdd] = expirationTimestamp;
 
-            ++monthlySubscriptionsAmount;
+            ++subscriptionsAmount;
 
             emit UserPayment(addressToAdd, amountToPayInWei, block.timestamp, expirationTimestamp);
         }
@@ -218,7 +218,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert InvalidDepositAmount(amount, amountToPayInWei);
         }
 
-        if (monthlySubscriptionsAmount >= subscriptionLimit) {
+        if (subscriptionsAmount >= subscriptionLimit) {
             revert SubscriptionLimitReached(subscriptionLimit);
         }
 
@@ -236,7 +236,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert SubscriptionTimeExceedsLimit(newExpiration, maxSubscriptionTimeAhead);
         }
 
-        ++monthlySubscriptionsAmount;
+        ++subscriptionsAmount;
 
         emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentExpirationTimeSeconds);
     }
