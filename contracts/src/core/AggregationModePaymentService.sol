@@ -25,7 +25,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
     address public paymentFundsRecipient;
 
     /// @notice The limit of subscriptions for different addresses per month
-    uint256 public subscriptionLimit;
+    uint256 public monthlySubscriptionLimit;
 
     /// @notice The amount of subscriptions for the current month
     uint256 public monthlySubscriptionsAmount;
@@ -78,7 +78,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
 
     error InvalidDepositAmount(uint256 amountReceived, uint256 amountRequired);
 
-    error SubscriptionLimitReached(uint256 subscriptionLimit);
+    error SubscriptionLimitReached(uint256 monthlySubscriptionLimit);
 
     error SubscriptionTimeExceedsLimit(uint256 newSubscriptionTime, uint256 timeLimit);
 
@@ -115,7 +115,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         paymentExpirationTimeSeconds = _paymentExpirationTimeSeconds;
         amountToPayInWei = _amountToPayInWei;
         paymentFundsRecipient = _paymentFundsRecipient;
-        subscriptionLimit = _subscriptionLimit;
+        monthlySubscriptionLimit = _subscriptionLimit;
         maxSubscriptionTimeAhead = _maxSubscriptionTimeAhead;
     }
 
@@ -164,7 +164,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
      * @param newSubscriptionLimit The new monthly subscription limit.
      */
     function setSubscriptionLimit(uint256 newSubscriptionLimit) public onlyRole(OWNER_ROLE) {
-        subscriptionLimit = newSubscriptionLimit;
+        monthlySubscriptionLimit = newSubscriptionLimit;
 
         emit SubscriptionLimitUpdated(newSubscriptionLimit);
     }
@@ -216,8 +216,8 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert InvalidDepositAmount(amount, amountToPayInWei);
         }
 
-        if (monthlySubscriptionsAmount >= subscriptionLimit) {
-            revert SubscriptionLimitReached(subscriptionLimit);
+        if (monthlySubscriptionsAmount >= monthlySubscriptionLimit) {
+            revert SubscriptionLimitReached(monthlySubscriptionLimit);
         }
 
         subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
