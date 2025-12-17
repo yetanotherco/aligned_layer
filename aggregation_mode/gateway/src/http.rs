@@ -351,7 +351,7 @@ impl GatewayServer {
                 .json(AppResponse::new_unsucessfull("Invalid address", 400));
         }
 
-        let address = address_raw.to_lowercase();
+        let address = address_raw.trim().to_lowercase();
 
         let Ok(daily_tasks_by_address) = state.db.get_daily_tasks_by_address(&address).await else {
             return HttpResponse::InternalServerError()

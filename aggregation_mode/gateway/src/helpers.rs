@@ -26,5 +26,5 @@ pub(crate) fn get_time_left_day_formatted() -> String {
     let minutes = (seconds_remaining % 3600) / 60;
     let seconds = seconds_remaining % 60;
 
-    format!("{hours}:{minutes}:{seconds}")
+    format!("{hours}:{minutes}:{seconds} UTC")
 }
