@@ -32,12 +32,19 @@ impl Db {
             "WITH selected AS (
                     SELECT task_id
                     FROM tasks
-                    WHERE proving_system_id = $1 AND status = 'pending'
+                    WHERE proving_system_id = $1
+                      AND (
+                        status = 'pending'
+                        OR (
+                            status = 'processing'
+                            AND status_updated_at <= now() - interval '12 hours'
+                        )
+                      )
                     LIMIT $2
                     FOR UPDATE SKIP LOCKED
                 )
                 UPDATE tasks t
-                SET status = 'processing'
+                SET status = 'processing', status_updated_at = now()
                 FROM selected s
                 WHERE t.task_id = s.task_id
                 RETURNING t.*;",
@@ -61,7 +68,7 @@ impl Db {
 
         for (task_id, merkle_path) in updates {
             if let Err(e) = sqlx::query(
-                "UPDATE tasks SET merkle_path = $1, status = 'verified', proof = NULL WHERE task_id = $2",
+                "UPDATE tasks SET merkle_path = $1, status = 'verified', status_updated_at = now(), proof = NULL WHERE task_id = $2",
             )
             .bind(merkle_path)
             .bind(task_id)
@@ -83,6 +90,20 @@ impl Db {
         Ok(())
     }
 
-    // TODO: this should be used when rolling back processing proofs on unexpected errors
-    pub async fn mark_tasks_as_pending(&self) {}
+    pub async fn mark_tasks_as_pending(&self, tasks_id: &[Uuid]) -> Result<(), DbError> {
+        if tasks_id.is_empty() {
+            return Ok(());
+        }
+
+        sqlx::query(
+            "UPDATE tasks SET status = 'pending', status_updated_at = now()
+             WHERE task_id = ANY($1) AND status = 'processing'",
+        )
+        .bind(tasks_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DbError::Query(e.to_string()))?;
+
+        Ok(())
+    }
 }

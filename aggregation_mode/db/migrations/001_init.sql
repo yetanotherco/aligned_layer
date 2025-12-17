@@ -9,7 +9,8 @@ CREATE TABLE tasks (
     merkle_path BYTEA,
     status task_status DEFAULT 'pending',
     nonce BIGINT NOT NULL,
-    inserted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    inserted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    status_updated_at TIMESTAMPTZ
 );
 
 CREATE TABLE payment_events (
