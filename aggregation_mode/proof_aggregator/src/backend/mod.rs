@@ -144,7 +144,9 @@ impl ProofAggregator {
             Err(err) => {
                 error!("Error while aggregating and submitting proofs: {:?}", err);
                 warn!("Marking tasks back to pending after failure");
-                self.db.mark_tasks_as_pending(&tasks_id).await;
+                if let Err(e) = self.db.mark_tasks_as_pending(&tasks_id).await {
+                    error!("Error while marking proofs to pending again: {:?}", e);
+                };
             }
         }
     }
