@@ -1,14 +1,23 @@
 pub mod config;
 mod db;
 pub mod fetcher;
+mod helpers;
 mod merkle_tree;
+mod retry;
 mod types;
 
 use crate::{
     aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
-    backend::db::{Db, DbError},
+    backend::{
+        db::{Db, DbError},
+        retry::{retry_function, RetryError},
+    },
 };
 
+use aligned_sdk::common::constants::{
+    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
+    ETHEREUM_CALL_MIN_RETRY_DELAY,
+};
 use alloy::{
     consensus::{BlobTransactionSidecar, EnvKzgSettings, EthereumTxEnvelope, TxEip4844WithSidecar},
     eips::{eip4844::BYTES_PER_BLOB, eip7594::BlobTransactionSidecarEip7594, Encodable2718},
@@ -334,7 +343,7 @@ async fn bump_and_send_proof_to_verify_on_chain(
                 RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
             })?;
 
-        if should_send_proof_to_verify_on_chain(
+        if helpers::should_send_proof_to_verify_on_chain(
             time_elapsed,
             monthly_budget_eth,
             U256::from(gas_price),
@@ -425,104 +434,11 @@ async fn bump_and_send_proof_to_verify_on_chain(
     Ok(receipt)
 }
 
-/// Decides whether to send the aggregated proof to be verified on-chain based on
-/// time elapsed since last submission and monthly ETH budget.
-/// We make a linear function with the eth to spend this month and the time elapsed since last submission.
-/// If eth to spend / elapsed time is over the linear function, we skip the submission.
-fn should_send_proof_to_verify_on_chain(
-    time_elapsed: Duration,
-    monthly_eth_budget: f64,
-    network_gas_price: U256,
-) -> bool {
-    // We assume a fixed gas cost of 300,000 for each of the 2 transactions
-    const ON_CHAIN_COST_IN_GAS_UNITS: u64 = 600_000u64;
-
-    let on_chain_cost_in_gas: U256 = U256::from(ON_CHAIN_COST_IN_GAS_UNITS);
-    let max_to_spend_in_wei = max_to_spend_in_wei(time_elapsed, monthly_eth_budget);
-
-    let expected_cost_in_wei = network_gas_price * on_chain_cost_in_gas;
-
-    expected_cost_in_wei <= max_to_spend_in_wei
-}
-
-fn max_to_spend_in_wei(time_elapsed: Duration, monthly_eth_budget: f64) -> U256 {
-    const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
-
-    // Note: this expect is safe because in case it was invalid, should have been caught at startup
-    let monthly_budget_in_wei = parse_ether(&monthly_eth_budget.to_string())
-        .expect("The monthly budget should be a non-negative value");
-
-    let elapsed_seconds = U256::from(time_elapsed.as_secs());
-
-    let budget_available_per_second_in_wei = monthly_budget_in_wei / U256::from(SECONDS_PER_MONTH);
-
-    budget_available_per_second_in_wei * elapsed_seconds
-}
-
-use backon::ExponentialBuilder;
-use backon::Retryable;
-use std::future::Future;
-
-#[derive(Debug)]
-pub enum RetryError<E> {
-    Transient(E),
-    Permanent(E),
-}
-
-impl<E: std::fmt::Display> std::fmt::Display for RetryError<E> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            RetryError::Transient(e) => write!(f, "{}", e),
-            RetryError::Permanent(e) => write!(f, "{}", e),
-        }
-    }
-}
-
-impl<E> RetryError<E> {
-    pub fn inner(self) -> E {
-        match self {
-            RetryError::Transient(e) => e,
-            RetryError::Permanent(e) => e,
-        }
-    }
-}
-
-impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
-
-pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
-pub const ETHEREUM_CALL_MAX_RETRIES: usize = 5;
-pub const ETHEREUM_CALL_BACKOFF_FACTOR: f32 = 2.0;
-pub const ETHEREUM_CALL_MAX_RETRY_DELAY: u64 = 60; // seconds
-
-/// Supports retries only on async functions. See: https://docs.rs/backon/latest/backon/#retry-an-async-function
-/// Runs with `jitter: false`.
-pub async fn retry_function<FutureFn, Fut, T, E>(
-    function: FutureFn,
-    min_delay: u64,
-    factor: f32,
-    max_times: usize,
-    max_delay: u64,
-) -> Result<T, RetryError<E>>
-where
-    Fut: Future<Output = Result<T, RetryError<E>>>,
-    FutureFn: FnMut() -> Fut,
-{
-    let backoff = ExponentialBuilder::default()
-        .with_min_delay(Duration::from_millis(min_delay))
-        .with_max_times(max_times)
-        .with_factor(factor)
-        .with_max_delay(Duration::from_secs(max_delay));
-
-    function
-        .retry(backoff)
-        .sleep(tokio::time::sleep)
-        .when(|e| matches!(e, RetryError::Transient(_)))
-        .await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use helpers::should_send_proof_to_verify_on_chain;
 
     #[test]
     fn test_should_send_proof_to_verify_on_chain_updated_cases() {
