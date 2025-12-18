@@ -179,11 +179,7 @@ impl ProofAggregator {
         );
 
         let receipt = self
-            .bump_and_send_proof_to_verify_on_chain_retryable(
-                blob,
-                blob_versioned_hash,
-                aggregated_proof,
-            )
+            .wait_and_send_proof_on_chain_retryable(blob, blob_versioned_hash, aggregated_proof)
             .await?;
         info!(
             "Proof sent and verified, tx hash {:?}",
@@ -214,7 +210,7 @@ impl ProofAggregator {
         Ok(())
     }
 
-    async fn bump_and_send_proof_to_verify_on_chain_retryable(
+    async fn wait_and_send_proof_on_chain_retryable(
         &self,
         blob: BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
@@ -239,7 +235,7 @@ impl ProofAggregator {
         )
         .await
         .map_err(|e| {
-            error!("Could't get nonce: {:?}", e);
+            error!("Couldn't get nonce: {:?}", e);
             e.inner()
         })
     }
