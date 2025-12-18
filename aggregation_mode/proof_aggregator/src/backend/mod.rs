@@ -229,7 +229,7 @@ impl ProofAggregator {
 
         info!("Storing merkle paths for each task...",);
         let mut merkle_paths_for_tasks: Vec<(Uuid, Vec<u8>)> = vec![];
-        for (idx, task_id) in tasks_id.into_iter().enumerate() {
+        for (idx, task_id) in tasks_id.iter().enumerate() {
             let Some(proof) = merkle_tree.get_proof_by_pos(idx) else {
                 warn!("Proof not found for task id {task_id}");
                 continue;
