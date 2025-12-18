@@ -25,6 +25,7 @@ static SP1_PROVER_CLIENT: LazyLock<EnvProver> = LazyLock::new(ProverClient::from
 static SP1_PROVER_CLIENT_CPU: LazyLock<CpuProver> =
     LazyLock::new(|| ProverClient::builder().cpu().build());
 
+#[derive(Clone)]
 pub struct SP1ProofWithPubValuesAndVk {
     pub proof_with_pub_values: SP1ProofWithPublicValues,
     pub vk: SP1VerifyingKey,

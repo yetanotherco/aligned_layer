@@ -205,8 +205,10 @@ impl ProofAggregator {
         }
 
         info!("Sending proof to ProofAggregationService contract...");
+
+        // Retry in case of failure
         let receipt = self
-            .send_proof_to_verify_on_chain(blob, blob_versioned_hash, aggregated_proof)
+            .send_proof_to_verify_on_chain_retryable(blob, blob_versioned_hash, aggregated_proof)
             .await?;
         info!(
             "Proof sent and verified, tx hash {:?}",
@@ -272,70 +274,49 @@ impl ProofAggregator {
         expected_cost_in_wei <= max_to_spend_in_wei
     }
 
-    async fn send_proof_to_verify_on_chain(
+    async fn send_proof_to_verify_on_chain_retryable(
         &self,
         blob: BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: AlignedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
-        let tx_req = match aggregated_proof {
-            AlignedProof::SP1(proof) => self
-                .proof_aggregation_service
-                .verifyAggregationSP1(
-                    blob_versioned_hash.into(),
-                    proof.proof_with_pub_values.public_values.to_vec().into(),
-                    proof.proof_with_pub_values.bytes().into(),
-                    self.sp1_chunk_aggregator_vk_hash_bytes.into(),
+        match send_proof_to_verify_on_chain(
+            blob.clone(),
+            blob_versioned_hash,
+            aggregated_proof.clone(),
+            self.proof_aggregation_service.clone(),
+            self.sp1_chunk_aggregator_vk_hash_bytes,
+            self.risc0_chunk_aggregator_image_id_bytes,
+        )
+        .await
+        {
+            Ok(tx_receipt) => Ok(tx_receipt),
+            Err(err) => {
+                tracing::error!("Failed to send proof to be verified on chain: {err:?}");
+
+                retry_function(
+                    || {
+                        send_proof_to_verify_on_chain(
+                            blob.clone(),
+                            blob_versioned_hash,
+                            aggregated_proof.clone(),
+                            self.proof_aggregation_service.clone(),
+                            self.sp1_chunk_aggregator_vk_hash_bytes,
+                            self.risc0_chunk_aggregator_image_id_bytes,
+                        )
+                    },
+                    ETHEREUM_CALL_MIN_RETRY_DELAY,
+                    ETHEREUM_CALL_BACKOFF_FACTOR,
+                    ETHEREUM_CALL_MAX_RETRIES,
+                    ETHEREUM_CALL_MAX_RETRY_DELAY,
                 )
-                .sidecar(blob)
-                .into_transaction_request(),
-            AlignedProof::Risc0(proof) => {
-                let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
-                    AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
-                })?;
-                self.proof_aggregation_service
-                    .verifyAggregationRisc0(
-                        blob_versioned_hash.into(),
-                        encoded_seal.into(),
-                        proof.receipt.journal.bytes.into(),
-                        self.risc0_chunk_aggregator_image_id_bytes.into(),
-                    )
-                    .sidecar(blob)
-                    .into_transaction_request()
+                .await
+                .map_err(|e| {
+                    error!("Could't get nonce: {:?}", e);
+                    e.inner()
+                })
             }
-        };
-
-        let provider = self.proof_aggregation_service.provider();
-        let envelope = provider
-            .fill(tx_req)
-            .await
-            .map_err(Self::send_verify_aggregated_proof_err)?
-            .try_into_envelope()
-            .map_err(Self::send_verify_aggregated_proof_err)?;
-        let tx: EthereumTxEnvelope<TxEip4844WithSidecar<BlobTransactionSidecarEip7594>> = envelope
-            .try_into_pooled()
-            .map_err(Self::send_verify_aggregated_proof_err)?
-            .try_map_eip4844(|tx| {
-                tx.try_map_sidecar(|sidecar| sidecar.try_into_7594(EnvKzgSettings::Default.get()))
-            })
-            .map_err(Self::send_verify_aggregated_proof_err)?;
-
-        let encoded_tx = tx.encoded_2718();
-        let pending_tx = provider
-            .send_raw_transaction(&encoded_tx)
-            .await
-            .map_err(Self::send_verify_aggregated_proof_err)?;
-
-        let receipt = pending_tx
-            .get_receipt()
-            .await
-            .map_err(Self::send_verify_aggregated_proof_err)?;
-
-        Ok(receipt)
-    }
-
-    fn send_verify_aggregated_proof_err<E: ToString>(err: E) -> AggregatedProofSubmissionError {
-        AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(err.to_string())
+        }
     }
 
     /// ### Blob capacity
@@ -409,6 +390,148 @@ impl ProofAggregator {
 
         Ok((blob, blob_versioned_hash))
     }
+}
+
+async fn send_proof_to_verify_on_chain(
+    blob: BlobTransactionSidecar,
+    blob_versioned_hash: [u8; 32],
+    aggregated_proof: AlignedProof,
+    proof_aggregation_service: AlignedProofAggregationServiceContract,
+    sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
+    risc0_chunk_aggregator_image_id_bytes: [u8; 32],
+) -> Result<TransactionReceipt, RetryError<AggregatedProofSubmissionError>> {
+    let tx_req = match aggregated_proof {
+        AlignedProof::SP1(proof) => proof_aggregation_service
+            .verifyAggregationSP1(
+                blob_versioned_hash.into(),
+                proof.proof_with_pub_values.public_values.to_vec().into(),
+                proof.proof_with_pub_values.bytes().into(),
+                sp1_chunk_aggregator_vk_hash_bytes.into(),
+            )
+            .sidecar(blob)
+            .into_transaction_request(),
+        AlignedProof::Risc0(proof) => {
+            let encoded_seal = encode_seal(&proof.receipt)
+                .map_err(|e| AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string()))
+                .map_err(RetryError::Transient)?;
+            proof_aggregation_service
+                .verifyAggregationRisc0(
+                    blob_versioned_hash.into(),
+                    encoded_seal.into(),
+                    proof.receipt.journal.bytes.into(),
+                    risc0_chunk_aggregator_image_id_bytes.into(),
+                )
+                .sidecar(blob)
+                .into_transaction_request()
+        }
+    };
+
+    let provider = proof_aggregation_service.provider();
+    let envelope = provider
+        .fill(tx_req)
+        .await
+        .map_err(|err| {
+            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(err.to_string())
+        })
+        .map_err(RetryError::Transient)?
+        .try_into_envelope()
+        .map_err(|err| {
+            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(err.to_string())
+        })
+        .map_err(RetryError::Transient)?;
+    let tx: EthereumTxEnvelope<TxEip4844WithSidecar<BlobTransactionSidecarEip7594>> = envelope
+        .try_into_pooled()
+        .map_err(|err| {
+            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(err.to_string())
+        })
+        .map_err(RetryError::Transient)?
+        .try_map_eip4844(|tx| {
+            tx.try_map_sidecar(|sidecar| sidecar.try_into_7594(EnvKzgSettings::Default.get()))
+        })
+        .map_err(|err| {
+            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(err.to_string())
+        })
+        .map_err(RetryError::Transient)?;
+
+    let encoded_tx = tx.encoded_2718();
+    let pending_tx = provider
+        .send_raw_transaction(&encoded_tx)
+        .await
+        .map_err(|err| {
+            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(err.to_string())
+        })
+        .map_err(RetryError::Transient)?;
+
+    let receipt = pending_tx
+        .get_receipt()
+        .await
+        .map_err(|err| {
+            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(err.to_string())
+        })
+        .map_err(RetryError::Transient)?;
+
+    Ok(receipt)
+}
+
+use backon::ExponentialBuilder;
+use backon::Retryable;
+use std::future::Future;
+
+#[derive(Debug)]
+pub enum RetryError<E> {
+    Transient(E),
+    Permanent(E),
+}
+
+impl<E: std::fmt::Display> std::fmt::Display for RetryError<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            RetryError::Transient(e) => write!(f, "{}", e),
+            RetryError::Permanent(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl<E> RetryError<E> {
+    pub fn inner(self) -> E {
+        match self {
+            RetryError::Transient(e) => e,
+            RetryError::Permanent(e) => e,
+        }
+    }
+}
+
+impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
+
+pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
+pub const ETHEREUM_CALL_MAX_RETRIES: usize = 5;
+pub const ETHEREUM_CALL_BACKOFF_FACTOR: f32 = 2.0;
+pub const ETHEREUM_CALL_MAX_RETRY_DELAY: u64 = 60; // seconds
+
+/// Supports retries only on async functions. See: https://docs.rs/backon/latest/backon/#retry-an-async-function
+/// Runs with `jitter: false`.
+pub async fn retry_function<FutureFn, Fut, T, E>(
+    function: FutureFn,
+    min_delay: u64,
+    factor: f32,
+    max_times: usize,
+    max_delay: u64,
+) -> Result<T, RetryError<E>>
+where
+    Fut: Future<Output = Result<T, RetryError<E>>>,
+    FutureFn: FnMut() -> Fut,
+{
+    let backoff = ExponentialBuilder::default()
+        .with_min_delay(Duration::from_millis(min_delay))
+        .with_max_times(max_times)
+        .with_factor(factor)
+        .with_max_delay(Duration::from_secs(max_delay));
+
+    function
+        .retry(backoff)
+        .sleep(tokio::time::sleep)
+        .when(|e| matches!(e, RetryError::Transient(_)))
+        .await
 }
 
 #[cfg(test)]
