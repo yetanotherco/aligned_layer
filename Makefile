@@ -240,7 +240,7 @@ reset_last_aggregated_block:
 	@echo "Resetting last aggregated block..."
 	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
 
-AGGREGATION_MODE_SOURCES = $(wildcard ./aggregation_mode/Cargo.toml) $(wildcard ./aggregation_mode/src/**) $(wildcard ./aggregation_mode/aggregation_programs/risc0/Cargo.toml) $(wildcard ./aggregation_mode/aggregation_programs/risc0/src/**) $(wildcard ./aggregation_mode/aggregation_programs/sp1/Cargo.toml) $(wildcard ./aggregation_mode/aggregation_programs/sp1/src/**)
+AGGREGATION_MODE_SOURCES = $(wildcard ./aggregation_mode/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/src/**) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/risc0/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/risc0/src/**) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/sp1/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/sp1/src/**)
 
 ### All Dev proof aggregator receipts with no real proving
 ./aggregation_mode/target/release/proof_aggregator_dev: $(AGGREGATION_MODE_SOURCES)
