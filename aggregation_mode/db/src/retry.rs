@@ -1,5 +1,5 @@
 #[derive(Debug)]
-pub enum RetryError<E> {
+pub(super) enum RetryError<E> {
     Transient(E),
     Permanent(E),
 }
@@ -15,7 +15,7 @@ impl<E: std::fmt::Display> std::fmt::Display for RetryError<E> {
 
 impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RetryConfig {
     /// * `min_delay_millis` - Initial delay before first retry attempt (in milliseconds)
     pub min_delay_millis: u64,

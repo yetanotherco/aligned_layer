@@ -1,4 +1,11 @@
-use std::{future::Future, time::Duration};
+use std::{
+    future::Future,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -10,27 +17,56 @@ enum Operation {
     Write,
 }
 
+/// A single DB node: connection pool plus shared health flags (used to prioritize nodes).
+
 #[derive(Debug)]
 struct DbNode {
     pool: Pool<Postgres>,
-    last_read_failed: bool,
-    last_write_failed: bool,
+    last_read_failed: AtomicBool,
+    last_write_failed: AtomicBool,
 }
 
-#[derive(Debug)]
+/// Database orchestrator for running reads/writes across multiple PostgreSQL nodes with retry/backoff.
+///
+/// `DbOrchestartor` holds a list of database nodes (connection pools) and will:
+/// - try nodes in a preferred order (healthy nodes first, then recently-failed nodes),
+/// - mark nodes as failed on connection-type errors,
+/// - retry transient failures with exponential backoff based on `retry_config`,
+///
+/// ## Thread-safe `Clone`
+/// This type is cheap and thread-safe to clone:
+/// - `nodes` is `Vec<Arc<DbNode>>`, so cloning only increments `Arc` ref-counts and shares the same pools/nodes,
+/// - `sqlx::Pool<Postgres>` is internally reference-counted and designed to be cloned and used concurrently,
+/// - the node health flags are `AtomicBool`, so updates are safe from multiple threads/tasks.
+///
+/// Clones share health state (the atomics) and the underlying pools, so all clones observe and influence
+/// the same “preferred node” ordering decisions.
+#[derive(Debug, Clone)]
 pub struct DbOrchestartor {
-    nodes: Vec<DbNode>,
+    nodes: Vec<Arc<DbNode>>,
     retry_config: RetryConfig,
 }
 
+#[derive(Debug)]
 pub enum DbOrchestartorError {
     InvalidNumberOfConnectionUrls,
     Sqlx(sqlx::Error),
 }
 
+impl std::fmt::Display for DbOrchestartorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidNumberOfConnectionUrls => {
+                write!(f, "invalid number of connection URLs")
+            }
+            Self::Sqlx(e) => write!(f, "{e}"),
+        }
+    }
+}
+
 impl DbOrchestartor {
     pub fn try_new(
-        connection_urls: Vec<String>,
+        connection_urls: &[&str],
         retry_config: RetryConfig,
     ) -> Result<Self, DbOrchestartorError> {
         if connection_urls.is_empty() {
@@ -40,13 +76,13 @@ impl DbOrchestartor {
         let nodes = connection_urls
             .into_iter()
             .map(|url| {
-                let pool = PgPoolOptions::new().max_connections(5).connect_lazy(&url)?;
+                let pool = PgPoolOptions::new().max_connections(5).connect_lazy(url)?;
 
-                Ok(DbNode {
+                Ok(Arc::new(DbNode {
                     pool,
-                    last_read_failed: false,
-                    last_write_failed: false,
-                })
+                    last_read_failed: AtomicBool::new(false),
+                    last_write_failed: AtomicBool::new(false),
+                }))
             })
             .collect::<Result<Vec<_>, sqlx::Error>>()
             .map_err(|e| DbOrchestartorError::Sqlx(e))?;
@@ -126,13 +162,14 @@ impl DbOrchestartor {
         let mut last_error = None;
 
         for idx in self.preferred_order(operation) {
-            let pool = self.nodes[idx].pool.clone();
+            let node = &self.nodes[idx];
+            let pool = node.pool.clone();
 
             match query_fn(pool).await {
                 Ok(res) => {
                     match operation {
-                        Operation::Read => self.nodes[idx].last_read_failed = false,
-                        Operation::Write => self.nodes[idx].last_write_failed = false,
+                        Operation::Read => node.last_read_failed.store(false, Ordering::Relaxed),
+                        Operation::Write => node.last_write_failed.store(false, Ordering::Relaxed),
                     };
                     return Ok(res);
                 }
@@ -140,8 +177,10 @@ impl DbOrchestartor {
                     if Self::is_connection_error(&err) {
                         tracing::warn!(node_index = idx, error = ?err, "database query failed");
                         match operation {
-                            Operation::Read => self.nodes[idx].last_read_failed = true,
-                            Operation::Write => self.nodes[idx].last_write_failed = true,
+                            Operation::Read => node.last_read_failed.store(true, Ordering::Relaxed),
+                            Operation::Write => {
+                                node.last_write_failed.store(true, Ordering::Relaxed)
+                            }
                         };
                         last_error = Some(err);
                     } else {
@@ -162,8 +201,8 @@ impl DbOrchestartor {
 
         for (idx, node) in self.nodes.iter().enumerate() {
             let failed = match operation {
-                Operation::Read => node.last_read_failed,
-                Operation::Write => node.last_write_failed,
+                Operation::Read => node.last_read_failed.load(Ordering::Relaxed),
+                Operation::Write => node.last_write_failed.load(Ordering::Relaxed),
             };
 
             if failed {
