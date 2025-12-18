@@ -17,7 +17,7 @@ use alloy::{
     rpc::types::TransactionReceipt,
 };
 use risc0_ethereum_contracts::encode_seal;
-use std::thread::sleep;
+use tokio::time::sleep;
 
 #[derive(Debug)]
 pub enum RetryError<E> {
@@ -79,6 +79,9 @@ async fn wait_until_can_submit_aggregated_proof(
     // should be considered over a 24h period.
     let mut time_elapsed = Duration::from_secs(24 * 3600);
 
+    // Sleep for 3 minutes (15 blocks) before re-evaluating on each iteration
+    let time_to_sleep = Duration::from_secs(180);
+
     // Iterate until we can send the proof on-chain
     loop {
         // Fetch gas price from network
@@ -100,10 +103,8 @@ async fn wait_until_can_submit_aggregated_proof(
             info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
         }
 
-        // Sleep for 3 minutes (15 blocks) before re-evaluating
-        let time_to_sleep = Duration::from_secs(180);
         time_elapsed += time_to_sleep;
-        sleep(time_to_sleep);
+        sleep(time_to_sleep).await;
     }
 
     Ok(())
