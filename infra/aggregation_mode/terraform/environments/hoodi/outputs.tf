@@ -1,32 +1,79 @@
 # Postgres Monitor Outputs
-output "monitor_hostname" {
+output "postgres_monitor_name" {
+  description = "Name of the postgres monitor EC2 instance"
+  value       = var.postgres_monitor_instance_name
+}
+
+output "postgres_monitor_hostname" {
   description = "Private DNS name of the postgres monitor EC2 instance"
   value       = module.postgres_monitor.instance_hostname
 }
 
-output "monitor_public_ip" {
+output "postgres_monitor_public_ip" {
   description = "Public IP address of the postgres monitor EC2 instance"
   value       = module.postgres_monitor.public_ip
 }
 
 # Postgres Primary Outputs
-output "primary_server_id" {
+output "postgres_primary_server_name" {
+  description = "Name of the postgres primary bare metal server"
+  value       = var.postgres_primary_server_name
+}
+
+output "postgres_primary_server_id" {
   description = "ID of the postgres primary bare metal server"
   value       = module.postgres_primary.server_id
 }
 
-output "primary_server_ip" {
+output "postgres_primary_server_ip" {
   description = "IP address of the postgres primary bare metal server"
   value       = module.postgres_primary.server_ip
 }
 
 # Postgres Secondary Outputs
-output "secondary_server_id" {
+output "postgres_secondary_server_name" {
+  description = "Name of the postgres secondary bare metal server"
+  value       = var.postgres_secondary_server_name
+}
+
+output "postgres_secondary_server_id" {
   description = "ID of the postgres secondary bare metal server"
   value       = module.postgres_secondary.server_id
 }
 
-output "secondary_server_ip" {
+output "postgres_secondary_server_ip" {
   description = "IP address of the postgres secondary bare metal server"
   value       = module.postgres_secondary.server_ip
+}
+
+# Gateway Primary Outputs
+output "gateway_primary_server_name" {
+  description = "Name of the gateway primary bare metal server"
+  value       = var.gateway_primary_server_name
+}
+
+output "gateway_primary_server_id" {
+  description = "ID of the gateway primary bare metal server"
+  value       = module.gateway_primary.server_id
+}
+
+output "gateway_primary_server_ip" {
+  description = "IP address of the gateway primary bare metal server"
+  value       = module.gateway_primary.server_ip
+}
+
+# Gateway Secondary Outputs
+output "gateway_secondary_server_name" {
+  description = "Name of the gateway secondary bare metal server"
+  value       = var.gateway_secondary_server_name
+}
+
+output "gateway_secondary_server_id" {
+  description = "ID of the gateway secondary bare metal server"
+  value       = module.gateway_secondary.server_id
+}
+
+output "gateway_secondary_server_ip" {
+  description = "IP address of the gateway secondary bare metal server"
+  value       = module.gateway_secondary.server_ip
 }

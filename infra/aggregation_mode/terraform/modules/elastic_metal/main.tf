@@ -9,13 +9,13 @@ terraform {
   }
 }
 
-# Create ephemeral Tailscale auth key
+# Create Tailscale auth key
 resource "tailscale_tailnet_key" "this" {
   reusable      = false
-  ephemeral     = true
+  ephemeral     = false
   preauthorized = true
   expiry        = var.elastic_metal_tailscale_key_expiry
-  description   = "Ephemeral key for ${var.elastic_metal_server_name}"
+  description   = "Auth key for ${var.elastic_metal_server_name}"
   tags          = var.elastic_metal_tailscale_tags
 }
 
