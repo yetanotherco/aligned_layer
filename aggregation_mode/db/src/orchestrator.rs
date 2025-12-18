@@ -93,7 +93,7 @@ impl DbOrchestartor {
         })
     }
 
-    pub async fn write<T, Q, Fut>(&mut self, query: Q) -> Result<T, sqlx::Error>
+    pub async fn write<T, Q, Fut>(&self, query: Q) -> Result<T, sqlx::Error>
     where
         Q: Fn(Pool<Postgres>) -> Fut,
         Fut: Future<Output = Result<T, sqlx::Error>>,
@@ -101,7 +101,7 @@ impl DbOrchestartor {
         self.query::<T, Q, Fut>(query, Operation::Write).await
     }
 
-    pub async fn read<T, Q, Fut>(&mut self, query: Q) -> Result<T, sqlx::Error>
+    pub async fn read<T, Q, Fut>(&self, query: Q) -> Result<T, sqlx::Error>
     where
         Q: Fn(Pool<Postgres>) -> Fut,
         Fut: Future<Output = Result<T, sqlx::Error>>,
@@ -109,11 +109,7 @@ impl DbOrchestartor {
         self.query::<T, Q, Fut>(query, Operation::Read).await
     }
 
-    async fn query<T, Q, Fut>(
-        &mut self,
-        query_fn: Q,
-        operation: Operation,
-    ) -> Result<T, sqlx::Error>
+    async fn query<T, Q, Fut>(&self, query_fn: Q, operation: Operation) -> Result<T, sqlx::Error>
     where
         Q: Fn(Pool<Postgres>) -> Fut,
         Fut: Future<Output = Result<T, sqlx::Error>>,
@@ -151,7 +147,7 @@ impl DbOrchestartor {
     }
 
     async fn execute_once<T, Q, Fut>(
-        &mut self,
+        &self,
         query_fn: &Q,
         operation: Operation,
     ) -> Result<T, RetryError<sqlx::Error>>

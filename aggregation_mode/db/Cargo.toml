@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+serde =  { workspace = true }
 tokio = { version = "1"}
 sqlx = { version = "0.8", features = [ "runtime-tokio", "postgres", "migrate" ] }
 backon = "1.2.0"

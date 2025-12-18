@@ -84,6 +84,7 @@ impl GatewayServer {
                 .json(AppResponse::new_unsucessfull("Internal server error", 500));
         };
 
+        // TODO: how to fix the mutable thing
         let state = state.get_ref();
         match state.db.count_tasks_by_address(&address).await {
             Ok(count) => HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!(
