@@ -1,0 +1,18 @@
+# Provider Configuration
+aws_region          = "us-east-1"
+scaleway_zone       = "fr-par-2"
+
+# Common Configuration
+ssh_public_key_path_aws      = "~/.ssh/aws.pub"
+ssh_public_key_path_scaleway = "~/.ssh/scaleway.pem.pub"
+
+# Postgres Monitor Configuration (EC2)
+monitor_instance_type = "t2.micro"
+
+# Postgres Primary Configuration (Elastic Metal)
+primary_zone       = "fr-par-2"
+primary_offer_name = "EM-A610R-NVME"
+
+# Postgres Secondary Configuration (Elastic Metal)
+secondary_zone       = "nl-ams-1"
+secondary_offer_name = "EM-A610R-NVME"

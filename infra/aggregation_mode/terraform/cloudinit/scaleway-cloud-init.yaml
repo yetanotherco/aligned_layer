@@ -40,3 +40,5 @@ runcmd:
   - curl -fsSL https://tailscale.com/install.sh | sh
   - tailscale up --ssh --advertise-tags=tag:server --auth-key=${tailscale_auth_key}
   - tailscale set --auto-update
+  - sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+  - locale-gen
