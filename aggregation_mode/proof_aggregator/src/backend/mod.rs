@@ -175,40 +175,12 @@ impl ProofAggregator {
             hex::encode(blob_versioned_hash)
         );
 
-        // We start on 24 hours because the proof aggregator runs once a day, so the time elapsed
-        // should be considered over a 24h period.
-        let mut time_elapsed = Duration::from_secs(24 * 3600);
-
-        // Iterate until we can send the proof on-chain
-        loop {
-            // Fetch gas price from network
-            let gas_price = self
-                .rpc_provider
-                .get_gas_price()
-                .await
-                .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?;
-
-            if Self::should_send_proof_to_verify_on_chain(
-                time_elapsed,
-                self.config.monthly_budget_eth,
-                U256::from(gas_price),
-            ) {
-                break;
-            } else {
-                info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
-            }
-
-            // Sleep for 3 minutes (15 blocks) before re-evaluating
-            let time_to_sleep = Duration::from_secs(180);
-            time_elapsed += time_to_sleep;
-            sleep(time_to_sleep);
-        }
-
-        info!("Sending proof to ProofAggregationService contract...");
-
-        // Retry in case of failure
         let receipt = self
-            .send_proof_to_verify_on_chain_retryable(blob, blob_versioned_hash, aggregated_proof)
+            .bump_and_send_proof_to_verify_on_chain_retryable(
+                blob,
+                blob_versioned_hash,
+                aggregated_proof,
+            )
             .await?;
         info!(
             "Proof sent and verified, tx hash {:?}",
@@ -239,84 +211,35 @@ impl ProofAggregator {
         Ok(())
     }
 
-    fn max_to_spend_in_wei(time_elapsed: Duration, monthly_eth_budget: f64) -> U256 {
-        const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
-
-        // Note: this expect is safe because in case it was invalid, should have been caught at startup
-        let monthly_budget_in_wei = parse_ether(&monthly_eth_budget.to_string())
-            .expect("The monthly budget should be a non-negative value");
-
-        let elapsed_seconds = U256::from(time_elapsed.as_secs());
-
-        let budget_available_per_second_in_wei =
-            monthly_budget_in_wei / U256::from(SECONDS_PER_MONTH);
-
-        budget_available_per_second_in_wei * elapsed_seconds
-    }
-
-    /// Decides whether to send the aggregated proof to be verified on-chain based on
-    /// time elapsed since last submission and monthly ETH budget.
-    /// We make a linear function with the eth to spend this month and the time elapsed since last submission.
-    /// If eth to spend / elapsed time is over the linear function, we skip the submission.
-    fn should_send_proof_to_verify_on_chain(
-        time_elapsed: Duration,
-        monthly_eth_budget: f64,
-        network_gas_price: U256,
-    ) -> bool {
-        // We assume a fixed gas cost of 300,000 for each of the 2 transactions
-        const ON_CHAIN_COST_IN_GAS_UNITS: u64 = 600_000u64;
-
-        let on_chain_cost_in_gas: U256 = U256::from(ON_CHAIN_COST_IN_GAS_UNITS);
-        let max_to_spend_in_wei = Self::max_to_spend_in_wei(time_elapsed, monthly_eth_budget);
-
-        let expected_cost_in_wei = network_gas_price * on_chain_cost_in_gas;
-
-        expected_cost_in_wei <= max_to_spend_in_wei
-    }
-
-    async fn send_proof_to_verify_on_chain_retryable(
+    async fn bump_and_send_proof_to_verify_on_chain_retryable(
         &self,
         blob: BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: AlignedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
-        match send_proof_to_verify_on_chain(
-            blob.clone(),
-            blob_versioned_hash,
-            aggregated_proof.clone(),
-            self.proof_aggregation_service.clone(),
-            self.sp1_chunk_aggregator_vk_hash_bytes,
-            self.risc0_chunk_aggregator_image_id_bytes,
+        retry_function(
+            || {
+                bump_and_send_proof_to_verify_on_chain(
+                    blob.clone(),
+                    blob_versioned_hash,
+                    aggregated_proof.clone(),
+                    self.proof_aggregation_service.clone(),
+                    self.sp1_chunk_aggregator_vk_hash_bytes,
+                    self.risc0_chunk_aggregator_image_id_bytes,
+                    self.rpc_provider.clone(),
+                    self.config.monthly_budget_eth,
+                )
+            },
+            ETHEREUM_CALL_MIN_RETRY_DELAY,
+            ETHEREUM_CALL_BACKOFF_FACTOR,
+            ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY,
         )
         .await
-        {
-            Ok(tx_receipt) => Ok(tx_receipt),
-            Err(err) => {
-                tracing::error!("Failed to send proof to be verified on chain: {err:?}");
-
-                retry_function(
-                    || {
-                        send_proof_to_verify_on_chain(
-                            blob.clone(),
-                            blob_versioned_hash,
-                            aggregated_proof.clone(),
-                            self.proof_aggregation_service.clone(),
-                            self.sp1_chunk_aggregator_vk_hash_bytes,
-                            self.risc0_chunk_aggregator_image_id_bytes,
-                        )
-                    },
-                    ETHEREUM_CALL_MIN_RETRY_DELAY,
-                    ETHEREUM_CALL_BACKOFF_FACTOR,
-                    ETHEREUM_CALL_MAX_RETRIES,
-                    ETHEREUM_CALL_MAX_RETRY_DELAY,
-                )
-                .await
-                .map_err(|e| {
-                    error!("Could't get nonce: {:?}", e);
-                    e.inner()
-                })
-            }
-        }
+        .map_err(|e| {
+            error!("Could't get nonce: {:?}", e);
+            e.inner()
+        })
     }
 
     /// ### Blob capacity
@@ -392,14 +315,45 @@ impl ProofAggregator {
     }
 }
 
-async fn send_proof_to_verify_on_chain(
+async fn bump_and_send_proof_to_verify_on_chain(
     blob: BlobTransactionSidecar,
     blob_versioned_hash: [u8; 32],
     aggregated_proof: AlignedProof,
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
     risc0_chunk_aggregator_image_id_bytes: [u8; 32],
+    rpc_provider: RPCProvider,
+    monthly_budget_eth: f64,
 ) -> Result<TransactionReceipt, RetryError<AggregatedProofSubmissionError>> {
+    // We start on 24 hours because the proof aggregator runs once a day, so the time elapsed
+    // should be considered over a 24h period.
+    let mut time_elapsed = Duration::from_secs(24 * 3600);
+
+    // Iterate until we can send the proof on-chain
+    loop {
+        // Fetch gas price from network
+        let gas_price = rpc_provider.get_gas_price().await.map_err(|e| {
+            RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
+        })?;
+
+        if should_send_proof_to_verify_on_chain(
+            time_elapsed,
+            monthly_budget_eth,
+            U256::from(gas_price),
+        ) {
+            break;
+        } else {
+            info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
+        }
+
+        // Sleep for 3 minutes (15 blocks) before re-evaluating
+        let time_to_sleep = Duration::from_secs(180);
+        time_elapsed += time_to_sleep;
+        sleep(time_to_sleep);
+    }
+
+    info!("Sending proof to ProofAggregationService contract...");
+
     let tx_req = match aggregated_proof {
         AlignedProof::SP1(proof) => proof_aggregation_service
             .verifyAggregationSP1(
@@ -471,6 +425,40 @@ async fn send_proof_to_verify_on_chain(
         .map_err(RetryError::Transient)?;
 
     Ok(receipt)
+}
+
+/// Decides whether to send the aggregated proof to be verified on-chain based on
+/// time elapsed since last submission and monthly ETH budget.
+/// We make a linear function with the eth to spend this month and the time elapsed since last submission.
+/// If eth to spend / elapsed time is over the linear function, we skip the submission.
+fn should_send_proof_to_verify_on_chain(
+    time_elapsed: Duration,
+    monthly_eth_budget: f64,
+    network_gas_price: U256,
+) -> bool {
+    // We assume a fixed gas cost of 300,000 for each of the 2 transactions
+    const ON_CHAIN_COST_IN_GAS_UNITS: u64 = 600_000u64;
+
+    let on_chain_cost_in_gas: U256 = U256::from(ON_CHAIN_COST_IN_GAS_UNITS);
+    let max_to_spend_in_wei = max_to_spend_in_wei(time_elapsed, monthly_eth_budget);
+
+    let expected_cost_in_wei = network_gas_price * on_chain_cost_in_gas;
+
+    expected_cost_in_wei <= max_to_spend_in_wei
+}
+
+fn max_to_spend_in_wei(time_elapsed: Duration, monthly_eth_budget: f64) -> U256 {
+    const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
+
+    // Note: this expect is safe because in case it was invalid, should have been caught at startup
+    let monthly_budget_in_wei = parse_ether(&monthly_eth_budget.to_string())
+        .expect("The monthly budget should be a non-negative value");
+
+    let elapsed_seconds = U256::from(time_elapsed.as_secs());
+
+    let budget_available_per_second_in_wei = monthly_budget_in_wei / U256::from(SECONDS_PER_MONTH);
+
+    budget_available_per_second_in_wei * elapsed_seconds
 }
 
 use backon::ExponentialBuilder;
@@ -554,7 +542,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
-        assert!(ProofAggregator::should_send_proof_to_verify_on_chain(
+        assert!(should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
             gas_price,                            // 1 Gwei gas price
@@ -567,7 +555,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 8 Gwei = 0.0048 ETH
         // Expected cost < Max to spend, so we can send the proof
-        assert!(ProofAggregator::should_send_proof_to_verify_on_chain(
+        assert!(should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
             U256::from(8_000_000_000u64),         // 8 Gwei gas price
@@ -580,7 +568,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 24 hours = 0.005 ETH
         // Expected cost: 600,000 * 10 Gwei = 0.006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
-        assert!(!ProofAggregator::should_send_proof_to_verify_on_chain(
+        assert!(!should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             BUDGET_PER_MONTH_IN_ETH,              // 0.15 ETH monthly budget
             U256::from(10_000_000_000u64),        // 10 Gwei gas price
@@ -593,7 +581,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 3 hours = 0.000625 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
-        assert!(ProofAggregator::should_send_proof_to_verify_on_chain(
+        assert!(should_send_proof_to_verify_on_chain(
             Duration::from_secs(3 * 3600), // 3 hours
             BUDGET_PER_MONTH_IN_ETH,       // 0.15 ETH monthly budget
             gas_price,                     // 1 Gwei gas price
@@ -606,7 +594,7 @@ mod tests {
         // Max to spend: 0.000000058 ETH/hour * 1.2 hours = 0.00025 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
-        assert!(!ProofAggregator::should_send_proof_to_verify_on_chain(
+        assert!(!should_send_proof_to_verify_on_chain(
             Duration::from_secs_f64(1.2 * 3600.0), // 1.2 hours
             BUDGET_PER_MONTH_IN_ETH,               // 0.15 ETH monthly budget
             gas_price,                             // 1 Gwei gas price
@@ -619,7 +607,7 @@ mod tests {
         // Max to spend: 0.000000038 ETH/hour * 24 hours = 0.0032832 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost < Max to spend, so we can send the proof
-        assert!(ProofAggregator::should_send_proof_to_verify_on_chain(
+        assert!(should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             0.1,                                  // 0.1 ETH monthly budget
             gas_price,                            // 1 Gwei gas price
@@ -632,7 +620,7 @@ mod tests {
         // Max to spend: 0.0000000038 ETH/hour * 24 hours = 0.00032832 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
         // Expected cost > Max to spend, so we cannot send the proof
-        assert!(!ProofAggregator::should_send_proof_to_verify_on_chain(
+        assert!(!should_send_proof_to_verify_on_chain(
             Duration::from_secs(ONE_DAY_SECONDS), // 24 hours
             0.01,                                 // 0.01 ETH monthly budget
             gas_price,                            // 1 Gwei gas price
