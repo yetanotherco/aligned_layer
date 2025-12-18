@@ -3265,6 +3265,7 @@ dependencies = [
  "backon",
  "sqlx",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

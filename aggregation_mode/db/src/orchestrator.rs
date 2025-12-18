@@ -3,7 +3,7 @@ use std::{future::Future, time::Duration};
 use backon::{ExponentialBuilder, Retryable};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-use crate::retry::RetryError;
+use crate::retry::{RetryConfig, RetryError};
 
 #[derive(Clone, Debug)]
 struct DbNode {
@@ -12,11 +12,23 @@ struct DbNode {
 
 pub struct DbOrchestartor {
     nodes: Vec<DbNode>,
+    retry_config: RetryConfig,
+}
+
+pub enum DbOrchestartorError {
+    InvalidNumberOfConnectionUrls,
+    Sqlx(sqlx::Error),
 }
 
 impl DbOrchestartor {
-    pub fn try_new(connection_urls: Vec<String>) -> Result<Self, sqlx::Error> {
-        // TODO: validate at least one connection url
+    pub fn try_new(
+        connection_urls: Vec<String>,
+        retry_config: RetryConfig,
+    ) -> Result<Self, DbOrchestartorError> {
+        if connection_urls.is_empty() {
+            return Err(DbOrchestartorError::InvalidNumberOfConnectionUrls);
+        }
+
         let nodes = connection_urls
             .into_iter()
             .map(|url| {
@@ -24,17 +36,21 @@ impl DbOrchestartor {
 
                 Ok(DbNode { pool })
             })
-            .collect::<Result<Vec<_>, sqlx::Error>>()?;
+            .collect::<Result<Vec<_>, sqlx::Error>>()
+            .map_err(|e| DbOrchestartorError::Sqlx(e))?;
 
-        Ok(Self { nodes })
+        Ok(Self {
+            nodes,
+            retry_config,
+        })
     }
 
     fn backoff_builder(&self) -> ExponentialBuilder {
         ExponentialBuilder::default()
-            .with_min_delay(Duration::from_millis(0))
-            .with_max_times(0)
-            .with_factor(0.0)
-            .with_max_delay(Duration::from_secs(0))
+            .with_min_delay(Duration::from_millis(self.retry_config.min_delay_millis))
+            .with_max_times(self.retry_config.max_times)
+            .with_factor(self.retry_config.factor)
+            .with_max_delay(Duration::from_secs(self.retry_config.max_delay_seconds))
     }
 
     pub async fn query<T, E, Q, Fut>(&self, query_fn: Q) -> Result<T, sqlx::Error>
@@ -51,6 +67,7 @@ impl DbOrchestartor {
                     Ok(res) => return Ok(res),
                     Err(err) => {
                         if Self::is_connection_error(&err) {
+                            tracing::warn!(node_index = idx, error = ?err, "database query failed; retrying");
                             last_error = Some(err);
                         } else {
                             return Err(RetryError::Permanent(err));
@@ -81,6 +98,7 @@ impl DbOrchestartor {
                 | sqlx::Error::PoolClosed
                 | sqlx::Error::WorkerCrashed
                 | sqlx::Error::BeginFailed
+                | sqlx::Error::Database(_)
         )
     }
 }
