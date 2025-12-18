@@ -52,7 +52,7 @@
       ansible.builtin.git:
         repo: https://github.com/yetanotherco/aligned_layer.git
         dest: /home/{{ ansible_user }}/repos/batcher/aligned_layer
-        version: 2075-feat-hoodi-deployment
+        version: v0.20.0
         recursive: false
 
     # Build the batcher
