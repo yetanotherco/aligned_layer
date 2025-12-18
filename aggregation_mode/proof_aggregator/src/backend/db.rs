@@ -23,7 +23,18 @@ impl Db {
         Ok(Self { pool })
     }
 
-    pub async fn get_pending_tasks_and_mark_them_as_processing(
+    /// Fetches tasks that are ready to be processed and atomically updates their status.
+    ///
+    /// This function selects up to `limit` tasks for the given `proving_system_id` that are
+    /// either:
+    /// - in `pending` status, or
+    /// - in `processing` status but whose `status_updated_at` timestamp is older than 12 hours
+    ///   (to recover tasks that may have been abandoned or stalled).
+    ///
+    /// The selected rows are locked using `FOR UPDATE SKIP LOCKED` to ensure safe concurrent
+    /// processing by multiple workers. All selected tasks have their status set to
+    /// `processing` and their `status_updated_at` updated to `now()` before being returned.
+    pub async fn get_tasks_to_process_and_update_their_status(
         &self,
         proving_system_id: i32,
         limit: i64,
