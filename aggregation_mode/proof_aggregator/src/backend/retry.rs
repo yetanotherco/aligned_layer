@@ -22,14 +22,14 @@ use tokio::time::sleep;
 #[derive(Debug)]
 pub enum RetryError<E> {
     Transient(E),
-    //    Permanent(E),
+    Permanent(E),
 }
 
 impl<E: std::fmt::Display> std::fmt::Display for RetryError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             RetryError::Transient(e) => write!(f, "{e}"),
-            //RetryError::Permanent(e) => write!(f, "{e}"),
+            RetryError::Permanent(e) => write!(f, "{e}"),
         }
     }
 }
@@ -38,7 +38,7 @@ impl<E> RetryError<E> {
     pub fn inner(self) -> E {
         match self {
             RetryError::Transient(e) => e,
-            //RetryError::Permanent(e) => e,
+            RetryError::Permanent(e) => e,
         }
     }
 }
@@ -137,7 +137,7 @@ pub async fn wait_and_send_proof_to_verify_on_chain(
         AlignedProof::Risc0(proof) => {
             let encoded_seal = encode_seal(&proof.receipt)
                 .map_err(|e| AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string()))
-                .map_err(RetryError::Transient)?;
+                .map_err(RetryError::Permanent)?;
             proof_aggregation_service
                 .verifyAggregationRisc0(
                     blob_versioned_hash.into(),
