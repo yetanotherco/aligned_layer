@@ -392,14 +392,9 @@ impl GatewayServer {
                 "quota_resets_in": formatted_time_left.as_str()
             })))
         } else {
-            HttpResponse::Ok().json(AppResponse::new_sucessfull_with_message(
-                serde_json::json!({
-                    "proofs_submitted": 0,
-                    "quota_limit": 0,
-                    "quota_remaining": 0,
-                    "quota_resets_in": formatted_time_left.as_str()
-                }),
-                "You have to pay before submitting a proof".to_string(),
+            HttpResponse::Ok().json(AppResponse::new_unsucessfull(
+                "The address doesn't have an active subscription",
+                404,
             ))
         }
     }
