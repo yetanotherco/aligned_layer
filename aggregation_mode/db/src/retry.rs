@@ -13,15 +13,6 @@ impl<E: std::fmt::Display> std::fmt::Display for RetryError<E> {
     }
 }
 
-impl<E> RetryError<E> {
-    pub fn inner(self) -> E {
-        match self {
-            RetryError::Transient(e) => e,
-            RetryError::Permanent(e) => e,
-        }
-    }
-}
-
 impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
 
 #[derive(Debug)]
