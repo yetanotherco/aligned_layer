@@ -27,7 +27,7 @@ use sqlx::types::Uuid;
 use std::thread::sleep;
 use std::{str::FromStr, time::Duration};
 use tracing::{error, info, warn};
-use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract, RPCProvider};
+use types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract};
 
 #[derive(Debug)]
 pub enum AggregatedProofSubmissionError {
@@ -50,7 +50,6 @@ pub struct ProofAggregator {
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     fetcher: ProofsFetcher,
     config: Config,
-    rpc_provider: RPCProvider,
     sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
     risc0_chunk_aggregator_image_id_bytes: [u8; 32],
     db: Db,
@@ -71,8 +70,6 @@ impl ProofAggregator {
             .expect("Monthly budget must be a non-negative value");
 
         info!("Monthly budget set to {} eth", config.monthly_budget_eth);
-
-        let rpc_provider = ProviderBuilder::new().connect_http(rpc_url.clone());
 
         let signed_rpc_provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
 
@@ -108,7 +105,6 @@ impl ProofAggregator {
             proof_aggregation_service,
             fetcher,
             config,
-            rpc_provider,
             sp1_chunk_aggregator_vk_hash_bytes,
             risc0_chunk_aggregator_image_id_bytes,
             db,
@@ -226,7 +222,6 @@ impl ProofAggregator {
                     self.proof_aggregation_service.clone(),
                     self.sp1_chunk_aggregator_vk_hash_bytes,
                     self.risc0_chunk_aggregator_image_id_bytes,
-                    self.rpc_provider.clone(),
                     self.config.monthly_budget_eth,
                 )
             },
@@ -322,7 +317,6 @@ async fn bump_and_send_proof_to_verify_on_chain(
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
     risc0_chunk_aggregator_image_id_bytes: [u8; 32],
-    rpc_provider: RPCProvider,
     monthly_budget_eth: f64,
 ) -> Result<TransactionReceipt, RetryError<AggregatedProofSubmissionError>> {
     // We start on 24 hours because the proof aggregator runs once a day, so the time elapsed
@@ -332,9 +326,13 @@ async fn bump_and_send_proof_to_verify_on_chain(
     // Iterate until we can send the proof on-chain
     loop {
         // Fetch gas price from network
-        let gas_price = rpc_provider.get_gas_price().await.map_err(|e| {
-            RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
-        })?;
+        let gas_price = proof_aggregation_service
+            .provider()
+            .get_gas_price()
+            .await
+            .map_err(|e| {
+                RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
+            })?;
 
         if should_send_proof_to_verify_on_chain(
             time_elapsed,
