@@ -112,7 +112,7 @@ async fn wait_until_can_submit_aggregated_proof(
 pub async fn wait_and_send_proof_to_verify_on_chain(
     blob: BlobTransactionSidecar,
     blob_versioned_hash: [u8; 32],
-    aggregated_proof: AlignedProof,
+    aggregated_proof: &AlignedProof,
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
     risc0_chunk_aggregator_image_id_bytes: [u8; 32],
@@ -141,7 +141,7 @@ pub async fn wait_and_send_proof_to_verify_on_chain(
                 .verifyAggregationRisc0(
                     blob_versioned_hash.into(),
                     encoded_seal.into(),
-                    proof.receipt.journal.bytes.into(),
+                    proof.receipt.journal.bytes.clone().into(),
                     risc0_chunk_aggregator_image_id_bytes.into(),
                 )
                 .sidecar(blob)

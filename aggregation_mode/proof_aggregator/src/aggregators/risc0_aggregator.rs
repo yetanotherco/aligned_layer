@@ -4,7 +4,6 @@ use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt};
 use sha3::{Digest, Keccak256};
 
-#[derive(Clone)]
 pub struct Risc0ProofReceiptAndImageId {
     pub image_id: [u8; 32],
     pub receipt: Receipt,

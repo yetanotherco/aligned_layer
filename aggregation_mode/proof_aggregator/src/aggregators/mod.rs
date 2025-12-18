@@ -161,7 +161,6 @@ impl ZKVMEngine {
     }
 }
 
-#[derive(Clone)]
 pub enum AlignedProof {
     SP1(Box<SP1ProofWithPubValuesAndVk>),
     Risc0(Box<Risc0ProofReceiptAndImageId>),

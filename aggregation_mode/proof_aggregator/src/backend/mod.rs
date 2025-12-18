@@ -225,7 +225,7 @@ impl ProofAggregator {
                 wait_and_send_proof_to_verify_on_chain(
                     blob.clone(),
                     blob_versioned_hash,
-                    aggregated_proof.clone(),
+                    &aggregated_proof,
                     self.proof_aggregation_service.clone(),
                     self.sp1_chunk_aggregator_vk_hash_bytes,
                     self.risc0_chunk_aggregator_image_id_bytes,
