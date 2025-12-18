@@ -224,7 +224,7 @@ impl ProofAggregator {
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         retry_function(
             || {
-                bump_and_send_proof_to_verify_on_chain(
+                wait_and_send_proof_to_verify_on_chain(
                     blob.clone(),
                     blob_versioned_hash,
                     aggregated_proof.clone(),
@@ -319,15 +319,10 @@ impl ProofAggregator {
     }
 }
 
-async fn bump_and_send_proof_to_verify_on_chain(
-    blob: BlobTransactionSidecar,
-    blob_versioned_hash: [u8; 32],
-    aggregated_proof: AlignedProof,
+async fn wait_until_can_submit_aggregated_proof(
     proof_aggregation_service: AlignedProofAggregationServiceContract,
-    sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
-    risc0_chunk_aggregator_image_id_bytes: [u8; 32],
     monthly_budget_eth: f64,
-) -> Result<TransactionReceipt, RetryError<AggregatedProofSubmissionError>> {
+) -> Result<(), RetryError<AggregatedProofSubmissionError>> {
     // We start on 24 hours because the proof aggregator runs once a day, so the time elapsed
     // should be considered over a 24h period.
     let mut time_elapsed = Duration::from_secs(24 * 3600);
@@ -358,6 +353,21 @@ async fn bump_and_send_proof_to_verify_on_chain(
         time_elapsed += time_to_sleep;
         sleep(time_to_sleep);
     }
+
+    Ok(())
+}
+
+async fn wait_and_send_proof_to_verify_on_chain(
+    blob: BlobTransactionSidecar,
+    blob_versioned_hash: [u8; 32],
+    aggregated_proof: AlignedProof,
+    proof_aggregation_service: AlignedProofAggregationServiceContract,
+    sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
+    risc0_chunk_aggregator_image_id_bytes: [u8; 32],
+    monthly_budget_eth: f64,
+) -> Result<TransactionReceipt, RetryError<AggregatedProofSubmissionError>> {
+    wait_until_can_submit_aggregated_proof(proof_aggregation_service.clone(), monthly_budget_eth)
+        .await?;
 
     info!("Sending proof to ProofAggregationService contract...");
 
