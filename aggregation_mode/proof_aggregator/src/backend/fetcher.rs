@@ -24,7 +24,7 @@ impl ProofsFetcher {
     }
 
     pub async fn fetch_pending_proofs(
-        &self,
+        &mut self,
         engine: ZKVMEngine,
         limit: i64,
     ) -> Result<(Vec<AlignedProof>, Vec<Uuid>), ProofsFetcherError> {

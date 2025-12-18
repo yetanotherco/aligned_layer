@@ -85,7 +85,7 @@ impl ProofAggregator {
         let engine =
             ZKVMEngine::from_env().expect("AGGREGATOR env variable to be set to one of sp1|risc0");
 
-        let db = Db::try_new(&config.db_connection_url)
+        let db = Db::try_new(&[&config.db_connection_url])
             .await
             .expect("To connect to db");
 
