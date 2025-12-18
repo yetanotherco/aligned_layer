@@ -75,6 +75,8 @@ async fn wait_until_can_submit_aggregated_proof(
     proof_aggregation_service: AlignedProofAggregationServiceContract,
     monthly_budget_eth: f64,
 ) -> Result<(), RetryError<AggregatedProofSubmissionError>> {
+    info!("Started waiting until we can submit the aggregated proof.");
+
     // We start on 24 hours because the proof aggregator runs once a day, so the time elapsed
     // should be considered over a 24h period.
     let mut time_elapsed = Duration::from_secs(24 * 3600);
@@ -92,6 +94,8 @@ async fn wait_until_can_submit_aggregated_proof(
             .map_err(|e| {
                 RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
             })?;
+
+        info!("Fetched gas price from network: {gas_price}");
 
         if helpers::should_send_proof_to_verify_on_chain(
             time_elapsed,
