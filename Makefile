@@ -997,6 +997,10 @@ upgrade_proof_aggregator: ## Upgrade ProofAggregator contract. Parameters: NETWO
 	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
 
+deploy_agg_mode_payment_service:
+	@echo "Deploying Agg Mode Payment Service contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_agg_mode_payment_service.sh
+
 __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
