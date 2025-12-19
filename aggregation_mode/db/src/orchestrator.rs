@@ -85,7 +85,7 @@ impl DbOrchestartor {
                 }))
             })
             .collect::<Result<Vec<_>, sqlx::Error>>()
-            .map_err(|e| DbOrchestartorError::Sqlx(e))?;
+            .map_err(DbOrchestartorError::Sqlx)?;
 
         Ok(Self {
             nodes,
