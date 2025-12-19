@@ -1,3 +1,4 @@
+ip: "127.0.0.1"
 port: 8089
 db_connection_url: "postgres://postgres:postgres@localhost:5435/"
 eth_rpc_url: "http://localhost:8545"

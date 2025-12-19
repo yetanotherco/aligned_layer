@@ -59,7 +59,7 @@ impl GatewayServer {
                 .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
                 .route("/quotas/{address}", web::get().to(Self::get_quotas))
         })
-        .bind(("127.0.0.1", port))
+        .bind((self.config.ip.as_str(), port))
         .expect("To bind socket correctly")
         .run()
         .await
