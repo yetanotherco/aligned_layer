@@ -6804,6 +6804,7 @@ dependencies = [
  "actix-web",
  "aligned-sdk",
  "alloy",
+ "db",
  "hex",
  "serde",
  "serde_json",

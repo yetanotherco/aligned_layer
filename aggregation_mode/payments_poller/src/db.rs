@@ -12,7 +12,7 @@ pub enum DbError {
 }
 
 impl Db {
-    pub async fn try_new(connection_urls: &[&str]) -> Result<Self, DbError> {
+    pub async fn try_new(connection_urls: &[String]) -> Result<Self, DbError> {
         let orchestartor = DbOrchestartor::try_new(
             connection_urls,
             RetryConfig {

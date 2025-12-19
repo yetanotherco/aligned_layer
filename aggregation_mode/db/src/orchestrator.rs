@@ -66,7 +66,7 @@ impl std::fmt::Display for DbOrchestartorError {
 
 impl DbOrchestartor {
     pub fn try_new(
-        connection_urls: &[&str],
+        connection_urls: &[String],
         retry_config: RetryConfig,
     ) -> Result<Self, DbOrchestartorError> {
         if connection_urls.is_empty() {
