@@ -74,7 +74,7 @@ impl DbOrchestartor {
         }
 
         let nodes = connection_urls
-            .into_iter()
+            .iter()
             .map(|url| {
                 let pool = PgPoolOptions::new().max_connections(5).connect_lazy(url)?;
 

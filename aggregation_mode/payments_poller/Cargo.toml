@@ -8,6 +8,7 @@ serde =  { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 aligned-sdk = { workspace = true }
+db = { workspace = true }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
 actix-web = "4"
