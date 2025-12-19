@@ -16,6 +16,7 @@ impl FromStr for Network {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "devnet" => Ok(Self::Devnet),
+            "hoodi" => Ok(Self::Hoodi),
             _ => Err(NetworkError::InvalidNetwork),
         }
     }
