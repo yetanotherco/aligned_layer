@@ -23,6 +23,8 @@ RUN cargo chef prepare --recipe-path /aligned_layer/crates/cli/recipe.json
 
 FROM chef AS chef_builder
 COPY crates/sdk/ /aligned_layer/crates/sdk/
+COPY operator/mina/lib/ /aligned_layer/operator/mina/lib/
+COPY operator/mina_account/lib/ /aligned_layer/operator/mina_account/lib/
 
 COPY --from=planner /aligned_layer/crates/batcher/recipe.json /aligned_layer/crates/batcher/recipe.json
 WORKDIR /aligned_layer/crates/batcher

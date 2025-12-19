@@ -29,6 +29,7 @@ type OperatorConfig struct {
 		MaxBatchSize                  int64
 		LastProcessedBatchFilePath    string
 		PollLatestBatchInterval       time.Duration
+		MinaVerifierEnabled           bool
 	}
 }
 
@@ -47,6 +48,7 @@ type OperatorConfigFromYaml struct {
 		MaxBatchSize                  int64          `yaml:"max_batch_size"`
 		LastProcessedBatchFilePath    string         `yaml:"last_processed_batch_filepath"`
 		PollLatestBatchInterval       string         `yaml:"poll_latest_batch_interval"`
+		MinaVerifierEnabled           bool           `yaml:"mina_verifier_enabled"`
 	} `yaml:"operator"`
 	BlsConfigFromYaml BlsConfigFromYaml `yaml:"bls"`
 }
@@ -98,6 +100,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			MaxBatchSize                  int64
 			LastProcessedBatchFilePath    string
 			PollLatestBatchInterval       time.Duration
+			MinaVerifierEnabled           bool
 		}{
 			AggregatorServerIpPortAddress: operatorConfigFromYaml.Operator.AggregatorServerIpPortAddress,
 			OperatorTrackerIpPortAddress:  operatorConfigFromYaml.Operator.OperatorTrackerIpPortAddress,
@@ -112,6 +115,7 @@ func NewOperatorConfig(configFilePath string) *OperatorConfig {
 			MaxBatchSize:                  operatorConfigFromYaml.Operator.MaxBatchSize,
 			LastProcessedBatchFilePath:    operatorConfigFromYaml.Operator.LastProcessedBatchFilePath,
 			PollLatestBatchInterval:       pollInterval,
+			MinaVerifierEnabled:           operatorConfigFromYaml.Operator.MinaVerifierEnabled,
 		},
 	}
 }

@@ -300,6 +300,7 @@ func (agg *Aggregator) handleBlsAggServiceResponse(blsAggServiceResp blsagg.BlsA
 			txHash = receipt.TxHash.String()
 			effectiveGasPrice = receipt.EffectiveGasPrice.String()
 		}
+		agg.logger.Info("Gas cost used to send aggregated response", "gasUsed", receipt.GasUsed)
 		agg.telemetry.TaskSentToEthereum(batchData.BatchMerkleRoot, txHash, effectiveGasPrice)
 		agg.logger.Info("Aggregator successfully responded to task",
 			"taskIndex", blsAggServiceResp.TaskIndex,

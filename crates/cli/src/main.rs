@@ -423,6 +423,10 @@ pub enum ProvingSystemArg {
     Risc0,
     #[clap(name = "CircomGroth16Bn256")]
     CircomGroth16Bn256,
+    #[clap(name = "Mina")]
+    Mina,
+    #[clap(name = "MinaAccount")]
+    MinaAccount,
 }
 
 const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
@@ -436,6 +440,8 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
             ProvingSystemArg::CircomGroth16Bn256 => ProvingSystemId::CircomGroth16Bn256,
+            ProvingSystemArg::Mina => ProvingSystemId::Mina,
+            ProvingSystemArg::MinaAccount => ProvingSystemId::MinaAccount,
         }
     }
 }
@@ -1217,6 +1223,18 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
             })?;
 
             pub_input = Some(decode_inputs);
+        }
+        ProvingSystemId::Mina => {
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name.clone(),
+            )?)
+        }
+        ProvingSystemId::MinaAccount => {
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name.clone(),
+            )?)
         }
     }
 
