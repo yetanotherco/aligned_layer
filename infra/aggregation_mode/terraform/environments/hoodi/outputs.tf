@@ -77,3 +77,19 @@ output "gateway_secondary_server_ip" {
   description = "IP address of the gateway secondary bare metal server"
   value       = module.gateway_secondary.server_ip
 }
+
+# Metrics Server Outputs
+output "metrics_server_name" {
+  description = "Name of the metrics bare metal server"
+  value       = var.metrics_server_name
+}
+
+output "metrics_server_id" {
+  description = "ID of the metrics bare metal server"
+  value       = module.metrics.server_id
+}
+
+output "metrics_server_ip" {
+  description = "IP address of the metrics bare metal server"
+  value       = module.metrics.server_ip
+}

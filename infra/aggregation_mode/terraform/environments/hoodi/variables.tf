@@ -266,3 +266,47 @@ variable "gateway_secondary_tags" {
   description = "Tags for gateway secondary"
   type        = list(string)
 }
+
+# ============================================
+# Metrics Configuration (Elastic Metal)
+# ============================================
+
+variable "metrics_server_zone" {
+  description = "Scaleway zone for metrics server"
+  type        = string
+}
+
+variable "metrics_server_offer_name" {
+  description = "Bare metal offer name for metrics server"
+  type        = string
+}
+
+variable "metrics_server_name" {
+  description = "Server name for metrics server"
+  type        = string
+}
+
+variable "metrics_server_hostname" {
+  description = "Hostname for metrics server"
+  type        = string
+}
+
+variable "metrics_server_description" {
+  description = "Description for metrics server"
+  type        = string
+}
+
+variable "metrics_server_ssh_key_name" {
+  description = "SSH key name for metrics server"
+  type        = string
+}
+
+variable "metrics_server_cloud_init_template_path" {
+  description = "Path to cloud-init template for metrics server"
+  type        = string
+}
+
+variable "metrics_server_tags" {
+  description = "Tags for metrics server"
+  type        = list(string)
+}

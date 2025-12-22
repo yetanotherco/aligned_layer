@@ -1,0 +1,56 @@
+#cloud-config
+hostname: ${hostname}
+fqdn: ${hostname}
+manage_etc_hosts: true
+
+users:
+  - name: app
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+  - name: admin
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - wget
+  - gnupg
+  - vim
+  - git
+  - zip
+  - unzip
+  - openssl
+  - libssl-dev
+  - build-essential
+  - rsyslog
+  - htop
+  - rsync
+  - pkg-config
+  - locales
+  - ufw
+
+write_files:
+  - path: /etc/environment
+    content: |
+      LANG=en_US.UTF-8
+      LC_ALL=C
+      LANGUAGE=en_US.UTF-8
+      LC_TYPE=en_US.UTF-8
+      LC_CTYPE=en_US.UTF-8
+
+runcmd:
+  - loginctl enable-linger app
+  # Tailscale installation https://tailscale.com/kb/1293/cloud-init
+  - curl -fsSL https://tailscale.com/install.sh | sh
+  - tailscale up --ssh --advertise-tags=tag:server --auth-key=${tailscale_auth_key}
+  - tailscale set --auto-update
+  - sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+  - locale-gen
+  - ufw enable

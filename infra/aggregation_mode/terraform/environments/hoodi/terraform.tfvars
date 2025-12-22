@@ -67,3 +67,15 @@ gateway_secondary_description              = "Gateway server 2 for hoodi"
 gateway_secondary_ssh_key_name             = "agg-mode-hoodi-gateway-2-key"
 gateway_secondary_cloud_init_template_path = "../../cloudinit/scaleway-cloud-init.yaml"
 gateway_secondary_tags                     = ["gateway", "gateway-2", "hoodi"]
+
+# ============================================
+# Metrics Configuration (Elastic Metal)
+# ============================================
+metrics_server_zone                     = "fr-par-2"
+metrics_server_offer_name               = "EM-A610R-NVME"
+metrics_server_name                     = "agg-mode-hoodi-metrics"
+metrics_server_hostname                 = "agg-mode-hoodi-metrics"
+metrics_server_description              = "Metrics server for hoodi"
+metrics_server_ssh_key_name             = "agg-mode-hoodi-metrics-key"
+metrics_server_cloud_init_template_path = "../../cloudinit/cloud-init.yaml"
+metrics_server_tags                     = ["metrics", "hoodi"]

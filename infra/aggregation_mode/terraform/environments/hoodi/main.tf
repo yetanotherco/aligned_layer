@@ -103,3 +103,22 @@ module "gateway_secondary" {
   elastic_metal_tailscale_tags           = var.tailscale_tags
   elastic_metal_tags                     = var.gateway_secondary_tags
 }
+
+# Metrics Server (Elastic Metal / Scaleway Bare Metal)
+module "metrics" {
+    source = "../../modules/elastic_metal"
+
+    elastic_metal_zone                     = var.metrics_server_zone
+    elastic_metal_offer_name               = var.metrics_server_offer_name
+    elastic_metal_subscription_period      = var.subscription_period
+    elastic_metal_server_name              = var.metrics_server_name
+    elastic_metal_hostname                 = var.metrics_server_hostname
+    elastic_metal_description              = var.metrics_server_description
+    elastic_metal_ssh_key_name             = var.metrics_server_ssh_key_name
+    elastic_metal_ssh_public_key_path      = var.ssh_public_key_path_scaleway
+    elastic_metal_cloud_init_template_path = var.metrics_server_cloud_init_template_path
+    elastic_metal_os_id                    = var.os_id
+    elastic_metal_tailscale_key_expiry     = var.tailscale_key_expiry
+    elastic_metal_tailscale_tags           = var.tailscale_tags
+    elastic_metal_tags                     = var.metrics_server_tags
+}
