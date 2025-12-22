@@ -1,7 +1,7 @@
 pub mod config;
 mod db;
+mod eth;
 pub mod fetcher;
-mod helpers;
 mod merkle_tree;
 mod retry;
 mod types;
@@ -343,7 +343,7 @@ impl ProofAggregator {
 
             info!("Fetched gas price from network: {gas_price}");
 
-            if helpers::should_send_proof_to_verify_on_chain(
+            if eth::should_send_proof_to_verify_on_chain(
                 time_elapsed,
                 monthly_budget_eth,
                 U256::from(gas_price),
@@ -469,7 +469,7 @@ mod tests {
     use super::*;
 
     use alloy::primitives::U256;
-    use helpers::should_send_proof_to_verify_on_chain;
+    use eth::should_send_proof_to_verify_on_chain;
     use std::time::Duration;
 
     #[test]
