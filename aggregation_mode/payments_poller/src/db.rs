@@ -1,11 +1,27 @@
 use db::{orchestrator::DbOrchestartor, retry::RetryConfig};
 use sqlx::types::BigDecimal;
 
-// Retry parameters for Db queries
+// Retry/backoff behavior summary for DB queries (see
+// aggregation_mode/db/src/orchestrator.rs:next_back_off_delay for implementation)
+//
+// 1) Max wait time between failures if all retries fail:
+//    The sleep between retries is capped at 30 seconds (RETRY_MAX_DELAY_SECONDS).
+//
+// 2) Wait before each retry attempt with the current config
+//    (start = 500ms, factor = 4.0, max retries = 5):
+//
+//    retry 1: 0.5s
+//    retry 2: 2.0s
+//    retry 3: 8.0s
+//    retry 4: 30s (capped; 32s would have been next)
+//    retry 5: 30s
+//
+//    Worst-case total sleep time across all retries: 70.5 seconds -> 5 blocks of ethereum waiting,
+//    plus the execution time of each DB attempt.
 /// Initial delay before first retry attempt (in milliseconds)
 const RETRY_MIN_DELAY_MILLIS: u64 = 500;
 /// Exponential backoff multiplier for retry delays
-const RETRY_FACTOR: f32 = 2.0;
+const RETRY_FACTOR: f32 = 4.0;
 /// Maximum number of retry attempts
 const RETRY_MAX_TIMES: usize = 5;
 /// Maximum delay between retry attempts (in seconds)

@@ -2,7 +2,27 @@ use crate::types::Receipt;
 use db::{orchestrator::DbOrchestartor, retry::RetryConfig};
 use sqlx::types::{BigDecimal, Uuid};
 
-// Retry parameters for Db queries
+// Retry/backoff behavior summary (see
+// aggregation_mode/db/src/orchestrator.rs:next_back_off_delay for implementation)
+//
+// NOTE: These retry limits are intentionally lower than in other crates.
+// This code runs in an HTTP server; in the worst case the request fails fast
+// and the client can retry the request. Prolonged blocking retries here are
+// less critical than in background or batch processing jobs.
+//
+// 1) Max wait time between failures if all retries fail:
+//    The sleep between retries is capped at 10 seconds (RETRY_MAX_DELAY_SECONDS).
+//
+// 2) Wait before each retry attempt with the current config
+//    (start = 500ms, factor = 2.0, max retries = 4):
+//
+//    retry 1: 0.5s
+//    retry 2: 1.0s
+//    retry 3: 2.0s
+//    retry 4: 4.0s
+//
+//    Worst-case total sleep time across all retries: 7.5 seconds,
+//    plus the execution time of each DB attempt.
 /// Initial delay before first retry attempt (in milliseconds)
 const RETRY_MIN_DELAY_MILLIS: u64 = 500;
 /// Exponential backoff multiplier for retry delays

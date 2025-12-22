@@ -1,13 +1,29 @@
 use db::{orchestrator::DbOrchestartor, retry::RetryConfig, types::Task};
 use sqlx::types::Uuid;
 
-// Retry parameters for Db queries
+// Retry/backoff behavior summary (see
+// aggregation_mode/db/src/orchestrator.rs:next_back_off_delay for implementation)
+//
+// 1) Max wait time between failures if all retries fail:
+//    The sleep between retries is capped at 30 seconds (RETRY_MAX_DELAY_SECONDS).
+//
+// 2) Wait before each retry attempt with the current config
+//    (start = 500ms, factor = 5.0, max retries = 10):
+//
+//    retry 1: 0.5s
+//    retry 2: 2.5s
+//    retry 3: 12.5s
+//    retry 4: 30s (capped)
+//    retry 5–10: 30s each
+//
+//    Worst-case total sleep time across all retries: ~3m 48s,
+//    plus the execution time of each DB attempt.
 /// Initial delay before first retry attempt (in milliseconds)
 const RETRY_MIN_DELAY_MILLIS: u64 = 500;
 /// Exponential backoff multiplier for retry delays
-const RETRY_FACTOR: f32 = 2.0;
+const RETRY_FACTOR: f32 = 5.0;
 /// Maximum number of retry attempts
-const RETRY_MAX_TIMES: usize = 5;
+const RETRY_MAX_TIMES: usize = 10;
 /// Maximum delay between retry attempts (in seconds)
 const RETRY_MAX_DELAY_SECONDS: u64 = 30;
 
