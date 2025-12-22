@@ -32,4 +32,10 @@ impl Network {
             Self::Devnet => "http://127.0.0.1:8089".to_string(),
         }
     }
+
+    pub fn proof_aggregator_contract_address(&self) -> String {
+        match self {
+            Self::Devnet => "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc".to_string(),
+        }
+    }
 }
