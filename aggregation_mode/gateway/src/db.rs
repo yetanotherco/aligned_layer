@@ -1,7 +1,16 @@
+use crate::types::Receipt;
 use db::{orchestrator::DbOrchestartor, retry::RetryConfig};
 use sqlx::types::{BigDecimal, Uuid};
 
-use crate::types::Receipt;
+// Retry parameters for Db queries
+/// Initial delay before first retry attempt (in milliseconds)
+const RETRY_MIN_DELAY_MILLIS: u64 = 500;
+/// Exponential backoff multiplier for retry delays
+const RETRY_FACTOR: f32 = 2.0;
+/// Maximum number of retry attempts
+const RETRY_MAX_TIMES: usize = 4;
+/// Maximum delay between retry attempts (in seconds)
+const RETRY_MAX_DELAY_SECONDS: u64 = 10;
 
 #[derive(Clone, Debug)]
 pub struct Db {
@@ -18,10 +27,10 @@ impl Db {
         let orchestrator = DbOrchestartor::try_new(
             connection_urls,
             RetryConfig {
-                factor: 0.0,
-                max_delay_seconds: 0,
-                max_times: 0,
-                min_delay_millis: 0,
+                min_delay_millis: RETRY_MIN_DELAY_MILLIS,
+                factor: RETRY_FACTOR,
+                max_times: RETRY_MAX_TIMES,
+                max_delay_seconds: RETRY_MAX_DELAY_SECONDS,
             },
         )
         .map_err(|e| DbError::ConnectError(e.to_string()))?;

@@ -18,7 +18,6 @@ enum Operation {
 }
 
 /// A single DB node: connection pool plus shared health flags (used to prioritize nodes).
-
 #[derive(Debug)]
 struct DbNode {
     pool: Pool<Postgres>,
@@ -128,16 +127,41 @@ impl DbOrchestartor {
 
                     tracing::warn!(attempt = attempts, delay_milis = delay.as_millis(), error = ?err, "retrying after backoff");
                     tokio::time::sleep(delay).await;
-                    delay = self.backoff_delay(delay);
+                    delay = self.next_backoff_delay(delay);
                     attempts += 1;
                 }
             }
         }
     }
 
-    fn backoff_delay(&self, current: Duration) -> Duration {
-        let max = Duration::from_secs(self.retry_config.max_delay_seconds);
-        let scaled_secs = current.as_secs_f64() * f64::from(self.retry_config.factor);
+    // Exponential backoff with a hard cap.
+    //
+    // Each retry multiplies the previous delay by `retry_config.factor`,
+    // then clamps it to `max_delay_seconds`. This yields:
+    //
+    //   d_{n+1} = min(max, d_n * factor) => d_n = min(max, d_initial * factor^n)
+    //
+    // Example starting at 500ms with factor = 2.0 (no jitter):
+    //   retry 0: 0.5s
+    //   retry 1: 1.0s
+    //   retry 2: 2.0s
+    //   retry 3: 4.0s
+    //   retry 4: 8.0s
+    //   ...
+    // until the delay reaches `max_delay_seconds`, after which it stays at that max.
+    // see reference: https://en.wikipedia.org/wiki/Exponential_backoff
+    fn next_backoff_delay(&self, current_delay: Duration) -> Duration {
+        let max: Duration = Duration::from_secs(self.retry_config.max_delay_seconds);
+        // Defensive: factor should be >= 1.0 for backoff, we clamp it to avoid shrinking/NaN.
+        let factor = f64::from(self.retry_config.factor).max(1.0);
+
+        let scaled_secs = current_delay.as_secs_f64() * factor;
+        let scaled_secs = if scaled_secs.is_finite() {
+            scaled_secs
+        } else {
+            max.as_secs_f64()
+        };
+
         let scaled = Duration::from_secs_f64(scaled_secs);
         if scaled > max {
             max
