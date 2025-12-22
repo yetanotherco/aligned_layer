@@ -150,6 +150,7 @@ impl DbOrchestartor {
     //   ...
     // until the delay reaches `max_delay_seconds`, after which it stays at that max.
     // see reference: https://en.wikipedia.org/wiki/Exponential_backoff
+    // and here: https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/retry-backoff.html
     fn next_backoff_delay(&self, current_delay: Duration) -> Duration {
         let max: Duration = Duration::from_secs(self.retry_config.max_delay_seconds);
         // Defensive: factor should be >= 1.0 for backoff, we clamp it to avoid shrinking/NaN.
