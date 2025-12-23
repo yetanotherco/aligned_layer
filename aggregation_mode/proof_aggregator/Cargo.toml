@@ -21,7 +21,6 @@ reqwest = { version = "0.12" }
 ciborium = "=0.2.2"
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
 rayon = "1.10.0"
-backon = "1.2.0"
 sqlx = { version = "0.8", features = [ "runtime-tokio", "postgres", "uuid", "bigdecimal" ] }
 
 # zkvms

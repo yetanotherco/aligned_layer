@@ -1,5 +1,3 @@
-use backon::ExponentialBuilder;
-use backon::Retryable;
 use std::future::Future;
 use std::time::Duration;
 
@@ -29,28 +27,58 @@ impl<E> RetryError<E> {
 
 impl<E: std::fmt::Display> std::error::Error for RetryError<E> where E: std::fmt::Debug {}
 
-/// Supports retries only on async functions. See: https://docs.rs/backon/latest/backon/#retry-an-async-function
-/// Runs with `jitter: false`.
 pub async fn retry_function<FutureFn, Fut, T, E>(
-    function: FutureFn,
-    min_delay: u64,
+    mut function: FutureFn,
+    min_delay_ms: u64,
     factor: f32,
     max_times: usize,
-    max_delay: u64,
+    max_delay_seconds: u64,
 ) -> Result<T, RetryError<E>>
 where
     Fut: Future<Output = Result<T, RetryError<E>>>,
     FutureFn: FnMut() -> Fut,
 {
-    let backoff = ExponentialBuilder::default()
-        .with_min_delay(Duration::from_millis(min_delay))
-        .with_max_times(max_times)
-        .with_factor(factor)
-        .with_max_delay(Duration::from_secs(max_delay));
+    let mut delay = Duration::from_millis(min_delay_ms);
 
-    function
-        .retry(backoff)
-        .sleep(tokio::time::sleep)
-        .when(|e| matches!(e, RetryError::Transient(_)))
-        .await
+    let factor = (factor as f64).max(1.0);
+
+    let mut attempt: usize = 0;
+
+    loop {
+        match function().await {
+            Ok(v) => return Ok(v),
+            Err(RetryError::Permanent(e)) => return Err(RetryError::Permanent(e)),
+            Err(RetryError::Transient(e)) => {
+                if attempt >= max_times {
+                    return Err(RetryError::Transient(e));
+                }
+
+                tokio::time::sleep(delay).await;
+
+                delay = next_backoff_delay(delay, max_delay_seconds, factor);
+
+                attempt += 1;
+            }
+        }
+    }
+}
+
+/// TODO: Replace with the one in aggregation_mode/db/src/orchestrator.rs, or use a common method.
+fn next_backoff_delay(current_delay: Duration, max_delay_seconds: u64, factor: f64) -> Duration {
+    let max: Duration = Duration::from_secs(max_delay_seconds);
+    // Defensive: factor should be >= 1.0 for backoff, we clamp it to avoid shrinking/NaN.
+
+    let scaled_secs = current_delay.as_secs_f64() * factor;
+    let scaled_secs = if scaled_secs.is_finite() {
+        scaled_secs
+    } else {
+        max.as_secs_f64()
+    };
+
+    let scaled = Duration::from_secs_f64(scaled_secs);
+    if scaled > max {
+        max
+    } else {
+        scaled
+    }
 }
