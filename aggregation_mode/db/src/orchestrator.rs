@@ -9,7 +9,7 @@ use std::{
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-use crate::retry::{RetryConfig, RetryError};
+use crate::retry::{next_backoff_delay, RetryConfig, RetryError};
 
 #[derive(Debug, Clone, Copy)]
 enum Operation {
@@ -127,44 +127,11 @@ impl DbOrchestrator {
 
                     tracing::warn!(attempt = attempts, delay_millis = delay.as_millis(), error = ?err, "retrying after backoff");
                     tokio::time::sleep(delay).await;
-                    delay = self.next_backoff_delay(delay);
+                    delay = next_backoff_delay(delay, self.retry_config.clone());
                     attempts += 1;
                 }
             }
         }
-    }
-
-    // Exponential backoff with a hard cap.
-    //
-    // Each retry multiplies the previous delay by `retry_config.factor`,
-    // then clamps it to `max_delay_seconds`. This yields:
-    //
-    //   d_{n+1} = min(max, d_n * factor) => d_n = min(max, d_initial * factor^n)
-    //
-    // Example starting at 500ms with factor = 2.0 (no jitter):
-    //   retry 0: 0.5s
-    //   retry 1: 1.0s
-    //   retry 2: 2.0s
-    //   retry 3: 4.0s
-    //   retry 4: 8.0s
-    //   ...
-    // until the delay reaches `max_delay_seconds`, after which it stays at that max.
-    // see reference: https://en.wikipedia.org/wiki/Exponential_backoff
-    // and here: https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/retry-backoff.html
-    fn next_backoff_delay(&self, current_delay: Duration) -> Duration {
-        let max: Duration = Duration::from_secs(self.retry_config.max_delay_seconds);
-        // Defensive: factor should be >= 1.0 for backoff, we clamp it to avoid shrinking/NaN.
-        let factor = f64::from(self.retry_config.factor).max(1.0);
-
-        let scaled_secs = current_delay.as_secs_f64() * factor;
-        let scaled_secs = if scaled_secs.is_finite() {
-            scaled_secs
-        } else {
-            max.as_secs_f64()
-        };
-
-        let scaled = Duration::from_secs_f64(scaled_secs);
-        scaled.max(max)
     }
 
     async fn execute_once<T, Q, Fut>(
