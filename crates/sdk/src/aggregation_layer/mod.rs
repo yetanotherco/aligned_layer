@@ -18,6 +18,7 @@ use helpers::{fetch_verified_proofs_events, get_blob_data_from_verified_proof_ev
 use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
 use types::Hash32;
 
+#[derive(Debug, Clone)]
 pub enum ProofStatus {
     Verified {
         merkle_root: [u8; 32],
