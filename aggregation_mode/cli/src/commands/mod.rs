@@ -1,8 +1,8 @@
-use crate::commands::{payment::SendPaymentArgs, submit::SubmitCommand, verify::VerifyOnChainArgs};
+use crate::commands::{deposit::SendPaymentArgs, submit::SubmitCommand, verify::VerifyOnChainArgs};
 use clap::{Parser, Subcommand};
 
 mod helpers;
-pub mod payment;
+pub mod deposit;
 pub mod submit;
 pub mod verify;
 
