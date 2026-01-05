@@ -121,7 +121,7 @@ impl DbOrchestrator {
                 Ok(value) => return Ok(value),
                 Err(RetryError::Permanent(err)) => return Err(err),
                 Err(RetryError::Transient(err)) => {
-                    if attempts >= self.retry_config.max_delay_seconds {
+                    if attempts >= self.retry_config.max_times {
                         return Err(err);
                     }
 
@@ -164,11 +164,7 @@ impl DbOrchestrator {
         };
 
         let scaled = Duration::from_secs_f64(scaled_secs);
-        if scaled > max {
-            max
-        } else {
-            scaled
-        }
+        scaled.max(max)
     }
 
     async fn execute_once<T, Q, Fut>(
