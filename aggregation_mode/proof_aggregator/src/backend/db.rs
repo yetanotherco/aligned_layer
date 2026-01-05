@@ -60,7 +60,7 @@ impl Db {
         limit: i64,
     ) -> Result<Vec<Task>, DbError> {
         self.orchestrator
-            .write(async |pool| {
+            .query(async |pool| {
                 sqlx::query_as::<_, Task>(
                     "WITH selected AS (
                         SELECT task_id
@@ -91,7 +91,7 @@ impl Db {
         let updates_ref = &updates;
 
         self.orchestrator
-            .write(|pool| {
+            .query(|pool| {
                 let updates = updates_ref;
                 async move {
                     let mut tx = pool.begin().await?;

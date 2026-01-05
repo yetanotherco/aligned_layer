@@ -62,7 +62,7 @@ impl Db {
         tx_hash: &str,
     ) -> Result<(), sqlx::Error> {
         self.orchestrator
-            .write(async |pool| {
+            .query(async |pool| {
                 sqlx::query(
                     "INSERT INTO payment_events (address, started_at, amount, valid_until, tx_hash)
                 VALUES ($1, $2, $3, $4, $5)

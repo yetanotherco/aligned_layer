@@ -1,11 +1,4 @@
-use std::{
-    future::Future,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Duration,
-};
+use std::{future::Future, sync::Arc, time::Duration};
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -21,8 +14,6 @@ enum Operation {
 #[derive(Debug)]
 struct DbNode {
     pool: Pool<Postgres>,
-    last_read_failed: AtomicBool,
-    last_write_failed: AtomicBool,
 }
 
 /// Database orchestrator for running reads/writes across multiple PostgreSQL nodes with retry/backoff.
@@ -77,11 +68,7 @@ impl DbOrchestrator {
             .map(|url| {
                 let pool = PgPoolOptions::new().max_connections(5).connect_lazy(url)?;
 
-                Ok(Arc::new(DbNode {
-                    pool,
-                    last_read_failed: AtomicBool::new(false),
-                    last_write_failed: AtomicBool::new(false),
-                }))
+                Ok(Arc::new(DbNode { pool }))
             })
             .collect::<Result<Vec<_>, sqlx::Error>>()
             .map_err(DbOrchestratorError::Sqlx)?;
@@ -92,23 +79,7 @@ impl DbOrchestrator {
         })
     }
 
-    pub async fn write<T, Q, Fut>(&self, query: Q) -> Result<T, sqlx::Error>
-    where
-        Q: Fn(Pool<Postgres>) -> Fut,
-        Fut: Future<Output = Result<T, sqlx::Error>>,
-    {
-        self.query::<T, Q, Fut>(query, Operation::Write).await
-    }
-
-    pub async fn read<T, Q, Fut>(&self, query: Q) -> Result<T, sqlx::Error>
-    where
-        Q: Fn(Pool<Postgres>) -> Fut,
-        Fut: Future<Output = Result<T, sqlx::Error>>,
-    {
-        self.query::<T, Q, Fut>(query, Operation::Read).await
-    }
-
-    async fn query<T, Q, Fut>(&self, query_fn: Q, operation: Operation) -> Result<T, sqlx::Error>
+    pub async fn query<T, Q, Fut>(&self, query_fn: Q) -> Result<T, sqlx::Error>
     where
         Q: Fn(Pool<Postgres>) -> Fut,
         Fut: Future<Output = Result<T, sqlx::Error>>,
@@ -117,7 +88,7 @@ impl DbOrchestrator {
         let mut delay = Duration::from_millis(self.retry_config.min_delay_millis);
 
         loop {
-            match self.execute_once(&query_fn, operation).await {
+            match self.execute_once(&query_fn).await {
                 Ok(value) => return Ok(value),
                 Err(RetryError::Permanent(err)) => return Err(err),
                 Err(RetryError::Transient(err)) => {
@@ -134,38 +105,23 @@ impl DbOrchestrator {
         }
     }
 
-    async fn execute_once<T, Q, Fut>(
-        &self,
-        query_fn: &Q,
-        operation: Operation,
-    ) -> Result<T, RetryError<sqlx::Error>>
+    async fn execute_once<T, Q, Fut>(&self, query_fn: &Q) -> Result<T, RetryError<sqlx::Error>>
     where
         Q: Fn(Pool<Postgres>) -> Fut,
         Fut: Future<Output = Result<T, sqlx::Error>>,
     {
         let mut last_error = None;
 
-        for idx in self.preferred_order(operation) {
-            let node = &self.nodes[idx];
+        for (idx, node) in self.nodes.iter().enumerate() {
             let pool = node.pool.clone();
 
             match query_fn(pool).await {
                 Ok(res) => {
-                    match operation {
-                        Operation::Read => node.last_read_failed.store(false, Ordering::Relaxed),
-                        Operation::Write => node.last_write_failed.store(false, Ordering::Relaxed),
-                    };
                     return Ok(res);
                 }
                 Err(err) => {
                     if Self::is_connection_error(&err) {
                         tracing::warn!(node_index = idx, error = ?err, "database query failed");
-                        match operation {
-                            Operation::Read => node.last_read_failed.store(true, Ordering::Relaxed),
-                            Operation::Write => {
-                                node.last_write_failed.store(true, Ordering::Relaxed)
-                            }
-                        };
                         last_error = Some(err);
                     } else {
                         return Err(RetryError::Permanent(err));
@@ -177,27 +133,6 @@ impl DbOrchestrator {
         Err(RetryError::Transient(
             last_error.expect("write_op attempted without database nodes"),
         ))
-    }
-
-    fn preferred_order(&self, operation: Operation) -> Vec<usize> {
-        let mut preferred = Vec::with_capacity(self.nodes.len());
-        let mut fallback = Vec::new();
-
-        for (idx, node) in self.nodes.iter().enumerate() {
-            let failed = match operation {
-                Operation::Read => node.last_read_failed.load(Ordering::Relaxed),
-                Operation::Write => node.last_write_failed.load(Ordering::Relaxed),
-            };
-
-            if failed {
-                fallback.push(idx);
-            } else {
-                preferred.push(idx);
-            }
-        }
-
-        preferred.extend(fallback);
-        preferred
     }
 
     fn is_connection_error(error: &sqlx::Error) -> bool {

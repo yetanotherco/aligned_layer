@@ -60,7 +60,7 @@ impl Db {
 
     pub async fn count_tasks_by_address(&self, address: &str) -> Result<i64, sqlx::Error> {
         self.orchestrator
-            .read(async |pool| {
+            .query(async |pool| {
                 let (count,) =
                     sqlx::query_as::<_, (i64,)>("SELECT COUNT(*) FROM tasks WHERE address = $1")
                         .bind(address.to_lowercase())
@@ -77,7 +77,7 @@ impl Db {
         task_id: Uuid,
     ) -> Result<Option<Vec<u8>>, sqlx::Error> {
         self.orchestrator
-            .read(async |pool| {
+            .query(async |pool| {
                 sqlx::query_scalar::<_, Option<Vec<u8>>>(
                     "SELECT merkle_path FROM tasks WHERE task_id = $1",
                 )
@@ -95,7 +95,7 @@ impl Db {
         nonce: i64,
     ) -> Result<Vec<Receipt>, sqlx::Error> {
         self.orchestrator
-            .read(async |pool| {
+            .query(async |pool| {
                 sqlx::query_as::<_, Receipt>(
                     "SELECT status,merkle_path,nonce,address FROM tasks
                     WHERE address = $1
@@ -116,7 +116,7 @@ impl Db {
         limit: i64,
     ) -> Result<Vec<Receipt>, sqlx::Error> {
         self.orchestrator
-            .read(async |pool| {
+            .query(async |pool| {
                 sqlx::query_as::<_, Receipt>(
                     "SELECT status,merkle_path,nonce,address FROM tasks
                     WHERE address = $1
@@ -133,7 +133,7 @@ impl Db {
 
     pub async fn get_daily_tasks_by_address(&self, address: &str) -> Result<i64, sqlx::Error> {
         self.orchestrator
-            .read(async |pool| {
+            .query(async |pool| {
                 sqlx::query_scalar::<_, i64>(
                     "SELECT COUNT(*)
                 FROM tasks
@@ -157,7 +157,7 @@ impl Db {
         nonce: i64,
     ) -> Result<Uuid, sqlx::Error> {
         self.orchestrator
-            .write(async |pool| {
+            .query(async |pool| {
                 sqlx::query_scalar::<_, Uuid>(
                     "INSERT INTO tasks (
                         address,
@@ -187,7 +187,7 @@ impl Db {
         epoch: BigDecimal,
     ) -> Result<bool, sqlx::Error> {
         self.orchestrator
-            .read(async |pool| {
+            .query(async |pool| {
                 sqlx::query_scalar::<_, bool>(
                     "SELECT EXISTS (
                     SELECT 1 FROM payment_events
