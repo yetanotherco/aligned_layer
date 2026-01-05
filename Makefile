@@ -335,6 +335,11 @@ agg_mode_gateway_send_payment:
 		0x922D6956C99E12DFeB3224DEA977D0939758A1Fe \
 		--private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 
+agg_mode_gateway_send_sp1_proof:
+	@cargo run --manifest-path aggregation_mode/cli/Cargo.toml -- submit sp1 \
+		--proof scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vk scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin \
+		--private-key "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 
 agg_mode_install_cli: ## Install the aggregation mode CLI
 	@cargo install --path aggregation_mode/cli
