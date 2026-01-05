@@ -319,9 +319,11 @@ agg_mode_payments_poller_start_ethereum_package: agg_mode_run_migrations
 
 AGG_MODE_SENDER ?= 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 agg_mode_gateway_send_payment:
-	@cast send --value 1ether \
-		0x922D6956C99E12DFeB3224DEA977D0939758A1Fe \
-		--private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+	@cd aggregation_mode/cli && \
+	cargo run --release -- deposit \
+	 --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d \
+	 --network devnet \
+	 --rpc-url http://localhost:8545
 
 
 agg_mode_install_cli: ## Install the aggregation mode CLI

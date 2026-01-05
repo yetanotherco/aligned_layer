@@ -15,5 +15,6 @@ async fn main() {
             SubmitCommand::SP1(args) => commands::submit::run(args).await,
         },
         Command::VerifyOnChain(args) => commands::verify::run(args).await,
+        Command::Deposit(args) => commands::payment::run(args).await,
     };
 }
