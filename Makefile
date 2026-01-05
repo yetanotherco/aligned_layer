@@ -277,27 +277,15 @@ proof_aggregator_start_gpu_ethereum_package: is_aggregator_set reset_last_aggreg
 
 verify_aggregated_proof_sp1: 
 	@echo "Verifying SP1 in aggregated proofs on $(NETWORK)..."
-	@cd crates/cli/ && \
-	cargo run verify-agg-proof \
+	@cd aggregation_mode/cli/ && \
+	cargo run verify-on-chain \
 		--network $(NETWORK) \
+		--beacon-url $(BEACON_URL) \
+		--rpc-url $(RPC_URL) \
 		--from-block $(FROM_BLOCK) \
-		--proving_system SP1 \
-		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
-		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
-		--beacon_url $(BEACON_URL) \
-		--rpc_url $(RPC_URL)
-
-verify_aggregated_proof_risc0: 
-	@echo "Verifying RISC0 in aggregated proofs on $(NETWORK)..."
-	@cd crates/cli/ && \
-	cargo run verify-agg-proof \
-		--network $(NETWORK) \
-		--from-block $(FROM_BLOCK) \
-		--proving_system Risc0 \
-		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
-		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
-		--beacon_url $(BEACON_URL) \
-		--rpc_url $(RPC_URL)
+		--proving-system SP1 \
+		--vk ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
+		--public-input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator_gpu --locked
