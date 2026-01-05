@@ -63,7 +63,7 @@ mod tests {
             gas_price,                            // 1 Gwei gas price
         ));
 
-        // Case 2: Slightly Increased Gas Price -> should return false
+        // Case 2: Slightly Increased Gas Price -> should return true
         // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
         // Elapsed Time: 24 hours
         // Gas Price: 8 Gwei
@@ -91,7 +91,7 @@ mod tests {
 
         // Case 4: Slightly Reduced Time Elapsed -> should return true
         // Monthly Budget: 0.15 ETH -> 0.005 ETH per day -> 0.000000058 ETH per hour
-        // Elapsed Time: 2 hours
+        // Elapsed Time: 3 hours
         // Gas Price: 1 Gwei
         // Max to spend: 0.000000058 ETH/hour * 3 hours = 0.000625 ETH
         // Expected cost: 600,000 * 1 Gwei = 0.0006 ETH
