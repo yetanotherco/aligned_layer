@@ -125,7 +125,7 @@ impl DbOrchestartor {
                         return Err(err);
                     }
 
-                    tracing::warn!(attempt = attempts, delay_milis = delay.as_millis(), error = ?err, "retrying after backoff");
+                    tracing::warn!(attempt = attempts, delay_millis = delay.as_millis(), error = ?err, "retrying after backoff");
                     tokio::time::sleep(delay).await;
                     delay = self.next_backoff_delay(delay);
                     attempts += 1;
