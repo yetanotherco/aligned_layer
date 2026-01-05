@@ -8,8 +8,7 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
-use agg_mode_sdk::types::Network;
-use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use agg_mode_sdk::{blockchain::AggregationModeProvingSystem, types::Network};
 use alloy::signers::Signature;
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 use sqlx::types::BigDecimal;
