@@ -59,5 +59,5 @@ pub fn next_backoff_delay(current_delay: Duration, retry_config: RetryConfig) ->
     };
 
     let scaled = Duration::from_secs_f64(scaled_secs);
-    scaled.max(max)
+    scaled.min(max)
 }
