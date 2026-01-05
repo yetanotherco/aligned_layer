@@ -9,20 +9,8 @@ pub fn parse_network(value: &str) -> Result<Network, String> {
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum ProvingSystemArg {
-    #[clap(name = "GnarkPlonkBls12_381")]
-    GnarkPlonkBls12_381,
-    #[clap(name = "GnarkPlonkBn254")]
-    GnarkPlonkBn254,
-    #[clap(name = "GnarkGroth16Bn254")]
-    GnarkGroth16Bn254,
     #[clap(name = "SP1")]
     SP1,
     #[clap(name = "Risc0")]
     Risc0,
-    #[clap(name = "CircomGroth16Bn256")]
-    CircomGroth16Bn256,
-    #[clap(name = "Mina")]
-    Mina,
-    #[clap(name = "MinaAccount")]
-    MinaAccount,
 }
