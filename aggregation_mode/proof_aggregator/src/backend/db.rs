@@ -1,4 +1,4 @@
-use db::{orchestrator::DbOrchestartor, retry::RetryConfig, types::Task};
+use db::{orchestrator::DbOrchestrator, retry::RetryConfig, types::Task};
 use sqlx::types::Uuid;
 
 // Retry/backoff behavior summary (see
@@ -29,7 +29,7 @@ const RETRY_MAX_DELAY_SECONDS: u64 = 30;
 
 #[derive(Debug, Clone)]
 pub struct Db {
-    orchestrator: DbOrchestartor,
+    orchestrator: DbOrchestrator,
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ pub enum DbError {
 
 impl Db {
     pub async fn try_new(connection_urls: &[String]) -> Result<Self, DbError> {
-        let orchestrator = DbOrchestartor::try_new(
+        let orchestrator = DbOrchestrator::try_new(
             connection_urls,
             RetryConfig {
                 min_delay_millis: RETRY_MIN_DELAY_MILLIS,

@@ -27,7 +27,7 @@ struct DbNode {
 
 /// Database orchestrator for running reads/writes across multiple PostgreSQL nodes with retry/backoff.
 ///
-/// `DbOrchestartor` holds a list of database nodes (connection pools) and will:
+/// `DbOrchestrator` holds a list of database nodes (connection pools) and will:
 /// - try nodes in a preferred order (healthy nodes first, then recently-failed nodes),
 /// - mark nodes as failed on connection-type errors,
 /// - retry transient failures with exponential backoff based on `retry_config`,
@@ -41,18 +41,18 @@ struct DbNode {
 /// Clones share health state (the atomics) and the underlying pools, so all clones observe and influence
 /// the same “preferred node” ordering decisions.
 #[derive(Debug, Clone)]
-pub struct DbOrchestartor {
+pub struct DbOrchestrator {
     nodes: Vec<Arc<DbNode>>,
     retry_config: RetryConfig,
 }
 
 #[derive(Debug)]
-pub enum DbOrchestartorError {
+pub enum DbOrchestratorError {
     InvalidNumberOfConnectionUrls,
     Sqlx(sqlx::Error),
 }
 
-impl std::fmt::Display for DbOrchestartorError {
+impl std::fmt::Display for DbOrchestratorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidNumberOfConnectionUrls => {
@@ -63,13 +63,13 @@ impl std::fmt::Display for DbOrchestartorError {
     }
 }
 
-impl DbOrchestartor {
+impl DbOrchestrator {
     pub fn try_new(
         connection_urls: &[String],
         retry_config: RetryConfig,
-    ) -> Result<Self, DbOrchestartorError> {
+    ) -> Result<Self, DbOrchestratorError> {
         if connection_urls.is_empty() {
-            return Err(DbOrchestartorError::InvalidNumberOfConnectionUrls);
+            return Err(DbOrchestratorError::InvalidNumberOfConnectionUrls);
         }
 
         let nodes = connection_urls
@@ -84,7 +84,7 @@ impl DbOrchestartor {
                 }))
             })
             .collect::<Result<Vec<_>, sqlx::Error>>()
-            .map_err(DbOrchestartorError::Sqlx)?;
+            .map_err(DbOrchestratorError::Sqlx)?;
 
         Ok(Self {
             nodes,

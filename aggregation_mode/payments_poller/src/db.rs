@@ -1,4 +1,4 @@
-use db::{orchestrator::DbOrchestartor, retry::RetryConfig};
+use db::{orchestrator::DbOrchestrator, retry::RetryConfig};
 use sqlx::types::BigDecimal;
 
 // Retry/backoff behavior summary for DB queries (see
@@ -29,7 +29,7 @@ const RETRY_MAX_DELAY_SECONDS: u64 = 30;
 
 #[derive(Clone, Debug)]
 pub struct Db {
-    orchestartor: DbOrchestartor,
+    orchestrator: DbOrchestrator,
 }
 
 #[derive(Debug, Clone)]
@@ -39,7 +39,7 @@ pub enum DbError {
 
 impl Db {
     pub async fn try_new(connection_urls: &[String]) -> Result<Self, DbError> {
-        let orchestartor = DbOrchestartor::try_new(
+        let orchestrator = DbOrchestrator::try_new(
             connection_urls,
             RetryConfig {
                 min_delay_millis: RETRY_MIN_DELAY_MILLIS,
@@ -50,7 +50,7 @@ impl Db {
         )
         .map_err(|e| DbError::ConnectError(e.to_string()))?;
 
-        Ok(Self { orchestartor })
+        Ok(Self { orchestrator })
     }
 
     pub async fn insert_payment_event(
@@ -61,7 +61,7 @@ impl Db {
         valid_until: &BigDecimal,
         tx_hash: &str,
     ) -> Result<(), sqlx::Error> {
-        self.orchestartor
+        self.orchestrator
             .write(async |pool| {
                 sqlx::query(
                     "INSERT INTO payment_events (address, started_at, amount, valid_until, tx_hash)
