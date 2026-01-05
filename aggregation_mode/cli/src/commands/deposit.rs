@@ -24,7 +24,10 @@ pub struct SendPaymentArgs {
 }
 
 pub async fn run(args: SendPaymentArgs) {
-    tracing::info!("Sending payment to aggregation mode payment service on {:?}", args.network);
+    tracing::info!(
+        "Sending payment to aggregation mode payment service on {:?}",
+        args.network
+    );
 
     let signer = match LocalSigner::from_str(args.private_key.trim()) {
         Ok(s) => s,
@@ -37,9 +40,7 @@ pub async fn run(args: SendPaymentArgs) {
     let wallet = EthereumWallet::from(signer.clone());
 
     let rpc_url = args.rpc_url.parse().expect("Invalid RPC URL");
-    let provider = ProviderBuilder::new()
-        .wallet(wallet)
-        .connect_http(rpc_url);
+    let provider = ProviderBuilder::new().wallet(wallet).connect_http(rpc_url);
 
     let payment_service_address_str = args.network.aggregation_mode_payment_service_address();
     let payment_service_address = match payment_service_address_str.parse::<Address>() {
