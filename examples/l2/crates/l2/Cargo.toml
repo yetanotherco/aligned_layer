@@ -14,7 +14,7 @@ tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
 rand = "0.8"
 sp1-sdk = "5.0.0"
 sp1_state_transition_program = { path = "./zkvm_programs/sp1" }
-aligned-sdk = { path = "../../../../crates/sdk" }
+agg_mode_sdk = { path = "../../../../aggregation_mode/sdk" }
 bincode = "1.3.3"
 futures-util = "0.3"
 tokio = "1.44"

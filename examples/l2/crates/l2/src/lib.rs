@@ -1,4 +1,3 @@
-mod aligned;
 pub mod config;
 mod db;
 mod eth;

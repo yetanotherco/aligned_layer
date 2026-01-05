@@ -1,6 +1,6 @@
 use std::env;
 
-use aligned_sdk::common::types::Network;
+use agg_mode_sdk::types::Network;
 use dotenv::dotenv;
 use l2::config::Config;
 
@@ -8,11 +8,9 @@ pub fn load_config() -> Config {
     dotenv().ok();
 
     let network = match env::var("NETWORK").expect("NETWORK not set").as_str() {
-        "holesky" => Network::Holesky,
-        "holesky-stage" => Network::HoleskyStage,
         "devnet" => Network::Devnet,
         "hoodi" => Network::Hoodi,
-        _ => panic!("Invalid network, possible values are: holesky, holesky-stage, hoodi, devnet"),
+        _ => panic!("Invalid network, possible values are: hoodi, devnet"),
     };
 
     let config = Config {

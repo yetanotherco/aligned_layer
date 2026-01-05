@@ -1,5 +1,7 @@
+use agg_mode_sdk::types::Network;
+
 pub struct Config {
-    pub network: aligned_sdk::common::types::Network,
+    pub network: Network,
     pub eth_rpc_url: String,
     pub ws_eth_rpc_url: String,
     pub beacon_client_url: String,
