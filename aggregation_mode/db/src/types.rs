@@ -1,10 +1,13 @@
 use sqlx::{
     prelude::FromRow,
-    types::{BigDecimal, Uuid},
+    types::{
+        chrono::{DateTime, Utc},
+        BigDecimal, Uuid,
+    },
     Type,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Type, serde::Serialize)]
 #[sqlx(type_name = "task_status", rename_all = "lowercase")]
 pub enum TaskStatus {
     Pending,
@@ -21,6 +24,7 @@ pub struct Task {
     pub program_commitment: Vec<u8>,
     pub merkle_path: Option<Vec<u8>>,
     pub status: TaskStatus,
+    pub status_updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, FromRow)]

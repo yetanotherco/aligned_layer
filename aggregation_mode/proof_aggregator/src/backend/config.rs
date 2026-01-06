@@ -20,7 +20,7 @@ pub struct Config {
     pub risc0_chunk_aggregator_image_id: String,
     pub sp1_chunk_aggregator_vk_hash: String,
     pub monthly_budget_eth: f64,
-    pub db_connection_url: String,
+    pub db_connection_urls: Vec<String>,
 }
 
 impl Config {
