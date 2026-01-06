@@ -30,6 +30,13 @@ async fn main() {
         .await
         .expect("db to start");
 
-    let payment_poller = PaymentsPoller::new(db, config);
-    payment_poller.start().await;
+    let payments_poller = match PaymentsPoller::new(db, config) {
+        Ok(poller) => poller,
+        Err(err) => {
+            tracing::error!("Failed to create Payments Poller: {err:?}");
+            return;
+        }
+    };
+
+    payments_poller.start().await;
 }

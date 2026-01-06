@@ -2,8 +2,8 @@ defmodule AlignedProofAggregationService do
   require Logger
 
   @aligned_config_file System.get_env("ALIGNED_PROOF_AGG_CONFIG_FILE")
-  @verifyRisc0_solidity_signature "0x0769eb53"
-  @verifySp1_solidity_signature "0x96f7966f"
+  @verifyRisc0_solidity_signature "0xbe96ce93"
+  @verifySp1_solidity_signature "0x39ad96d9"
 
   config_file_path =
     case @aligned_config_file do
