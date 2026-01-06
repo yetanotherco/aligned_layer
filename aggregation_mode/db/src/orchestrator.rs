@@ -4,12 +4,6 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use crate::retry::{next_backoff_delay, RetryConfig, RetryError};
 
-#[derive(Debug, Clone, Copy)]
-enum Operation {
-    Read,
-    Write,
-}
-
 /// A single DB node: connection pool plus shared health flags (used to prioritize nodes).
 #[derive(Debug)]
 struct DbNode {
