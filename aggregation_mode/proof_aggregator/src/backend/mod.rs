@@ -326,8 +326,7 @@ impl ProofAggregator {
     }
 
     async fn wait_until_can_submit_aggregated_proof(
-        proof_aggregation_service: AlignedProofAggregationServiceContract,
-        monthly_budget_eth: f64,
+        &self,
     ) -> Result<(), RetryError<AggregatedProofSubmissionError>> {
         info!("Started waiting until we can submit the aggregated proof.");
 
@@ -341,7 +340,8 @@ impl ProofAggregator {
         // Iterate until we can send the proof on-chain
         loop {
             // Fetch gas price from network
-            let gas_price = proof_aggregation_service
+            let gas_price = self
+                .proof_aggregation_service
                 .provider()
                 .get_gas_price()
                 .await
@@ -355,7 +355,7 @@ impl ProofAggregator {
 
             if eth::should_send_proof_to_verify_on_chain(
                 time_elapsed,
-                monthly_budget_eth,
+                self.config.monthly_budget_eth,
                 U256::from(gas_price),
             ) {
                 break;
@@ -376,11 +376,7 @@ impl ProofAggregator {
         blob_versioned_hash: [u8; 32],
         aggregated_proof: &AlignedProof,
     ) -> Result<TransactionReceipt, RetryError<AggregatedProofSubmissionError>> {
-        Self::wait_until_can_submit_aggregated_proof(
-            self.proof_aggregation_service.clone(),
-            self.config.monthly_budget_eth,
-        )
-        .await?;
+        self.wait_until_can_submit_aggregated_proof().await?;
 
         info!("Sending proof to ProofAggregationService contract...");
 
