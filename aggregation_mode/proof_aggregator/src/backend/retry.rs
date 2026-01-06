@@ -132,9 +132,5 @@ fn next_backoff_delay(current_delay: Duration, max_delay_seconds: u64, factor: f
     };
 
     let scaled = Duration::from_secs_f64(scaled_secs);
-    if scaled > max {
-        max
-    } else {
-        scaled
-    }
+    scaled.min(max)
 }
