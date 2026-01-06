@@ -8,7 +8,7 @@ use std::time::Duration;
 /// Backoff algorithm:
 /// - Starts with `delay = ETHEREUM_CALL_MIN_RETRY_DELAY`
 /// - After each transient failure, sleeps for `delay` and then updates it following the next formula:
-///     delay = min(delay * ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRY_DELAY)
+///   delay = min(delay * ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRY_DELAY)
 /// - Stops retrying when the number of attempts exceed the `ETHEREUM_CALL_MAX_RETRIES` constant
 ///
 /// About the retries limit: In the current implementation `attempt` starts at 0 and we stop when
@@ -34,7 +34,7 @@ use std::time::Duration;
 ///   0.5 + 1 + 2 + 4 + 8 + 16 + 32 + 60 + 60 + 60 + 60
 /// = 303.5 seconds (~5m 3.5s),
 /// plus the execution time of each Ethereum call attempt.
-
+///
 /// Minimum delay value (the one on first iteration)
 pub const ETHEREUM_CALL_MIN_RETRY_DELAY: u64 = 500; // milliseconds
 
