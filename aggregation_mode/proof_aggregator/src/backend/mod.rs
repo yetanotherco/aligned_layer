@@ -325,51 +325,6 @@ impl ProofAggregator {
         Ok((blob, blob_versioned_hash))
     }
 
-    async fn wait_until_can_submit_aggregated_proof(
-        &self,
-    ) -> Result<(), RetryError<AggregatedProofSubmissionError>> {
-        info!("Started waiting until we can submit the aggregated proof.");
-
-        // We start on 24 hours because the proof aggregator runs once a day, so the time elapsed
-        // should be considered over a 24h period.
-        let mut time_elapsed = Duration::from_secs(24 * 3600);
-
-        // Sleep for 3 minutes (15 blocks) before re-evaluating on each iteration
-        let time_to_sleep = Duration::from_secs(180);
-
-        // Iterate until we can send the proof on-chain
-        loop {
-            // Fetch gas price from network
-            let gas_price = self
-                .proof_aggregation_service
-                .provider()
-                .get_gas_price()
-                .await
-                .map_err(|e| {
-                    RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(
-                        e.to_string(),
-                    ))
-                })?;
-
-            info!("Fetched gas price from network: {gas_price}");
-
-            if eth::should_send_proof_to_verify_on_chain(
-                time_elapsed,
-                self.config.monthly_budget_eth,
-                U256::from(gas_price),
-            ) {
-                break;
-            } else {
-                info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
-            }
-
-            time_elapsed += time_to_sleep;
-            sleep(time_to_sleep).await;
-        }
-
-        Ok(())
-    }
-
     pub async fn wait_and_send_proof_to_verify_on_chain(
         &self,
         blob: BlobTransactionSidecar,
@@ -464,5 +419,50 @@ impl ProofAggregator {
             .map_err(RetryError::Transient)?;
 
         Ok(receipt)
+    }
+
+    async fn wait_until_can_submit_aggregated_proof(
+        &self,
+    ) -> Result<(), RetryError<AggregatedProofSubmissionError>> {
+        info!("Started waiting until we can submit the aggregated proof.");
+
+        // We start on 24 hours because the proof aggregator runs once a day, so the time elapsed
+        // should be considered over a 24h period.
+        let mut time_elapsed = Duration::from_secs(24 * 3600);
+
+        // Sleep for 3 minutes (15 blocks) before re-evaluating on each iteration
+        let time_to_sleep = Duration::from_secs(180);
+
+        // Iterate until we can send the proof on-chain
+        loop {
+            // Fetch gas price from network
+            let gas_price = self
+                .proof_aggregation_service
+                .provider()
+                .get_gas_price()
+                .await
+                .map_err(|e| {
+                    RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(
+                        e.to_string(),
+                    ))
+                })?;
+
+            info!("Fetched gas price from network: {gas_price}");
+
+            if eth::should_send_proof_to_verify_on_chain(
+                time_elapsed,
+                self.config.monthly_budget_eth,
+                U256::from(gas_price),
+            ) {
+                break;
+            } else {
+                info!("Skipping sending proof to ProofAggregationService contract due to budget/time constraints.");
+            }
+
+            time_elapsed += time_to_sleep;
+            sleep(time_to_sleep).await;
+        }
+
+        Ok(())
     }
 }
