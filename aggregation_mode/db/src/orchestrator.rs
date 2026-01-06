@@ -12,10 +12,8 @@ struct DbNode {
 
 /// Database orchestrator for running reads/writes across multiple PostgreSQL nodes with retry/backoff.
 ///
-/// `DbOrchestrator` holds a list of database nodes (connection pools) and will:
-/// - try nodes in a preferred order (healthy nodes first, then recently-failed nodes),
-/// - mark nodes as failed on connection-type errors,
-/// - retry transient failures with exponential backoff based on `retry_config`,
+/// `DbOrchestrator` holds a list of database nodes (connection pools) and will
+/// retry transient failures with exponential backoff based on `retry_config`,
 ///
 /// ## Thread-safe `Clone`
 /// This type is cheap and thread-safe to clone:
