@@ -24,7 +24,7 @@ pub struct Task {
     pub program_commitment: Vec<u8>,
     pub merkle_path: Option<Vec<u8>>,
     pub status: TaskStatus,
-    pub status_updated_at: Option<DateTime<Utc>>,
+    pub status_updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, FromRow)]
