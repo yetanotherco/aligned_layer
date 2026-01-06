@@ -40,6 +40,7 @@ where
 {
     let mut delay = Duration::from_millis(min_delay_ms);
 
+    // Defensive: ensure that factor is above 1.0 so backoff never shrinks or becomes invalid.
     let factor = (factor as f64).max(1.0);
 
     let mut attempt: usize = 0;
@@ -66,7 +67,6 @@ where
 /// TODO: Replace with the one in aggregation_mode/db/src/orchestrator.rs, or use a common method.
 fn next_backoff_delay(current_delay: Duration, max_delay_seconds: u64, factor: f64) -> Duration {
     let max: Duration = Duration::from_secs(max_delay_seconds);
-    // Defensive: factor should be >= 1.0 for backoff, we clamp it to avoid shrinking/NaN.
 
     let scaled_secs = current_delay.as_secs_f64() * factor;
     let scaled_secs = if scaled_secs.is_finite() {
