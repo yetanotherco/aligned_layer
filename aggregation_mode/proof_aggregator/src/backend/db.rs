@@ -54,8 +54,19 @@ impl Db {
         Ok(Self { orchestrator })
     }
 
-    pub async fn get_pending_tasks_and_mark_them_as_processing(
-        &mut self,
+    /// Fetches tasks that are ready to be processed and atomically updates their status.
+    ///
+    /// This function selects up to `limit` tasks for the given `proving_system_id` that are
+    /// either:
+    /// - in `pending` status, or
+    /// - in `processing` status but whose `status_updated_at` timestamp is older than 12 hours
+    ///   (to recover tasks that may have been abandoned or stalled).
+    ///
+    /// The selected rows are locked using `FOR UPDATE SKIP LOCKED` to ensure safe concurrent
+    /// processing by multiple workers. All selected tasks have their status set to
+    /// `processing` and their `status_updated_at` updated to `now()` before being returned.
+    pub async fn get_tasks_to_process_and_update_their_status(
+        &self,
         proving_system_id: i32,
         limit: i64,
     ) -> Result<Vec<Task>, DbError> {
@@ -63,17 +74,24 @@ impl Db {
             .query(async |pool| {
                 sqlx::query_as::<_, Task>(
                     "WITH selected AS (
-                        SELECT task_id
-                        FROM tasks
-                        WHERE proving_system_id = $1 AND status = 'pending'
-                        LIMIT $2
-                        FOR UPDATE SKIP LOCKED
-                    )
-                    UPDATE tasks t
-                    SET status = 'processing'
-                    FROM selected s
-                    WHERE t.task_id = s.task_id
-                    RETURNING t.*;",
+                    SELECT task_id
+                    FROM tasks
+                    WHERE proving_system_id = $1
+                      AND (
+                        status = 'pending'
+                        OR (
+                            status = 'processing'
+                            AND status_updated_at <= now() - interval '12 hours'
+                        )
+                      )
+                    LIMIT $2
+                    FOR UPDATE SKIP LOCKED
+                )
+                UPDATE tasks t
+                SET status = 'processing', status_updated_at = now()
+                FROM selected s
+                WHERE t.task_id = s.task_id
+                RETURNING t.*;",
                 )
                 .bind(proving_system_id)
                 .bind(limit)
@@ -91,34 +109,50 @@ impl Db {
         let updates_ref = &updates;
 
         self.orchestrator
-            .query(|pool| {
+            .query(async |pool| {
                 let updates = updates_ref;
-                async move {
-                    let mut tx = pool.begin().await?;
+                let mut tx = pool.begin().await?;
 
-                    for (task_id, merkle_path) in updates.iter() {
-                        if let Err(e) = sqlx::query(
-                            "UPDATE tasks SET merkle_path = $1, status = 'verified', proof = NULL WHERE task_id = $2",
-                        )
-                        .bind(merkle_path.as_slice())
-                        .bind(*task_id)
-                        .execute(&mut *tx)
-                        .await {
-                            tracing::error!("Error while updating task merkle path and status {}", e);
-                            return Err(e);
-                        };
+                for (task_id, merkle_path) in updates {
+                    if let Err(e) = sqlx::query(
+                        "UPDATE tasks SET merkle_path = $1, status = 'verified', status_updated_at = now(), proof = NULL WHERE task_id = $2",
+                    )
+                    .bind(merkle_path)
+                    .bind(task_id)
+                    .execute(&mut *tx)
+                    .await
+                    {
+                        tx.rollback()
+                            .await?;
+                        tracing::error!("Error while updating task merkle path and status {}", e);
+                        return Err(e);
                     }
-
-                    tx.commit().await?;
-                    Ok(())
                 }
+
+                tx.commit().await
+            })
+            .await
+            .map_err(|e| DbError::Query(e.to_string()))
+    }
+
+    pub async fn mark_tasks_as_pending(&self, tasks_id: &[Uuid]) -> Result<(), DbError> {
+        if tasks_id.is_empty() {
+            return Ok(());
+        }
+
+        self.orchestrator
+            .query(async |pool| {
+                sqlx::query(
+                    "UPDATE tasks SET status = 'pending', status_updated_at = now()
+                 WHERE task_id = ANY($1) AND status = 'processing'",
+                )
+                .bind(tasks_id)
+                .execute(&pool)
+                .await
             })
             .await
             .map_err(|e| DbError::Query(e.to_string()))?;
 
         Ok(())
     }
-
-    // TODO: this should be used when rolling back processing proofs on unexpected errors
-    pub async fn mark_tasks_as_pending(&self) {}
 }

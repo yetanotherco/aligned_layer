@@ -22,6 +22,7 @@ use super::{
 use crate::{
     config::Config,
     db::Db,
+    helpers::get_time_left_day_formatted,
     types::{GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1},
     verifiers::{verify_sp1_proof, VerificationError},
 };
@@ -52,16 +53,23 @@ impl GatewayServer {
         HttpServer::new(move || {
             App::new()
                 .app_data(Data::new(state.clone()))
+                .route("/", web::get().to(Self::get_root))
                 .route("/nonce/{address}", web::get().to(Self::get_nonce))
                 .route("/receipts", web::get().to(Self::get_receipts))
                 .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
                 .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
+                .route("/quotas/{address}", web::get().to(Self::get_quotas))
         })
-        .bind(("127.0.0.1", port))
+        .bind((self.config.ip.as_str(), port))
         .expect("To bind socket correctly")
         .run()
         .await
         .expect("Server to never end");
+    }
+
+    // Returns an OK response (code 200), no matters what receives in the request
+    async fn get_root(_req: HttpRequest) -> impl Responder {
+        HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
     }
 
     // Returns the nonce (number of submitted tasks) for a given address
@@ -147,8 +155,13 @@ impl GatewayServer {
         };
 
         if daily_tasks_by_address >= state.config.max_daily_proofs_per_user {
+            let formatted_time_left = get_time_left_day_formatted();
+
             return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
-                "Request denied: Query limit exceeded.",
+                format!(
+                    "Request denied: Query limit exceeded. Quotas renew in {formatted_time_left}"
+                )
+                .as_str(),
                 400,
             ));
         }
@@ -320,6 +333,75 @@ impl GatewayServer {
             }))),
             Err(_) => HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500)),
+        }
+    }
+
+    async fn get_quotas(req: HttpRequest) -> impl Responder {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
+            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+                "Internal server error: Failed to get app data",
+                500,
+            ));
+        };
+
+        let state = state.get_ref();
+
+        let Some(address_raw) = req.match_info().get("address") else {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Missing address", 400));
+        };
+
+        // Check that the address is a valid ethereum address
+        if alloy::primitives::Address::from_str(address_raw.trim()).is_err() {
+            return HttpResponse::BadRequest()
+                .json(AppResponse::new_unsucessfull("Invalid address", 400));
+        }
+
+        let address = address_raw.trim().to_lowercase();
+
+        let Ok(daily_tasks_by_address) = state.db.get_daily_tasks_by_address(&address).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let formatted_time_left = get_time_left_day_formatted();
+
+        let now_epoch = match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(duration) => duration.as_secs(),
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            }
+        };
+
+        let has_payment = match state
+            .db
+            .has_active_payment_event(
+                &address,
+                // safe unwrap the number comes from a valid u64 primitive
+                BigDecimal::from_str(&now_epoch.to_string()).unwrap(),
+            )
+            .await
+        {
+            Ok(result) => result,
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            }
+        };
+
+        if has_payment {
+            HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({
+                "proofs_submitted": daily_tasks_by_address,
+                "quota_limit": state.config.max_daily_proofs_per_user,
+                "quota_remaining": (state.config.max_daily_proofs_per_user - daily_tasks_by_address),
+                "quota_resets_in": formatted_time_left.as_str()
+            })))
+        } else {
+            HttpResponse::Ok().json(AppResponse::new_unsucessfull(
+                "The address doesn't have an active subscription",
+                404,
+            ))
         }
     }
 }

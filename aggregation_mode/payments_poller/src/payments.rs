@@ -11,14 +11,20 @@ use alloy::{
 };
 use sqlx::types::BigDecimal;
 
+#[derive(Debug, Clone)]
+pub enum PaymentsPollerError {
+    ReadLastBlockError(String),
+}
+
 pub struct PaymentsPoller {
     db: Db,
     proof_aggregation_service: AggregationModePaymentServiceContract,
     rpc_provider: RpcProvider,
+    config: Config,
 }
 
 impl PaymentsPoller {
-    pub fn new(db: Db, config: Config) -> Self {
+    pub fn new(db: Db, config: Config) -> Result<Self, PaymentsPollerError> {
         let rpc_url = config.eth_rpc_url.parse().expect("RPC URL should be valid");
         let rpc_provider = ProviderBuilder::new().connect_http(rpc_url);
         let proof_aggregation_service = AggregationModePaymentService::new(
@@ -27,16 +33,32 @@ impl PaymentsPoller {
             rpc_provider.clone(),
         );
 
-        Self {
+        // This check is here to catch early failures on last block fetching
+        let _ = config
+            .get_last_block_fetched()
+            .map_err(|err| PaymentsPollerError::ReadLastBlockError(err.to_string()));
+
+        Ok(Self {
             db,
             proof_aggregation_service,
             rpc_provider,
-        }
+            config,
+        })
     }
 
     pub async fn start(&self) {
         let seconds_to_wait_between_polls = 12;
+
         loop {
+            let Ok(last_block_fetched) = self.config.get_last_block_fetched() else {
+                tracing::warn!("Could not get last block fetched, skipping polling iteration...");
+                tokio::time::sleep(std::time::Duration::from_secs(
+                    seconds_to_wait_between_polls,
+                ))
+                .await;
+                continue;
+            };
+
             let Ok(current_block) = self.rpc_provider.get_block_number().await else {
                 tracing::warn!("Could not get current block skipping polling iteration...");
                 tokio::time::sleep(std::time::Duration::from_secs(
@@ -46,10 +68,13 @@ impl PaymentsPoller {
                 continue;
             };
 
+            let start_block = last_block_fetched.saturating_sub(5);
+            tracing::info!("Fetching logs from block {start_block} to {current_block}");
+
             let Ok(logs) = self
                 .proof_aggregation_service
                 .UserPayment_filter()
-                .from_block(current_block - 5)
+                .from_block(start_block)
                 .to_block(current_block)
                 .query()
                 .await
@@ -90,6 +115,11 @@ impl PaymentsPoller {
                     tracing::error!("Failed to insert payment event for {address}: {err}");
                 }
             }
+
+            if let Err(err) = self.config.update_last_block_fetched(current_block) {
+                tracing::error!("Failed to update the last aggregated block: {err}");
+                continue;
+            };
 
             tokio::time::sleep(std::time::Duration::from_secs(
                 seconds_to_wait_between_polls,

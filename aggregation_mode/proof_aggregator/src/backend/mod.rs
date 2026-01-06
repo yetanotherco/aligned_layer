@@ -119,7 +119,23 @@ impl ProofAggregator {
         info!("Starting proof aggregator service");
 
         info!("About to aggregate and submit proof to be verified on chain");
-        let res = self.aggregate_and_submit_proofs_on_chain().await;
+
+        let (proofs, tasks_id) = match self
+            .fetcher
+            .fetch_pending_proofs(self.engine.clone(), self.config.total_proofs_limit as i64)
+            .await
+            .map_err(AggregatedProofSubmissionError::FetchingProofs)
+        {
+            Ok(res) => res,
+            Err(e) => {
+                error!("Error while aggregating and submitting proofs: {:?}", e);
+                return;
+            }
+        };
+
+        let res = self
+            .aggregate_and_submit_proofs_on_chain((proofs, &tasks_id))
+            .await;
 
         match res {
             Ok(()) => {
@@ -127,20 +143,18 @@ impl ProofAggregator {
             }
             Err(err) => {
                 error!("Error while aggregating and submitting proofs: {:?}", err);
+                warn!("Marking tasks back to pending after failure");
+                if let Err(e) = self.db.mark_tasks_as_pending(&tasks_id).await {
+                    error!("Error while marking proofs to pending again: {:?}", e);
+                };
             }
         }
     }
 
-    // TODO: on failure, mark proofs as pending again
     async fn aggregate_and_submit_proofs_on_chain(
         &mut self,
+        (proofs, tasks_id): (Vec<AlignedProof>, &[Uuid]),
     ) -> Result<(), AggregatedProofSubmissionError> {
-        let (proofs, tasks_id) = self
-            .fetcher
-            .fetch_pending_proofs(self.engine.clone(), self.config.total_proofs_limit as i64)
-            .await
-            .map_err(AggregatedProofSubmissionError::FetchingProofs)?;
-
         if proofs.is_empty() {
             warn!("No proofs collected, skipping aggregation...");
             return Ok(());
@@ -215,7 +229,7 @@ impl ProofAggregator {
 
         info!("Storing merkle paths for each task...",);
         let mut merkle_paths_for_tasks: Vec<(Uuid, Vec<u8>)> = vec![];
-        for (idx, task_id) in tasks_id.into_iter().enumerate() {
+        for (idx, task_id) in tasks_id.iter().enumerate() {
             let Some(proof) = merkle_tree.get_proof_by_pos(idx) else {
                 warn!("Proof not found for task id {task_id}");
                 continue;
@@ -226,7 +240,7 @@ impl ProofAggregator {
                 .flat_map(|e| e.to_vec())
                 .collect::<Vec<_>>();
 
-            merkle_paths_for_tasks.push((task_id, proof_bytes))
+            merkle_paths_for_tasks.push((*task_id, proof_bytes))
         }
         self.db
             .insert_tasks_merkle_path_and_mark_them_as_verified(merkle_paths_for_tasks)

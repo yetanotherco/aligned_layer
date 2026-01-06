@@ -240,7 +240,7 @@ reset_last_aggregated_block:
 	@echo "Resetting last aggregated block..."
 	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
 
-AGGREGATION_MODE_SOURCES = $(wildcard ./aggregation_mode/Cargo.toml) $(wildcard ./aggregation_mode/src/**) $(wildcard ./aggregation_mode/aggregation_programs/risc0/Cargo.toml) $(wildcard ./aggregation_mode/aggregation_programs/risc0/src/**) $(wildcard ./aggregation_mode/aggregation_programs/sp1/Cargo.toml) $(wildcard ./aggregation_mode/aggregation_programs/sp1/src/**)
+AGGREGATION_MODE_SOURCES = $(wildcard ./aggregation_mode/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/src/**) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/risc0/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/risc0/src/**) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/sp1/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/sp1/src/**)
 
 ### All Dev proof aggregator receipts with no real proving
 ./aggregation_mode/target/release/proof_aggregator_dev: $(AGGREGATION_MODE_SOURCES)
@@ -340,6 +340,15 @@ agg_mode_gateway_send_sp1_proof:
 		--proof scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vk scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin \
 		--private-key "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+
+agg_mode_install_cli: ## Install the aggregation mode CLI
+	@cargo install --path aggregation_mode/cli
+
+agg_mode_task_sender_start: agg_mode_install_cli ## Send proofs to agg mode gateway
+	@. scripts/.agg_mode.task_sender.env && . ./scripts/agg_mode_send_sp1_proof_interval.sh
+
+agg_mode_get_quotas:
+	curl -X GET http://127.0.0.1:8089/quotas/0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 
 __AGGREGATOR__: ## ____
 
@@ -993,6 +1002,10 @@ deploy_proof_aggregator: ## Deploy ProofAggregator contract. Parameters: NETWORK
 upgrade_proof_aggregator: ## Upgrade ProofAggregator contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
+
+deploy_agg_mode_payment_service:
+	@echo "Deploying Agg Mode Payment Service contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_agg_mode_payment_service.sh
 
 __SP1_FFI__: ##
 build_sp1_macos:
