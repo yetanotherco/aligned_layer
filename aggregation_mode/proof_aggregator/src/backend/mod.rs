@@ -10,15 +10,14 @@ use crate::{
     aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
     backend::{
         db::{Db, DbError},
-        retry::{retry_function, RetryError},
+        retry::{
+            retry_function, RetryError, ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES,
+            ETHEREUM_CALL_MAX_RETRY_DELAY, ETHEREUM_CALL_MIN_RETRY_DELAY,
+        },
         types::{AlignedProofAggregationService, AlignedProofAggregationServiceContract},
     },
 };
 
-use aligned_sdk::common::constants::{
-    ETHEREUM_CALL_BACKOFF_FACTOR, ETHEREUM_CALL_MAX_RETRIES, ETHEREUM_CALL_MAX_RETRY_DELAY,
-    ETHEREUM_CALL_MIN_RETRY_DELAY,
-};
 use alloy::{
     consensus::{BlobTransactionSidecar, EnvKzgSettings, EthereumTxEnvelope, TxEip4844WithSidecar},
     eips::{eip4844::BYTES_PER_BLOB, eip7594::BlobTransactionSidecarEip7594, Encodable2718},
