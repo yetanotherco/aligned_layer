@@ -54,6 +54,8 @@ where
                     return Err(RetryError::Transient(e));
                 }
 
+                tracing::warn!("Retryable function failed: {e}");
+
                 tokio::time::sleep(delay).await;
 
                 delay = next_backoff_delay(delay, max_delay_seconds, factor);
