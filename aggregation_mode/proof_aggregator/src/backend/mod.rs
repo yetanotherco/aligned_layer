@@ -235,14 +235,10 @@ impl ProofAggregator {
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         retry_function(
             || {
-                Self::wait_and_send_proof_to_verify_on_chain(
+                self.wait_and_send_proof_to_verify_on_chain(
                     blob.clone(),
                     blob_versioned_hash,
                     &aggregated_proof,
-                    self.proof_aggregation_service.clone(),
-                    self.sp1_chunk_aggregator_vk_hash_bytes,
-                    self.risc0_chunk_aggregator_image_id_bytes,
-                    self.config.monthly_budget_eth,
                 )
             },
             ETHEREUM_CALL_MIN_RETRY_DELAY,
@@ -375,29 +371,27 @@ impl ProofAggregator {
     }
 
     pub async fn wait_and_send_proof_to_verify_on_chain(
+        &self,
         blob: BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: &AlignedProof,
-        proof_aggregation_service: AlignedProofAggregationServiceContract,
-        sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
-        risc0_chunk_aggregator_image_id_bytes: [u8; 32],
-        monthly_budget_eth: f64,
     ) -> Result<TransactionReceipt, RetryError<AggregatedProofSubmissionError>> {
         Self::wait_until_can_submit_aggregated_proof(
-            proof_aggregation_service.clone(),
-            monthly_budget_eth,
+            self.proof_aggregation_service.clone(),
+            self.config.monthly_budget_eth,
         )
         .await?;
 
         info!("Sending proof to ProofAggregationService contract...");
 
         let tx_req = match aggregated_proof {
-            AlignedProof::SP1(proof) => proof_aggregation_service
+            AlignedProof::SP1(proof) => self
+                .proof_aggregation_service
                 .verifyAggregationSP1(
                     blob_versioned_hash.into(),
                     proof.proof_with_pub_values.public_values.to_vec().into(),
                     proof.proof_with_pub_values.bytes().into(),
-                    sp1_chunk_aggregator_vk_hash_bytes.into(),
+                    self.sp1_chunk_aggregator_vk_hash_bytes.into(),
                 )
                 .sidecar(blob)
                 .into_transaction_request(),
@@ -405,19 +399,19 @@ impl ProofAggregator {
                 let encoded_seal = encode_seal(&proof.receipt)
                     .map_err(|e| AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string()))
                     .map_err(RetryError::Permanent)?;
-                proof_aggregation_service
+                self.proof_aggregation_service
                     .verifyAggregationRisc0(
                         blob_versioned_hash.into(),
                         encoded_seal.into(),
                         proof.receipt.journal.bytes.clone().into(),
-                        risc0_chunk_aggregator_image_id_bytes.into(),
+                        self.risc0_chunk_aggregator_image_id_bytes.into(),
                     )
                     .sidecar(blob)
                     .into_transaction_request()
             }
         };
 
-        let provider = proof_aggregation_service.provider();
+        let provider = self.proof_aggregation_service.provider();
         let envelope = provider
             .fill(tx_req)
             .await
