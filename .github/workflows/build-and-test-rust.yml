@@ -89,9 +89,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.88.0
+          components: rustfmt, clippy
+          override: true
+
       - name: foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1.2.0
-
+      
       # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
       - name: Install sp1 toolchain
         run: |
