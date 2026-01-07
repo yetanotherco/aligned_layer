@@ -1,8 +1,7 @@
 use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
+use db::types::TaskStatus;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::db::TaskStatus;
 
 #[derive(Serialize, Deserialize)]
 pub(super) struct AppResponse {
@@ -59,6 +58,14 @@ pub(super) struct SubmitProofRequestRisc0 {
 pub struct GetReceiptsResponse {
     pub status: TaskStatus,
     pub merkle_path: Vec<String>,
+    pub nonce: i64,
+    pub address: String,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, sqlx::Type, serde::Serialize)]
+pub struct Receipt {
+    pub status: TaskStatus,
+    pub merkle_path: Option<Vec<u8>>,
     pub nonce: i64,
     pub address: String,
 }

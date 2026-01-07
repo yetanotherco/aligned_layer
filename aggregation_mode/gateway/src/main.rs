@@ -26,7 +26,7 @@ async fn main() {
     let config = Config::from_file(&config_file_path).expect("Config is valid");
     tracing::info!("Config loaded");
 
-    let db = Db::try_new(&config.db_connection_url)
+    let db = Db::try_new(config.db_connection_urls.as_slice())
         .await
         .expect("db to start");
 

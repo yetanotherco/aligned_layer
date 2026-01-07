@@ -80,8 +80,7 @@ impl BeaconClient {
         let parent_block_hash_hex = format!("0x{}", hex::encode(parent_block_hash));
         let data = self
             .beacon_get(&format!(
-                "/eth/v1/beacon/headers?parent_root={}",
-                parent_block_hash_hex
+                "/eth/v1/beacon/headers?parent_root={parent_block_hash_hex}"
             ))
             .await?;
 
@@ -97,7 +96,7 @@ impl BeaconClient {
 
     pub async fn get_blobs_from_slot(&self, slot: u64) -> Result<Vec<BlobData>, BeaconClientError> {
         let data = self
-            .beacon_get(&format!("/eth/v1/beacon/blob_sidecars/{}", slot))
+            .beacon_get(&format!("/eth/v1/beacon/blob_sidecars/{slot}"))
             .await?;
 
         Vec::<BlobData>::deserialize(data)

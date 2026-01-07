@@ -24,13 +24,13 @@ impl ProofsFetcher {
     }
 
     pub async fn fetch_pending_proofs(
-        &self,
+        &mut self,
         engine: ZKVMEngine,
         limit: i64,
     ) -> Result<(Vec<AlignedProof>, Vec<Uuid>), ProofsFetcherError> {
         let tasks = self
             .db
-            .get_pending_tasks_and_mark_them_as_processing(engine.proving_system_id() as i32, limit)
+            .get_tasks_to_process_and_update_their_status(engine.proving_system_id() as i32, limit)
             .await
             .map_err(ProofsFetcherError::Query)?;
 

@@ -1,8 +1,13 @@
 ip: "127.0.0.1"
 port: 8089
-db_connection_url: "postgres://postgres:postgres@localhost:5435/"
+db_connection_urls: 
+  - "postgres://postgres:postgres@localhost:5435/"
 eth_rpc_url: "http://localhost:8545"
 payment_service_address: "0x922D6956C99E12DFeB3224DEA977D0939758A1Fe"
 network: "devnet"
-max_daily_proofs_per_user: 4
+max_daily_proofs_per_user: 100
 last_block_fetched_filepath: "config-files/proof-aggregator.last_block_fetched.json"
+
+# Metrics
+gateway_metrics_port: 9094
+poller_metrics_port: 9095

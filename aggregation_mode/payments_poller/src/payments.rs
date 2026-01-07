@@ -1,8 +1,9 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use crate::{
     config::Config,
     db::Db,
+    metrics::PaymentsPollerMetrics,
     types::{AggregationModePaymentService, AggregationModePaymentServiceContract, RpcProvider},
 };
 use alloy::{
@@ -21,6 +22,7 @@ pub struct PaymentsPoller {
     proof_aggregation_service: AggregationModePaymentServiceContract,
     rpc_provider: RpcProvider,
     config: Config,
+    metrics: Arc<PaymentsPollerMetrics>,
 }
 
 impl PaymentsPoller {
@@ -38,11 +40,19 @@ impl PaymentsPoller {
             .get_last_block_fetched()
             .map_err(|err| PaymentsPollerError::ReadLastBlockError(err.to_string()));
 
+        tracing::info!(
+            "Starting metrics server on port {}",
+            config.poller_metrics_port
+        );
+        let metrics = PaymentsPollerMetrics::start(config.poller_metrics_port)
+            .expect("Failed to start metrics server");
+
         Ok(Self {
             db,
             proof_aggregation_service,
             rpc_provider,
             config,
+            metrics,
         })
     }
 
@@ -120,6 +130,8 @@ impl PaymentsPoller {
                 tracing::error!("Failed to update the last aggregated block: {err}");
                 continue;
             };
+
+            self.metrics.register_last_processed_block(current_block);
 
             tokio::time::sleep(std::time::Duration::from_secs(
                 seconds_to_wait_between_polls,

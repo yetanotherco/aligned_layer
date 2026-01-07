@@ -16,6 +16,7 @@ pub struct Cli {
 pub enum Command {
     #[command(subcommand)]
     Submit(SubmitCommand),
+    /// Check whether a proof has been verified on AlignedProofAggregationService contract
     #[command(name = "verify-on-chain")]
     VerifyOnChain(VerifyOnChainArgs),
     /// Send 1 ether to the aggregation mode payment service

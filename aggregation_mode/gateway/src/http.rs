@@ -1,6 +1,7 @@
 use std::{
     str::FromStr,
-    time::{SystemTime, UNIX_EPOCH},
+    sync::Arc,
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
 use actix_multipart::form::MultipartForm;
@@ -8,6 +9,7 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
+use actix_web_prometheus::PrometheusMetricsBuilder;
 use agg_mode_sdk::{blockchain::AggregationModeProvingSystem, types::Network};
 use alloy::signers::Signature;
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
@@ -22,6 +24,7 @@ use crate::{
     config::Config,
     db::Db,
     helpers::get_time_left_day_formatted,
+    metrics::GatewayMetrics,
     types::{GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1},
     verifiers::{verify_sp1_proof, VerificationError},
 };
@@ -31,15 +34,25 @@ pub struct GatewayServer {
     db: Db,
     config: Config,
     network: Network,
+    metrics: Arc<GatewayMetrics>,
 }
 
 impl GatewayServer {
     pub fn new(db: Db, config: Config) -> Self {
         let network = Network::from_str(&config.network).expect("A valid network in config file");
+
+        tracing::info!(
+            "Starting metrics server on port {}",
+            config.gateway_metrics_port
+        );
+        let metrics = GatewayMetrics::start(config.gateway_metrics_port)
+            .expect("Failed to start metrics server");
+
         Self {
             db,
             config,
             network,
+            metrics,
         }
     }
 
@@ -48,10 +61,18 @@ impl GatewayServer {
         let port = self.config.port;
         let state = self.clone();
 
+        // Note: This creates a new Prometheus server different from the one created in GatewayServer::new. The created
+        // server exposes metrics related to the actix HTTP server, like response codes and response times
+        let prometheus = PrometheusMetricsBuilder::new("api")
+            .endpoint("/metrics")
+            .build()
+            .unwrap();
+
         tracing::info!("Starting server at port {}", self.config.port);
         HttpServer::new(move || {
             App::new()
                 .app_data(Data::new(state.clone()))
+                .wrap(prometheus.clone())
                 .route("/", web::get().to(Self::get_root))
                 .route("/nonce/{address}", web::get().to(Self::get_nonce))
                 .route("/receipts", web::get().to(Self::get_receipts))
@@ -156,7 +177,7 @@ impl GatewayServer {
         if daily_tasks_by_address >= state.config.max_daily_proofs_per_user {
             let formatted_time_left = get_time_left_day_formatted();
 
-            return HttpResponse::InternalServerError().json(AppResponse::new_unsucessfull(
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
                 format!(
                     "Request denied: Query limit exceeded. Quotas renew in {formatted_time_left}"
                 )
@@ -226,6 +247,8 @@ impl GatewayServer {
             return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(message, 400));
         };
 
+        let query_started_at = Instant::now();
+
         match state
             .db
             .insert_task(
@@ -238,9 +261,16 @@ impl GatewayServer {
             )
             .await
         {
-            Ok(task_id) => HttpResponse::Ok().json(AppResponse::new_sucessfull(
-                serde_json::json!({ "task_id": task_id.to_string() }),
-            )),
+            Ok(task_id) => {
+                let time_elapsed_db_call = query_started_at.elapsed();
+                state
+                    .metrics
+                    .register_db_response_time_post("sp1-post", time_elapsed_db_call.as_secs_f64());
+
+                HttpResponse::Ok().json(AppResponse::new_sucessfull(
+                    serde_json::json!({ "task_id": task_id.to_string() }),
+                ))
+            }
             Err(_) => HttpResponse::InternalServerError()
                 .json(AppResponse::new_unsucessfull("Internal server error", 500)),
         }
