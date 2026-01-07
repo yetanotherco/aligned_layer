@@ -1,8 +1,8 @@
 pub mod aggregators;
 pub mod backend;
 
-use std::env;
 use backend::{config::Config, ProofAggregator};
+use std::env;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 fn read_config_filepath_from_args() -> String {
