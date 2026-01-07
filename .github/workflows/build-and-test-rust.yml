@@ -13,7 +13,7 @@ on:
       - ".github/workflows/build-and-test-rust.yml"
 
 jobs:
-  build:
+  build-and-test:
     runs-on: aligned-runner
 
     steps:
@@ -25,6 +25,9 @@ jobs:
           toolchain: 1.88.0
           components: rustfmt, clippy
           override: true
+
+      - name: foundry-toolchain
+        uses: foundry-rs/foundry-toolchain@v1.2.0
 
       # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
       - name: Install sp1 toolchain
@@ -81,40 +84,6 @@ jobs:
           cd aggregation_mode
           # We need to skip the build as clippy does not support the riscv32im-risc0-zkvm-elf target
           RISC0_SKIP_BUILD=1 cargo clippy --all -- -D warnings
-
-  test:
-    runs-on: aligned-runner
-    needs: build
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: foundry-toolchain
-        uses: foundry-rs/foundry-toolchain@v1.2.0
-
-      # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
-      - name: Install sp1 toolchain
-        run: |
-          curl -L https://sp1.succinct.xyz | bash
-          source /home/runner/.bashrc
-           ~/.sp1/bin/sp1up
-
-      - name: Install risc0 toolchain
-        run: |
-          curl -L https://risczero.com/install | bash
-          source ~/.bashrc
-          ~/.risc0/bin/rzup install
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            crates/target
-          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-rust-
 
       - name: Run Batcher tests
         run: |
