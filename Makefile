@@ -284,8 +284,8 @@ verify_aggregated_proof_sp1:
 		--rpc-url $(RPC_URL) \
 		--from-block $(FROM_BLOCK) \
 		--proving-system SP1 \
-		--vk ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
-		--public-input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
+		--vk-hash ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
+		--public-inputs ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator_gpu --locked
