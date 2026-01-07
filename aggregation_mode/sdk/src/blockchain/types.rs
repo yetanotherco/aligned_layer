@@ -1,8 +1,51 @@
+use crate::beacon::BeaconClientError;
+use alloy::sol;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
-use crate::beacon::BeaconClientError;
+sol!(
+    #[sol(rpc)]
+    AlignedProofAggregationService,
+    "abi/AlignedProofAggregationService.json"
+);
+
+pub type AlignedProofAggregationServiceContract =
+    AlignedProofAggregationService::AlignedProofAggregationServiceInstance<
+        alloy::providers::fillers::FillProvider<
+            alloy::providers::fillers::JoinFill<
+                alloy::providers::Identity,
+                alloy::providers::fillers::JoinFill<
+                    alloy::providers::fillers::GasFiller,
+                    alloy::providers::fillers::JoinFill<
+                        alloy::providers::fillers::BlobGasFiller,
+                        alloy::providers::fillers::JoinFill<
+                            alloy::providers::fillers::NonceFiller,
+                            alloy::providers::fillers::ChainIdFiller,
+                        >,
+                    >,
+                >,
+            >,
+            alloy::providers::RootProvider,
+        >,
+    >;
+
+pub type RPCProvider = alloy::providers::fillers::FillProvider<
+    alloy::providers::fillers::JoinFill<
+        alloy::providers::Identity,
+        alloy::providers::fillers::JoinFill<
+            alloy::providers::fillers::GasFiller,
+            alloy::providers::fillers::JoinFill<
+                alloy::providers::fillers::BlobGasFiller,
+                alloy::providers::fillers::JoinFill<
+                    alloy::providers::fillers::NonceFiller,
+                    alloy::providers::fillers::ChainIdFiller,
+                >,
+            >,
+        >,
+    >,
+    alloy::providers::RootProvider,
+>;
 
 #[repr(u16)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -25,10 +68,10 @@ impl AggregationModeProvingSystem {
     }
 }
 
-impl TryFrom<u8> for AggregationModeProvingSystem {
+impl TryFrom<u16> for AggregationModeProvingSystem {
     type Error = ();
 
-    fn try_from(v: u8) -> Result<Self, Self::Error> {
+    fn try_from(v: u16) -> Result<Self, Self::Error> {
         match v {
             0 => Ok(AggregationModeProvingSystem::SP1),
             1 => Ok(AggregationModeProvingSystem::RISC0),
@@ -155,4 +198,14 @@ pub enum ProofVerificationAggModeError {
     BeaconClient(BeaconClientError),
     EventDecoding,
     MerkleTreeConstruction,
+}
+
+#[derive(Debug, Clone)]
+pub enum ProofStatus {
+    Verified {
+        merkle_root: [u8; 32],
+        merkle_path: Vec<[u8; 32]>,
+    },
+    Invalid,
+    NotFound,
 }

@@ -1,9 +1,10 @@
 use std::str::FromStr;
 
-use ethers::core::k256::sha2::{Digest, Sha256};
+use alloy::{hex, signers::k256::sha2::Sha256};
 use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha3::Digest;
 
 // See https://eips.ethereum.org/EIPS/eip-4844#parameters
 pub const KZG_VERSIONED_HASH: u8 = 0x1;
@@ -22,7 +23,7 @@ enum BeaconAPIResponse {
 
 #[derive(Debug, Clone)]
 pub enum BeaconClientError {
-    Url(url::ParseError),
+    Url(String),
     ReqwestError(String),
     APIError { code: u64, message: String },
     Deserialization(String),
@@ -79,8 +80,7 @@ impl BeaconClient {
         let parent_block_hash_hex = format!("0x{}", hex::encode(parent_block_hash));
         let data = self
             .beacon_get(&format!(
-                "/eth/v1/beacon/headers?parent_root={}",
-                parent_block_hash_hex
+                "/eth/v1/beacon/headers?parent_root={parent_block_hash_hex}"
             ))
             .await?;
 
@@ -96,7 +96,7 @@ impl BeaconClient {
 
     pub async fn get_blobs_from_slot(&self, slot: u64) -> Result<Vec<BlobData>, BeaconClientError> {
         let data = self
-            .beacon_get(&format!("/eth/v1/beacon/blob_sidecars/{}", slot))
+            .beacon_get(&format!("/eth/v1/beacon/blob_sidecars/{slot}"))
             .await?;
 
         Vec::<BlobData>::deserialize(data)
@@ -127,7 +127,7 @@ impl BeaconClient {
 
     async fn beacon_get(&self, path: &str) -> Result<Value, BeaconClientError> {
         let url = Url::from_str(&format!("{}{}", self.beacon_client_url, path))
-            .map_err(BeaconClientError::Url)?;
+            .map_err(|e| BeaconClientError::Url(e.to_string()))?;
         let req = self
             .api_client
             .get(url)

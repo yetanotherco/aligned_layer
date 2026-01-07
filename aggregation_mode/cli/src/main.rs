@@ -1,18 +1,6 @@
-use agg_mode_cli::commands::{self, submit::SubmitCommand};
-use clap::{Parser, Subcommand};
+use agg_mode_cli::commands::{self, submit::SubmitCommand, Cli, Command};
+use clap::Parser;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
-
-#[derive(Debug, Parser)]
-struct Cli {
-    #[command(subcommand)]
-    command: Command,
-}
-
-#[derive(Debug, Subcommand)]
-enum Command {
-    #[command(subcommand)]
-    Submit(SubmitCommand),
-}
 
 #[tokio::main]
 async fn main() {
@@ -26,5 +14,7 @@ async fn main() {
         Command::Submit(subcommand) => match subcommand {
             SubmitCommand::SP1(args) => commands::submit::run(args).await,
         },
+        Command::VerifyOnChain(args) => commands::verify::run(args).await,
+        Command::Deposit(args) => commands::deposit::run(args).await,
     };
 }

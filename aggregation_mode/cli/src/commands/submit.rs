@@ -4,6 +4,8 @@ use clap::{command, Args, Subcommand};
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 use std::{path::PathBuf, str::FromStr};
 
+use crate::commands::helpers::parse_network;
+
 #[derive(Debug, Subcommand)]
 pub enum SubmitCommand {
     #[command(name = "sp1")]
@@ -20,10 +22,6 @@ pub struct SubmitSP1Args {
     private_key: String,
     #[arg(short = 'n', long = "network", default_value = "devnet", value_parser = parse_network)]
     network: Network,
-}
-
-fn parse_network(value: &str) -> Result<Network, String> {
-    Network::from_str(value).map_err(|_| format!("unsupported network supplied: {value}"))
 }
 
 pub async fn run(args: SubmitSP1Args) {

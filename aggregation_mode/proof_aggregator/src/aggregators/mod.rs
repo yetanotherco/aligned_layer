@@ -3,7 +3,7 @@ pub mod sp1_aggregator;
 
 use std::fmt::Display;
 
-use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use agg_mode_sdk::blockchain::AggregationModeProvingSystem;
 use lambdaworks_crypto::merkle_tree::traits::IsMerkleTreeBackend;
 use risc0_aggregator::{Risc0AggregationError, Risc0ProofReceiptAndImageId};
 use sha3::{Digest, Keccak256};

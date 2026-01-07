@@ -1,6 +1,6 @@
 include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
-use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use agg_mode_sdk::blockchain::AggregationModeProvingSystem;
 use risc0_zkvm::{default_prover, ExecutorEnv, ProverOpts, Receipt};
 use sha3::{Digest, Keccak256};
 

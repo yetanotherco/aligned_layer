@@ -277,27 +277,15 @@ proof_aggregator_start_gpu_ethereum_package: is_aggregator_set reset_last_aggreg
 
 verify_aggregated_proof_sp1: 
 	@echo "Verifying SP1 in aggregated proofs on $(NETWORK)..."
-	@cd crates/cli/ && \
-	cargo run verify-agg-proof \
+	@cd aggregation_mode/cli/ && \
+	cargo run verify-on-chain \
 		--network $(NETWORK) \
+		--beacon-url $(BEACON_URL) \
+		--rpc-url $(RPC_URL) \
 		--from-block $(FROM_BLOCK) \
-		--proving_system SP1 \
-		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
-		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
-		--beacon_url $(BEACON_URL) \
-		--rpc_url $(RPC_URL)
-
-verify_aggregated_proof_risc0: 
-	@echo "Verifying RISC0 in aggregated proofs on $(NETWORK)..."
-	@cd crates/cli/ && \
-	cargo run verify-agg-proof \
-		--network $(NETWORK) \
-		--from-block $(FROM_BLOCK) \
-		--proving_system Risc0 \
-		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
-		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
-		--beacon_url $(BEACON_URL) \
-		--rpc_url $(RPC_URL)
+		--proving-system SP1 \
+		--vk-hash ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
+		--public-inputs ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode/proof_aggregator --features prove,gpu --bin proof_aggregator_gpu --locked
@@ -331,9 +319,11 @@ agg_mode_payments_poller_start_ethereum_package: agg_mode_run_migrations
 
 AGG_MODE_SENDER ?= 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 agg_mode_gateway_send_payment:
-	@cast send --value 1ether \
-		0x922D6956C99E12DFeB3224DEA977D0939758A1Fe \
-		--private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+	@cd aggregation_mode/cli && \
+	cargo run --release -- deposit \
+	 --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d \
+	 --network devnet \
+	 --rpc-url http://localhost:8545
 
 agg_mode_gateway_send_sp1_proof:
 	@cargo run --manifest-path aggregation_mode/cli/Cargo.toml -- submit sp1 \

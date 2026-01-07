@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use agg_mode_sdk::blockchain::AggregationModeProvingSystem;
 use alloy::primitives::Keccak256;
 use sp1_aggregation_program::SP1VkAndPubInputs;
 #[cfg(feature = "prove")]
