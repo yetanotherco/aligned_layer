@@ -8,6 +8,7 @@ pub struct Config {
     pub eth_rpc_url: String,
     pub payment_service_address: String,
     pub last_block_fetched_filepath: String,
+    pub poller_metrics_port: u16,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

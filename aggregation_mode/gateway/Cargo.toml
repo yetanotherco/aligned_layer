@@ -8,6 +8,7 @@ serde =  { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 agg_mode_sdk = { workspace = true }
+prometheus = { workspace = true }
 sp1-sdk = { workspace = true }
 db = { workspace = true }
 tracing = { version = "0.1", features = ["log"] }
@@ -15,6 +16,7 @@ tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
 bincode = "1.3.3"
 actix-web = "4"
 actix-multipart = "0.7.2"
+actix-web-prometheus = "0.1.2"
 alloy = { workspace = true }
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"]}
 # TODO: enable tls

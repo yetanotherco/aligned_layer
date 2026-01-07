@@ -37,3 +37,24 @@ scrape_configs:
       - targets: ["host.docker.internal:9100"]
         labels:
           bot: "node-exporter"
+
+  - job_name: "gateway-http"
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["host.docker.internal:8089"]
+        labels:
+          bot: "gateway-http"
+
+  - job_name: "gateway"
+    scrape_interval: 1s
+    static_configs:
+      - targets: ["host.docker.internal:9094"]
+        labels:
+          bot: "gateway"
+
+  - job_name: "poller"
+    scrape_interval: 1s
+    static_configs:
+      - targets: ["host.docker.internal:9095"]
+        labels:
+          bot: "poller"

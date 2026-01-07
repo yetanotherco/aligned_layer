@@ -15,6 +15,7 @@ lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", r
 bincode = "1.3.3"
 sp1-sdk = "5.0.0"
 risc0-zkvm = { version = "3.0.3" }
+prometheus = { version = "0.13.4", features = ["process"] }
 
 agg_mode_sdk = { path = "./sdk"}
 db = { path = "./db" }

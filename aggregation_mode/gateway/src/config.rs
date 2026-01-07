@@ -9,6 +9,7 @@ pub struct Config {
     pub db_connection_urls: Vec<String>,
     pub network: String,
     pub max_daily_proofs_per_user: i64,
+    pub gateway_metrics_port: u16,
 }
 
 impl Config {

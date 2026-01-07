@@ -7,3 +7,7 @@ payment_service_address: "0x922D6956C99E12DFeB3224DEA977D0939758A1Fe"
 network: "devnet"
 max_daily_proofs_per_user: 32
 last_block_fetched_filepath: "config-files/proof-aggregator.last_block_fetched.json"
+
+# Metrics
+gateway_metrics_port: 9094
+poller_metrics_port: 9095
