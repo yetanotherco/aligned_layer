@@ -99,7 +99,7 @@ impl L2 {
             .aligned_agg_mode_gateway_provider
             .submit_sp1_proof(&proof, &vk)
             .await
-            .expect("Failed to send proof to aggregation mode gateway: {e}");
+            .expect("Failed to send proof to aggregation mode gateway");
         info!("Response from gateway: {:?}", res);
 
         self.db.save().unwrap();
