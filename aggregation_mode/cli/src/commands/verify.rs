@@ -22,7 +22,11 @@ pub struct VerifyOnChainArgs {
     from_block: Option<u64>,
     #[arg(long = "proving-system")]
     proving_system: ProvingSystemArg,
-    #[arg(name = "Program verification key hash", long = "vk-hash", required = true)]
+    #[arg(
+        name = "Program verification key hash",
+        long = "vk-hash",
+        required = true
+    )]
     program_vk: PathBuf,
     #[arg(name = "Public input file name", long = "public-inputs")]
     pub_input_file_name: Option<PathBuf>,
