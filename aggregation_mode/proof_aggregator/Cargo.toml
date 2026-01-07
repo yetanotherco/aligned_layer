@@ -38,9 +38,6 @@ risc0-build = { version = "3.0.3" }
 # Tell risc0 build to find method in ./aggregation_programs/risc0 package
 methods = ["./aggregation_programs/risc0"]
 
-[profile.release]
-opt-level = 3
-
 [features]
 default = []
 prove = []
@@ -48,17 +45,17 @@ gpu = ["risc0-zkvm/cuda"]
 
 [[bin]]
 name = "proof_aggregator_cpu"
-path = "./src/main.rs"
+path = "./src/bin/proof_aggregator_cpu.rs"
 required-features = ["prove"]
 
 [[bin]]
 name = "proof_aggregator_gpu"
-path = "./src/main.rs"
+path = "./src/bin/proof_aggregator_gpu.rs"
 required-features = ["prove", "gpu"]
 
 [[bin]]
 name = "proof_aggregator_dev"
-path = "./src/main.rs"
+path = "./src/bin/proof_aggregator_dev.rs"
 
 [[bin]]
 name = "write_program_image_id_vk_hash"

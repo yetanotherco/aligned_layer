@@ -92,6 +92,6 @@ jobs:
 
       - name: Run AggregationMode tests
         run: |
-          cd aggregation_mode/proof_aggregator && cargo test
+          cd aggregation_mode/proof_aggregator && SKIP_AGG_PROGRAMS_BUILD=1 cargo test
           cd ../gateway && cargo test
           cd ../payments_poller && cargo test
