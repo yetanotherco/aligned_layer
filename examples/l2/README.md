@@ -81,6 +81,17 @@ You can do this by using this [faucet](https://hoodi-faucet.pk910.de/)
 
 *This same wallet is used to send the proof via aligned, so you'll also need to fund it on aligned. Follow this [guide](https://docs.alignedlayer.com/guides/0_submitting_proofs#id-2.-send-funds-to-aligned).*
 
+- Transfer funds to the aggregation mode payments contract:
+
+```shell
+cd aggregation_mode/cli
+
+cargo run --release -- deposit \
+ --private-key <your-private-key> \
+ --network hoodi \
+ --rpc-url https://ethereum-hoodi-rpc.publicnode.com
+```
+
 ### 2. Deploy the contract
 
 - Generate the base `.env`:
