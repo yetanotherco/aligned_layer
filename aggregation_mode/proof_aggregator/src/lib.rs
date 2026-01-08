@@ -9,7 +9,7 @@ fn read_config_filepath_from_args() -> String {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         panic!(
-            "You mus provide a config file. Usage: {} <config-file-path>",
+            "You must provide a config file. Usage: {} <config-file-path>",
             args[0]
         );
     }
