@@ -27,7 +27,7 @@ impl L2 {
             config.private_key_store_path.clone(),
             config.private_key_store_password.clone(),
         )
-        .expect("failed to parse private key: {e}");
+        .expect("failed to parse private key");
 
         let gatewat_provider =
             AggregationModeGatewayProvider::new_with_signer(config.network.clone(), signer)
@@ -121,7 +121,7 @@ impl L2 {
                 },
             )
             .await
-            .expect("To be able to check proof status {e}");
+            .expect("To be able to check proof status");
 
         let merkle_path = match proof_status {
             ProofStatus::Verified {
