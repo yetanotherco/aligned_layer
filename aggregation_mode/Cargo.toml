@@ -20,8 +20,5 @@ prometheus = { version = "0.13.4", features = ["process"] }
 agg_mode_sdk = { path = "./sdk"}
 db = { path = "./db" }
 
-agg_mode_sdk = { path = "./sdk"}
-db = { path = "./db" }
-
 [profile.release]
 opt-level = 3
