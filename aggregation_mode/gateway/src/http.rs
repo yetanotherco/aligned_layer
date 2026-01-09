@@ -86,7 +86,7 @@ impl GatewayServer {
 
     pub async fn start(&self) {
         // Note: GatewayServer is thread safe so we can just clone it (no need to add mutexes)
-        let port = self.config.port;
+        let http_port = self.config.port;
         let state = self.clone();
 
         // Note: This creates a new Prometheus server different from the one created in GatewayServer::new. The created
@@ -95,18 +95,6 @@ impl GatewayServer {
             .endpoint("/metrics")
             .build()
             .unwrap();
-
-        #[cfg(feature = "tls")]
-        let protocol = "https";
-        #[cfg(not(feature = "tls"))]
-        let protocol = "http";
-
-        tracing::info!(
-            "Starting server at {}://{}:{}",
-            protocol,
-            self.config.ip,
-            self.config.port
-        );
 
         let server = HttpServer::new(move || {
             App::new()
@@ -121,21 +109,36 @@ impl GatewayServer {
         });
 
         #[cfg(feature = "tls")]
-        let server = {
+        {
+            let tls_port = self.config.tls_port;
+            tracing::info!("Starting HTTP server at http://{}:{}", self.config.ip, http_port);
+            tracing::info!("Starting HTTPS server at https://{}:{}", self.config.ip, tls_port);
+
             let tls_config =
                 Self::load_tls_config(&self.config.tls_cert_path, &self.config.tls_key_path)
                     .expect("Failed to load TLS configuration");
+
             server
-                .bind_rustls_0_23((self.config.ip.as_str(), port), tls_config)
-                .expect("To bind socket correctly with TLS")
-        };
+                .bind((self.config.ip.as_str(), http_port))
+                .expect("To bind HTTP socket correctly")
+                .bind_rustls_0_23((self.config.ip.as_str(), tls_port), tls_config)
+                .expect("To bind HTTPS socket correctly with TLS")
+                .run()
+                .await
+                .expect("Server to never end");
+        }
 
         #[cfg(not(feature = "tls"))]
-        let server = server
-            .bind((self.config.ip.as_str(), port))
-            .expect("To bind socket correctly");
+        {
+            tracing::info!("Starting HTTP server at http://{}:{}", self.config.ip, http_port);
 
-        server.run().await.expect("Server to never end");
+            server
+                .bind((self.config.ip.as_str(), http_port))
+                .expect("To bind HTTP socket correctly")
+                .run()
+                .await
+                .expect("Server to never end");
+        }
     }
 
     // Returns an OK response (code 200), no matters what receives in the request

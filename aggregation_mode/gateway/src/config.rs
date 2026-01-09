@@ -14,6 +14,8 @@ pub struct Config {
     pub tls_cert_path: String,
     #[cfg(feature = "tls")]
     pub tls_key_path: String,
+    #[cfg(feature = "tls")]
+    pub tls_port: u16,
 }
 
 impl Config {
