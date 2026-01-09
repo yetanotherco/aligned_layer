@@ -63,13 +63,16 @@ impl GatewayServer {
     }
 
     #[cfg(feature = "tls")]
-    fn load_tls_config(cert_path: &str, key_path: &str) -> Result<ServerConfig, Box<dyn std::error::Error>> {
+    fn load_tls_config(
+        cert_path: &str,
+        key_path: &str,
+    ) -> Result<ServerConfig, Box<dyn std::error::Error>> {
         // Install the default crypto provider
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
         // Load certificate chain
-        let certs: Vec<CertificateDer> = CertificateDer::pem_file_iter(cert_path)?
-            .collect::<Result<Vec<_>, _>>()?;
+        let certs: Vec<CertificateDer> =
+            CertificateDer::pem_file_iter(cert_path)?.collect::<Result<Vec<_>, _>>()?;
 
         // Load private key
         let private_key = PrivateKeyDer::from_pem_file(key_path)?;
@@ -98,7 +101,12 @@ impl GatewayServer {
         #[cfg(not(feature = "tls"))]
         let protocol = "http";
 
-        tracing::info!("Starting server at {}://{}:{}", protocol, self.config.ip, self.config.port);
+        tracing::info!(
+            "Starting server at {}://{}:{}",
+            protocol,
+            self.config.ip,
+            self.config.port
+        );
 
         let server = HttpServer::new(move || {
             App::new()
@@ -114,20 +122,20 @@ impl GatewayServer {
 
         #[cfg(feature = "tls")]
         let server = {
-            let tls_config = Self::load_tls_config(&self.config.tls_cert_path, &self.config.tls_key_path)
-                .expect("Failed to load TLS configuration");
-            server.bind_rustls_0_23((self.config.ip.as_str(), port), tls_config)
+            let tls_config =
+                Self::load_tls_config(&self.config.tls_cert_path, &self.config.tls_key_path)
+                    .expect("Failed to load TLS configuration");
+            server
+                .bind_rustls_0_23((self.config.ip.as_str(), port), tls_config)
                 .expect("To bind socket correctly with TLS")
         };
 
         #[cfg(not(feature = "tls"))]
-        let server = server.bind((self.config.ip.as_str(), port))
+        let server = server
+            .bind((self.config.ip.as_str(), port))
             .expect("To bind socket correctly");
 
-        server
-            .run()
-            .await
-            .expect("Server to never end");
+        server.run().await.expect("Server to never end");
     }
 
     // Returns an OK response (code 200), no matters what receives in the request
