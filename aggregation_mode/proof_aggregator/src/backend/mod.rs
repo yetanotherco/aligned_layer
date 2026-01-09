@@ -374,7 +374,7 @@ impl ProofAggregator {
             // TODO: Move this to a separate method reset_gas_fees()
             // Increase gas price/fees for retries before filling
             if attempt > 0 {
-                let multiplier = fee_multiplier.powi(attempt as i32);
+                let multiplier = fee_multiplier.powi(attempt);
 
                 info!(
                     "Retry attempt {} with increased fee ({}x)",
