@@ -369,44 +369,14 @@ impl ProofAggregator {
                 }
             };
 
-            let provider = self.proof_aggregation_service.provider();
-
-            // TODO: Move this to a separate method reset_gas_fees()
             // Increase gas price/fees for retries before filling
             if attempt > 0 {
-                let multiplier = fee_multiplier.powi(attempt);
-
-                info!(
-                    "Retry attempt {} with increased fee ({}x)",
-                    attempt, multiplier
-                );
-
-                // Obtain the current gas price if not set
-                if tx_req.max_fee_per_gas.is_none() {
-                    let current_gas_price = provider.get_gas_price().await.map_err(|e| {
-                        RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(
-                            e.to_string(),
-                        ))
-                    })?;
-
-                    let new_max_fee = (current_gas_price as f64 * multiplier) as u128;
-                    let new_priority_fee = (current_gas_price as f64 * multiplier * 0.1) as u128;
-
-                    tx_req = tx_req
-                        .with_max_fee_per_gas(new_max_fee)
-                        .with_max_priority_fee_per_gas(new_priority_fee);
-                } else {
-                    // If set, multiplicate the current ones
-                    if let Some(max_fee) = tx_req.max_fee_per_gas {
-                        let new_max_fee = (max_fee as f64 * multiplier) as u128;
-                        tx_req = tx_req.with_max_fee_per_gas(new_max_fee);
-                    }
-                    if let Some(priority_fee) = tx_req.max_priority_fee_per_gas {
-                        let new_priority_fee = (priority_fee as f64 * multiplier * 0.1) as u128;
-                        tx_req = tx_req.with_max_priority_fee_per_gas(new_priority_fee);
-                    }
-                }
+                tx_req = self
+                    .update_gas_fees(fee_multiplier, attempt, tx_req)
+                    .await?;
             }
+
+            let provider = self.proof_aggregation_service.provider();
 
             let envelope = provider
                 .fill(tx_req)
@@ -498,6 +468,69 @@ impl ProofAggregator {
                 "Max retries exceeded".to_string(),
             ),
         ))
+    }
+
+    // Updates the gas fees of a `TransactionRequest` for retry attempts by applying an exponential fee
+    // multiplier based on the retry number. This method is intended to be used when a previous transaction
+    // attempt was not confirmed (e.g. receipt timeout or transient failure). By increasing the gas fees
+    // on each retry, it improves the likelihood that the transaction will be included
+    // on the next block.
+    //
+    // Fee strategy:
+    // An exponential multiplier is computed on each iteration. For example, with `fee_multiplier = 1.2`:
+    //   - `attempt = 1` → `1.2x`
+    //   - `attempt = 2` → `1.44x`
+    //   - `attempt = 3` → `1.728x`
+    //
+    // If the transaction request doesn't have `max_fee_per_gas` set, the current network gas price is fetched
+    // from the provider, the max fee per gas is set to `current_gas_price * multiplier` and the max priority
+    // fee per gas is set to `current_gas_price * multiplier * 0.1`.
+    //
+    // If the transaction request already contains the fee fields, the existing max fee per gas is multiplied
+    // by `multiplier`, and the existing max priority fee per gas is multiplied by multiplier * 0.1`.
+    async fn update_gas_fees(
+        &self,
+        fee_multiplier: f64,
+        attempt: i32,
+        tx_req: alloy::rpc::types::TransactionRequest,
+    ) -> Result<alloy::rpc::types::TransactionRequest, RetryError<AggregatedProofSubmissionError>>
+    {
+        let provider = self.proof_aggregation_service.provider();
+
+        let multiplier = fee_multiplier.powi(attempt);
+
+        info!(
+            "Retry attempt {} with increased fee ({}x)",
+            attempt, multiplier
+        );
+
+        let mut current_tx_req = tx_req.clone();
+
+        // Obtain the current gas price if not set
+        if tx_req.max_fee_per_gas.is_none() {
+            let current_gas_price = provider.get_gas_price().await.map_err(|e| {
+                RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
+            })?;
+
+            let new_max_fee = (current_gas_price as f64 * multiplier) as u128;
+            let new_priority_fee = (current_gas_price as f64 * multiplier * 0.1) as u128;
+
+            current_tx_req = current_tx_req
+                .with_max_fee_per_gas(new_max_fee)
+                .with_max_priority_fee_per_gas(new_priority_fee);
+        } else {
+            // If set, multiplicate the current ones
+            if let Some(max_fee) = tx_req.max_fee_per_gas {
+                let new_max_fee = (max_fee as f64 * multiplier) as u128;
+                current_tx_req = tx_req.clone().with_max_fee_per_gas(new_max_fee);
+            }
+            if let Some(priority_fee) = tx_req.max_priority_fee_per_gas {
+                let new_priority_fee = (priority_fee as f64 * multiplier * 0.1) as u128;
+                current_tx_req = tx_req.with_max_priority_fee_per_gas(new_priority_fee);
+            }
+        }
+
+        Ok(current_tx_req)
     }
 
     async fn wait_until_can_submit_aggregated_proof(
