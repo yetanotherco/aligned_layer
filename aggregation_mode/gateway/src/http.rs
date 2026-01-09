@@ -111,8 +111,16 @@ impl GatewayServer {
         #[cfg(feature = "tls")]
         {
             let tls_port = self.config.tls_port;
-            tracing::info!("Starting HTTP server at http://{}:{}", self.config.ip, http_port);
-            tracing::info!("Starting HTTPS server at https://{}:{}", self.config.ip, tls_port);
+            tracing::info!(
+                "Starting HTTP server at http://{}:{}",
+                self.config.ip,
+                http_port
+            );
+            tracing::info!(
+                "Starting HTTPS server at https://{}:{}",
+                self.config.ip,
+                tls_port
+            );
 
             let tls_config =
                 Self::load_tls_config(&self.config.tls_cert_path, &self.config.tls_key_path)
@@ -130,7 +138,11 @@ impl GatewayServer {
 
         #[cfg(not(feature = "tls"))]
         {
-            tracing::info!("Starting HTTP server at http://{}:{}", self.config.ip, http_port);
+            tracing::info!(
+                "Starting HTTP server at http://{}:{}",
+                self.config.ip,
+                http_port
+            );
 
             server
                 .bind((self.config.ip.as_str(), http_port))
