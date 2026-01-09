@@ -18,7 +18,7 @@ db = { workspace = true }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
 bincode = "1.3.3"
-actix-web = "4"
+actix-web = { version = "4", features = ["rustls-0_23"] }
 actix-multipart = "0.7.2"
 actix-web-prometheus = "0.1.2"
 rustls = { version = "0.23", optional = true, default-features = false, features = ["std", "aws-lc-rs"] }
