@@ -4,6 +4,12 @@ use std::{
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
+#[cfg(feature = "tls")]
+use rustls::{
+    pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer},
+    ServerConfig,
+};
+
 use actix_multipart::form::MultipartForm;
 use actix_web::{
     web::{self, Data},
@@ -56,6 +62,25 @@ impl GatewayServer {
         }
     }
 
+    #[cfg(feature = "tls")]
+    fn load_tls_config(cert_path: &str, key_path: &str) -> Result<ServerConfig, Box<dyn std::error::Error>> {
+        // Install the default crypto provider
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
+        // Load certificate chain
+        let certs: Vec<CertificateDer> = CertificateDer::pem_file_iter(cert_path)?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        // Load private key
+        let private_key = PrivateKeyDer::from_pem_file(key_path)?;
+
+        let config = ServerConfig::builder()
+            .with_no_client_auth()
+            .with_single_cert(certs, private_key)?;
+
+        Ok(config)
+    }
+
     pub async fn start(&self) {
         // Note: GatewayServer is thread safe so we can just clone it (no need to add mutexes)
         let port = self.config.port;
@@ -68,8 +93,14 @@ impl GatewayServer {
             .build()
             .unwrap();
 
-        tracing::info!("Starting server at port {}", self.config.port);
-        HttpServer::new(move || {
+        #[cfg(feature = "tls")]
+        let protocol = "https";
+        #[cfg(not(feature = "tls"))]
+        let protocol = "http";
+
+        tracing::info!("Starting server at {}://{}:{}", protocol, self.config.ip, self.config.port);
+
+        let server = HttpServer::new(move || {
             App::new()
                 .app_data(Data::new(state.clone()))
                 .wrap(prometheus.clone())
@@ -79,12 +110,24 @@ impl GatewayServer {
                 .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
                 .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
                 .route("/quotas/{address}", web::get().to(Self::get_quotas))
-        })
-        .bind((self.config.ip.as_str(), port))
-        .expect("To bind socket correctly")
-        .run()
-        .await
-        .expect("Server to never end");
+        });
+
+        #[cfg(feature = "tls")]
+        let server = {
+            let tls_config = Self::load_tls_config(&self.config.tls_cert_path, &self.config.tls_key_path)
+                .expect("Failed to load TLS configuration");
+            server.bind_rustls_0_23((self.config.ip.as_str(), port), tls_config)
+                .expect("To bind socket correctly with TLS")
+        };
+
+        #[cfg(not(feature = "tls"))]
+        let server = server.bind((self.config.ip.as_str(), port))
+            .expect("To bind socket correctly");
+
+        server
+            .run()
+            .await
+            .expect("Server to never end");
     }
 
     // Returns an OK response (code 200), no matters what receives in the request

@@ -10,6 +10,10 @@ pub struct Config {
     pub network: String,
     pub max_daily_proofs_per_user: i64,
     pub gateway_metrics_port: u16,
+    #[cfg(feature = "tls")]
+    pub tls_cert_path: String,
+    #[cfg(feature = "tls")]
+    pub tls_key_path: String,
 }
 
 impl Config {

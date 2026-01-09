@@ -3,6 +3,10 @@ name = "gateway"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+tls = ["dep:rustls"]
+
 [dependencies]
 serde =  { workspace = true }
 serde_json = { workspace = true }
@@ -17,8 +21,8 @@ bincode = "1.3.3"
 actix-web = "4"
 actix-multipart = "0.7.2"
 actix-web-prometheus = "0.1.2"
+rustls = { version = "0.23", optional = true, default-features = false, features = ["std", "aws-lc-rs"] }
 alloy = { workspace = true }
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"]}
-# TODO: enable tls
 sqlx = { version = "0.8", features = [ "runtime-tokio", "postgres", "uuid", "bigdecimal" ] }
 hex = "0.4"
