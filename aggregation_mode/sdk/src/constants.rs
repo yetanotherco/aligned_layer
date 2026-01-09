@@ -20,5 +20,5 @@ pub const ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_DEVNET: &str =
 pub const ALIGNED_AGG_MODE_GATEWAY_URL_MAINNET: &str = "";
 pub const ALIGNED_AGG_MODE_GATEWAY_URL_MAINNET_STAGE: &str = "";
 pub const ALIGNED_AGG_MODE_GATEWAY_URL_SEPOLIA: &str = "";
-pub const ALIGNED_AGG_MODE_GATEWAY_URL_HOODI: &str = "http://hoodi.gateway.alignedlayer.com:8080";
+pub const ALIGNED_AGG_MODE_GATEWAY_URL_HOODI: &str = "https://hoodi.gateway.alignedlayer.com";
 pub const ALIGNED_AGG_MODE_GATEWAY_URL_DEVNET: &str = "http://127.0.0.1:8089";
