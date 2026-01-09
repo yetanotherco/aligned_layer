@@ -334,10 +334,9 @@ impl ProofAggregator {
 
         info!("Sending proof to ProofAggregationService contract...");
 
-        // TODO: Read from config
-        let max_retries = 5;
-        let retry_interval = Duration::from_secs(120);
-        let fee_multiplier: f64 = 1.2;
+        let max_retries = self.config.max_bump_retries;
+        let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
+        let fee_multiplier: f64 = self.config.bump_increase_fee_multiplier;
 
         for attempt in 0..max_retries {
             let mut tx_req = match aggregated_proof {
@@ -372,7 +371,7 @@ impl ProofAggregator {
             // Increase gas price/fees for retries before filling
             if attempt > 0 {
                 tx_req = self
-                    .update_gas_fees(fee_multiplier, attempt, tx_req)
+                    .update_gas_fees(fee_multiplier, attempt as i32, tx_req)
                     .await?;
             }
 
