@@ -108,14 +108,19 @@ impl GatewayServer {
                 .route("/quotas/{address}", web::get().to(Self::get_quotas))
         });
 
+        tracing::info!(
+            "Starting HTTP server at http://{}:{}",
+            self.config.ip,
+            http_port
+        );
+
+        let server = server
+            .bind((self.config.ip.as_str(), http_port))
+            .expect("To bind HTTP socket correctly");
+
         #[cfg(feature = "tls")]
-        {
+        let server = {
             let tls_port = self.config.tls_port;
-            tracing::info!(
-                "Starting HTTP server at http://{}:{}",
-                self.config.ip,
-                http_port
-            );
             tracing::info!(
                 "Starting HTTPS server at https://{}:{}",
                 self.config.ip,
@@ -127,30 +132,11 @@ impl GatewayServer {
                     .expect("Failed to load TLS configuration");
 
             server
-                .bind((self.config.ip.as_str(), http_port))
-                .expect("To bind HTTP socket correctly")
                 .bind_rustls_0_23((self.config.ip.as_str(), tls_port), tls_config)
                 .expect("To bind HTTPS socket correctly with TLS")
-                .run()
-                .await
-                .expect("Server to never end");
-        }
+        };
 
-        #[cfg(not(feature = "tls"))]
-        {
-            tracing::info!(
-                "Starting HTTP server at http://{}:{}",
-                self.config.ip,
-                http_port
-            );
-
-            server
-                .bind((self.config.ip.as_str(), http_port))
-                .expect("To bind HTTP socket correctly")
-                .run()
-                .await
-                .expect("Server to never end");
-        }
+        server.run().await.expect("Server to never end");
     }
 
     // Returns an OK response (code 200), no matters what receives in the request
