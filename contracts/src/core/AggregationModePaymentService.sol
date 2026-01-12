@@ -200,11 +200,11 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         for (uint256 i=0; i < addressesToAdd.length; ++i) {
             address addressToAdd = addressesToAdd[i];
 
-            bool wasActive = subscribedAddresses[addressToAdd] > block.timestamp;
+            bool isActive = subscribedAddresses[addressToAdd] > block.timestamp;
 
             subscribedAddresses[addressToAdd] = expirationTimestamp;
 
-            if (!wasActive && expirationTimestamp > block.timestamp) {
+            if (!isActive && expirationTimestamp > block.timestamp) {
                 ++activeSubscriptionsAmount;
             }
 
