@@ -111,6 +111,9 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         __UUPSUpgradeable_init();
         __AccessControlEnumerable_init();
 
+        _setRoleAdmin(OWNER_ROLE, OWNER_ROLE);
+        _setRoleAdmin(ADMIN_ROLE, OWNER_ROLE);
+
         _grantRole(OWNER_ROLE, _owner);
         _grantRole(ADMIN_ROLE, _admin);
 
