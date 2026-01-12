@@ -28,8 +28,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - PROMETHEUS_URL=http://prometheus:9090
-      - MONITOR_DB_HOST=host.docker.internal
-      - MONITOR_DB_PORT=5436
+      - MONITOR_DB_HOST=monitor
+      - MONITOR_DB_PORT=5432
       - MONITOR_DB_DB=pg_auto_failover
       - MONITOR_DB_USER=autoctl_node
     extra_hosts:
