@@ -200,9 +200,13 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         for (uint256 i=0; i < addressesToAdd.length; ++i) {
             address addressToAdd = addressesToAdd[i];
 
+            bool wasActive = subscribedAddresses[addressToAdd] > block.timestamp;
+
             subscribedAddresses[addressToAdd] = expirationTimestamp;
 
-            ++activeSubscriptionsAmount;
+            if (!wasActive && expirationTimestamp > block.timestamp) {
+                ++activeSubscriptionsAmount;
+            }
 
             emit UserPayment(addressToAdd, amountToPayInWei, block.timestamp, expirationTimestamp);
         }
