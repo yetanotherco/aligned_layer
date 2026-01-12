@@ -3,14 +3,14 @@ pragma solidity ^0.8.12;
 
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin-upgrades/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {AccessControlUpgradeable} from "@openzeppelin-upgrades/contracts/access/AccessControlUpgradeable.sol";
+import {AccessControlEnumerableUpgradeable} from "@openzeppelin-upgrades/contracts/access/AccessControlEnumerableUpgradeable.sol";
 
 /**
  * @title AggregationModePaymentService
  * @author Aligned Layer
  * @notice Handles deposits that grant time-limited access to aggregation services.
  */
-contract AggregationModePaymentService is Initializable, UUPSUpgradeable, AccessControlUpgradeable {
+contract AggregationModePaymentService is Initializable, UUPSUpgradeable, AccessControlEnumerableUpgradeable {
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -109,6 +109,8 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         uint256 _maxSubscriptionTimeAhead
     ) public initializer {
         __UUPSUpgradeable_init();
+        __AccessControlEnumerable_init();
+
         _grantRole(OWNER_ROLE, _owner);
         _grantRole(ADMIN_ROLE, _admin);
 
