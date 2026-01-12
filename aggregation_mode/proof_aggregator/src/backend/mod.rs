@@ -336,143 +336,179 @@ impl ProofAggregator {
 
         let max_retries = self.config.max_bump_retries;
         let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
-        let base_bump_percentage = self.config.base_bump_percentage; // e.g., 10
-        let retry_attempt_percentage = self.config.retry_attempt_percentage; // e.g., 5
+        let base_bump_percentage = self.config.base_bump_percentage;
+        let retry_attempt_percentage = self.config.retry_attempt_percentage;
+
+        let mut last_error: Option<AggregatedProofSubmissionError> = None;
 
         for attempt in 0..max_retries {
-            let mut tx_req = match aggregated_proof {
-                AlignedProof::SP1(proof) => self
-                    .proof_aggregation_service
-                    .verifyAggregationSP1(
-                        blob_versioned_hash.into(),
-                        proof.proof_with_pub_values.public_values.to_vec().into(),
-                        proof.proof_with_pub_values.bytes().into(),
-                        self.sp1_chunk_aggregator_vk_hash_bytes.into(),
-                    )
-                    .sidecar(blob.clone())
-                    .into_transaction_request(),
-                AlignedProof::Risc0(proof) => {
-                    let encoded_seal = encode_seal(&proof.receipt)
-                        .map_err(|e| {
-                            AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
-                        })
-                        .map_err(RetryError::Permanent)?;
-                    self.proof_aggregation_service
-                        .verifyAggregationRisc0(
-                            blob_versioned_hash.into(),
-                            encoded_seal.into(),
-                            proof.receipt.journal.bytes.clone().into(),
-                            self.risc0_chunk_aggregator_image_id_bytes.into(),
-                        )
-                        .sidecar(blob.clone())
-                        .into_transaction_request()
-                }
-            };
+            info!("Transaction attempt {} of {}", attempt + 1, max_retries);
 
-            // Increase gas price/fees for retries before filling
-            if attempt > 0 {
-                tx_req = self
-                    .update_gas_fees(
-                        base_bump_percentage,
-                        retry_attempt_percentage,
-                        attempt as u64,
-                        tx_req,
-                    )
-                    .await?;
-            }
+            // Wrap the entire transaction submission in a result to catch all errors
+            let attempt_result = self
+                .try_submit_transaction(
+                    &blob,
+                    blob_versioned_hash,
+                    aggregated_proof,
+                    base_bump_percentage,
+                    retry_attempt_percentage,
+                    attempt as u64,
+                    retry_interval,
+                )
+                .await;
 
-            let provider = self.proof_aggregation_service.provider();
-
-            let envelope = provider
-                .fill(tx_req)
-                .await
-                .map_err(|err| {
-                    AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                        err.to_string(),
-                    )
-                })
-                .map_err(RetryError::Transient)?
-                .try_into_envelope()
-                .map_err(|err| {
-                    AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                        err.to_string(),
-                    )
-                })
-                .map_err(RetryError::Transient)?;
-
-            let tx: EthereumTxEnvelope<TxEip4844WithSidecar<BlobTransactionSidecarEip7594>> =
-                envelope
-                    .try_into_pooled()
-                    .map_err(|err| {
-                        AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                            err.to_string(),
-                        )
-                    })
-                    .map_err(RetryError::Transient)?
-                    .try_map_eip4844(|tx| {
-                        tx.try_map_sidecar(|sidecar| {
-                            sidecar.try_into_7594(EnvKzgSettings::Default.get())
-                        })
-                    })
-                    .map_err(|err| {
-                        AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                            err.to_string(),
-                        )
-                    })
-                    .map_err(RetryError::Transient)?;
-
-            let encoded_tx = tx.encoded_2718();
-            let pending_tx = provider
-                .send_raw_transaction(&encoded_tx)
-                .await
-                .map_err(|err| {
-                    AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                        err.to_string(),
-                    )
-                })
-                .map_err(RetryError::Transient)?;
-
-            // Wait for the receipt with timeout
-            let receipt_result =
-                tokio::time::timeout(retry_interval, pending_tx.get_receipt()).await;
-
-            match receipt_result {
-                Ok(Ok(receipt)) => {
+            match attempt_result {
+                Ok(receipt) => {
                     info!(
                         "Transaction confirmed successfully on attempt {}",
                         attempt + 1
                     );
                     return Ok(receipt);
                 }
-                Ok(Err(err)) => {
-                    warn!("Error getting receipt on attempt {}: {}", attempt + 1, err);
-                    if attempt == max_retries - 1 {
-                        return Err(RetryError::Transient(
-                            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                                err.to_string(),
-                            ),
-                        ));
-                    }
-                }
-                Err(_) => {
-                    warn!("Transaction not confirmed after {} seconds on attempt {}, retrying with higher fee...", 
-                    retry_interval.as_secs(), attempt + 1);
-                    if attempt == max_retries - 1 {
-                        return Err(RetryError::Transient(
-                            AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                                "Transaction timeout after all retries".to_string(),
-                            ),
-                        ));
+                Err(err) => {
+                    warn!("Attempt {} failed: {:?}", attempt + 1, err);
+                    last_error = Some(err);
+
+                    if attempt < max_retries - 1 {
+                        info!("Retrying with bumped gas fees...");
+
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    } else {
+                        warn!("Max retries ({}) exceeded", max_retries);
                     }
                 }
             }
         }
 
-        Err(RetryError::Transient(
+        // If we exhausted all retries, return the last error
+        Err(RetryError::Transient(last_error.unwrap_or_else(|| {
             AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
-                "Max retries exceeded".to_string(),
+                "Max retries exceeded with no error details".to_string(),
+            )
+        })))
+    }
+
+    async fn try_submit_transaction(
+        &self,
+        blob: &BlobTransactionSidecar,
+        blob_versioned_hash: [u8; 32],
+        aggregated_proof: &AlignedProof,
+        base_bump_percentage: u64,
+        retry_attempt_percentage: u64,
+        attempt: u64,
+        retry_interval: Duration,
+    ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
+        // Build the transaction request
+        let mut tx_req = match aggregated_proof {
+            AlignedProof::SP1(proof) => self
+                .proof_aggregation_service
+                .verifyAggregationSP1(
+                    blob_versioned_hash.into(),
+                    proof.proof_with_pub_values.public_values.to_vec().into(),
+                    proof.proof_with_pub_values.bytes().into(),
+                    self.sp1_chunk_aggregator_vk_hash_bytes.into(),
+                )
+                .sidecar(blob.clone())
+                .into_transaction_request(),
+            AlignedProof::Risc0(proof) => {
+                let encoded_seal = encode_seal(&proof.receipt).map_err(|e| {
+                    AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string())
+                })?;
+                self.proof_aggregation_service
+                    .verifyAggregationRisc0(
+                        blob_versioned_hash.into(),
+                        encoded_seal.into(),
+                        proof.receipt.journal.bytes.clone().into(),
+                        self.risc0_chunk_aggregator_image_id_bytes.into(),
+                    )
+                    .sidecar(blob.clone())
+                    .into_transaction_request()
+            }
+        };
+
+        // Apply gas fee bump for retries
+        if attempt > 0 {
+            tx_req = self
+                .apply_gas_fee_bump(
+                    base_bump_percentage,
+                    retry_attempt_percentage,
+                    attempt,
+                    tx_req,
+                )
+                .await?;
+        }
+
+        let provider = self.proof_aggregation_service.provider();
+
+        // Fill the transaction
+        let envelope = provider
+            .fill(tx_req)
+            .await
+            .map_err(|err| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
+                    "Failed to fill transaction: {}",
+                    err
+                ))
+            })?
+            .try_into_envelope()
+            .map_err(|err| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
+                    "Failed to convert to envelope: {}",
+                    err
+                ))
+            })?;
+
+        // Convert to EIP-4844 transaction
+        let tx: EthereumTxEnvelope<TxEip4844WithSidecar<BlobTransactionSidecarEip7594>> = envelope
+            .try_into_pooled()
+            .map_err(|err| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
+                    "Failed to pool transaction: {}",
+                    err
+                ))
+            })?
+            .try_map_eip4844(|tx| {
+                tx.try_map_sidecar(|sidecar| sidecar.try_into_7594(EnvKzgSettings::Default.get()))
+            })
+            .map_err(|err| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
+                    "Failed to convert to EIP-7594: {}",
+                    err
+                ))
+            })?;
+
+        // Send the transaction
+        let encoded_tx = tx.encoded_2718();
+        let pending_tx = provider
+            .send_raw_transaction(&encoded_tx)
+            .await
+            .map_err(|err| {
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
+                    "Failed to send raw transaction: {}",
+                    err
+                ))
+            })?;
+
+        info!("Transaction sent, waiting for confirmation...");
+
+        // Wait for the receipt with timeout
+        let receipt_result = tokio::time::timeout(retry_interval, pending_tx.get_receipt()).await;
+
+        match receipt_result {
+            Ok(Ok(receipt)) => Ok(receipt),
+            Ok(Err(err)) => Err(
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
+                    "Error getting receipt: {}",
+                    err
+                )),
             ),
-        ))
+            Err(_) => Err(
+                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
+                    "Transaction timeout after {} seconds",
+                    retry_interval.as_secs()
+                )),
+            ),
+        }
     }
 
     // Updates the gas fees of a `TransactionRequest` for retry attempts by applying a linear fee
@@ -487,30 +523,36 @@ impl ProofAggregator {
     //   - `attempt = 3` → 10% + (3 * 5%) = 25% bump
     //
     // The bumped price is: current_gas_price * (1 + total_bump_percentage / 100)
-    async fn update_gas_fees(
+    async fn apply_gas_fee_bump(
         &self,
         base_bump_percentage: u64,
         retry_attempt_percentage: u64,
         attempt: u64,
         tx_req: alloy::rpc::types::TransactionRequest,
-    ) -> Result<alloy::rpc::types::TransactionRequest, RetryError<AggregatedProofSubmissionError>>
-    {
+    ) -> Result<alloy::rpc::types::TransactionRequest, AggregatedProofSubmissionError> {
         let provider = self.proof_aggregation_service.provider();
 
         // Calculate total bump percentage: base + (retry_count * retry_attempt)
         let incremental_retry_percentage = retry_attempt_percentage * attempt;
         let total_bump_percentage = base_bump_percentage + incremental_retry_percentage;
 
+        info!(
+            "Applying {}% gas fee bump for attempt {}",
+            total_bump_percentage,
+            attempt + 1
+        );
+
         let mut current_tx_req = tx_req.clone();
 
         if current_tx_req.max_fee_per_gas.is_none() {
-            let current_gas_price = provider.get_gas_price().await.map_err(|e| {
-                RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
-            })?;
+            let current_gas_price = provider
+                .get_gas_price()
+                .await
+                .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?;
 
             let new_max_fee =
                 Self::calculate_bumped_price(current_gas_price, total_bump_percentage);
-            let new_priority_fee = new_max_fee / 10; // 10% of max fee
+            let new_priority_fee = new_max_fee / 10;
 
             current_tx_req = current_tx_req
                 .with_max_fee_per_gas(new_max_fee)
