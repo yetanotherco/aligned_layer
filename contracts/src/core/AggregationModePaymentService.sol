@@ -225,6 +225,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         if (subscribedAddresses[msg.sender] < block.timestamp) {
             // Subscription is inactive/expired: start a new period from now.
             subscribedAddresses[msg.sender] = block.timestamp + paymentExpirationTimeSeconds;
+            ++activeSubscriptionsAmount;
         } else {
             // Subscription is still active: extend the current expiry by one period.
             subscribedAddresses[msg.sender] = subscribedAddresses[msg.sender] + paymentExpirationTimeSeconds;
@@ -236,7 +237,6 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
             revert SubscriptionTimeExceedsLimit(newExpiration, maxSubscriptionTimeAhead);
         }
 
-        ++activeSubscriptionsAmount;
 
         emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentExpirationTimeSeconds);
     }
