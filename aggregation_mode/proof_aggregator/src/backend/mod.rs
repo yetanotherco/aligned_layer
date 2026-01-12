@@ -335,9 +335,6 @@ impl ProofAggregator {
         info!("Sending proof to ProofAggregationService contract...");
 
         let max_retries = self.config.max_bump_retries;
-        let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
-        let base_bump_percentage = self.config.base_bump_percentage;
-        let retry_attempt_percentage = self.config.retry_attempt_percentage;
 
         let mut last_error: Option<AggregatedProofSubmissionError> = None;
 
@@ -350,10 +347,7 @@ impl ProofAggregator {
                     &blob,
                     blob_versioned_hash,
                     aggregated_proof,
-                    base_bump_percentage,
-                    retry_attempt_percentage,
                     attempt as u64,
-                    retry_interval,
                 )
                 .await;
 
@@ -393,11 +387,12 @@ impl ProofAggregator {
         blob: &BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: &AlignedProof,
-        base_bump_percentage: u64,
-        retry_attempt_percentage: u64,
         attempt: u64,
-        retry_interval: Duration,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
+        let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
+        let base_bump_percentage = self.config.base_bump_percentage;
+        let retry_attempt_percentage = self.config.retry_attempt_percentage;
+
         // Build the transaction request
         let mut tx_req = match aggregated_proof {
             AlignedProof::SP1(proof) => self
@@ -446,15 +441,13 @@ impl ProofAggregator {
             .await
             .map_err(|err| {
                 AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
-                    "Failed to fill transaction: {}",
-                    err
+                    "Failed to fill transaction: {err}"
                 ))
             })?
             .try_into_envelope()
             .map_err(|err| {
                 AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
-                    "Failed to convert to envelope: {}",
-                    err
+                    "Failed to convert to envelope: {err}"
                 ))
             })?;
 
@@ -463,8 +456,7 @@ impl ProofAggregator {
             .try_into_pooled()
             .map_err(|err| {
                 AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
-                    "Failed to pool transaction: {}",
-                    err
+                    "Failed to pool transaction: {err}"
                 ))
             })?
             .try_map_eip4844(|tx| {
@@ -472,8 +464,7 @@ impl ProofAggregator {
             })
             .map_err(|err| {
                 AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
-                    "Failed to convert to EIP-7594: {}",
-                    err
+                    "Failed to convert to EIP-7594: {err}"
                 ))
             })?;
 
@@ -484,8 +475,7 @@ impl ProofAggregator {
             .await
             .map_err(|err| {
                 AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
-                    "Failed to send raw transaction: {}",
-                    err
+                    "Failed to send raw transaction: {err}"
                 ))
             })?;
 
@@ -498,8 +488,7 @@ impl ProofAggregator {
             Ok(Ok(receipt)) => Ok(receipt),
             Ok(Err(err)) => Err(
                 AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
-                    "Error getting receipt: {}",
-                    err
+                    "Error getting receipt: {err}"
                 )),
             ),
             Err(_) => Err(
