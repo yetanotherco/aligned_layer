@@ -30,7 +30,8 @@ risc0_chunk_aggregator_image_id: "d8cfdd5410c70395c0a1af1842a0148428cc46e353355f
 # These values modify the bumping behavior after the aggregated proof on-chain submission times out.
 max_bump_retries: 5
 bump_retry_interval_seconds: 120
-bump_increase_fee_multiplier: 1.2
+base_bump_percentage: 10
+retry_attempt_percentage: 2
 
 ecdsa:
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"

@@ -23,7 +23,8 @@ pub struct Config {
     pub db_connection_urls: Vec<String>,
     pub max_bump_retries: u16,
     pub bump_retry_interval_seconds: u64,
-    pub bump_increase_fee_multiplier: f64,
+    pub base_bump_percentage: u64,
+    pub retry_attempt_percentage: u64,
 }
 
 impl Config {

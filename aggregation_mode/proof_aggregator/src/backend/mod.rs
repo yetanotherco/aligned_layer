@@ -336,7 +336,8 @@ impl ProofAggregator {
 
         let max_retries = self.config.max_bump_retries;
         let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
-        let fee_multiplier: f64 = self.config.bump_increase_fee_multiplier;
+        let base_bump_percentage = self.config.base_bump_percentage; // e.g., 10
+        let retry_attempt_percentage = self.config.retry_attempt_percentage; // e.g., 5
 
         for attempt in 0..max_retries {
             let mut tx_req = match aggregated_proof {
@@ -371,7 +372,12 @@ impl ProofAggregator {
             // Increase gas price/fees for retries before filling
             if attempt > 0 {
                 tx_req = self
-                    .update_gas_fees(fee_multiplier, attempt as i32, tx_req)
+                    .update_gas_fees(
+                        base_bump_percentage,
+                        retry_attempt_percentage,
+                        attempt as u64,
+                        tx_req,
+                    )
                     .await?;
             }
 
@@ -469,39 +475,31 @@ impl ProofAggregator {
         ))
     }
 
-    // Updates the gas fees of a `TransactionRequest` for retry attempts by applying an exponential fee
-    // multiplier based on the retry number. This method is intended to be used when a previous transaction
-    // attempt was not confirmed (e.g. receipt timeout or transient failure). By increasing the gas fees
-    // on each retry, it improves the likelihood that the transaction will be included
-    // on the next block.
+    // Updates the gas fees of a `TransactionRequest` for retry attempts by applying a linear fee
+    // bump based on the retry number. This method is intended to be used when a previous transaction
+    // attempt was not confirmed (e.g. receipt timeout or transient failure).
     //
-    // Fee strategy:
-    // An exponential multiplier is computed on each iteration. For example, with `fee_multiplier = 1.2`:
-    //   - `attempt = 1` → `1.2x`
-    //   - `attempt = 2` → `1.44x`
-    //   - `attempt = 3` → `1.728x`
+    // Fee strategy (similar to Go implementation):
+    // The bump is calculated as: base_bump_percentage + (retry_count * retry_attempt_percentage)
+    // For example, with `base_bump_percentage = 10` and `retry_attempt_percentage = 5`:
+    //   - `attempt = 1` → 10% + (1 * 5%) = 15% bump
+    //   - `attempt = 2` → 10% + (2 * 5%) = 20% bump
+    //   - `attempt = 3` → 10% + (3 * 5%) = 25% bump
     //
-    // If the transaction request doesn't have `max_fee_per_gas` set, the current network gas price is fetched
-    // from the provider, the max fee per gas is set to `current_gas_price * multiplier` and the max priority
-    // fee per gas is set to `current_gas_price * multiplier * 0.1`.
-    //
-    // If the transaction request already contains the fee fields, the existing max fee per gas is multiplied
-    // by `multiplier`, and the existing max priority fee per gas is multiplied by multiplier * 0.1`.
+    // The bumped price is: current_gas_price * (1 + total_bump_percentage / 100)
     async fn update_gas_fees(
         &self,
-        fee_multiplier: f64,
-        attempt: i32,
+        base_bump_percentage: u64,
+        retry_attempt_percentage: u64,
+        attempt: u64,
         tx_req: alloy::rpc::types::TransactionRequest,
     ) -> Result<alloy::rpc::types::TransactionRequest, RetryError<AggregatedProofSubmissionError>>
     {
         let provider = self.proof_aggregation_service.provider();
 
-        let multiplier = fee_multiplier.powi(attempt);
-
-        info!(
-            "Retry attempt {} with increased fee ({}x)",
-            attempt, multiplier
-        );
+        // Calculate total bump percentage: base + (retry_count * retry_attempt)
+        let incremental_retry_percentage = retry_attempt_percentage * attempt;
+        let total_bump_percentage = base_bump_percentage + incremental_retry_percentage;
 
         let mut current_tx_req = tx_req.clone();
 
@@ -510,24 +508,31 @@ impl ProofAggregator {
                 RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
             })?;
 
-            let new_max_fee = (current_gas_price as f64 * multiplier) as u128;
-            let new_priority_fee = (current_gas_price as f64 * multiplier * 0.1) as u128;
+            let new_max_fee =
+                Self::calculate_bumped_price(current_gas_price, total_bump_percentage);
+            let new_priority_fee = new_max_fee / 10; // 10% of max fee
 
             current_tx_req = current_tx_req
                 .with_max_fee_per_gas(new_max_fee)
                 .with_max_priority_fee_per_gas(new_priority_fee);
         } else {
             if let Some(max_fee) = current_tx_req.max_fee_per_gas {
-                let new_max_fee = (max_fee as f64 * multiplier) as u128;
+                let new_max_fee = Self::calculate_bumped_price(max_fee, total_bump_percentage);
                 current_tx_req = current_tx_req.with_max_fee_per_gas(new_max_fee);
             }
             if let Some(priority_fee) = current_tx_req.max_priority_fee_per_gas {
-                let new_priority_fee = (priority_fee as f64 * multiplier) as u128;
+                let new_priority_fee =
+                    Self::calculate_bumped_price(priority_fee, total_bump_percentage);
                 current_tx_req = current_tx_req.with_max_priority_fee_per_gas(new_priority_fee);
             }
         }
 
         Ok(current_tx_req)
+    }
+
+    fn calculate_bumped_price(current_price: u128, total_bump_percentage: u64) -> u128 {
+        let bump_amount = (current_price * total_bump_percentage as u128) / 100;
+        current_price + bump_amount
     }
 
     async fn wait_until_can_submit_aggregated_proof(
