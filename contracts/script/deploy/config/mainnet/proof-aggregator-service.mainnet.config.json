@@ -2,13 +2,22 @@
   "address": {
     "sp1VerifierAddress": "0x397A5f7f3dBd538f23DE225B51f532c34448dA9B",
     "risc0VerifierAddress": "0x8EaB2D97Dfce405A1692a21b3ff3A172d593D319",
-    "alignedAggregatorAddress": "<aligned_aggregator_address>"
+    "alignedAggregatorAddress": "0x57628fe929016C30463473349DcDd592ea27C8b3"
   },
   "programs_id": {
-    "sp1AggregationProgramVKHash": "0x00a18429d092a8e1f58aea6ff650ad715ad4e6d7056600bb201d38460244507b",
-    "risc0AggregationProgramImageId": "0x4cc11a4ac146ce4fc71493d694a9707194316cbb609603a195ffbe0c4c099c97"
+    "sp1AggregationProgramVKHash": "0x00d6e32a34f68ea643362b96615591c94ee0bf99ee871740ab2337966a4f77af",
+    "risc0AggregationProgramImageId": "0x8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c"
+  },
+  "amounts": {
+    "amountToPayInWei": 3500000000000000,
+    "paymentExpirationTimeSeconds": 2592000,
+    "subscriptionLimit": 100,
+    "maxSubscriptionTimeAhead": 7776000
   },
   "permissions": {
-    "owner": "<owner_address>"
+    "owner": "0xfC135A861efF65b7644Fb03d9f851251546C0835",
+    "paymentServiceOwner": "0xfC135A861efF65b7644Fb03d9f851251546C0835",
+    "paymentServiceAdmin": "0xe25C44883d1BF8C82225fcCdd52960b8b0c96748",
+    "recipient": "0xfC135A861efF65b7644Fb03d9f851251546C0835"
   }
 }
