@@ -505,8 +505,7 @@ impl ProofAggregator {
 
         let mut current_tx_req = tx_req.clone();
 
-        // Obtain the current gas price if not set
-        if tx_req.max_fee_per_gas.is_none() {
+        if current_tx_req.max_fee_per_gas.is_none() {
             let current_gas_price = provider.get_gas_price().await.map_err(|e| {
                 RetryError::Transient(AggregatedProofSubmissionError::GasPriceError(e.to_string()))
             })?;
@@ -518,14 +517,13 @@ impl ProofAggregator {
                 .with_max_fee_per_gas(new_max_fee)
                 .with_max_priority_fee_per_gas(new_priority_fee);
         } else {
-            // If set, multiplicate the current ones
-            if let Some(max_fee) = tx_req.max_fee_per_gas {
+            if let Some(max_fee) = current_tx_req.max_fee_per_gas {
                 let new_max_fee = (max_fee as f64 * multiplier) as u128;
-                current_tx_req = tx_req.clone().with_max_fee_per_gas(new_max_fee);
+                current_tx_req = current_tx_req.with_max_fee_per_gas(new_max_fee);
             }
-            if let Some(priority_fee) = tx_req.max_priority_fee_per_gas {
-                let new_priority_fee = (priority_fee as f64 * multiplier * 0.1) as u128;
-                current_tx_req = tx_req.with_max_priority_fee_per_gas(new_priority_fee);
+            if let Some(priority_fee) = current_tx_req.max_priority_fee_per_gas {
+                let new_priority_fee = (priority_fee as f64 * multiplier) as u128;
+                current_tx_req = current_tx_req.with_max_priority_fee_per_gas(new_priority_fee);
             }
         }
 
