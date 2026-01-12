@@ -1,10 +1,9 @@
 use agg_mode_sdk::{gateway::provider::AggregationModeGatewayProvider, types::Network};
-use alloy::signers::local::LocalSigner;
 use clap::{command, Args, Subcommand};
 use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
-use crate::commands::helpers::parse_network;
+use crate::commands::helpers::{parse_network, PrivateKeyType};
 
 #[derive(Debug, Subcommand)]
 pub enum SubmitCommand {
@@ -18,8 +17,8 @@ pub struct SubmitSP1Args {
     proof_path: PathBuf,
     #[arg(long = "vk")]
     verifying_key_path: PathBuf,
-    #[arg(long = "private-key")]
-    private_key: String,
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(short = 'n', long = "network", default_value = "devnet", value_parser = parse_network)]
     network: Network,
 }
@@ -30,8 +29,13 @@ pub async fn run(args: SubmitSP1Args) {
     let proof = load_proof(&args.proof_path).expect("Valid proof");
     let vk = load_vk(&args.verifying_key_path).expect("Valid vk");
 
-    let signer =
-        LocalSigner::from_str(args.private_key.trim()).expect("failed to parse private key: {e}");
+    let signer = match args.private_key_type.into_signer() {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("{e}");
+            return;
+        }
+    };
 
     let provider = AggregationModeGatewayProvider::new_with_signer(args.network.clone(), signer)
         .expect("failed to initialize gateway client: {e:?}");

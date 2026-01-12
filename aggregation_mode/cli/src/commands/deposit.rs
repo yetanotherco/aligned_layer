@@ -3,20 +3,18 @@ use alloy::{
     network::{EthereumWallet, TransactionBuilder},
     primitives::{Address, U256},
     providers::{Provider, ProviderBuilder},
-    signers::local::LocalSigner,
 };
 use clap::{self, Args};
-use std::str::FromStr;
 
-use crate::commands::helpers::parse_network;
+use crate::commands::helpers::{parse_network, PrivateKeyType};
 
 const PAYMENT_AMOUNT: &str = "1"; // ether
 
 /// Send 1 ether to the aggregation mode payment service to fund proof submissions
 #[derive(Debug, Clone, Args)]
 pub struct SendPaymentArgs {
-    #[arg(long = "private-key")]
-    private_key: String,
+    #[command(flatten)]
+    private_key_type: PrivateKeyType,
     #[arg(short = 'n', long = "network", default_value = "devnet", value_parser = parse_network)]
     network: Network,
     #[arg(long = "rpc-url")]
@@ -29,10 +27,10 @@ pub async fn run(args: SendPaymentArgs) {
         args.network
     );
 
-    let signer = match LocalSigner::from_str(args.private_key.trim()) {
+    let signer = match args.private_key_type.into_signer() {
         Ok(s) => s,
         Err(e) => {
-            tracing::error!("Failed to parse private key: {e}");
+            tracing::error!("{e}");
             return;
         }
     };
