@@ -10,7 +10,7 @@
     "risc0AggregationProgramImageId": "0x8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c"
   },
   "amounts": {
-    "amountToPayInWei": 1000000000000000000,
+    "amountToPayInWei": 3500000000000000,
     "paymentExpirationTimeSeconds": 86400,
     "subscriptionLimit": 5,
     "maxSubscriptionTimeAhead": 7776000
