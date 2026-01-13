@@ -13,3 +13,4 @@ alloy = { workspace = true }
 agg_mode_sdk = { path = "../sdk"}
 sp1-sdk = "5.0.0"
 clap = { version = "4.5.4", features = ["derive"] }
+rpassword = "7.3.1"

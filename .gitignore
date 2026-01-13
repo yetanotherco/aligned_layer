@@ -41,3 +41,8 @@ circuit_js
 
 # Reports
 docs/dead_links_report.txt
+
+**/.terraform
+terraform.tfstate
+terraform.tfstate.backup
+
