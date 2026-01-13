@@ -24,7 +24,7 @@ use alloy::{
     hex,
     network::{EthereumWallet, TransactionBuilder},
     primitives::{utils::parse_ether, Address, U256},
-    providers::{PendingTransactionError, Provider, ProviderBuilder},
+    providers::{PendingTransactionError, Provider, ProviderBuilder, WalletProvider},
     rpc::types::{TransactionReceipt, TransactionRequest},
     signers::local::LocalSigner,
 };
@@ -342,7 +342,11 @@ impl ProofAggregator {
         let nonce = self
             .proof_aggregation_service
             .provider()
-            .get_transaction_count(*self.proof_aggregation_service.address())
+            .get_transaction_count(
+                self.proof_aggregation_service
+                    .provider()
+                    .default_signer_address(),
+            )
             .await
             .map_err(|e| {
                 RetryError::Transient(
