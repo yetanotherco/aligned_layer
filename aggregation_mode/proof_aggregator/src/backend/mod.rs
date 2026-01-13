@@ -338,16 +338,34 @@ impl ProofAggregator {
 
         let mut last_error: Option<AggregatedProofSubmissionError> = None;
 
+        // Get the nonce once at the beginning and reuse it for all retries
+        let nonce = self
+            .proof_aggregation_service
+            .provider()
+            .get_transaction_count(*self.proof_aggregation_service.address())
+            .await
+            .map_err(|e| {
+                RetryError::Transient(
+                    AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
+                        "Failed to get nonce: {e}"
+                    )),
+                )
+            })?;
+
+        info!("Using nonce {} for all retry attempts", nonce);
+
         for attempt in 0..max_retries {
             info!("Transaction attempt {} of {}", attempt + 1, max_retries);
 
-            // Wrap the entire transaction submission in a result to catch all errors
+            // Wrap the entire transaction submission in a result to catch all errors, passing
+            // the same nonce to all attempts
             let attempt_result = self
                 .try_submit_transaction(
                     &blob,
                     blob_versioned_hash,
                     aggregated_proof,
                     attempt as u64,
+                    nonce,
                 )
                 .await;
 
@@ -364,7 +382,7 @@ impl ProofAggregator {
                     last_error = Some(err);
 
                     if attempt < max_retries - 1 {
-                        info!("Retrying with bumped gas fees...");
+                        info!("Retrying with bumped gas fees and same nonce {}...", nonce);
 
                         tokio::time::sleep(Duration::from_millis(500)).await;
                     } else {
@@ -388,6 +406,7 @@ impl ProofAggregator {
         blob_versioned_hash: [u8; 32],
         aggregated_proof: &AlignedProof,
         attempt: u64,
+        nonce: u64,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
         let base_bump_percentage = self.config.base_bump_percentage;
@@ -421,6 +440,9 @@ impl ProofAggregator {
                     .into_transaction_request()
             }
         };
+
+        // Set the nonce explicitly
+        tx_req = tx_req.with_nonce(nonce);
 
         // Apply gas fee bump for retries
         if attempt > 0 {
@@ -480,7 +502,10 @@ impl ProofAggregator {
                 ))
             })?;
 
-        info!("Transaction sent, waiting for confirmation...");
+        info!(
+            "Transaction sent with nonce {}, waiting for confirmation...",
+            nonce
+        );
 
         // Wait for the receipt with timeout
         let receipt_result = tokio::time::timeout(retry_interval, pending_tx.get_receipt()).await;
