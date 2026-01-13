@@ -8,7 +8,7 @@ use clap::{self, Args};
 
 use crate::commands::helpers::{parse_network, PrivateKeyType};
 
-const PAYMENT_AMOUNT: &str = "1"; // ether
+const PAYMENT_AMOUNT: &str = "0.0035"; // ether
 
 /// Send 1 ether to the aggregation mode payment service to fund proof submissions
 #[derive(Debug, Clone, Args)]
