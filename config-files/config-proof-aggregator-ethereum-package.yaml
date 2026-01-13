@@ -31,7 +31,8 @@ risc0_chunk_aggregator_image_id: "8908f01022827e80a5de71908c16ee44f4a467236df20f
 max_bump_retries: 5
 bump_retry_interval_seconds: 120
 base_bump_percentage: 10
-retry_attempt_percentage: 2
+max_fee_bump_percentage: 100
+priority_fee_gwei: 2
 
 ecdsa:
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"
