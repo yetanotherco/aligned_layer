@@ -24,7 +24,7 @@ postgres_monitor_cloud_init_template_path = "../../cloudinit/mainnet-cloud-init.
 # Postgres Primary Configuration (Elastic Metal)
 # ============================================
 postgres_primary_zone                     = "fr-par-2"
-postgres_primary_offer_name               = "EM-A610R-NVME"
+postgres_primary_offer_name               = "EM-I120E-NVME"
 postgres_primary_server_name              = "agg-mode-mainnet-postgres-1"
 postgres_primary_hostname                 = "agg-mode-mainnet-postgres-1"
 postgres_primary_description              = "PostgreSQL server 1 for mainnet"
@@ -48,7 +48,7 @@ postgres_secondary_tags                     = ["postgres", "postgres-2", "mainne
 # Gateway Primary Configuration (Elastic Metal)
 # ============================================
 gateway_primary_zone                     = "fr-par-2"
-gateway_primary_offer_name               = "EM-A610R-NVME"
+gateway_primary_offer_name               = "EM-I120E-NVME"
 gateway_primary_server_name              = "agg-mode-mainnet-gateway-1"
 gateway_primary_hostname                 = "agg-mode-mainnet-gateway-1"
 gateway_primary_description              = "Gateway server 1 for mainnet"
@@ -71,7 +71,7 @@ gateway_secondary_tags                     = ["gateway", "gateway-2", "mainnet"]
 # ============================================
 # Metrics Configuration (Elastic Metal)
 # ============================================
-metrics_server_zone                     = "fr-par-2"
+metrics_server_zone                     = "nl-ams-1"
 metrics_server_offer_name               = "EM-A610R-NVME"
 metrics_server_name                     = "agg-mode-mainnet-metrics"
 metrics_server_hostname                 = "agg-mode-mainnet-metrics"
@@ -83,7 +83,7 @@ metrics_server_tags                     = ["metrics", "mainnet"]
 # ============================================
 # Sender Configuration (Elastic Metal)
 # ============================================
-sender_server_zone                     = "fr-par-2"
+sender_server_zone                     = "nl-ams-1"
 sender_server_offer_name               = "EM-A610R-NVME"
 sender_server_name                     = "agg-mode-mainnet-sender"
 sender_server_hostname                 = "agg-mode-mainnet-sender"
