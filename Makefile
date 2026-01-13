@@ -133,6 +133,10 @@ anvil_upgrade_batcher_payment_service: ## Upgrade BatcherPaymentService contract
 	@echo "Upgrading BatcherPayments contract..."
 	. contracts/scripts/anvil/upgrade_batcher_payment_service.sh
 
+anvil_upgrade_aggregation_mode_payment_service: ## Upgrade AggregationModePaymentService contract on ANVIL
+	@echo "Upgrading AggregationModePaymentService contract..."
+	. contracts/scripts/anvil/upgrade_aggregation_mode_payment_service.sh
+
 anvil_upgrade_registry_coordinator: ## Upgrade Registry Coordinator Contracts on ANVIL
 	@echo "Upgrading Registry Coordinator Contracts..."
 	. contracts/scripts/anvil/upgrade_registry_coordinator.sh
@@ -992,6 +996,10 @@ deploy_proof_aggregator: ## Deploy ProofAggregator contract. Parameters: NETWORK
 upgrade_proof_aggregator: ## Upgrade ProofAggregator contract. Parameters: NETWORK=<mainnet|holesky|sepolia>
 	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
+
+upgrade_aggregation_mode_payment_service: ## Upgrade AggregationModePaymentService. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Upgrading AggregationModePaymentService Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_aggregation_mode_payment_service.sh
 
 deploy_agg_mode_payment_service:
 	@echo "Deploying Agg Mode Payment Service contract on $(NETWORK) network..."
