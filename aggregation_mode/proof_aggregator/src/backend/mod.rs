@@ -556,7 +556,7 @@ impl ProofAggregator {
             .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?;
 
         let new_base_fee = current_gas_price as f64 * (1.0 + base_bump_percentage as f64 / 100.0);
-        let new_max_fee = new_base_fee as f64 * (1.0 + max_fee_bump_percentage as f64 / 100.0);
+        let new_max_fee = new_base_fee * (1.0 + max_fee_bump_percentage as f64 / 100.0);
         let new_priority_fee = priority_fee_wei;
 
         Ok(tx_req
@@ -564,7 +564,7 @@ impl ProofAggregator {
             // "The max base fee per gas the sender is willing to pay."
             .with_gas_price(new_base_fee as u128)
             .with_max_fee_per_gas(new_max_fee as u128)
-            .with_max_priority_fee_per_gas(new_priority_fee as u128))
+            .with_max_priority_fee_per_gas(new_priority_fee))
     }
 
     async fn wait_until_can_submit_aggregated_proof(
