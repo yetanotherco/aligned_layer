@@ -24,7 +24,6 @@ forge_output=$(forge script script/upgrade/AggregationModePaymentServiceUpgrader
     --private-key "0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356" \
     --broadcast \
     --legacy \
-    --verify \
     --sig "run(string memory alignedLayerDeploymentFilePath)")
 
 echo "$forge_output"
@@ -33,7 +32,7 @@ echo "$forge_output"
 aggregation_mode_payment_service_proxy=$(echo "$forge_output" | awk '/0: address/ {print $3}')
 aggregation_mode_payment_service_implementation=$(echo "$forge_output" | awk '/1: address/ {print $3}')
 
-data=$(cast calldata "upgradeToAndCall(address, bytes)" $aggregation_mode_payment_service_implementation "0x")
+data=$(cast calldata "upgradeTo(address)" $aggregation_mode_payment_service_implementation)
 
 MULTISIG=false # hardcoding non-multisig for devnet
 if [ "$MULTISIG" = false ]; then
