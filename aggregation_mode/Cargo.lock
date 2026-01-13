@@ -318,7 +318,7 @@ version = "0.1.0"
 dependencies = [
  "agg_mode_sdk",
  "alloy",
- "bincode",
+ "bincode 1.3.3",
  "clap",
  "serde",
  "sp1-sdk",
@@ -332,7 +332,7 @@ name = "agg_mode_sdk"
 version = "0.1.0"
 dependencies = [
  "alloy",
- "bincode",
+ "bincode 1.3.3",
  "lambdaworks-crypto",
  "reqwest",
  "serde",
@@ -2077,6 +2077,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "bincode"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
+dependencies = [
+ "bincode_derive",
+ "serde",
+ "unty",
+]
+
+[[package]]
+name = "bincode_derive"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf95709a440f45e986983918d0e8a1f30a9b1df04918fc828670606804ac3c09"
+dependencies = [
+ "virtue",
+]
+
+[[package]]
 name = "bindgen"
 version = "0.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3708,6 +3728,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fields"
+version = "0.15.0"
+source = "git+https://github.com/0xPolygonHermez/pil2-proofman.git?tag=v0.15.0#78497c5a05ea316df2188f98c1df66bffb80192f"
+dependencies = [
+ "num-bigint 0.4.6",
+ "paste",
+ "serde",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3972,7 +4002,7 @@ dependencies = [
  "actix-web-prometheus",
  "agg_mode_sdk",
  "alloy",
- "bincode",
+ "bincode 1.3.3",
  "db",
  "hex",
  "prometheus",
@@ -4973,6 +5003,11 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 dependencies = [
  "spin",
 ]
+
+[[package]]
+name = "lib-c"
+version = "0.15.0"
+source = "git+https://github.com/0xPolygonHermez/zisk.git?tag=v0.15.0#b3ca745b80423c8123dc24f19039865a5bc8b074"
 
 [[package]]
 name = "libc"
@@ -6450,7 +6485,7 @@ version = "0.1.0"
 dependencies = [
  "agg_mode_sdk",
  "alloy",
- "bincode",
+ "bincode 1.3.3",
  "c-kzg",
  "ciborium",
  "db",
@@ -6472,6 +6507,18 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.22",
+ "zisk_aggregation_program",
+]
+
+[[package]]
+name = "proofman-verifier"
+version = "0.15.0"
+source = "git+https://github.com/0xPolygonHermez/pil2-proofman.git?tag=v0.15.0#78497c5a05ea316df2188f98c1df66bffb80192f"
+dependencies = [
+ "bytemuck",
+ "fields",
+ "rayon",
+ "tracing",
 ]
 
 [[package]]
@@ -7446,7 +7493,7 @@ checksum = "c39d9943fe71decea1e8b6a99480cefa33799ab08b5abfccd7e2a18fb07121c1"
 dependencies = [
  "addr2line 0.24.2",
  "anyhow",
- "bincode",
+ "bincode 1.3.3",
  "bonsai-sdk",
  "borsh",
  "bytemuck",
@@ -8391,7 +8438,7 @@ version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fb8bc70057a88164e479e367e2f83f7e7fba52d66acfbeef3b2174dc98c3627"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "bytemuck",
  "clap",
  "elf",
@@ -8430,7 +8477,7 @@ version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe446bea36feb189af83cda6ea5420150e877764e2ed4ab4cb2ee5cd3e20355c"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "cbindgen",
  "cc",
  "cfg-if",
@@ -8486,7 +8533,7 @@ version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae79f89725c6e21dadb62be31a1c218292f5489559a848faf533419c722a3b3b"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "ctrlc",
  "prost",
  "serde",
@@ -8535,7 +8582,7 @@ version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb1a9935d58cb1dcd757a1b10d727090f5b718f1f03b512d48f0c1952e6ead00"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "elliptic-curve",
  "serde",
  "sp1-primitives",
@@ -8547,7 +8594,7 @@ version = "5.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7d2a6187e394c30097ea7a975a4832f172918690dc89a979f0fad67422d3a8b"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "blake3",
  "cfg-if",
  "hex",
@@ -8568,7 +8615,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfc62e3139fdb1671067987f78ca85a24ea34dbc2f61dbbe3f92b9739e7aa2b9"
 dependencies = [
  "anyhow",
- "bincode",
+ "bincode 1.3.3",
  "clap",
  "dirs 5.0.1",
  "downloader",
@@ -8724,7 +8771,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e146d24ce91c08e36b270a73de9817b9847e759a3d66923b009c67f24a3b9b2"
 dependencies = [
  "anyhow",
- "bincode",
+ "bincode 1.3.3",
  "bindgen 0.70.1",
  "cc",
  "cfg-if",
@@ -8759,7 +8806,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-kms",
  "backoff",
- "bincode",
+ "bincode 1.3.3",
  "cfg-if",
  "dirs 5.0.1",
  "eventsource-stream",
@@ -9976,6 +10023,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
+name = "unty"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
+
+[[package]]
 name = "url"
 version = "2.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10063,6 +10116,12 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "virtue"
+version = "0.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
 name = "vsimd"
@@ -10806,6 +10865,40 @@ dependencies = [
  "memchr",
  "thiserror 2.0.17",
  "zopfli",
+]
+
+[[package]]
+name = "zisk_aggregation_program"
+version = "0.1.0"
+dependencies = [
+ "bincode 1.3.3",
+ "bytemuck",
+ "lambdaworks-crypto",
+ "proofman-verifier",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sha3 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ziskos",
+]
+
+[[package]]
+name = "ziskos"
+version = "0.15.0"
+source = "git+https://github.com/0xPolygonHermez/zisk.git?tag=v0.15.0#b3ca745b80423c8123dc24f19039865a5bc8b074"
+dependencies = [
+ "bincode 2.0.1",
+ "cfg-if",
+ "getrandom 0.2.16",
+ "lazy_static",
+ "lib-c",
+ "num-bigint 0.4.6",
+ "num-integer",
+ "num-traits",
+ "rand 0.8.5",
+ "serde",
+ "static_assertions",
+ "tiny-keccak",
 ]
 
 [[package]]

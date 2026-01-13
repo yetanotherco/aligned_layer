@@ -31,8 +31,10 @@ use crate::{
     db::Db,
     helpers::get_time_left_day_formatted,
     metrics::GatewayMetrics,
-    types::{GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1},
-    verifiers::{verify_sp1_proof, VerificationError},
+    types::{
+        GetReceiptsResponse, SubmitProofRequestRisc0, SubmitProofRequestSP1, SubmitProofRequestZisk,
+    },
+    verifiers::{verify_sp1_proof, verify_zisk_proof, VerificationError},
 };
 
 #[derive(Clone, Debug)]
@@ -105,6 +107,7 @@ impl GatewayServer {
                 .route("/receipts", web::get().to(Self::get_receipts))
                 .route("/proof/sp1", web::post().to(Self::post_proof_sp1))
                 .route("/proof/risc0", web::post().to(Self::post_proof_risc0))
+                .route("/proof/zisk", web::post().to(Self::post_proof_zisk))
                 .route("/quotas/{address}", web::get().to(Self::get_quotas))
         });
 
@@ -335,6 +338,143 @@ impl GatewayServer {
         MultipartForm(_): MultipartForm<SubmitProofRequestRisc0>,
     ) -> impl Responder {
         HttpResponse::Ok().json(AppResponse::new_sucessfull(serde_json::json!({})))
+    }
+
+    // Posts a Zisk proof to the gateway, recovering the address from the signature
+    async fn post_proof_zisk(
+        req: HttpRequest,
+        MultipartForm(data): MultipartForm<SubmitProofRequestZisk>,
+    ) -> impl Responder {
+        let Some(state) = req.app_data::<Data<GatewayServer>>() else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        let state = state.get_ref();
+        let Ok(signature) = Signature::from_str(&data.signature_hex.0) else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Invalid signature", 500));
+        };
+
+        let Ok(proof_content) = tokio::fs::read(data.proof.file.path()).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        // reconstruct message and recover address
+        let msg = agg_mode_sdk::gateway::types::SubmitZiskProofMessage::new(
+            data.nonce.0,
+            proof_content.clone(),
+        );
+        let Ok(recovered_address) =
+            signature.recover_address_from_prehash(&msg.eip712_hash(&state.network).into())
+        else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+        let recovered_address = recovered_address.to_string().to_lowercase();
+
+        // Checking if this address has submited more proofs than the ones allowed per day
+        let Ok(daily_tasks_by_address) = state
+            .db
+            .get_daily_tasks_by_address(&recovered_address)
+            .await
+        else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        if daily_tasks_by_address >= state.config.max_daily_proofs_per_user {
+            let formatted_time_left = get_time_left_day_formatted();
+
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                format!(
+                    "Request denied: Query limit exceeded. Quotas renew in {formatted_time_left}"
+                )
+                .as_str(),
+                400,
+            ));
+        }
+
+        let Ok(count) = state.db.count_tasks_by_address(&recovered_address).await else {
+            return HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500));
+        };
+
+        if data.nonce.0 != (count as u64) {
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                &format!("Invalid nonce, expected nonce = {count}"),
+                400,
+            ));
+        }
+
+        let now_epoch = match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(duration) => duration.as_secs(),
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            }
+        };
+
+        let has_payment = match state
+            .db
+            .has_active_payment_event(
+                &recovered_address,
+                BigDecimal::from_str(&now_epoch.to_string()).unwrap(),
+            )
+            .await
+        {
+            Ok(result) => result,
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .json(AppResponse::new_unsucessfull("Internal server error", 500));
+            }
+        };
+
+        if !has_payment {
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                "You have to pay before submitting a proof",
+                400,
+            ));
+        }
+
+        if let Err(e) = verify_zisk_proof(&proof_content) {
+            let message = match e {
+                VerificationError::InvalidProof => "Proof verification failed",
+                VerificationError::UnsupportedProof => "Unsupported proof",
+            };
+
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(message, 400));
+        };
+
+        let query_started_at = Instant::now();
+
+        match state
+            .db
+            .insert_task(
+                &recovered_address,
+                AggregationModeProvingSystem::ZISK.as_u16() as i32,
+                &proof_content,
+                &[], // Zisk proofs don't have a separate vk file
+                None,
+                data.nonce.0 as i64,
+            )
+            .await
+        {
+            Ok(task_id) => {
+                let time_elapsed_db_call = query_started_at.elapsed();
+                state.metrics.register_db_response_time_post(
+                    "zisk-post",
+                    time_elapsed_db_call.as_secs_f64(),
+                );
+
+                HttpResponse::Ok().json(AppResponse::new_sucessfull(
+                    serde_json::json!({ "task_id": task_id.to_string() }),
+                ))
+            }
+            Err(_) => HttpResponse::InternalServerError()
+                .json(AppResponse::new_unsucessfull("Internal server error", 500)),
+        }
     }
 
     // Returns the last 100 receipt merkle proofs for the address received in the URL.

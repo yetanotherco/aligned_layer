@@ -1,1 +1,2 @@
 sp1/elf/
+# Not ignoring zisk elf as the build isn't deterministic

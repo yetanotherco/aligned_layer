@@ -3,7 +3,7 @@ name = "zkvm_aggregation_programs"
 version = "0.1.0"
 edition = "2021"
 resolver = "2"
-members = ["sp1", "risc0"]
+members = ["sp1", "risc0", "zisk"]
 
 [patch.crates-io]
 # Adding RISC Zero keccak precompile support

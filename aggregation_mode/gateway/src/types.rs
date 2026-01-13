@@ -54,6 +54,13 @@ pub(super) struct SubmitProofRequestRisc0 {
     pub _signature_hex: Text<String>,
 }
 
+#[derive(Debug, MultipartForm)]
+pub(super) struct SubmitProofRequestZisk {
+    pub nonce: Text<u64>,
+    pub proof: TempFile,
+    pub signature_hex: Text<String>,
+}
+
 #[derive(Debug, Clone, sqlx::FromRow, sqlx::Type, serde::Serialize)]
 pub struct GetReceiptsResponse {
     pub status: TaskStatus,

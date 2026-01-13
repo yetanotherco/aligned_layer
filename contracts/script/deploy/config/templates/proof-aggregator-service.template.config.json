@@ -2,11 +2,13 @@
   "address": {
     "sp1VerifierAddress": "",
     "risc0VerifierAddress": "",
+    "ziskVerifierAddress": "",
     "alignedAggregatorAddress": ""
   },
   "programs_id": {
     "sp1AggregationProgramVKHash": "0x00a18429d092a8e1f58aea6ff650ad715ad4e6d7056600bb201d38460244507b",
-    "risc0AggregationProgramImageId": "0x4cc11a4ac146ce4fc71493d694a9707194316cbb609603a195ffbe0c4c099c97"
+    "risc0AggregationProgramImageId": "0x4cc11a4ac146ce4fc71493d694a9707194316cbb609603a195ffbe0c4c099c97",
+    "ziskAggregationProgramVKHash": ""
   },
   "permissions": {
     "owner": ""

@@ -54,4 +54,125 @@ fn main() {
         "risc0_aggregation_program",
         guest_options,
     )]));
+
+    // Steps followed from https://0xpolygonhermez.github.io/zisk/getting_started/writing_programs.html#build
+
+    // build.rs runs a subprocess without the shell's rustup selection; set the toolchain
+    // explicitly so cargo-zisk uses Zisk's rustc instead of the host toolchain.
+    let zisk_rustc_path = rustc_path_for("zisk");
+
+    let mut build_command = std::process::Command::new("cargo-zisk");
+
+    let mut user_proof_aggregator_rom_setup_command = std::process::Command::new("cargo-zisk");
+    let mut chunk_aggregator_rom_setup_command = std::process::Command::new("cargo-zisk");
+
+    let mut user_proof_aggregator_rom_vk_command = std::process::Command::new("cargo-zisk");
+    let mut chunk_aggregator_rom_vk_command = std::process::Command::new("cargo-zisk");
+
+    // Zisk build elf command
+    build_command
+        .env("RUSTC", &zisk_rustc_path)
+        .args(["build", "--release"])
+        .current_dir("aggregation_programs/zisk/");
+
+    let build_status = build_command
+        .status()
+        .expect("Failed to execute zisk build command");
+
+    if !build_status.success() {
+        panic!("Failed to build zisk elfs");
+    }
+
+    // Zisk rom-setup commands
+    let user_proof_aggregator_rom_setup_status = user_proof_aggregator_rom_setup_command
+        .args([
+            "rom-setup",
+            "--elf",
+            "./target/riscv64ima-zisk-zkvm-elf/release/zisk_user_proofs_aggregator_program",
+        ])
+        .env("RUSTC", &zisk_rustc_path)
+        .current_dir("./aggregation_programs/")
+        .status()
+        .unwrap();
+
+    if !user_proof_aggregator_rom_setup_status.success() {
+        panic!("Failed to execute rom-setup command on user proof aggregator program");
+    }
+
+    let chunk_aggregator_rom_setup_status = chunk_aggregator_rom_setup_command
+        .args([
+            "rom-setup",
+            "--elf",
+            "./target/riscv64ima-zisk-zkvm-elf/release/zisk_chunk_aggregator_program",
+        ])
+        .env("RUSTC", &zisk_rustc_path)
+        .current_dir("./aggregation_programs/")
+        .status()
+        .unwrap();
+
+    if !chunk_aggregator_rom_setup_status.success() {
+        panic!("Failed to execute rom-setup command on chunk aggregator program");
+    }
+
+    // Zisk rom-vkey commands
+    let user_proofs_aggregator_rom_vkey_status = user_proof_aggregator_rom_vk_command
+        .args([
+            "rom-vkey",
+            "--elf",
+            "./target/riscv64ima-zisk-zkvm-elf/release/zisk_user_proofs_aggregator_program",
+            "-o",
+            "zisk/vk/zisk_user_proofs_aggregator_program",
+        ])
+        .env("RUSTC", &zisk_rustc_path)
+        .current_dir("./aggregation_programs/")
+        .status()
+        .unwrap();
+
+    if !user_proofs_aggregator_rom_vkey_status.success() {
+        panic!("Failed to execute rom-vkey command on user proofs aggregator program");
+    }
+
+    let chunk_aggregator_rom_vkey_status = chunk_aggregator_rom_vk_command
+        .args([
+            "rom-vkey",
+            "--elf",
+            "./target/riscv64ima-zisk-zkvm-elf/release/zisk_chunk_aggregator_program",
+            "-o",
+            "zisk/vk/zisk_chunk_aggregator_program",
+        ])
+        .env("RUSTC", &zisk_rustc_path)
+        .current_dir("./aggregation_programs/")
+        .status()
+        .unwrap();
+
+    if !chunk_aggregator_rom_vkey_status.success() {
+        panic!("Failed to execute rom-vkey command on chunk aggregator program");
+    }
+
+    let _ = std::fs::create_dir("./aggregation_programs/zisk/elf");
+
+    std::fs::copy(
+        "./aggregation_programs/target/riscv64ima-zisk-zkvm-elf/release/zisk_user_proofs_aggregator_program",
+        "./aggregation_programs/zisk/elf/zisk_user_proofs_aggregator_program",
+    )
+    .expect("Could not zisk_user_proofs_aggregator_program elf to aggregation_programs/zisk/elf directory");
+
+    std::fs::copy(
+        "./aggregation_programs/target/riscv64ima-zisk-zkvm-elf/release/zisk_chunk_aggregator_program",
+        "./aggregation_programs/zisk/elf/zisk_chunk_aggregator_program",
+    )
+    .expect("Could not zisk_chunk_aggregator_program elf to aggregation_programs/zisk/elf directory");
+}
+
+fn rustc_path_for(toolchain: &str) -> std::path::PathBuf {
+    let output = std::process::Command::new("rustup")
+        .args(["which", "rustc", "--toolchain", toolchain])
+        .output()
+        .expect("failed to execute rustup");
+
+    if !output.status.success() {
+        panic!("rustup which rustc failed for toolchain {toolchain}");
+    }
+
+    std::path::PathBuf::from(String::from_utf8_lossy(&output.stdout).trim())
 }

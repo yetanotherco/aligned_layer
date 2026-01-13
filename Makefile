@@ -107,7 +107,7 @@ show_aligned_error_codes: ## Show AlignedLayer error codes
 
 __CONTRACTS_DEPLOYMENT_ANVIL__: ## ____
 
-anvil_deploy_all_contracts: anvil_deploy_eigen_contracts anvil_deploy_risc0_contracts anvil_deploy_sp1_contracts anvil_deploy_aligned_contracts
+anvil_deploy_all_contracts: anvil_deploy_eigen_contracts anvil_deploy_risc0_contracts anvil_deploy_sp1_contracts anvil_deploy_zisk_contracts anvil_deploy_aligned_contracts
 
 anvil_deploy_eigen_contracts: ## Deploy EigenLayer Contracts on ANVIL
 	@echo "Deploying Eigen Contracts..."
@@ -120,6 +120,10 @@ anvil_deploy_risc0_contracts: ## Deploy RISC0 Contracts used by Aggregation Mode
 anvil_deploy_sp1_contracts: ## Deploy SP1 Contracts used by Aggregation Mode on ANVIL
 	@echo "Deploying SP1 Contracts..."
 	. contracts/scripts/anvil/deploy_sp1_contracts.sh
+
+anvil_deploy_zisk_contracts: ## Deploy Zisk Contracts used by Aggregation Mode on ANVIL
+	@echo "Deploying Zisk Contracts..."
+	. contracts/scripts/anvil/deploy_zisk_contracts.sh
 
 anvil_deploy_aligned_contracts: ## Deploy Aligned Contracts (Verification Layer and Aggregation Mode) on ANVIL
 	@echo "Deploying Aligned Contracts..."
@@ -232,7 +236,7 @@ __AGGREGATION_MODE__: ## ____
 
 is_aggregator_set:
 	@if [ -z "$(AGGREGATOR)" ]; then \
-		echo "Error: AGGREGATOR is not set. Please provide arg AGGREGATOR='sp1' or 'risc0'."; \
+		echo "Error: AGGREGATOR is not set. Please provide arg AGGREGATOR='sp1' or 'risc0' or 'zisk'."; \
 		exit 1; \
 	fi
 
@@ -275,17 +279,26 @@ proof_aggregator_start_gpu: is_aggregator_set reset_last_aggregated_block ./aggr
 proof_aggregator_start_gpu_ethereum_package: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_gpu ## Starts proof aggregator with proving activated in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) SP1_PROVER=cuda ./aggregation_mode/target/release/proof_aggregator_gpu config-files/config-proof-aggregator-ethereum-package.yaml
 
-verify_aggregated_proof_sp1: 
+verify_aggregated_proof_sp1:
 	@echo "Verifying SP1 in aggregated proofs on $(NETWORK)..."
 	@cd aggregation_mode/cli/ && \
-	cargo run verify-on-chain \
+	cargo run verify-on-chain sp1 \
 		--network $(NETWORK) \
 		--beacon-url $(BEACON_URL) \
 		--rpc-url $(RPC_URL) \
 		--from-block $(FROM_BLOCK) \
-		--proving-system SP1 \
 		--vk-hash ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
 		--public-inputs ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
+
+verify_aggregated_proof_zisk:
+	@echo "Verifying Zisk in aggregated proofs on $(NETWORK)..."
+	@cd aggregation_mode/cli/ && \
+	cargo run verify-on-chain zisk \
+		--network $(NETWORK) \
+		--beacon-url $(BEACON_URL) \
+		--rpc-url $(RPC_URL) \
+		--from-block $(FROM_BLOCK) \
+		--proof ../../scripts/test_files/zisk/sha_hasher/proof/vadcop_final_proof.bin
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode/proof_aggregator --features prove,gpu --bin proof_aggregator_gpu --locked
@@ -326,9 +339,14 @@ agg_mode_gateway_send_payment:
 	 --rpc-url http://localhost:8545
 
 agg_mode_gateway_send_sp1_proof:
-	@cargo run --manifest-path aggregation_mode/cli/Cargo.toml -- submit sp1 \
+	@cargo run --manifest-path aggregation_mode/cli/Cargo.toml --release -- submit sp1 \
 		--proof scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
 		--vk scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin \
+		--private-key "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+
+agg_mode_gateway_send_zisk_proof:
+	@cargo run --manifest-path aggregation_mode/cli/Cargo.toml --release -- submit zisk \
+		--proof scripts/test_files/zisk/sha_hasher/proof/vadcop_final_proof.bin \
 		--private-key "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 
 agg_mode_install_cli: ## Install the aggregation mode CLI
@@ -873,6 +891,12 @@ aligned_get_user_balance_holesky:
 		--user_addr $(USER_ADDR)
 
 __GENERATE_PROOFS__: ## ____
+
+generate_zisk_proof:
+	@cd scripts/test_files/zisk/sha_hasher && cargo-zisk build --release && \
+	cargo-zisk rom-setup -e target/riscv64ima-zisk-zkvm-elf/release/sha_hasher && \
+	cargo-zisk prove -e target/riscv64ima-zisk-zkvm-elf/release/sha_hasher -i build/input.bin -o proof -a -y 
+
 generate_sp1_fibonacci_proof: ## Run the SP1 Fibonacci proof generator script
 	@cd scripts/test_files/sp1/fibonacci_proof_generator/script && RUST_LOG=info cargo run --release
 	@echo "Fibonacci proof and ELF generated in scripts/test_files/sp1 folder"

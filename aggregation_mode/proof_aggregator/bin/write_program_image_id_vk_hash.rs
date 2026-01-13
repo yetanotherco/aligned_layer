@@ -1,5 +1,5 @@
 use alloy::hex;
-use proof_aggregator::aggregators::{risc0_aggregator, sp1_aggregator};
+use proof_aggregator::aggregators::{risc0_aggregator, sp1_aggregator, zisk_aggregator};
 use serde_json::json;
 use sp1_sdk::HashableKey;
 use std::{fs, path::Path};
@@ -16,7 +16,9 @@ fn main() {
     let subscriber = FmtSubscriber::builder().finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    info!("About to write sp1 programs vk hash bytes + risc0 programs image id bytes");
+    info!(
+        "About to write sp1 programs vk hash bytes + risc0 programs image id bytes + zisk rom vk"
+    );
     let sp1_user_proofs_aggregator_vk_hash =
         sp1_aggregator::vk_from_elf(SP1_USER_PROOFS_AGGREGATOR_PROGRAM_ELF).bytes32_raw();
     let sp1_user_proofs_aggregator_vk_hash_words =
@@ -28,6 +30,9 @@ fn main() {
         risc0_aggregator::RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID_BYTES;
     let risc0_chunk_aggregator_image_id_bytes =
         risc0_aggregator::RISC0_CHUNK_AGGREGATOR_PROGRAM_ID_BYTES;
+
+    let zisk_user_proofs_aggregator_rom_vk = zisk_aggregator::USER_PROOFS_PROGRAM_ROM_VK;
+    let zisk_chunk_aggregator_rom_vk_hex = hex::encode(zisk_aggregator::CHUNK_PROGRAM_ROM_VK_BYTES);
 
     let sp1_user_proofs_aggregator_vk_hash_hex = hex::encode(sp1_user_proofs_aggregator_vk_hash);
     let sp1_chunk_aggregator_vk_hash_hex = hex::encode(sp1_chunk_aggregator_vk_hash);
@@ -44,6 +49,8 @@ fn main() {
         "risc0_user_proofs_aggregator_image_id": format!("0x{}", risc0_user_proofs_aggregator_image_id_hex),
         "risc0_user_proofs_aggregator_image_id_bytes": format!("{:?}", risc0_user_proofs_aggregator_image_id_bytes),
         "risc0_chunk_aggregator_image_id": format!("0x{}", risc0_chunk_aggregator_imaged_id_hex),
+        "zisk_user_proofs_aggregator_rom_vk": format!("{:?}", zisk_user_proofs_aggregator_rom_vk),
+        "zisk_chunk_aggregator_rom_vk_hex": format!("0x{}", zisk_chunk_aggregator_rom_vk_hex)
     });
 
     // Write to the file

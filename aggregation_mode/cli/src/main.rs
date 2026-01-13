@@ -1,4 +1,4 @@
-use agg_mode_cli::commands::{self, submit::SubmitCommand, Cli, Command};
+use agg_mode_cli::commands::{self, submit::SubmitCommand, verify::VerifyCommand, Cli, Command};
 use clap::Parser;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -12,9 +12,14 @@ async fn main() {
 
     match cli.command {
         Command::Submit(subcommand) => match subcommand {
-            SubmitCommand::SP1(args) => commands::submit::run(args).await,
+            SubmitCommand::SP1(args) => commands::submit::run_sp1(args).await,
+            SubmitCommand::Zisk(args) => commands::submit::run_zisk(args).await,
         },
-        Command::VerifyOnChain(args) => commands::verify::run(args).await,
+        Command::VerifyOnChain(subcommand) => match subcommand {
+            VerifyCommand::SP1(args) => commands::verify::run_sp1(args).await,
+            VerifyCommand::Risc0(args) => commands::verify::run_risc0(args).await,
+            VerifyCommand::Zisk(args) => commands::verify::run_zisk(args).await,
+        },
         Command::Deposit(args) => commands::deposit::run(args).await,
     };
 }

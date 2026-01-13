@@ -25,3 +25,8 @@ pub fn verify_sp1_proof(
 
     Ok(())
 }
+
+/// TODO: implement Zisk proof verification
+pub fn verify_zisk_proof(_proof: &[u8]) -> Result<(), VerificationError> {
+    Ok(())
+}

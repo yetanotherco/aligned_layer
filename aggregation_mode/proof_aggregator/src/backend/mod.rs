@@ -7,7 +7,7 @@ mod retry;
 mod types;
 
 use crate::{
-    aggregators::{AlignedProof, ProofAggregationError, ZKVMEngine},
+    aggregators::{AlignedAggregatedProof, AlignedProof, ProofAggregationError, ZKVMEngine},
     backend::{
         db::{Db, DbError},
         retry::{
@@ -61,6 +61,7 @@ pub struct ProofAggregator {
     config: Config,
     sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
     risc0_chunk_aggregator_image_id_bytes: [u8; 32],
+    zisk_chunk_aggregator_vk_hash_bytes: [u8; 32],
     db: Db,
 }
 
@@ -109,6 +110,12 @@ impl ProofAggregator {
                 .try_into()
                 .expect("Risc0 chunk aggregator image id must be 32 bytes");
 
+        let zisk_chunk_aggregator_vk_hash_bytes: [u8; 32] =
+            hex::decode(&config.zisk_chunk_aggregator_vk_hash_bytes)
+                .expect("Failed to decode Risc0 chunk aggregator image id")
+                .try_into()
+                .expect("Risc0 chunk aggregator image id must be 32 bytes");
+
         Self {
             engine,
             proof_aggregation_service,
@@ -116,6 +123,7 @@ impl ProofAggregator {
             config,
             sp1_chunk_aggregator_vk_hash_bytes,
             risc0_chunk_aggregator_image_id_bytes,
+            zisk_chunk_aggregator_vk_hash_bytes,
             db,
         }
     }
@@ -230,7 +238,7 @@ impl ProofAggregator {
         &self,
         blob: BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
-        aggregated_proof: AlignedProof,
+        aggregated_proof: AlignedAggregatedProof,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         retry_function(
             || {
@@ -328,14 +336,14 @@ impl ProofAggregator {
         &self,
         blob: BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
-        aggregated_proof: &AlignedProof,
+        aggregated_proof: &AlignedAggregatedProof,
     ) -> Result<TransactionReceipt, RetryError<AggregatedProofSubmissionError>> {
         self.wait_until_can_submit_aggregated_proof().await?;
 
         info!("Sending proof to ProofAggregationService contract...");
 
         let tx_req = match aggregated_proof {
-            AlignedProof::SP1(proof) => self
+            AlignedAggregatedProof::SP1(proof) => self
                 .proof_aggregation_service
                 .verifyAggregationSP1(
                     blob_versioned_hash.into(),
@@ -345,7 +353,7 @@ impl ProofAggregator {
                 )
                 .sidecar(blob)
                 .into_transaction_request(),
-            AlignedProof::Risc0(proof) => {
+            AlignedAggregatedProof::Risc0(proof) => {
                 let encoded_seal = encode_seal(&proof.receipt)
                     .map_err(|e| AggregatedProofSubmissionError::Risc0EncodingSeal(e.to_string()))
                     .map_err(RetryError::Permanent)?;
@@ -359,6 +367,16 @@ impl ProofAggregator {
                     .sidecar(blob)
                     .into_transaction_request()
             }
+            AlignedAggregatedProof::Zisk(proof) => self
+                .proof_aggregation_service
+                .verifyAggregationZisk(
+                    blob_versioned_hash.into(),
+                    proof.public_values.to_vec().into(),
+                    proof.proof.to_vec().into(),
+                    self.zisk_chunk_aggregator_vk_hash_bytes.into(),
+                )
+                .sidecar(blob)
+                .into_transaction_request(),
         };
 
         let provider = self.proof_aggregation_service.provider();

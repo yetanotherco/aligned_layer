@@ -2,11 +2,13 @@
   "address": {
     "sp1VerifierAddress": "0xe1D19B93F2052d42967bCe42e6d4125A31A0e9ef",
     "risc0VerifierAddress": "0x32Db7dc407AC886807277636a1633A1381748DD8",
+    "ziskVerifierAddress": "",
     "alignedAggregatorAddress": "0x7EB3B63A4F3e7810Cc9bbc346749E2491Da4D7Cc"
   },
   "programs_id": {
     "sp1AggregationProgramVKHash": "0x00d6e32a34f68ea643362b96615591c94ee0bf99ee871740ab2337966a4f77af",
-    "risc0AggregationProgramImageId": "0x8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c"
+    "risc0AggregationProgramImageId": "0x8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c",
+    "ziskAggregationProgramVKHash": ""
   },
   "amounts": {
     "amountToPayInWei": 1000000000000000,

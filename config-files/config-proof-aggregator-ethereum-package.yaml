@@ -26,6 +26,7 @@ monthly_budget_eth: 15.0
 # (remember to trim the 0x prefix)
 sp1_chunk_aggregator_vk_hash: "00d6e32a34f68ea643362b96615591c94ee0bf99ee871740ab2337966a4f77af"
 risc0_chunk_aggregator_image_id: "8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c"
+zisk_chunk_aggregator_vk_hash_bytes: "f65864040c58087c19d2793043dcfe0cbf99e8d555b45f20e1801cc447a69108"
 
 ecdsa:
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"

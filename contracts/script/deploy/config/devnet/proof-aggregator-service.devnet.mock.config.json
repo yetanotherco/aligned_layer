@@ -2,12 +2,14 @@
   "address": {
     "sp1VerifierAddress": "0x00000000000000000000000000000000000000FF",
     "risc0VerifierAddress": "0x00000000000000000000000000000000000000FF",
+    "ziskVerifierAddress": "0x00000000000000000000000000000000000000FF",
     "alignedAggregatorAddress": "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
     "alignedAggregatorAddressPrivateKey": "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
   },
   "programs_id": {
     "sp1AggregationProgramVKHash": "0x00d6e32a34f68ea643362b96615591c94ee0bf99ee871740ab2337966a4f77af",
-    "risc0AggregationProgramImageId": "0x8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c"
+    "risc0AggregationProgramImageId": "0x8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c",
+    "ziskAggregationProgramVKHash": "0xf65864040c58087c19d2793043dcfe0cbf99e8d555b45f20e1801cc447a69108"
   },
   "permissions": {
     "owner": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"

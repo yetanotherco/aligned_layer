@@ -1,5 +1,6 @@
 pub mod risc0_aggregator;
 pub mod sp1_aggregator;
+pub mod zisk_aggregator;
 
 use std::fmt::Display;
 
@@ -10,10 +11,13 @@ use sha3::{Digest, Keccak256};
 use sp1_aggregator::{SP1AggregationError, SP1ProofWithPubValuesAndVk};
 use tracing::info;
 
+use crate::aggregators::zisk_aggregator::{ZiskSnarkProof, ZiskStarkProof};
+
 #[derive(Clone, Debug)]
 pub enum ZKVMEngine {
     SP1,
     RISC0,
+    ZISK,
 }
 
 impl Display for ZKVMEngine {
@@ -21,6 +25,7 @@ impl Display for ZKVMEngine {
         match self {
             Self::SP1 => write!(f, "SP1"),
             Self::RISC0 => write!(f, "Risc0"),
+            Self::ZISK => write!(f, "Zisk"),
         }
     }
 }
@@ -29,6 +34,7 @@ impl Display for ZKVMEngine {
 pub enum ProofAggregationError {
     SP1Aggregation(SP1AggregationError),
     Risc0Aggregation(Risc0AggregationError),
+    ZiskAggregation(zisk_aggregator::AlignedZiskError),
     PublicInputsDeserialization,
 }
 
@@ -39,6 +45,7 @@ impl ZKVMEngine {
         let engine = match value.as_str() {
             "sp1" => ZKVMEngine::SP1,
             "risc0" => ZKVMEngine::RISC0,
+            "zisk" => ZKVMEngine::ZISK,
             _ => panic!("Invalid AGGREGATOR, possible options are: sp1|risc0"),
         };
 
@@ -49,6 +56,7 @@ impl ZKVMEngine {
         match &self {
             ZKVMEngine::SP1 => AggregationModeProvingSystem::SP1.as_u16(),
             ZKVMEngine::RISC0 => AggregationModeProvingSystem::RISC0.as_u16(),
+            ZKVMEngine::ZISK => AggregationModeProvingSystem::ZISK.as_u16(),
         }
     }
 
@@ -66,7 +74,7 @@ impl ZKVMEngine {
         &self,
         proofs: Vec<AlignedProof>,
         proofs_per_chunk: u16,
-    ) -> Result<(AlignedProof, [u8; 32]), ProofAggregationError> {
+    ) -> Result<(AlignedAggregatedProof, [u8; 32]), ProofAggregationError> {
         let res = match self {
             ZKVMEngine::SP1 => {
                 let proofs: Vec<SP1ProofWithPubValuesAndVk> = proofs
@@ -108,7 +116,7 @@ impl ZKVMEngine {
                     .public_values
                     .read::<[u8; 32]>();
 
-                (AlignedProof::SP1(agg_proof.into()), merkle_root)
+                (AlignedAggregatedProof::SP1(agg_proof.into()), merkle_root)
             }
             ZKVMEngine::RISC0 => {
                 let proofs: Vec<Risc0ProofReceiptAndImageId> = proofs
@@ -153,7 +161,48 @@ impl ZKVMEngine {
                     .try_into()
                     .map_err(|_| ProofAggregationError::PublicInputsDeserialization)?;
 
-                (AlignedProof::Risc0(agg_proof.into()), merkle_root)
+                (AlignedAggregatedProof::Risc0(agg_proof.into()), merkle_root)
+            }
+            ZKVMEngine::ZISK => {
+                let proofs: Vec<ZiskStarkProof> = proofs
+                    .into_iter()
+                    // Fetcher already filtered for Risc0
+                    // We do this for type casting, as to avoid using generics
+                    // or macros in this function
+                    .filter_map(|proof| match proof {
+                        AlignedProof::Zisk(proof) => Some(*proof),
+                        _ => None,
+                    })
+                    .collect();
+
+                let chunks = proofs.chunks(proofs_per_chunk as usize);
+                info!(
+                    "Total proofs to aggregate {}. They aggregation will be performed in {} chunks (i.e {} proofs per chunk)",
+                    proofs.len(),
+                    chunks.len(),
+                    proofs_per_chunk,
+                );
+
+                let mut agg_proofs: Vec<(ZiskStarkProof, Vec<[u8; 32]>)> = vec![];
+                for (i, chunk) in chunks.enumerate() {
+                    let leaves_commitment = chunk.iter().map(|e| e.hash_proof()).collect();
+                    let agg_proof = zisk_aggregator::run_user_proofs_aggregator(chunk)
+                        .map_err(ProofAggregationError::ZiskAggregation)?;
+                    agg_proofs.push((agg_proof, leaves_commitment));
+
+                    info!("Chunk number {} has been aggregated", i);
+                }
+
+                info!("All chunks have been aggregated, performing last aggregation...");
+                let agg_proof = zisk_aggregator::run_chunk_aggregator(&agg_proofs)
+                    .map_err(ProofAggregationError::ZiskAggregation)?;
+
+                let public_input_bytes = agg_proof.public_values.clone();
+                let merkle_root: [u8; 32] = public_input_bytes
+                    .try_into()
+                    .map_err(|_| ProofAggregationError::PublicInputsDeserialization)?;
+
+                (AlignedAggregatedProof::Zisk(agg_proof.into()), merkle_root)
             }
         };
 
@@ -161,9 +210,16 @@ impl ZKVMEngine {
     }
 }
 
+pub enum AlignedAggregatedProof {
+    SP1(Box<SP1ProofWithPubValuesAndVk>),
+    Risc0(Box<Risc0ProofReceiptAndImageId>),
+    Zisk(Box<ZiskSnarkProof>),
+}
+
 pub enum AlignedProof {
     SP1(Box<SP1ProofWithPubValuesAndVk>),
     Risc0(Box<Risc0ProofReceiptAndImageId>),
+    Zisk(Box<ZiskStarkProof>),
 }
 
 impl AlignedProof {
@@ -171,6 +227,7 @@ impl AlignedProof {
         match self {
             AlignedProof::SP1(proof) => proof.hash_vk_and_pub_inputs(),
             AlignedProof::Risc0(proof) => proof.hash_image_id_and_public_inputs(),
+            AlignedProof::Zisk(proof) => proof.hash_proof(),
         }
     }
 }

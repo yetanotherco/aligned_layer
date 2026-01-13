@@ -52,6 +52,7 @@ pub type RPCProvider = alloy::providers::fillers::FillProvider<
 pub enum AggregationModeProvingSystem {
     SP1 = 1,
     RISC0 = 2,
+    ZISK = 3,
 }
 
 impl AggregationModeProvingSystem {
@@ -90,27 +91,17 @@ pub enum AggregationModeVerificationData {
         image_id: [u8; 32],
         public_inputs: Vec<u8>,
     },
+    Zisk {
+        proof: Vec<u8>,
+    },
 }
 
 impl AggregationModeVerificationData {
-    pub fn program_id(&self) -> [u8; 32] {
-        match self {
-            Self::Risc0 { image_id, .. } => *image_id,
-            Self::SP1 { vk, .. } => *vk,
-        }
-    }
-
-    pub fn public_inputs(&self) -> &Vec<u8> {
-        match self {
-            Self::Risc0 { public_inputs, .. } => public_inputs,
-            Self::SP1 { public_inputs, .. } => public_inputs,
-        }
-    }
-
     pub fn proving_system_id(&self) -> u16 {
         match self {
             Self::SP1 { .. } => AggregationModeProvingSystem::SP1.id(),
             Self::Risc0 { .. } => AggregationModeProvingSystem::RISC0.id(),
+            Self::Zisk { .. } => AggregationModeProvingSystem::ZISK.id(),
         }
     }
 
@@ -118,6 +109,7 @@ impl AggregationModeVerificationData {
         match self {
             Self::SP1 { .. } => AggregationModeProvingSystem::SP1.id_bytes(),
             Self::Risc0 { .. } => AggregationModeProvingSystem::RISC0.id_bytes(),
+            Self::Zisk { .. } => AggregationModeProvingSystem::ZISK.id_bytes(),
         }
     }
 
@@ -138,6 +130,12 @@ impl AggregationModeVerificationData {
                 hasher.update(self.proving_system_id_bytes());
                 hasher.update(image_id);
                 hasher.update(public_inputs);
+                hasher.finalize().into()
+            }
+            AggregationModeVerificationData::Zisk { proof } => {
+                let mut hasher = Keccak256::new();
+                hasher.update(self.proving_system_id_bytes());
+                hasher.update(proof);
                 hasher.finalize().into()
             }
         }

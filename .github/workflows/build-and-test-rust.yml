@@ -42,6 +42,21 @@ jobs:
           source ~/.bashrc
           ~/.risc0/bin/rzup install
 
+      # Reference: https://github.com/0xPolygonHermez/zisk/blob/b3ca745b80423c8123dc24f19039865a5bc8b074/.github/workflows/test_install_bin.yml#L71-L83
+      - name: Install ZisK dependencies
+        shell: bash
+        run: |
+           sudo apt-get install -y xz-utils jq curl build-essential qemu-system libomp-dev \
+                libgmp-dev nlohmann-json3-dev protobuf-compiler uuid-dev libgrpc++-dev \
+                libsecp256k1-dev libsodium-dev libpqxx-dev nasm libopenmpi-dev openmpi-bin openmpi-common
+
+      - name: Install and run ziskup
+        run: |
+          curl -s -o install.sh https://raw.githubusercontent.com/0xPolygonHermez/zisk/main/ziskup/install.sh
+          chmod +x install.sh
+          export GH_RUNNER=1
+          ./install.sh
+
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:

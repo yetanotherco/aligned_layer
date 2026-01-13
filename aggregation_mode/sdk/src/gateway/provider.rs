@@ -6,7 +6,7 @@ use sp1_sdk::{SP1ProofWithPublicValues, SP1VerifyingKey};
 use crate::{
     gateway::types::{
         EmptyDataResponse, GatewayResponse, NonceResponse, ReceiptsQueryParams, ReceiptsResponse,
-        SubmitProofResponse, SubmitSP1ProofMessage,
+        SubmitProofResponse, SubmitSP1ProofMessage, SubmitZiskProofMessage,
     },
     types::Network,
 };
@@ -115,6 +115,36 @@ impl<S: Signer> AggregationModeGatewayProvider<S> {
         let request = self
             .http_client
             .post(format!("{}/proof/sp1", self.gateway_url))
+            .multipart(form);
+
+        self.send_request(request).await
+    }
+
+    pub async fn submit_zisk_proof(
+        &self,
+        proof: &[u8],
+    ) -> Result<GatewayResponse<SubmitProofResponse>, GatewayError> {
+        let Some(signer) = &self.signer else {
+            return Err(GatewayError::SignerNotConfigured);
+        };
+        let signer_address = signer.address().to_string();
+        let nonce_response = self.get_nonce_for(signer_address).await?;
+        let message = SubmitZiskProofMessage::new(nonce_response.data.nonce, proof.to_vec())
+            .sign(signer, &self.network)
+            .await
+            .map_err(GatewayError::MessageSignature)?;
+
+        let form = multipart::Form::new()
+            .text("nonce", message.nonce.to_string())
+            .part(
+                "proof",
+                multipart::Part::bytes(message.proof).file_name("proof.bin"),
+            )
+            .text("signature_hex", hex::encode(message.signature));
+
+        let request = self
+            .http_client
+            .post(format!("{}/proof/zisk", self.gateway_url))
             .multipart(form);
 
         self.send_request(request).await
