@@ -411,7 +411,7 @@ impl ProofAggregator {
         let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
         let base_bump_percentage = self.config.base_bump_percentage;
         let max_fee_bump_percentage = self.config.max_fee_bump_percentage;
-        let priority_fee_gwei = self.config.priority_fee_gwei;
+        let priority_fee_wei = self.config.priority_fee_wei;
 
         // Build the transaction request
         let mut tx_req = match aggregated_proof {
@@ -450,7 +450,7 @@ impl ProofAggregator {
                 .apply_gas_fee_bump(
                     base_bump_percentage,
                     max_fee_bump_percentage,
-                    priority_fee_gwei,
+                    priority_fee_wei,
                     tx_req,
                 )
                 .await?;
@@ -533,7 +533,7 @@ impl ProofAggregator {
     // - Fetch the current network gas price.
     // - Apply `base_bump_percentage` to compute a bumped base fee.
     // - Apply `max_fee_bump_percentage` on top of the bumped base fee to set `max_fee_per_gas`.
-    // - Set `max_priority_fee_per_gas` to a fixed value derived from `priority_fee_gwei`.
+    // - Set `max_priority_fee_per_gas` to a fixed value derived from `priority_fee_wei`.
     //
     // Fees are recomputed on each retry using the latest gas price (no incremental per-attempt bump).
 
@@ -541,7 +541,7 @@ impl ProofAggregator {
         &self,
         base_bump_percentage: u64,
         max_fee_bump_percentage: u64,
-        priority_fee_gwei: u128,
+        priority_fee_wei: u128,
         tx_req: TransactionRequest,
     ) -> Result<TransactionRequest, AggregatedProofSubmissionError> {
         let provider = self.proof_aggregation_service.provider();
@@ -553,7 +553,7 @@ impl ProofAggregator {
 
         let new_base_fee = current_gas_price * (1 + base_bump_percentage as u128 / 100);
         let new_max_fee = new_base_fee * (1 + max_fee_bump_percentage as u128 / 100);
-        let new_priority_fee = priority_fee_gwei * 1000000000; // Convert to wei
+        let new_priority_fee = priority_fee_wei;
 
         Ok(tx_req
             .with_max_fee_per_gas(new_max_fee)
