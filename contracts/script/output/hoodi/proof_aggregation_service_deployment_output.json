@@ -2,8 +2,7 @@
   "addresses": {
     "alignedProofAggregationService": "0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59",
     "alignedProofAggregationServiceImplementation": "0x82c4F7cFD952851cC0Da84F476b710e3846f3b5d",
-    "aggregationModePaymentService": "0x7222E0183cE1A96619d0c883e9bfc6b76D4e780e",
-    "aggregationModePaymentServiceImplementation": "0x964e0c891C1F4583C3EC9366704406a06dFAb401"
+    "aggregationModePaymentService": "0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64",
+    "aggregationModePaymentServiceImplementation": "0xa7eaEeA88ea51a8E0Ce8b14CA3396429EF22429F"
   }
 }
-
