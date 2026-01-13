@@ -95,6 +95,10 @@ resource "aws_instance" "this" {
     var.ec2_tags
   )
 
+  lifecycle {
+    ignore_changes = [ami]
+  }
+
   root_block_device {
     volume_size = var.ec2_root_volume_size
   }
