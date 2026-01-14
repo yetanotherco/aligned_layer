@@ -468,9 +468,6 @@ impl ProofAggregator {
         nonce: u64,
     ) -> Result<SubmitOutcome, AggregatedProofSubmissionError> {
         let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
-        let base_bump_percentage = self.config.base_bump_percentage;
-        let max_fee_bump_percentage = self.config.max_fee_bump_percentage;
-        let priority_fee_wei = self.config.priority_fee_wei;
 
         // Build the transaction request
         let mut tx_req = match aggregated_proof {
@@ -504,14 +501,7 @@ impl ProofAggregator {
         tx_req = tx_req.with_nonce(nonce);
 
         // Apply gas fee bump for retries
-        tx_req = self
-            .apply_gas_fee_bump(
-                base_bump_percentage,
-                max_fee_bump_percentage,
-                priority_fee_wei,
-                tx_req,
-            )
-            .await?;
+        tx_req = self.apply_gas_fee_bump(tx_req).await?;
 
         let provider = self.proof_aggregation_service.provider();
 
@@ -587,12 +577,13 @@ impl ProofAggregator {
 
     async fn apply_gas_fee_bump(
         &self,
-        base_bump_percentage: u64,
-        max_fee_bump_percentage: u64,
-        priority_fee_wei: u128,
         tx_req: TransactionRequest,
     ) -> Result<TransactionRequest, AggregatedProofSubmissionError> {
         let provider = self.proof_aggregation_service.provider();
+
+        let base_bump_percentage = self.config.base_bump_percentage;
+        let max_fee_bump_percentage = self.config.max_fee_bump_percentage;
+        let priority_fee_wei = self.config.priority_fee_wei;
 
         let latest_block = provider
             .get_block_by_number(BlockNumberOrTag::Latest)
