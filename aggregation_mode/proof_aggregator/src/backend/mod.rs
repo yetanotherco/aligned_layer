@@ -24,7 +24,7 @@ use alloy::{
     hex,
     network::{EthereumWallet, TransactionBuilder},
     primitives::{utils::parse_ether, Address, U256},
-    providers::{PendingTransactionError, Provider, ProviderBuilder, WalletProvider},
+    providers::{PendingTransactionError, Provider, ProviderBuilder},
     rpc::types::{TransactionReceipt, TransactionRequest},
     signers::local::LocalSigner,
 };
@@ -73,7 +73,7 @@ impl ProofAggregator {
             config.ecdsa.private_key_store_password.clone(),
         )
         .expect("Keystore signer should be `cast wallet` compliant");
-        let wallet = EthereumWallet::from(signer);
+        let wallet = EthereumWallet::from(signer.clone());
 
         let signer_address = signer.address();
 
@@ -409,7 +409,7 @@ impl ProofAggregator {
         blob: &BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: &AlignedProof,
-        attempt: u64,
+        _attempt: u64, // Check if this param is useful
         nonce: u64,
     ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
         let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
