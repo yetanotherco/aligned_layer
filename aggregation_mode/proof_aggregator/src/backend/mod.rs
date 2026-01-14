@@ -55,7 +55,10 @@ pub enum AggregatedProofSubmissionError {
 }
 
 enum SubmitOutcome {
-    Confirmed(TransactionReceipt),
+    // NOTE: Boxed because enums are sized to their largest variant; without boxing,
+    // every `SubmitOutcome` would reserve space for a full `TransactionReceipt`,
+    // even in the `Pending` case (see clippy::large_enum_variant).
+    Confirmed(Box<TransactionReceipt>),
     Pending(TxHash),
 }
 
@@ -380,7 +383,7 @@ impl ProofAggregator {
                         "Transaction confirmed successfully on attempt {}",
                         attempt + 1
                     );
-                    return Ok(receipt);
+                    return Ok(*receipt);
                 }
                 Ok(SubmitOutcome::Pending(tx_hash)) => {
                     warn!(
@@ -556,7 +559,7 @@ impl ProofAggregator {
         let receipt_result = tokio::time::timeout(retry_interval, pending_tx.get_receipt()).await;
 
         match receipt_result {
-            Ok(Ok(receipt)) => Ok(SubmitOutcome::Confirmed(receipt)),
+            Ok(Ok(receipt)) => Ok(SubmitOutcome::Confirmed(Box::new(receipt))),
             Ok(Err(err)) => Err(
                 AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
                     "Error getting receipt: {err}"
