@@ -20,7 +20,10 @@ use crate::{
 
 use alloy::{
     consensus::{BlobTransactionSidecar, EnvKzgSettings, EthereumTxEnvelope, TxEip4844WithSidecar},
-    eips::{eip4844::BYTES_PER_BLOB, eip7594::BlobTransactionSidecarEip7594, Encodable2718},
+    eips::{
+        eip4844::BYTES_PER_BLOB, eip7594::BlobTransactionSidecarEip7594, BlockNumberOrTag,
+        Encodable2718,
+    },
     hex,
     network::{EthereumWallet, TransactionBuilder},
     primitives::{utils::parse_ether, Address, TxHash, U256},
@@ -52,6 +55,8 @@ pub enum AggregatedProofSubmissionError {
     MerkleRootMisMatch,
     StoringMerklePaths(DbError),
     GasPriceError(String),
+    LatestBlockNotFound,
+    BaseFeePerGasMissing,
 }
 
 enum SubmitOutcome {
@@ -589,18 +594,23 @@ impl ProofAggregator {
     ) -> Result<TransactionRequest, AggregatedProofSubmissionError> {
         let provider = self.proof_aggregation_service.provider();
 
-        let current_gas_price = provider
-            .get_gas_price()
+        let latest_block = provider
+            .get_block_by_number(BlockNumberOrTag::Latest)
             .await
-            .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?;
+            .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?
+            .ok_or(AggregatedProofSubmissionError::LatestBlockNotFound)?;
 
-        let new_base_fee = current_gas_price as f64 * (1.0 + base_bump_percentage as f64 / 100.0);
+        let current_base_fee = latest_block
+            .header
+            .base_fee_per_gas
+            .ok_or(AggregatedProofSubmissionError::BaseFeePerGasMissing)?;
+
+        let new_base_fee = current_base_fee as f64 * (1.0 + base_bump_percentage as f64 / 100.0);
         let new_max_fee = new_base_fee * (1.0 + max_fee_bump_percentage as f64 / 100.0);
-        let new_priority_fee = priority_fee_wei;
 
         Ok(tx_req
             .with_max_fee_per_gas(new_max_fee as u128)
-            .with_max_priority_fee_per_gas(new_priority_fee))
+            .with_max_priority_fee_per_gas(priority_fee_wei))
     }
 
     async fn wait_until_can_submit_aggregated_proof(
