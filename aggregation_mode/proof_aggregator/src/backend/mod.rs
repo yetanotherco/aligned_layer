@@ -449,16 +449,14 @@ impl ProofAggregator {
         tx_req = tx_req.with_nonce(nonce);
 
         // Apply gas fee bump for retries
-        if attempt > 0 {
-            tx_req = self
-                .apply_gas_fee_bump(
-                    base_bump_percentage,
-                    max_fee_bump_percentage,
-                    priority_fee_wei,
-                    tx_req,
-                )
-                .await?;
-        }
+        tx_req = self
+            .apply_gas_fee_bump(
+                base_bump_percentage,
+                max_fee_bump_percentage,
+                priority_fee_wei,
+                tx_req,
+            )
+            .await?;
 
         let provider = self.proof_aggregation_service.provider();
 
