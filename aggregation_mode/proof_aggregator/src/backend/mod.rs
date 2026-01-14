@@ -423,6 +423,8 @@ impl ProofAggregator {
             }
         }
 
+        let receipt_timeout = Duration::from_secs(self.config.final_receipt_check_timeout_seconds);
+
         // After exhausting all retry attempts, we iterate over every pending transaction hash
         // that was previously submitted with the same nonce but different gas parameters.
         // One of these transactions may have been included in a block while we were still
@@ -430,25 +432,36 @@ impl ProofAggregator {
         // we ensure we don't "lose" a transaction that was actually mined but whose receipt
         // we never observed due to timeouts during earlier attempts.
         for (i, tx_hash) in pending_hashes.into_iter().enumerate() {
-            match self
-                .proof_aggregation_service
-                .provider()
-                .get_transaction_receipt(tx_hash)
-                .await
+            // NOTE: `get_transaction_receipt` has no built-in timeout, so we guard it to
+            // avoid hanging the aggregator on a stuck RPC call.
+            match tokio::time::timeout(
+                receipt_timeout,
+                self.proof_aggregation_service
+                    .provider()
+                    .get_transaction_receipt(tx_hash),
+            )
+            .await
             {
-                Ok(Some(receipt)) => {
+                Ok(Ok(Some(receipt))) => {
                     info!("Pending tx #{} confirmed; returning receipt", i + 1);
                     return Ok(receipt);
                 }
-                Ok(None) => {
+                Ok(Ok(None)) => {
                     warn!(
                         "Pending tx #{} still no receipt yet (hash {})",
                         i + 1,
                         tx_hash
                     );
                 }
-                Err(err) => {
+                Ok(Err(err)) => {
                     warn!("Pending tx #{} receipt query failed: {:?}", i + 1, err);
+                }
+                Err(_) => {
+                    warn!(
+                        "Pending tx #{} receipt query timed out after {:?}",
+                        i + 1,
+                        receipt_timeout
+                    );
                 }
             }
         }
