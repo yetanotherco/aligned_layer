@@ -1,23 +1,29 @@
+- name: Import pg_autofailover_common playbook
+  ansible.builtin.import_playbook: pg_autofailover_common.yaml
+  vars:
+    host: "{{ host }}"
+
 - name: PostgreSQL Node Setup
   hosts: "{{ host }}"
-
-  tasks:
-    - name: Import pg_autofailover_common playbook
-      ansible.builtin.import_playbook: pg_autofailover_common.yaml
-      vars:
-        host: "{{ host }}"
-
-- hosts: "{{ host }}"
   vars:
-    db_name: "{{ lookup('ini', 'db_name', file='ini/config-{{ env }}.ini') }}"
-    db_user: "{{ lookup('ini', 'db_user', file='ini/config-{{ env }}.ini') }}"
-    db_password: "{{ lookup('ini', 'db_password', file='ini/config-{{ env }}.ini') }}"
-    postgres_monitor_hostname: "{{ lookup('ini', 'postgres_monitor_hostname', file='ini/config-{{ env }}.ini') }}"
-    node_pgdata: "{{ lookup('ini', 'node_pgdata', file='ini/config-{{ env }}.ini', default='/var/lib/postgresql/node') }}"
-    node_port: "{{ lookup('ini', 'node_port', file='ini/config-{{ env }}.ini', default='5432') }}"
-    backup_dir: "{{ lookup('ini', 'backup_dir', file='ini/config-{{ env }}.ini', default='/var/lib/backup') }}"
+    ansible_common_remote_group: postgres
 
   tasks:
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
+
+    - name: Set config vars from INI file
+      set_fact:
+        db_name: "{{ lookup('ini', 'db_name', file=config_file) }}"
+        db_user: "{{ lookup('ini', 'db_user', file=config_file) }}"
+        db_password: "{{ lookup('ini', 'db_password', file=config_file) }}"
+        postgres_monitor_hostname: "{{ lookup('ini', 'postgres_monitor_hostname', file=config_file) }}"
+        node_pgdata: "{{ lookup('ini', 'node_pgdata', file=config_file, default='/var/lib/postgresql/node') }}"
+        node_port: "{{ lookup('ini', 'node_port', file=config_file, default='5432') }}"
+        backup_dir: "{{ lookup('ini', 'backup_dir', file=config_file, default='/var/lib/backup') }}"
+      no_log: true
+
     - name: Create backup directory
       become: true
       file:
@@ -35,6 +41,10 @@
       register: node_initialized
       become: true
       become_user: postgres
+
+    - name: Debug node_initialized
+      debug:
+        msg: "Node initialized: {{ node_initialized.stat.exists }}, path: {{ node_pgdata }}/PG_VERSION"
 
     - name: Get Tailscale IP
       shell: tailscale ip --4
@@ -56,7 +66,6 @@
           --hostname {{ tailscale_ip.stdout }} \
           --monitor 'postgres://{{ db_user }}:{{ db_password }}@{{ postgres_monitor_hostname }}:5432/pg_auto_failover?sslmode=require'
       when: not node_initialized.stat.exists
-      no_log: true
       args:
         creates: "{{ node_pgdata }}/PG_VERSION"
 
@@ -108,3 +117,19 @@
         port: "{{ node_port }}"
         delay: 5
         timeout: 60
+
+    - name: Check if node is writable (primary)
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d {{ db_name }} -tAc "SELECT NOT pg_is_in_recovery();"
+      register: is_writable
+      changed_when: false
+
+    - name: Set password for pgautofailover_replicator user
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d {{ db_name }} -c "ALTER USER pgautofailover_replicator PASSWORD '{{ db_password }}';"
+      when: is_writable.stdout == 't'
+      no_log: true

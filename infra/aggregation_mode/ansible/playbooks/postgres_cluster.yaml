@@ -1,24 +1,23 @@
-- name: Deploy PostgreSQL Auto-Failover Cluster
-  hosts: localhost
-  gather_facts: no
+- name: Deploy PostgreSQL Monitor
+  ansible.builtin.import_playbook: pg_monitor.yaml
+  vars:
+    host: postgres_monitor
+    env: "{{ env }}"
 
-  tasks:
-    - name: Deploy PostgreSQL Monitor
-      ansible.builtin.import_playbook: pg_monitor.yaml
-      vars:
-        host: postgres_monitor
+- name: Deploy PostgreSQL Primary Node
+  ansible.builtin.import_playbook: pg_node.yaml
+  vars:
+    host: postgres_primary
+    env: "{{ env }}"
 
-    - name: Deploy PostgreSQL Primary Node
-      ansible.builtin.import_playbook: pg_node.yaml
-      vars:
-        host: postgres_primary
+- name: Deploy PostgreSQL Secondary Node
+  ansible.builtin.import_playbook: pg_node.yaml
+  vars:
+    host: postgres_secondary
+    env: "{{ env }}"
 
-    - name: Deploy PostgreSQL Secondary Node
-      ansible.builtin.import_playbook: pg_node.yaml
-      vars:
-        host: postgres_secondary
-
-    - name: Run Database Migrations
-      ansible.builtin.import_playbook: postgres_migrations.yaml
-      vars:
-        host: postgres_primary
+- name: Run Database Migrations
+  ansible.builtin.import_playbook: postgres_migrations.yaml
+  vars:
+    host: postgres_primary
+    env: "{{ env }}"

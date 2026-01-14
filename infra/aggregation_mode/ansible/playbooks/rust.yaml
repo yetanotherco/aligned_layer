@@ -1,7 +1,7 @@
 - name: Rust Setup
   hosts: "{{ host }}"
   vars:
-    rust_version: 1.83.0
+    rust_version: 1.92.0
 
   tasks:
     - name: Check if cargo is installed

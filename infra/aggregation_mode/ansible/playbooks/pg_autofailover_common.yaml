@@ -9,6 +9,7 @@
           - postgresql-common
           - ca-certificates
           - curl
+          - acl
         state: latest
         update_cache: true
       vars:
