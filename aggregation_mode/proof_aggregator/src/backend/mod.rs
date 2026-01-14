@@ -356,7 +356,7 @@ impl ProofAggregator {
                 )
             })?;
 
-        info!("Using nonce {} for all retry attempts", nonce);
+        info!("Using nonce {}", nonce);
 
         for attempt in 0..max_retries {
             info!("Transaction attempt {} of {}", attempt + 1, max_retries);
