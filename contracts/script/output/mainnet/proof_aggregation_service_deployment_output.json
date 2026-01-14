@@ -1,0 +1,8 @@
+{
+  "addresses": {
+    "alignedProofAggregationService": "0xD0696d3eEebffcAB2D1b358805efAA005A9A8BC0",
+    "alignedProofAggregationServiceImplementation": "0x69199cdf329fB78284e35C724457E10D799cceC7",
+    "aggregationModePaymentService": "0xc8631Bc1E60c20db40e474F791126212fA8255F4",
+    "aggregationModePaymentServiceImplementation": "0x4676e44cECE9946793428b71CB0EC6D631894fB7"
+  }
+}
