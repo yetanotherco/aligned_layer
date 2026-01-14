@@ -62,6 +62,7 @@ pub struct ProofAggregator {
     sp1_chunk_aggregator_vk_hash_bytes: [u8; 32],
     risc0_chunk_aggregator_image_id_bytes: [u8; 32],
     db: Db,
+    signer_address: Address,
 }
 
 impl ProofAggregator {
@@ -73,6 +74,8 @@ impl ProofAggregator {
         )
         .expect("Keystore signer should be `cast wallet` compliant");
         let wallet = EthereumWallet::from(signer);
+
+        let signer_address = signer.address();
 
         // Check if the monthly budget is non-negative to avoid runtime errors later
         let _monthly_budget_in_wei = parse_ether(&config.monthly_budget_eth.to_string())
@@ -117,6 +120,7 @@ impl ProofAggregator {
             sp1_chunk_aggregator_vk_hash_bytes,
             risc0_chunk_aggregator_image_id_bytes,
             db,
+            signer_address,
         }
     }
 
@@ -342,11 +346,7 @@ impl ProofAggregator {
         let nonce = self
             .proof_aggregation_service
             .provider()
-            .get_transaction_count(
-                self.proof_aggregation_service
-                    .provider()
-                    .default_signer_address(),
-            )
+            .get_transaction_count(self.signer_address)
             .await
             .map_err(|e| {
                 RetryError::Transient(
