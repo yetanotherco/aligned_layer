@@ -23,7 +23,7 @@ use alloy::{
     eips::{eip4844::BYTES_PER_BLOB, eip7594::BlobTransactionSidecarEip7594, Encodable2718},
     hex,
     network::{EthereumWallet, TransactionBuilder},
-    primitives::{utils::parse_ether, Address, U256},
+    primitives::{utils::parse_ether, Address, TxHash, U256},
     providers::{PendingTransactionError, Provider, ProviderBuilder},
     rpc::types::{TransactionReceipt, TransactionRequest},
     signers::local::LocalSigner,
@@ -52,6 +52,11 @@ pub enum AggregatedProofSubmissionError {
     MerkleRootMisMatch,
     StoringMerklePaths(DbError),
     GasPriceError(String),
+}
+
+enum SubmitOutcome {
+    Confirmed(TransactionReceipt),
+    Pending(TxHash),
 }
 
 pub struct ProofAggregator {
@@ -342,6 +347,8 @@ impl ProofAggregator {
 
         let mut last_error: Option<AggregatedProofSubmissionError> = None;
 
+        let mut pending_hashes: Vec<TxHash> = Vec::with_capacity(max_retries as usize);
+
         // Get the nonce once at the beginning and reuse it for all retries
         let nonce = self
             .proof_aggregation_service
@@ -364,22 +371,34 @@ impl ProofAggregator {
             // Wrap the entire transaction submission in a result to catch all errors, passing
             // the same nonce to all attempts
             let attempt_result = self
-                .try_submit_transaction(
-                    &blob,
-                    blob_versioned_hash,
-                    aggregated_proof,
-                    attempt as u64,
-                    nonce,
-                )
+                .try_submit_transaction(&blob, blob_versioned_hash, aggregated_proof, nonce)
                 .await;
 
             match attempt_result {
-                Ok(receipt) => {
+                Ok(SubmitOutcome::Confirmed(receipt)) => {
                     info!(
                         "Transaction confirmed successfully on attempt {}",
                         attempt + 1
                     );
                     return Ok(receipt);
+                }
+                Ok(SubmitOutcome::Pending(tx_hash)) => {
+                    warn!(
+                    "Attempt {} timed out waiting for receipt; storing pending tx and continuing",
+                    attempt + 1
+                );
+                    pending_hashes.push(tx_hash);
+
+                    last_error = Some(
+                        AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
+                            "Timed out waiting for receipt".to_string(),
+                        ),
+                    );
+
+                    if attempt < max_retries - 1 {
+                        info!("Retrying with bumped gas fees and same nonce {}...", nonce);
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    }
                 }
                 Err(err) => {
                     warn!("Attempt {} failed: {:?}", attempt + 1, err);
@@ -396,7 +415,36 @@ impl ProofAggregator {
             }
         }
 
-        // If we exhausted all retries, return the last error
+        // After exhausting all retry attempts, we iterate over every pending transaction hash
+        // that was previously submitted with the same nonce but different gas parameters.
+        // One of these transactions may have been included in a block while we were still
+        // retrying and waiting on others. By explicitly checking the receipt for each hash,
+        // we ensure we don't "lose" a transaction that was actually mined but whose receipt
+        // we never observed due to timeouts during earlier attempts.
+        for (i, tx_hash) in pending_hashes.into_iter().enumerate() {
+            match self
+                .proof_aggregation_service
+                .provider()
+                .get_transaction_receipt(tx_hash)
+                .await
+            {
+                Ok(Some(receipt)) => {
+                    info!("Pending tx #{} confirmed; returning receipt", i + 1);
+                    return Ok(receipt);
+                }
+                Ok(None) => {
+                    warn!(
+                        "Pending tx #{} still no receipt yet (hash {})",
+                        i + 1,
+                        tx_hash
+                    );
+                }
+                Err(err) => {
+                    warn!("Pending tx #{} receipt query failed: {:?}", i + 1, err);
+                }
+            }
+        }
+
         Err(RetryError::Transient(last_error.unwrap_or_else(|| {
             AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
                 "Max retries exceeded with no error details".to_string(),
@@ -409,9 +457,8 @@ impl ProofAggregator {
         blob: &BlobTransactionSidecar,
         blob_versioned_hash: [u8; 32],
         aggregated_proof: &AlignedProof,
-        _attempt: u64, // Check if this param is useful
         nonce: u64,
-    ) -> Result<TransactionReceipt, AggregatedProofSubmissionError> {
+    ) -> Result<SubmitOutcome, AggregatedProofSubmissionError> {
         let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
         let base_bump_percentage = self.config.base_bump_percentage;
         let max_fee_bump_percentage = self.config.max_fee_bump_percentage;
@@ -504,27 +551,18 @@ impl ProofAggregator {
                 ))
             })?;
 
-        info!(
-            "Transaction sent with nonce {}, waiting for confirmation...",
-            nonce
-        );
+        let tx_hash = *pending_tx.tx_hash();
 
-        // Wait for the receipt with timeout
         let receipt_result = tokio::time::timeout(retry_interval, pending_tx.get_receipt()).await;
 
         match receipt_result {
-            Ok(Ok(receipt)) => Ok(receipt),
+            Ok(Ok(receipt)) => Ok(SubmitOutcome::Confirmed(receipt)),
             Ok(Err(err)) => Err(
                 AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
                     "Error getting receipt: {err}"
                 )),
             ),
-            Err(_) => Err(
-                AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(format!(
-                    "Transaction timeout after {} seconds",
-                    retry_interval.as_secs()
-                )),
-            ),
+            Err(_) => Ok(SubmitOutcome::Pending(tx_hash)),
         }
     }
 
