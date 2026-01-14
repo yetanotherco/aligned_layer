@@ -1,0 +1,73 @@
+# PostgreSQL Monitor
+postgres_monitor:
+  hosts:
+    agg-mode-mainnet-postgres-monitor:
+      ansible_host: agg-mode-mainnet-postgres-monitor
+      admin_user: admin
+      ansible_user: admin
+      ansible_python_interpreter: /usr/bin/python3
+
+# PostgreSQL Primary
+postgres_primary:
+  hosts:
+    agg-mode-mainnet-postgres-1:
+      ansible_host: agg-mode-mainnet-postgres-1
+      admin_user: admin
+      ansible_user: admin
+      ansible_python_interpreter: /usr/bin/python3
+
+# PostgreSQL Secondary
+postgres_secondary:
+  hosts:
+    agg-mode-mainnet-postgres-2:
+      ansible_host: agg-mode-mainnet-postgres-2
+      admin_user: admin
+      ansible_user: admin
+      ansible_python_interpreter: /usr/bin/python3
+
+# PostgreSQL Cluster (all postgres nodes)
+postgres_cluster:
+  children:
+    postgres_monitor:
+    postgres_primary:
+    postgres_secondary:
+
+# Gateway Primary
+gateway_primary:
+  hosts:
+    agg-mode-mainnet-gateway-1:
+      ansible_host: agg-mode-mainnet-gateway-1
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+# Gateway Secondary
+gateway_secondary:
+  hosts:
+    agg-mode-mainnet-gateway-2:
+      ansible_host: agg-mode-mainnet-gateway-2
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+# Gateway Cluster (all gateway nodes)
+gateway_cluster:
+  children:
+    gateway_primary:
+    gateway_secondary:
+
+# Metrics Server
+metrics:
+  hosts:
+    agg-mode-mainnet-metrics:
+      ansible_host: agg-mode-mainnet-metrics
+      admin_user: admin
+      ansible_user: admin
+      ansible_python_interpreter: /usr/bin/python3
+
+# All aggregation mode servers
+aggregation_mode:
+  children:
+    postgres_cluster:
+    gateway_cluster:
+    metrics:

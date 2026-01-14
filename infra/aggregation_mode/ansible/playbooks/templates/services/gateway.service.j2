@@ -1,0 +1,18 @@
+[Unit]
+Description=Aggregation Mode Gateway
+After=network.target
+
+[Service]
+Type=simple
+User={{ ansible_user }}
+Group={{ ansible_user }}
+WorkingDirectory=/home/{{ ansible_user }}/repos/gateway/aligned_layer/aggregation_mode
+ExecStart=/home/{{ ansible_user }}/.cargo/bin/gateway /home/{{ ansible_user }}/config/config-agg-mode-gateway.yaml
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+LimitNOFILE=100000
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,101 @@
+- name: PostgreSQL Monitor Setup
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Import pg_autofailover_common playbook
+      ansible.builtin.import_playbook: pg_autofailover_common.yaml
+      vars:
+        host: "{{ host }}"
+
+- hosts: "{{ host }}"
+  vars:
+    db_password: "{{ lookup('ini', 'db_password', file='ini/config-{{ env }}.ini') }}"
+    monitor_pgdata: "{{ lookup('ini', 'monitor_pgdata', file='ini/config-{{ env }}.ini', default='/var/lib/postgresql/monitor') }}"
+    monitor_port: "{{ lookup('ini', 'monitor_port', file='ini/config-{{ env }}.ini', default='5432') }}"
+
+  tasks:
+    - name: Install postgresql-16-auto-failover
+      become: true
+      apt:
+        pkg:
+          - postgresql-16-auto-failover
+        state: latest
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Check if monitor is already initialized
+      stat:
+        path: "{{ monitor_pgdata }}/PG_VERSION"
+      register: monitor_initialized
+      become: true
+      become_user: postgres
+
+    - name: Get Tailscale IP
+      shell: tailscale ip --4
+      register: tailscale_ip
+      when: not monitor_initialized.stat.exists
+
+    - name: Create pg_autoctl monitor
+      become: true
+      become_user: postgres
+      shell: |
+        pg_autoctl create monitor \
+          --pgdata {{ monitor_pgdata }} \
+          --pgctl /usr/lib/postgresql/16/bin/pg_ctl \
+          --auth scram-sha-256 \
+          --ssl-self-signed \
+          --pgport {{ monitor_port }} \
+          --hostname {{ tailscale_ip.stdout }}
+      when: not monitor_initialized.stat.exists
+      args:
+        creates: "{{ monitor_pgdata }}/PG_VERSION"
+
+    - name: Wait for monitor to be ready
+      wait_for:
+        port: "{{ monitor_port }}"
+        delay: 5
+        timeout: 60
+
+    - name: Set password for autoctl_node user
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d pg_auto_failover -c "ALTER USER autoctl_node PASSWORD '{{ db_password }}';"
+      no_log: true
+
+    - name: Update pg_hba.conf for Tailscale network
+      become: true
+      become_user: postgres
+      blockinfile:
+        path: "{{ monitor_pgdata }}/pg_hba.conf"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Tailscale"
+        block: |
+          # Tailscale network connections
+          host    all             all             100.64.0.0/10           scram-sha-256
+          host    replication     all             100.64.0.0/10           scram-sha-256
+
+    - name: Generate systemd service file
+      become: true
+      become_user: postgres
+      shell: |
+        pg_autoctl show systemd --pgdata {{ monitor_pgdata }}
+      register: systemd_service_content
+
+    - name: Create pgautofailover systemd service
+      become: true
+      copy:
+        content: "{{ systemd_service_content.stdout }}"
+        dest: /etc/systemd/system/pgautofailover.service
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Enable and start pgautofailover service
+      become: true
+      systemd_service:
+        name: pgautofailover
+        state: started
+        enabled: true
+        daemon_reload: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

@@ -1,0 +1,109 @@
+- name: Grafana Setup for Aggregation Mode
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Import setup playbook
+      ansible.builtin.import_playbook: setup.yaml
+      vars:
+        host: "{{ host }}"
+
+- hosts: "{{ host }}"
+  vars:
+    grafana_prometheus_url: "{{ lookup('ini', 'grafana_prometheus_url', file='ini/config-{{ env }}.ini') }}"
+    grafana_rpc_url: "{{ lookup('ini', 'grafana_rpc_url', file='ini/config-{{ env }}.ini') }}"
+    grafana_postgres_host: "{{ lookup('ini', 'grafana_postgres_host', file='ini/config-{{ env }}.ini') }}"
+    grafana_postgres_port: "{{ lookup('ini', 'grafana_postgres_port', file='ini/config-{{ env }}.ini', default='5432') }}"
+    grafana_postgres_db: "{{ lookup('ini', 'grafana_postgres_db', file='ini/config-{{ env }}.ini') }}"
+    grafana_postgres_user: "{{ lookup('ini', 'grafana_postgres_user', file='ini/config-{{ env }}.ini') }}"
+    grafana_postgres_password: "{{ lookup('ini', 'grafana_postgres_password', file='ini/config-{{ env }}.ini') }}"
+
+  tasks:
+    - name: Install required packages
+      become: true
+      apt:
+        pkg:
+          - apt-transport-https
+          - software-properties-common
+          - wget
+          - gnupg
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create apt keyrings directory
+      become: true
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Download Grafana GPG key
+      become: true
+      get_url:
+        url: https://apt.grafana.com/gpg.key
+        dest: /tmp/grafana.key
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Add Grafana GPG key
+      become: true
+      shell: |
+        gpg --dearmor < /tmp/grafana.key > /etc/apt/keyrings/grafana.gpg
+      args:
+        creates: /etc/apt/keyrings/grafana.gpg
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Add Grafana APT repository
+      become: true
+      lineinfile:
+        path: /etc/apt/sources.list.d/grafana.list
+        line: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+        create: yes
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Update apt cache
+      become: true
+      apt:
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Install Grafana
+      become: true
+      apt:
+        name: grafana
+        state: latest
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Template Grafana environment configuration
+      become: true
+      template:
+        src: grafana/grafana_env.j2
+        dest: /etc/default/grafana-server-custom
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Append custom environment to grafana-server defaults
+      become: true
+      shell: |
+        cat /etc/default/grafana-server-custom >> /etc/default/grafana-server
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Enable and start Grafana service
+      become: true
+      systemd_service:
+        name: grafana-server
+        state: restarted
+        enabled: true
+        daemon_reload: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

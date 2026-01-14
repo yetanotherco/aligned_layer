@@ -1,0 +1,40 @@
+- name: PostgreSQL Migrations Setup
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Import setup playbook
+      ansible.builtin.import_playbook: setup.yaml
+      vars:
+        host: "{{ host }}"
+
+    - name: Import rust playbook
+      ansible.builtin.import_playbook: rust.yaml
+      vars:
+        host: "{{ host }}"
+
+- hosts: "{{ host }}"
+  vars:
+    db_name: "{{ lookup('ini', 'db_name', file='ini/config-{{ env }}.ini') }}"
+    db_user: "{{ lookup('ini', 'db_user', file='ini/config-{{ env }}.ini') }}"
+    db_password: "{{ lookup('ini', 'db_password', file='ini/config-{{ env }}.ini') }}"
+    postgres_primary_hostname: "{{ lookup('ini', 'postgres_primary_hostname', file='ini/config-{{ env }}.ini') }}"
+    git_branch: "{{ lookup('ini', 'git_branch', file='ini/config-{{ env }}.ini') }}"
+
+  tasks:
+    - name: Clone aligned_layer repository
+      git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ ansible_user }}/repos/migrations/aligned_layer
+        version: "{{ git_branch }}"
+        update: yes
+
+    - name: Run database migrations
+      shell: |
+        export PATH=$HOME/.cargo/bin:$PATH
+        cargo run --manifest-path /home/{{ ansible_user }}/repos/migrations/aligned_layer/aggregation_mode/Cargo.toml --release --bin migrate -- "postgres://{{ db_user }}:{{ db_password }}@{{ postgres_primary_hostname }}:5432/{{ db_name }}"
+      register: migration_result
+      no_log: true
+
+    - name: Display migration result
+      debug:
+        msg: "{{ migration_result.stdout_lines }}"

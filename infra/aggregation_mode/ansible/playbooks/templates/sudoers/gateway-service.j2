@@ -1,0 +1,3 @@
+{{ ansible_user }} ALL=(ALL) NOPASSWD: /bin/systemctl start gateway, /bin/systemctl stop gateway, /bin/systemctl restart gateway, /bin/systemctl status gateway
+{{ ansible_user }} ALL=(ALL) NOPASSWD: /bin/journalctl -u gateway*
+{{ ansible_user }} ALL=(ALL) NOPASSWD: /bin/journalctl --user-unit=gateway*

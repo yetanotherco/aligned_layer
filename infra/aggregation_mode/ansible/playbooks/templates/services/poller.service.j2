@@ -1,0 +1,15 @@
+[Unit]
+Description=Aggregation Mode Payments Poller
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/{{ ansible_user }}/repos/poller/aligned_layer/aggregation_mode
+ExecStart=/home/{{ ansible_user }}/.cargo/bin/payments_poller /home/{{ ansible_user }}/config/config-agg-mode-poller.yaml
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+LimitNOFILE=100000
+
+[Install]
+WantedBy=multi-user.target

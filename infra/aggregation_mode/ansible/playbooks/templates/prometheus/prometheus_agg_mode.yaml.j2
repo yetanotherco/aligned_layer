@@ -1,0 +1,51 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+- job_name: "gateway-primary-http"
+  scrape_interval: 60s
+  static_configs:
+    - targets: ["{{ gateway_primary_hostname }}:8080"]
+      labels:
+        service: "gateway"
+        instance: "primary"
+
+- job_name: "gateway-secondary-http"
+  scrape_interval: 60s
+  static_configs:
+    - targets: ["{{ gateway_secondary_hostname }}:8080"]
+      labels:
+        service: "gateway"
+        instance: "secondary"
+
+- job_name: "gateway-primary"
+  scrape_interval: 15s
+  static_configs:
+    - targets: ["{{ gateway_primary_hostname }}:{{ gateway_metrics_port }}"]
+      labels:
+        service: "gateway"
+        instance: "primary"
+
+- job_name: "gateway-secondary"
+  scrape_interval: 15s
+  static_configs:
+    - targets: ["{{ gateway_secondary_hostname }}:{{ gateway_metrics_port }}"]
+      labels:
+        service: "gateway"
+        instance: "secondary"
+
+- job_name: "poller-primary"
+  scrape_interval: 15s
+  static_configs:
+    - targets: ["{{ gateway_primary_hostname }}:{{ poller_metrics_port }}"]
+      labels:
+        service: "poller"
+        instance: "primary"
+
+- job_name: "poller-secondary"
+  scrape_interval: 15s
+  static_configs:
+    - targets: ["{{ gateway_secondary_hostname }}:{{ poller_metrics_port }}"]
+      labels:
+        service: "poller"
+        instance: "secondary"

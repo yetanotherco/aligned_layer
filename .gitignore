@@ -46,3 +46,7 @@ docs/dead_links_report.txt
 terraform.tfstate
 terraform.tfstate.backup
 
+
+# Aggregation Mode Ansible INI files (track config-*.ini templates, ignore others)
+infra/aggregation_mode/ansible/playbooks/ini/*.ini
+!infra/aggregation_mode/ansible/playbooks/ini/config-*.ini
