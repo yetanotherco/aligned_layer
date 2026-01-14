@@ -27,7 +27,6 @@
     poller_max_daily_proofs: "{{ lookup('ini', 'gateway_max_daily_proofs', file='ini/config-{{ env }}.ini', default='100') }}"
     poller_last_block_fetched_filepath: "{{ lookup('ini', 'poller_last_block_fetched_filepath', file='ini/config-{{ env }}.ini') }}"
     last_block_fetched_initial_value: "{{ lookup('ini', 'last_block_fetched_initial_value', file='ini/config-{{ env }}.ini', default='0') }}"
-    gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file='ini/config-{{ env }}.ini', default='9094') }}"
     poller_metrics_port: "{{ lookup('ini', 'poller_metrics_port', file='ini/config-{{ env }}.ini', default='9095') }}"
 
   tasks:

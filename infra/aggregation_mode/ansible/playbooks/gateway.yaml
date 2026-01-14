@@ -30,9 +30,7 @@
     gateway_payment_service_address: "{{ lookup('ini', 'gateway_payment_service_address', file='ini/config-{{ env }}.ini') }}"
     gateway_network: "{{ lookup('ini', 'gateway_network', file='ini/config-{{ env }}.ini') }}"
     gateway_max_daily_proofs: "{{ lookup('ini', 'gateway_max_daily_proofs', file='ini/config-{{ env }}.ini', default='100') }}"
-    gateway_last_block_fetched_filepath: "{{ lookup('ini', 'gateway_last_block_fetched_filepath', file='ini/config-{{ env }}.ini') }}"
     gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file='ini/config-{{ env }}.ini', default='9094') }}"
-    poller_metrics_port: "{{ lookup('ini', 'poller_metrics_port', file='ini/config-{{ env }}.ini', default='9095') }}"
     tls_cert_source_path: "{{ lookup('ini', 'tls_cert_source_path', file='ini/config-{{ env }}.ini') }}"
     tls_key_source_path: "{{ lookup('ini', 'tls_key_source_path', file='ini/config-{{ env }}.ini') }}"
 
