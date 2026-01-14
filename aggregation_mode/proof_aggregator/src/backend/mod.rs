@@ -558,9 +558,6 @@ impl ProofAggregator {
         let new_priority_fee = priority_fee_wei;
 
         Ok(tx_req
-            // In TransactionRequest docs the gas_price field is defined as
-            // "The max base fee per gas the sender is willing to pay."
-            .with_gas_price(new_base_fee as u128)
             .with_max_fee_per_gas(new_max_fee as u128)
             .with_max_priority_fee_per_gas(new_priority_fee))
     }
