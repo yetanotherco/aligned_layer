@@ -1,23 +1,28 @@
+- name: Import setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
 - name: Grafana Setup for Aggregation Mode
   hosts: "{{ host }}"
 
   tasks:
-    - name: Import setup playbook
-      ansible.builtin.import_playbook: setup.yaml
-      vars:
-        host: "{{ host }}"
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
 
-- hosts: "{{ host }}"
-  vars:
-    grafana_prometheus_url: "{{ lookup('ini', 'grafana_prometheus_url', file='ini/config-{{ env }}.ini') }}"
-    grafana_rpc_url: "{{ lookup('ini', 'grafana_rpc_url', file='ini/config-{{ env }}.ini') }}"
-    grafana_postgres_host: "{{ lookup('ini', 'grafana_postgres_host', file='ini/config-{{ env }}.ini') }}"
-    grafana_postgres_port: "{{ lookup('ini', 'grafana_postgres_port', file='ini/config-{{ env }}.ini', default='5432') }}"
-    grafana_postgres_db: "{{ lookup('ini', 'grafana_postgres_db', file='ini/config-{{ env }}.ini') }}"
-    grafana_postgres_user: "{{ lookup('ini', 'grafana_postgres_user', file='ini/config-{{ env }}.ini') }}"
-    grafana_postgres_password: "{{ lookup('ini', 'grafana_postgres_password', file='ini/config-{{ env }}.ini') }}"
+    - name: Set config vars from INI file
+      set_fact:
+        grafana_prometheus_url: "{{ lookup('ini', 'grafana_prometheus_url', file=config_file) }}"
+        grafana_rpc_url: "{{ lookup('ini', 'grafana_rpc_url', file=config_file) }}"
+        grafana_postgres_host: "{{ lookup('ini', 'grafana_postgres_host', file=config_file) }}"
+        grafana_postgres_port: "{{ lookup('ini', 'grafana_postgres_port', file=config_file, default='5432') }}"
+        grafana_postgres_db: "{{ lookup('ini', 'grafana_postgres_db', file=config_file) }}"
+        grafana_postgres_user: "{{ lookup('ini', 'grafana_postgres_user', file=config_file) }}"
+        grafana_postgres_password: "{{ lookup('ini', 'grafana_postgres_password', file=config_file) }}"
+      no_log: true
 
-  tasks:
     - name: Install required packages
       become: true
       apt:

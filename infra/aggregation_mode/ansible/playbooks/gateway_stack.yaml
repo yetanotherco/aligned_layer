@@ -1,13 +1,11 @@
-- name: Deploy Gateway and Poller Stack
-  hosts: "{{ host }}"
+- name: Deploy Gateway
+  ansible.builtin.import_playbook: gateway.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
 
-  tasks:
-    - name: Deploy Gateway
-      ansible.builtin.import_playbook: gateway.yaml
-      vars:
-        host: "{{ host }}"
-
-    - name: Deploy Poller
-      ansible.builtin.import_playbook: poller.yaml
-      vars:
-        host: "{{ host }}"
+- name: Deploy Poller
+  ansible.builtin.import_playbook: poller.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"

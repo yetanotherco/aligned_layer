@@ -1,13 +1,11 @@
-- name: Deploy Metrics Stack
-  hosts: "{{ host }}"
+- name: Deploy Prometheus
+  ansible.builtin.import_playbook: prometheus_agg_mode.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
 
-  tasks:
-    - name: Deploy Prometheus
-      ansible.builtin.import_playbook: prometheus_agg_mode.yaml
-      vars:
-        host: "{{ host }}"
-
-    - name: Deploy Grafana
-      ansible.builtin.import_playbook: grafana_agg_mode.yaml
-      vars:
-        host: "{{ host }}"
+- name: Deploy Grafana
+  ansible.builtin.import_playbook: grafana_agg_mode.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"

@@ -1,21 +1,25 @@
+- name: Import setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
 - name: Prometheus Setup for Aggregation Mode
   hosts: "{{ host }}"
 
   tasks:
-    - name: Import setup playbook
-      ansible.builtin.import_playbook: setup.yaml
-      vars:
-        host: "{{ host }}"
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
 
-- hosts: "{{ host }}"
-  vars:
-    prometheus_version: "{{ lookup('ini', 'prometheus_version', file='ini/config-{{ env }}.ini', default='3.6.0') }}"
-    gateway_primary_hostname: "{{ lookup('ini', 'gateway_primary_hostname', file='ini/config-{{ env }}.ini') }}"
-    gateway_secondary_hostname: "{{ lookup('ini', 'gateway_secondary_hostname', file='ini/config-{{ env }}.ini') }}"
-    gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file='ini/config-{{ env }}.ini', default='9094') }}"
-    poller_metrics_port: "{{ lookup('ini', 'poller_metrics_port', file='ini/config-{{ env }}.ini', default='9095') }}"
+    - name: Set config vars from INI file
+      set_fact:
+        prometheus_version: "{{ lookup('ini', 'prometheus_version', file=config_file, default='3.6.0') }}"
+        gateway_primary_hostname: "{{ lookup('ini', 'gateway_primary_hostname', file=config_file) }}"
+        gateway_secondary_hostname: "{{ lookup('ini', 'gateway_secondary_hostname', file=config_file) }}"
+        gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file=config_file, default='9094') }}"
+        poller_metrics_port: "{{ lookup('ini', 'poller_metrics_port', file=config_file, default='9095') }}"
 
-  tasks:
     - name: Check if Prometheus is installed
       stat:
         path: /home/{{ ansible_user }}/prometheus-{{ prometheus_version }}.linux-amd64/prometheus

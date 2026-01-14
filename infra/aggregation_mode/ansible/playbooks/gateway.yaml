@@ -1,40 +1,46 @@
+- name: Import setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Import rust playbook
+  ansible.builtin.import_playbook: rust.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
 - name: Gateway Setup
   hosts: "{{ host }}"
 
   tasks:
-    - name: Import setup playbook
-      ansible.builtin.import_playbook: setup.yaml
-      vars:
-        host: "{{ host }}"
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
 
-    - name: Import rust playbook
-      ansible.builtin.import_playbook: rust.yaml
-      vars:
-        host: "{{ host }}"
+    - name: Set config vars from INI file
+      set_fact:
+        git_branch: "{{ lookup('ini', 'git_branch', file=config_file) }}"
+        gateway_port: "{{ lookup('ini', 'gateway_port', file=config_file, default='8080') }}"
+        gateway_tls_enabled: "{{ lookup('ini', 'gateway_tls_enabled', file=config_file, default='true') }}"
+        gateway_tls_port: "{{ lookup('ini', 'gateway_tls_port', file=config_file, default='443') }}"
+        gateway_tls_cert_path: "{{ lookup('ini', 'gateway_tls_cert_path', file=config_file) }}"
+        gateway_tls_key_path: "{{ lookup('ini', 'gateway_tls_key_path', file=config_file) }}"
+        gateway_db_user: "{{ lookup('ini', 'gateway_db_user', file=config_file) }}"
+        gateway_db_password: "{{ lookup('ini', 'gateway_db_password', file=config_file) }}"
+        gateway_db_name: "{{ lookup('ini', 'gateway_db_name', file=config_file) }}"
+        gateway_postgres_primary: "{{ lookup('ini', 'gateway_postgres_primary', file=config_file) }}"
+        gateway_postgres_secondary: "{{ lookup('ini', 'gateway_postgres_secondary', file=config_file) }}"
+        gateway_postgres_port: "{{ lookup('ini', 'gateway_postgres_port', file=config_file, default='5432') }}"
+        gateway_eth_rpc_url: "{{ lookup('ini', 'gateway_eth_rpc_url', file=config_file) }}"
+        gateway_payment_service_address: "{{ lookup('ini', 'gateway_payment_service_address', file=config_file) }}"
+        gateway_network: "{{ lookup('ini', 'gateway_network', file=config_file) }}"
+        gateway_max_daily_proofs: "{{ lookup('ini', 'gateway_max_daily_proofs', file=config_file, default='100') }}"
+        gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file=config_file, default='9094') }}"
+        tls_cert_source_path: "{{ lookup('ini', 'tls_cert_source_path', file=config_file) }}"
+        tls_key_source_path: "{{ lookup('ini', 'tls_key_source_path', file=config_file) }}"
+      no_log: true
 
-- hosts: "{{ host }}"
-  vars:
-    git_branch: "{{ lookup('ini', 'git_branch', file='ini/config-{{ env }}.ini') }}"
-    gateway_port: "{{ lookup('ini', 'gateway_port', file='ini/config-{{ env }}.ini', default='8080') }}"
-    gateway_tls_enabled: "{{ lookup('ini', 'gateway_tls_enabled', file='ini/config-{{ env }}.ini', default='true') }}"
-    gateway_tls_port: "{{ lookup('ini', 'gateway_tls_port', file='ini/config-{{ env }}.ini', default='443') }}"
-    gateway_tls_cert_path: "{{ lookup('ini', 'gateway_tls_cert_path', file='ini/config-{{ env }}.ini') }}"
-    gateway_tls_key_path: "{{ lookup('ini', 'gateway_tls_key_path', file='ini/config-{{ env }}.ini') }}"
-    gateway_db_user: "{{ lookup('ini', 'gateway_db_user', file='ini/config-{{ env }}.ini') }}"
-    gateway_db_password: "{{ lookup('ini', 'gateway_db_password', file='ini/config-{{ env }}.ini') }}"
-    gateway_db_name: "{{ lookup('ini', 'gateway_db_name', file='ini/config-{{ env }}.ini') }}"
-    gateway_postgres_primary: "{{ lookup('ini', 'gateway_postgres_primary', file='ini/config-{{ env }}.ini') }}"
-    gateway_postgres_secondary: "{{ lookup('ini', 'gateway_postgres_secondary', file='ini/config-{{ env }}.ini') }}"
-    gateway_postgres_port: "{{ lookup('ini', 'gateway_postgres_port', file='ini/config-{{ env }}.ini', default='5432') }}"
-    gateway_eth_rpc_url: "{{ lookup('ini', 'gateway_eth_rpc_url', file='ini/config-{{ env }}.ini') }}"
-    gateway_payment_service_address: "{{ lookup('ini', 'gateway_payment_service_address', file='ini/config-{{ env }}.ini') }}"
-    gateway_network: "{{ lookup('ini', 'gateway_network', file='ini/config-{{ env }}.ini') }}"
-    gateway_max_daily_proofs: "{{ lookup('ini', 'gateway_max_daily_proofs', file='ini/config-{{ env }}.ini', default='100') }}"
-    gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file='ini/config-{{ env }}.ini', default='9094') }}"
-    tls_cert_source_path: "{{ lookup('ini', 'tls_cert_source_path', file='ini/config-{{ env }}.ini') }}"
-    tls_key_source_path: "{{ lookup('ini', 'tls_key_source_path', file='ini/config-{{ env }}.ini') }}"
-
-  tasks:
     - name: Install required system packages
       become: true
       apt:

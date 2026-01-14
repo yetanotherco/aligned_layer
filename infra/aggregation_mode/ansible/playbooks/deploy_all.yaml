@@ -1,22 +1,22 @@
-- name: Deploy Full Aggregation Mode Stack
-  hosts: localhost
-  gather_facts: no
+- name: Deploy PostgreSQL Cluster
+  ansible.builtin.import_playbook: postgres_cluster.yaml
+  vars:
+    env: "{{ env }}"
 
-  tasks:
-    - name: Deploy PostgreSQL Cluster
-      ansible.builtin.import_playbook: postgres_cluster.yaml
+- name: Deploy Gateway and Poller on Primary
+  ansible.builtin.import_playbook: gateway_stack.yaml
+  vars:
+    host: gateway_primary
+    env: "{{ env }}"
 
-    - name: Deploy Gateway and Poller on Primary
-      ansible.builtin.import_playbook: gateway_stack.yaml
-      vars:
-        host: gateway_primary
+- name: Deploy Gateway and Poller on Secondary
+  ansible.builtin.import_playbook: gateway_stack.yaml
+  vars:
+    host: gateway_secondary
+    env: "{{ env }}"
 
-    - name: Deploy Gateway and Poller on Secondary
-      ansible.builtin.import_playbook: gateway_stack.yaml
-      vars:
-        host: gateway_secondary
-
-    - name: Deploy Metrics Stack
-      ansible.builtin.import_playbook: metrics_stack.yaml
-      vars:
-        host: metrics
+- name: Deploy Metrics Stack
+  ansible.builtin.import_playbook: metrics_stack.yaml
+  vars:
+    host: metrics
+    env: "{{ env }}"
