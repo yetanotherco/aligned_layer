@@ -1736,41 +1736,61 @@ postgres_status: ## Check PostgreSQL cluster status. Usage: make postgres_status
 # ------------------------------------------------------------------------------
 
 .PHONY: gateway_deploy
-gateway_deploy: ## Deploy Gateway & Poller on both servers. Usage: make gateway_deploy ENV=hoodi
+gateway_deploy: ## Deploy Gateway & Poller on both servers. Usage: make gateway_deploy ENV=hoodi [FORCE_REBUILD=true]
 	@if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV must be set (hoodi or mainnet)"; \
 		exit 1; \
 	fi
-	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
+	@EXTRA_VARS=""; \
+	if [ -n "$(FORCE_REBUILD)" ]; then \
+		EXTRA_VARS="-e force_rebuild=true"; \
+	fi; \
+	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
 		-e "host=gateway_primary" \
-		-e "env=$(ENV)"
-	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
+		-e "env=$(ENV)" \
+		$$EXTRA_VARS
+	@EXTRA_VARS=""; \
+	if [ -n "$(FORCE_REBUILD)" ]; then \
+		EXTRA_VARS="-e force_rebuild=true"; \
+	fi; \
+	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
 		-e "host=gateway_secondary" \
-		-e "env=$(ENV)"
+		-e "env=$(ENV)" \
+		$$EXTRA_VARS
 
 .PHONY: gateway_primary_deploy
-gateway_primary_deploy: ## Deploy Gateway & Poller on primary only. Usage: make gateway_primary_deploy ENV=hoodi
+gateway_primary_deploy: ## Deploy Gateway & Poller on primary only. Usage: make gateway_primary_deploy ENV=hoodi [FORCE_REBUILD=true]
 	@if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV must be set (hoodi or mainnet)"; \
 		exit 1; \
 	fi
-	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
+	@EXTRA_VARS=""; \
+	if [ -n "$(FORCE_REBUILD)" ]; then \
+		EXTRA_VARS="-e force_rebuild=true"; \
+	fi; \
+	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
 		-e "host=gateway_primary" \
-		-e "env=$(ENV)"
+		-e "env=$(ENV)" \
+		$$EXTRA_VARS
 
 .PHONY: gateway_secondary_deploy
-gateway_secondary_deploy: ## Deploy Gateway & Poller on secondary only. Usage: make gateway_secondary_deploy ENV=hoodi
+gateway_secondary_deploy: ## Deploy Gateway & Poller on secondary only. Usage: make gateway_secondary_deploy ENV=hoodi [FORCE_REBUILD=true]
 	@if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV must be set (hoodi or mainnet)"; \
 		exit 1; \
 	fi
-	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
+	@EXTRA_VARS=""; \
+	if [ -n "$(FORCE_REBUILD)" ]; then \
+		EXTRA_VARS="-e force_rebuild=true"; \
+	fi; \
+	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
 		-e "host=gateway_secondary" \
-		-e "env=$(ENV)"
+		-e "env=$(ENV)" \
+		$$EXTRA_VARS
 
 # ------------------------------------------------------------------------------
 # Metrics Deployment

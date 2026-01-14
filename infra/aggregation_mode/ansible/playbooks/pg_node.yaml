@@ -126,6 +126,14 @@
       register: is_writable
       changed_when: false
 
+    - name: Set password for autoctl_node user in agg_mode database
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d {{ db_name }} -c "ALTER USER {{ db_user }} PASSWORD '{{ db_password }}';"
+      when: is_writable.stdout == 't'
+      no_log: true
+
     - name: Set password for pgautofailover_replicator user
       become: true
       become_user: postgres

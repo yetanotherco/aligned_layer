@@ -85,6 +85,12 @@
         version: "{{ git_branch }}"
         update: yes
 
+    - name: Remove existing gateway binary (if force rebuild)
+      file:
+        path: /home/{{ ansible_user }}/.cargo/bin/gateway
+        state: absent
+      when: force_rebuild | default(false) | bool
+
     - name: Build gateway with TLS
       shell: |
         export PATH=$HOME/.cargo/bin:$PATH

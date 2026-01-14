@@ -246,7 +246,12 @@ make gateway_deploy ENV=hoodi
 # Or deploy individually
 make gateway_primary_deploy ENV=hoodi
 make gateway_secondary_deploy ENV=hoodi
+
+# Force rebuild (always rebuild binaries from latest code)
+make gateway_deploy ENV=hoodi FORCE_REBUILD=true
 ```
+
+**Note:** By default, the deployment is idempotent and skips building if the binary already exists. Use `FORCE_REBUILD=true` to always rebuild from the latest code in the repository.
 
 **Verify gateway is running:**
 ```bash
@@ -539,22 +544,49 @@ ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
   -i infra/aggregation_mode/ansible/hoodi-inventory.yaml \
   -e "host=gateway_primary" \
   -e "env=hoodi"
+
+# Deploy gateway with forced rebuild
+ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
+  -i infra/aggregation_mode/ansible/hoodi-inventory.yaml \
+  -e "host=gateway_primary" \
+  -e "env=hoodi" \
+  -e "force_rebuild=true"
 ```
 
 ### Updating Services
 
-**Update gateway code:**
+**Update gateway and poller with latest code:**
+
+The easiest way to update services is using the `FORCE_REBUILD` parameter:
+
 ```bash
+# Update both primary and secondary
+make gateway_deploy ENV=hoodi FORCE_REBUILD=true
+
+# Or update individually
+make gateway_primary_deploy ENV=hoodi FORCE_REBUILD=true
+make gateway_secondary_deploy ENV=hoodi FORCE_REBUILD=true
+```
+
+This will:
+1. Pull latest code from the configured branch (staging for hoodi, main for mainnet)
+2. Delete existing binaries
+3. Rebuild gateway and poller from source
+4. Restart the services
+
+**Manual update (alternative):**
+
+If you prefer to update manually:
+
+```bash
+# Gateway
 ssh app@agg-mode-hoodi-gateway-1
 cd ~/repos/gateway/aligned_layer
 git pull origin staging
 cargo install --path aggregation_mode/gateway --bin gateway --features tls --locked
 sudo systemctl restart gateway
-```
 
-**Update poller code:**
-```bash
-ssh app@agg-mode-hoodi-gateway-1
+# Poller
 cd ~/repos/poller/aligned_layer
 git pull origin staging
 cargo install --path aggregation_mode/payments_poller --bin payments_poller --locked
@@ -563,16 +595,21 @@ systemctl --user restart poller
 
 ### Redeploy with Latest Code
 
-To redeploy with the latest code from git, simply run the deployment again:
+**Idempotent deployment (skip if binary exists):**
 
 ```bash
 make gateway_deploy ENV=hoodi
 ```
 
-The playbooks will:
-1. Pull latest code from the configured branch
-2. Rebuild the binaries
-3. Restart the services
+This pulls the latest code but skips building if the binary already exists. Use this when you only want to update configuration files.
+
+**Force rebuild (always rebuild binaries):**
+
+```bash
+make gateway_deploy ENV=hoodi FORCE_REBUILD=true
+```
+
+This always rebuilds binaries from the latest code, even if they already exist. Use this when you want to deploy code changes.
 
 ### Changing Configuration
 

@@ -55,6 +55,12 @@
         version: "{{ git_branch }}"
         update: yes
 
+    - name: Remove existing poller binary (if force rebuild)
+      file:
+        path: /home/{{ ansible_user }}/.cargo/bin/payments_poller
+        state: absent
+      when: force_rebuild | default(false) | bool
+
     - name: Build poller
       shell: |
         export PATH=$HOME/.cargo/bin:$PATH
@@ -70,14 +76,19 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
 
-    - name: Create last_block_fetched file
+    - name: Check if last_block_fetched file exists and get size
+      stat:
+        path: "{{ poller_last_block_fetched_filepath }}"
+      register: last_block_file
+
+    - name: Create or fix last_block_fetched file if empty or missing
       copy:
-        content: '{"last_block_fetched":{{ last_block_fetched_initial_value }}}'
+        content: '{"last_block_fetched": {{ last_block_fetched_initial_value }}}'
         dest: "{{ poller_last_block_fetched_filepath }}"
         mode: '0644'
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
-        force: no
+      when: not last_block_file.stat.exists or last_block_file.stat.size == 0
 
     - name: Template poller config file
       template:
