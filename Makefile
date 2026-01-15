@@ -1830,6 +1830,52 @@ grafana_deploy: ## Deploy Grafana only. Usage: make grafana_deploy ENV=hoodi
 		-e "env=$(ENV)"
 
 # ------------------------------------------------------------------------------
+# Task Sender Deployment
+# ------------------------------------------------------------------------------
+
+.PHONY: task_sender_deploy
+task_sender_deploy: ## Deploy task sender. Usage: make task_sender_deploy ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/task_sender.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=task_sender" \
+		-e "env=$(ENV)"
+
+.PHONY: task_sender_status
+task_sender_status: ## Check task sender status. Usage: make task_sender_status ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@echo "Checking task sender tmux session..."
+	@ansible -i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml task_sender \
+		-m shell \
+		-a "tmux has-session -t task_sender && echo 'Task sender is running' || echo 'Task sender is not running'"
+
+.PHONY: task_sender_logs
+task_sender_logs: ## View task sender logs. Usage: make task_sender_logs ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@echo "Use: ssh app@agg-mode-$(ENV)-task-sender 'tmux attach -t task_sender'"
+	@echo "Or: ssh app@agg-mode-$(ENV)-task-sender 'tmux capture-pane -t task_sender -p'"
+
+.PHONY: task_sender_restart
+task_sender_restart: ## Restart task sender. Usage: make task_sender_restart ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/task_sender.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=task_sender" \
+		-e "env=$(ENV)"
+
+# ------------------------------------------------------------------------------
 # Full Deployment
 # ------------------------------------------------------------------------------
 

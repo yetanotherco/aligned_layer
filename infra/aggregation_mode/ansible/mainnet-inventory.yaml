@@ -65,9 +65,19 @@ metrics:
       ansible_user: admin
       ansible_python_interpreter: /usr/bin/python3
 
+# Task Sender
+task_sender:
+  hosts:
+    agg-mode-mainnet-sender:
+      ansible_host: agg-mode-mainnet-sender
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
 # All aggregation mode servers
 aggregation_mode:
   children:
     postgres_cluster:
     gateway_cluster:
     metrics:
+    task_sender:

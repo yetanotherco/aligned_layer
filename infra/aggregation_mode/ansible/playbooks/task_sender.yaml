@@ -1,0 +1,211 @@
+- name: Import setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Import rust playbook
+  ansible.builtin.import_playbook: rust.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Task Sender Setup
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
+
+    - name: Set config vars from INI file
+      set_fact:
+        git_branch: "{{ lookup('ini', 'git_branch', file=config_file) }}"
+        task_sender_interval_hours: "{{ lookup('ini', 'task_sender_interval_hours', file=config_file, default='1') }}"
+        task_sender_proof_path: "{{ lookup('ini', 'task_sender_proof_path', file=config_file) }}"
+        task_sender_vk_path: "{{ lookup('ini', 'task_sender_vk_path', file=config_file) }}"
+        task_sender_private_key: "{{ lookup('ini', 'task_sender_private_key', file=config_file) }}"
+        task_sender_network: "{{ lookup('ini', 'task_sender_network', file=config_file) }}"
+        gateway_payment_service_address: "{{ lookup('ini', 'gateway_payment_service_address', file=config_file) }}"
+        gateway_eth_rpc_url: "{{ lookup('ini', 'gateway_eth_rpc_url', file=config_file) }}"
+      no_log: true
+
+    - name: Install tmux
+      become: true
+      apt:
+        pkg:
+          - tmux
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create sender directory
+      file:
+        path: /home/{{ ansible_user }}/repos/sender
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Clone aligned_layer repository
+      git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ ansible_user }}/repos/sender/aligned_layer
+        version: "{{ git_branch }}"
+        update: yes
+        force: yes
+
+    - name: Build CLI
+      shell: |
+        export PATH=$HOME/.cargo/bin:$PATH
+        cd /home/{{ ansible_user }}/repos/sender/aligned_layer
+        make agg_mode_install_cli
+      args:
+        creates: /home/{{ ansible_user }}/.cargo/bin/agg_mode_cli
+
+    - name: Check if foundry (cast) is installed
+      shell: command -v cast
+      register: cast_installed
+      failed_when: false
+      changed_when: false
+
+    - name: Install foundry (for cast tool)
+      shell: |
+        curl -L https://foundry.paradigm.xyz | bash
+        export PATH=$HOME/.foundry/bin:$PATH
+        foundryup
+      when: cast_installed.rc != 0
+
+    - name: Derive wallet address from private key
+      shell: |
+        export PATH=$HOME/.foundry/bin:$PATH
+        cast wallet address {{ task_sender_private_key }}
+      register: wallet_address_output
+      no_log: true
+      changed_when: false
+
+    - name: Set wallet address variable
+      set_fact:
+        wallet_address: "{{ wallet_address_output.stdout | trim }}"
+      no_log: true
+
+    - name: Check subscription status on payment contract
+      shell: |
+        export PATH=$HOME/.foundry/bin:$PATH
+        cast call {{ gateway_payment_service_address }} \
+          "subscribedAddresses(address)(uint256)" \
+          {{ wallet_address }} \
+          --rpc-url {{ gateway_eth_rpc_url }}
+      register: subscription_expiration_output
+      changed_when: false
+
+    - name: Get current timestamp
+      shell: date +%s
+      register: current_timestamp
+      changed_when: false
+
+    - name: Set subscription status variables
+      set_fact:
+        subscription_expiration: "{{ subscription_expiration_output.stdout | regex_replace('\\s*\\[.*\\]', '') | trim }}"
+        current_time: "{{ current_timestamp.stdout | trim }}"
+
+    - name: Display subscription status
+      debug:
+        msg: |
+          Wallet address: {{ wallet_address }}
+          Subscription expiration timestamp: {{ subscription_expiration }}
+          Current timestamp: {{ current_time }}
+          Is subscribed: {{ (subscription_expiration | int) > (current_time | int) }}
+
+    - name: Deposit to payment contract if not subscribed
+      shell: |
+        export PATH=$HOME/.cargo/bin:$PATH
+        agg_mode_cli deposit \
+          --network {{ task_sender_network }} \
+          --rpc-url {{ gateway_eth_rpc_url }} \
+          --private-key {{ task_sender_private_key }}
+      when: (subscription_expiration | int) <= (current_time | int)
+      no_log: true
+      register: deposit_result
+
+    - name: Display deposit result
+      debug:
+        msg: "Deposit successful. Transaction receipt: {{ deposit_result.stdout }}"
+      when: (subscription_expiration | int) <= (current_time | int) and deposit_result is defined
+
+    - name: Wait for deposit transaction to confirm
+      pause:
+        seconds: 10
+      when: (subscription_expiration | int) <= (current_time | int)
+
+    - name: Create scripts directory
+      file:
+        path: /home/{{ ansible_user }}/repos/sender/aligned_layer/scripts
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Template task sender env file
+      template:
+        src: config-files/agg_mode.task_sender.env.j2
+        dest: /home/{{ ansible_user }}/repos/sender/aligned_layer/scripts/.agg_mode.task_sender.env
+        mode: '0600'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      no_log: true
+
+    - name: Check if tmux session exists
+      shell: tmux has-session -t task_sender 2>/dev/null
+      register: tmux_session_exists
+      failed_when: false
+      changed_when: false
+
+    - name: Kill existing tmux session
+      shell: tmux kill-session -t task_sender
+      when: tmux_session_exists.rc == 0
+
+    - name: Start task sender in tmux session
+      shell: |
+        cd /home/{{ ansible_user }}/repos/sender/aligned_layer
+        tmux new-session -d -s task_sender 'bash -c "export PATH=$HOME/.cargo/bin:$PATH && make agg_mode_task_sender_start 2>&1 | tee /tmp/task_sender.log; exec bash"'
+      register: tmux_start
+      changed_when: true
+
+    - name: Wait for task sender to initialize
+      pause:
+        seconds: 5
+
+    - name: Check if tmux session is still running
+      shell: tmux has-session -t task_sender 2>/dev/null
+      register: verify_tmux
+      failed_when: false
+      changed_when: false
+
+    - name: Capture tmux pane content if session exists
+      shell: tmux capture-pane -t task_sender -p
+      register: tmux_output
+      when: verify_tmux.rc == 0
+      failed_when: false
+
+    - name: Display tmux output
+      debug:
+        msg: "Tmux session output: {{ tmux_output.stdout }}"
+      when: verify_tmux.rc == 0 and tmux_output is defined
+
+    - name: Check error log if session failed
+      shell: cat /tmp/task_sender.log 2>/dev/null || echo "No log file found"
+      register: error_log
+      when: verify_tmux.rc != 0
+      failed_when: false
+
+    - name: Display error log if session failed
+      debug:
+        msg: "Task sender failed. Log: {{ error_log.stdout }}"
+      when: verify_tmux.rc != 0
+
+    - name: Fail if tmux session is not running
+      fail:
+        msg: "Task sender tmux session failed to start. Check the output above for details."
+      when: verify_tmux.rc != 0

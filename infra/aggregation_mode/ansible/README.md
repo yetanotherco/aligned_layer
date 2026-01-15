@@ -37,6 +37,11 @@ The Ansible automation deploys a complete aggregation mode stack consisting of:
    - Grafana for visualization
    - 90-day retention
 
+5. **Task Sender** (1 server)
+   - Automated proof submission service
+   - Runs continuously in tmux session
+   - Configurable interval and proof files
+
 ## Architecture
 
 ```
@@ -63,6 +68,11 @@ The Ansible automation deploys a complete aggregation mode stack consisting of:
 │  │  Metrics Server        │                                     │
 │  │  ├─ Prometheus (9090)  │                                     │
 │  │  └─ Grafana (3000)     │                                     │
+│  └────────────────────────┘                                     │
+│                                                                 │
+│  ┌────────────────────────┐                                     │
+│  │  Task Sender           │                                     │
+│  │  (tmux session)        │                                     │
 │  └────────────────────────┘                                     │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -120,6 +130,9 @@ tls_key_source_path=/path/to/your/key.pem
 
 # REQUIRED: Same password for Grafana Postgres datasource
 grafana_postgres_password=your_secure_password_here
+
+# REQUIRED: Private key for task sender (sends proofs to network)
+task_sender_private_key=0xYourPrivateKeyHere
 ```
 
 **⚠️ CRITICAL**: All three password fields must be set to the same value before deploying!
@@ -142,6 +155,9 @@ grafana_postgres_password=your_secure_password_here
 # REQUIRED: TLS certificate paths
 tls_cert_source_path=/path/to/your/cert.pem
 tls_key_source_path=/path/to/your/key.pem
+
+# REQUIRED: Private key for task sender
+task_sender_private_key=0xYourPrivateKeyHere
 
 # TODO: Update these for mainnet deployment
 gateway_payment_service_address=0xYourMainnetPaymentServiceAddress
@@ -181,6 +197,13 @@ tls_key_source_path=            # ← FILL THIS IN
 # Metrics Configuration
 grafana_postgres_password=      # ← FILL THIS IN (same as db_password)
 # ... other metrics settings ...
+
+# Task Sender Configuration
+task_sender_interval_hours=1
+task_sender_proof_path=scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof
+task_sender_vk_path=scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin
+task_sender_private_key=        # ← FILL THIS IN
+task_sender_network=hoodi
 ```
 
 The Ansible templates will automatically generate two separate database connection URLs for failover:
@@ -204,6 +227,7 @@ This will:
 2. Run database migrations
 3. Deploy gateway and poller on both servers
 4. Deploy Prometheus and Grafana
+5. Deploy task sender
 
 ### Step-by-Step Deployment
 
@@ -279,6 +303,49 @@ make grafana_deploy ENV=hoodi
 - Prometheus: `http://<metrics-server-ip>:9090`
 - Grafana: `http://<metrics-server-ip>:3000` (default credentials: admin/admin)
 
+#### 4. Deploy Task Sender
+
+```bash
+# Deploy task sender
+make task_sender_deploy ENV=hoodi
+```
+
+The task sender runs in a tmux session and continuously sends proofs to the network at the configured interval (default: 1 hour).
+
+**Automatic Deposit Check:**
+
+The deployment automatically:
+1. Derives the wallet address from the configured private key
+2. Checks if the address has an active subscription on the payment contract
+3. If not subscribed or expired, automatically deposits 0.0035 ETH to the payment contract
+4. Waits for transaction confirmation before starting the task sender
+
+**Requirements:**
+- The account must have sufficient ETH for:
+  - Payment deposit: **0.0035 ETH**
+  - Gas fees: ~**0.001 ETH** (estimated)
+- Foundry (cast) will be automatically installed if not present
+
+**Verify task sender is running:**
+```bash
+make task_sender_status ENV=hoodi
+```
+
+**View task sender logs:**
+```bash
+# Show how to view logs
+make task_sender_logs ENV=hoodi
+
+# Or directly attach to the tmux session
+ssh app@agg-mode-hoodi-sender 'tmux attach -t task_sender'
+# Press Ctrl+B then D to detach without stopping
+```
+
+**Restart task sender:**
+```bash
+make task_sender_restart ENV=hoodi
+```
+
 ## Service Management
 
 ### Restart Services
@@ -293,6 +360,11 @@ make gateway_restart ENV=hoodi HOST=gateway_secondary
 ```bash
 make poller_restart ENV=hoodi HOST=gateway_primary
 make poller_restart ENV=hoodi HOST=gateway_secondary
+```
+
+**Task Sender:**
+```bash
+make task_sender_restart ENV=hoodi
 ```
 
 ### Check Service Status
@@ -324,6 +396,13 @@ ssh admin@agg-mode-hoodi-metrics "systemctl --user status prometheus"
 ssh admin@agg-mode-hoodi-metrics "sudo systemctl status grafana-server"
 ```
 
+**Task Sender:**
+```bash
+make task_sender_status ENV=hoodi
+# Or check tmux session directly
+ssh app@agg-mode-hoodi-sender "tmux has-session -t task_sender && echo 'Running' || echo 'Not running'"
+```
+
 ### View Logs
 
 **Gateway:**
@@ -339,6 +418,16 @@ ssh app@agg-mode-hoodi-gateway-1 "journalctl --user -u poller -f"
 **PostgreSQL:**
 ```bash
 ssh admin@agg-mode-hoodi-postgres-1 "sudo journalctl -u pgautofailover -f"
+```
+
+**Task Sender:**
+```bash
+# Attach to tmux session to view live logs
+ssh app@agg-mode-hoodi-sender 'tmux attach -t task_sender'
+# Press Ctrl+B then D to detach
+
+# Or capture current pane output
+ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p'
 ```
 
 ## Verification
@@ -415,6 +504,23 @@ ssh admin@agg-mode-hoodi-postgres-1 "sudo journalctl -u pgautofailover -f"
    - Navigate to `http://<metrics-ip>:3000`
    - Go to Configuration → Data Sources
    - Verify Prometheus and PostgreSQL datasources are connected
+
+### Task Sender
+
+1. **Check tmux session is running:**
+   ```bash
+   make task_sender_status ENV=hoodi
+   ```
+
+2. **View recent logs:**
+   ```bash
+   ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p'
+   ```
+
+3. **Verify proof submissions:**
+   - Check logs for successful proof submissions
+   - Look for transaction hashes in the output
+   - Verify proofs are appearing on the network
 
 ## Troubleshooting
 
@@ -506,6 +612,83 @@ ssh admin@agg-mode-hoodi-metrics "curl http://agg-mode-hoodi-gateway-1:9094/metr
 Check Prometheus config:
 ```bash
 ssh admin@agg-mode-hoodi-metrics "cat ~/config/prometheus.yaml"
+```
+
+### Task Sender Issues
+
+**Problem: Task sender not running**
+
+Check if tmux session exists:
+```bash
+ssh app@agg-mode-hoodi-sender "tmux list-sessions"
+```
+
+If missing, redeploy:
+```bash
+make task_sender_deploy ENV=hoodi
+```
+
+**Problem: Task sender crashes or exits**
+
+Check logs for errors:
+```bash
+ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p -S -100'
+```
+
+Common issues:
+- Invalid private key → Check `task_sender_private_key` in `config-{{ env }}.ini`
+- Missing proof/vk files → Verify files exist: `task_sender_proof_path`, `task_sender_vk_path`
+- Network connectivity → Test RPC: `curl https://aligned-hoodi-rpc-geth.tail665ae.ts.net`
+- Insufficient balance → Check account has ETH for gas fees
+
+**Problem: Proofs not being submitted**
+
+Check interval configuration:
+```bash
+ssh app@agg-mode-hoodi-sender "cat ~/repos/sender/aligned_layer/scripts/.agg_mode.task_sender.env"
+```
+
+Verify `INTERVAL_HOURS` is set correctly (default: 1 hour). Attach to session to see live activity:
+```bash
+ssh app@agg-mode-hoodi-sender 'tmux attach -t task_sender'
+```
+
+**Problem: Deployment fails with insufficient balance**
+
+The automatic deposit check requires the account to have at least **0.0045 ETH** (0.0035 for deposit + ~0.001 for gas).
+
+Check account balance:
+```bash
+ssh app@agg-mode-hoodi-sender
+export PATH=$HOME/.foundry/bin:$PATH
+cast balance <YOUR_WALLET_ADDRESS> --rpc-url <RPC_URL>
+```
+
+If balance is insufficient, send ETH to the account and redeploy:
+```bash
+make task_sender_deploy ENV=hoodi
+```
+
+**Problem: Automatic deposit fails**
+
+If the automatic deposit fails during deployment, check the Ansible output for error messages. Common issues:
+- Insufficient ETH balance in the account
+- RPC connection issues
+- Gas price too high
+
+To manually deposit after fixing the issue:
+```bash
+ssh app@agg-mode-hoodi-sender
+export PATH=$HOME/.cargo/bin:$PATH
+agg_mode_cli deposit \
+  --network hoodi \
+  --rpc-url https://aligned-hoodi-rpc-geth.tail665ae.ts.net \
+  --private-key <YOUR_PRIVATE_KEY>
+```
+
+Then restart the task sender:
+```bash
+make task_sender_restart ENV=hoodi
 ```
 
 ### General Debugging
@@ -663,6 +846,7 @@ infra/aggregation_mode/ansible/
     ├── poller.yaml                     # Poller deployment
     ├── prometheus_agg_mode.yaml        # Prometheus deployment
     ├── grafana_agg_mode.yaml           # Grafana deployment
+    ├── task_sender.yaml                # Task sender deployment
     ├── postgres_cluster.yaml           # Postgres orchestration
     ├── gateway_stack.yaml              # Gateway + poller orchestration
     ├── metrics_stack.yaml              # Metrics orchestration
@@ -673,13 +857,15 @@ infra/aggregation_mode/ansible/
 
 1. **Passwords**: Config files are tracked in git with empty password fields. Fill in passwords locally. Use `git update-index --assume-unchanged config-*.ini` after filling passwords to prevent accidentally committing them.
 
-2. **TLS Certificates**: Keep private keys secure. The playbooks set appropriate permissions (0600).
+2. **Private Keys**: The `task_sender_private_key` field must be filled with a valid Ethereum private key. Never commit this value to git. The playbook sets appropriate permissions (0600) on the environment file.
 
-3. **SSH Access**: All servers are only accessible via Tailscale VPN (100.64.0.0/10).
+3. **TLS Certificates**: Keep private keys secure. The playbooks set appropriate permissions (0600).
 
-4. **PostgreSQL**: Uses scram-sha-256 password authentication, not trust mode.
+4. **SSH Access**: All servers are only accessible via Tailscale VPN (100.64.0.0/10).
 
-5. **Firewall**: UFW is configured on all servers with deny-by-default policy.
+5. **PostgreSQL**: Uses scram-sha-256 password authentication, not trust mode.
+
+6. **Firewall**: UFW is configured on all servers with deny-by-default policy.
 
 ## Support
 

@@ -20,3 +20,9 @@
   vars:
     host: metrics
     env: "{{ env }}"
+
+- name: Deploy Task Sender
+  ansible.builtin.import_playbook: task_sender.yaml
+  vars:
+    host: task_sender
+    env: "{{ env }}"
