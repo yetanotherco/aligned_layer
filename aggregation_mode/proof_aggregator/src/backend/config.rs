@@ -26,7 +26,6 @@ pub struct Config {
     pub base_bump_percentage: u64,
     pub max_fee_bump_percentage: u64,
     pub priority_fee_wei: u128,
-    pub final_receipt_check_timeout_seconds: u64,
 }
 
 impl Config {

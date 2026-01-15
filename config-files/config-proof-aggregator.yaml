@@ -32,8 +32,7 @@ max_bump_retries: 5
 bump_retry_interval_seconds: 120
 base_bump_percentage: 10
 max_fee_bump_percentage: 100
-priority_fee_wei: 3000000000 # 3 Gwei
-final_receipt_check_timeout_seconds: 5
+priority_fee_wei: 3000000000 // 3 Gwei
 
 ecdsa:
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"
