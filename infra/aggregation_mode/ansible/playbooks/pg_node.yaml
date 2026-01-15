@@ -22,6 +22,8 @@
         node_pgdata: "{{ lookup('ini', 'node_pgdata', file=config_file, default='/var/lib/postgresql/node') }}"
         node_port: "{{ lookup('ini', 'node_port', file=config_file, default='5432') }}"
         backup_dir: "{{ lookup('ini', 'backup_dir', file=config_file, default='/var/lib/backup') }}"
+        grafana_postgres_user: "{{ lookup('ini', 'grafana_postgres_user', file=config_file) }}"
+        grafana_postgres_password: "{{ lookup('ini', 'grafana_postgres_password', file=config_file) }}"
       no_log: true
 
     - name: Create backup directory
@@ -139,5 +141,25 @@
       become_user: postgres
       shell: |
         psql -d {{ db_name }} -c "ALTER USER pgautofailover_replicator PASSWORD '{{ db_password }}';"
+      when: is_writable.stdout == 't'
+      no_log: true
+
+    - name: Create Grafana read-only user
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d {{ db_name }} << 'EOF'
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '{{ grafana_postgres_user }}') THEN
+            CREATE USER {{ grafana_postgres_user }} WITH PASSWORD '{{ grafana_postgres_password }}';
+          ELSE
+            ALTER USER {{ grafana_postgres_user }} WITH PASSWORD '{{ grafana_postgres_password }}';
+          END IF;
+        END
+        $$;
+        GRANT CONNECT ON DATABASE {{ db_name }} TO {{ grafana_postgres_user }};
+        GRANT pg_read_all_data TO {{ grafana_postgres_user }};
+        EOF
       when: is_writable.stdout == 't'
       no_log: true
