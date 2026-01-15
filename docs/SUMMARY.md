@@ -35,6 +35,7 @@
 * [Generating proofs for Aligned](3_guides/4_generating_proofs.md)
 * [Generating & submitting proofs of Rust code with ZKRust](3_guides/5_using_zkrust.md)
 * [Setup Aligned Infrastructure Locally](3_guides/6_setup_aligned.md)
+* [Setup Aligned Agg Mode Infrastructure Locally](3_guides/7_setup_aligned_agg_mode.md)
 * [Contract Addresses](3_guides/7_contract_addresses.md)
 * [Submitting Batch Without Batcher](3_guides/8_submitting_batch_without_batcher.md)
 * [Aligned CLI](3_guides/9_aligned_cli.md)
