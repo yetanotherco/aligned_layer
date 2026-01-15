@@ -5,22 +5,22 @@
 The Proof Aggregation Service consists of three main components that work together to aggregate user proofs and submit them on-chain.
 
 ```
-┌──────┐    ┌───────────────────────────────┐    ┌──────────────┐
-│      │ 1  │ AggregationModePaymentService │ 2  │   Payments   │
-│      │───>│           (Contract)          │───>│    Poller    │
-│      │    └───────────────────────────────┘    └──────┬───────┘
+┌──────┐    ┌───────────────────────────────┐    ┌─────────────┐
+│      │ 1  │ AggregationModePaymentService │ 2  │   Payments  │
+│      │--->│           (Contract)          │--->│    Poller   │
+│      │    └───────────────────────────────┘    └─────┬───────┘
 │      │                                               │
 │      │                                             3 │
-│      │                                               ▼
-│      │    ┌───────────────┐                   ┌──────────────┐    ┌───────────────────────────────┐
-│ User │ 4  │    Gateway    │                   │  PostgreSQL  │    │ AlignedProofAggregationService│
-│      │───>│               │──────────────────>│      DB      │    │           (Contract)          │
-│      │    └───────────────┘                   └──────┬───────┘    └───────────────────────────────┘
-│      │                                               │                          ▲
-│      │                                             5 │                          │
-│      │                                               ▼                        6 │
+│      │                                               v
+│      │    ┌───────────────┐  5                ┌──────────────┐    ┌───────────────────────────────┐
+│ User │ 4  │    Gateway    │------------------>│  PostgreSQL  │    │ AlignedProofAggregationService│
+│      │--->│               │                   │      DB      │    │           (Contract)          │
+│      │    └───────────────┘                   └──────────────┘    └───────────────────────────────┘
+│      │                                               ^                          ^
+│      │                                             6 │                          │
+│      │                                               │                        7 │
 │      │                                        ┌─────────────┐                   │
-│      │                                        │    Proof    │───────────────────┘
+│      │                                        │    Proof    │-------------------┘
 │      │                                        │  Aggregator │
 └──────┘                                        └─────────────┘
 ```
@@ -28,9 +28,10 @@ The Proof Aggregation Service consists of three main components that work togeth
 1. User deposits ETH into `AggregationModePaymentService` contract to get quota.
 2. `Payments Poller` monitors the contract for deposit events.
 3. `Payments Poller` updates user quotas in the database.
-4. User submits proofs to the `Gateway`, which validates and stores them in the database.
-5. `Proof Aggregator` fetches pending proofs from the database.
-6. `Proof Aggregator` aggregates proofs in the zkVM and submits to `AlignedProofAggregationService` contract.
+4. User submits proofs to the `Gateway`.
+5. `Gateway` validates and stores proofs in the database.
+6. `Proof Aggregator` fetches pending proofs from the database.
+7. `Proof Aggregator` aggregates proofs in the zkVM and submits to `AlignedProofAggregationService` contract.
 
 ## Supported Proof Types
 
