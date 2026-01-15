@@ -5,128 +5,32 @@
 The Proof Aggregation Service consists of three main components that work together to aggregate user proofs and submit them on-chain.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         PROOF AGGREGATION SERVICE                           │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-  ┌──────────┐         ┌───────────────────────────────┐
-  │   User   │         │ AggregationModePaymentService │
-  │          │         │          (Contract)           │
-  └────┬─────┘         └───────────────┬───────────────┘
-       │                               │
-       │  1. Deposit ETH               │
-       │──────────────────────────────>│
-       │                               │
-       │                               │  Payment Event
-       │                               │
-  ┌────┴─────┐         ┌───────────────┴───────────────┐
-  │   User   │         │       Payments Poller         │
-  │          │         │                               │
-  └────┬─────┘         └───────────────┬───────────────┘
-       │                               │
-       │                               │  2. Monitor payments
-       │                               │     Update quotas
-       │                               │
-       │               ┌───────────────┴───────────────┐
-       │               │         PostgreSQL DB         │
-       │               │                               │
-       │               └───────────────┬───────────────┘
-       │                               │
-  ┌────┴─────┐         ┌───────────────┴───────────────┐
-  │   User   │         │           Gateway             │
-  │          │         │                               │
-  └────┬─────┘         └───────────────┬───────────────┘
-       │                               │
-       │  3. Submit proof              │
-       │──────────────────────────────>│
-       │                               │
-       │                               │  4. Verify & Store
-       │                               │     proof in DB
-       │                               │
-       │               ┌───────────────┴───────────────┐
-       │               │       Proof Aggregator        │
-       │               │                               │
-       │               └───────────────┬───────────────┘
-       │                               │
-       │                               │  5. Fetch pending proofs
-       │                               │  6. Aggregate in zkVM
-       │                               │
-       │               ┌───────────────┴───────────────┐
-       │               │ AlignedProofAggregationService│
-       │               │          (Contract)           │
-       │               └───────────────────────────────┘
-       │                               │
-       │                               │  7. Submit aggregated
-       │                               │     proof on-chain
-       │                               │
-  └──────────┘
+┌──────┐    ┌───────────────────────────────┐    ┌──────────────┐
+│      │ 1  │ AggregationModePaymentService │ 2  │   Payments   │
+│      │───>│           (Contract)          │───>│    Poller    │
+│      │    └───────────────────────────────┘    └──────┬───────┘
+│      │                                               │
+│      │                                             3 │
+│      │                                               ▼
+│      │    ┌───────────────┐                   ┌──────────────┐    ┌───────────────────────────────┐
+│ User │ 4  │    Gateway    │                   │  PostgreSQL  │    │ AlignedProofAggregationService│
+│      │───>│               │──────────────────>│      DB      │    │           (Contract)          │
+│      │    └───────────────┘                   └──────┬───────┘    └───────────────────────────────┘
+│      │                                               │                          ▲
+│      │                                             5 │                          │
+│      │                                               ▼                        6 │
+│      │                                        ┌─────────────┐                   │
+│      │                                        │    Proof    │───────────────────┘
+│      │                                        │  Aggregator │
+└──────┘                                        └─────────────┘
 ```
 
-## Workflow
-
-### Step 1: User Payment
-
-Users deposit ETH into the **AggregationModePaymentService** contract to obtain quota for submitting proofs.
-
-```
-┌──────────┐                    ┌─────────────────────────────────┐
-│   User   │───── deposit() ───>│  AggregationModePaymentService  │
-└──────────┘                    └─────────────────────────────────┘
-```
-
-### Step 2: Payments Poller Updates Quotas
-
-The **Payments Poller** monitors the `AggregationModePaymentService` contract for deposit events and updates user quotas in the database.
-
-```
-┌─────────────────────────────────┐         ┌──────────────┐         ┌──────────┐
-│ AggregationModePaymentService   │──event─>│   Payments   │──update─>│    DB    │
-│                                 │         │    Poller    │  quota   │          │
-└─────────────────────────────────┘         └──────────────┘         └──────────┘
-```
-
-### Step 3: User Submits Proof to Gateway
-
-Users submit their proofs to the **Gateway** via HTTP API. The gateway:
-
-1. Verifies the user has sufficient quota
-2. Validates the proof format and signature
-3. Verifies the proof is valid (SP1 compressed proof)
-
-```
-┌──────────┐                    ┌──────────────┐
-│   User   │───── submit() ────>│   Gateway    │
-│          │<──── receipt ──────│              │
-└──────────┘                    └──────────────┘
-```
-
-### Step 4: Gateway Stores Proof in Database
-
-After validation, the gateway stores the proof in PostgreSQL for later aggregation.
-
-```
-┌──────────────┐                ┌──────────────┐
-│   Gateway    │───── store ───>│  PostgreSQL  │
-│              │     proof      │      DB      │
-└──────────────┘                └──────────────┘
-```
-
-### Step 5: Proof Aggregator Processes Proofs
-
-The **Proof Aggregator** runs periodically (every 24 hours) and:
-
-1. Fetches pending proofs from the database
-2. Filters proofs by supported verifiers
-3. Aggregates proofs using the zkVM
-4. Constructs a blob with proof commitments
-5. Submits the aggregated proof on-chain
-
-```
-┌──────────────┐         ┌──────────────┐         ┌─────────────────────────────────┐
-│  PostgreSQL  │──fetch─>│    Proof     │──submit─>│ AlignedProofAggregationService  │
-│      DB      │         │  Aggregator  │          │                                 │
-└──────────────┘         └──────────────┘         └─────────────────────────────────┘
-```
+1. User deposits ETH into `AggregationModePaymentService` contract to get quota.
+2. `Payments Poller` monitors the contract for deposit events.
+3. `Payments Poller` updates user quotas in the database.
+4. User submits proofs to the `Gateway`, which validates and stores them in the database.
+5. `Proof Aggregator` fetches pending proofs from the database.
+6. `Proof Aggregator` aggregates proofs in the zkVM and submits to `AlignedProofAggregationService` contract.
 
 ## Supported Proof Types
 
