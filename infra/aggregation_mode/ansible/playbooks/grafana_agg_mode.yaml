@@ -14,6 +14,7 @@
 
     - name: Set config vars from INI file
       set_fact:
+        grafana_admin_password: "{{ lookup('ini', 'grafana_admin_password', file=config_file) }}"
         grafana_prometheus_url: "{{ lookup('ini', 'grafana_prometheus_url', file=config_file) }}"
         grafana_rpc_url: "{{ lookup('ini', 'grafana_rpc_url', file=config_file) }}"
         grafana_postgres_host: "{{ lookup('ini', 'grafana_postgres_host', file=config_file) }}"
@@ -100,6 +101,29 @@
       become: true
       shell: |
         cat /etc/default/grafana-server-custom >> /etc/default/grafana-server
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Set Grafana admin password
+      become: true
+      lineinfile:
+        path: /etc/grafana/grafana.ini
+        regexp: '^;?admin_password\s*='
+        line: 'admin_password = {{ grafana_admin_password }}'
+        insertafter: '^\[security\]'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+      no_log: true
+
+    - name: Copy provisioning directory
+      become: true
+      copy:
+        src: ../../../../grafana/provisioning/
+        dest: /etc/grafana/provisioning/
+        owner: grafana
+        group: grafana
+        mode: '0644'
+        directory_mode: '0755'
       vars:
         ansible_ssh_user: "{{ admin_user }}"
 
