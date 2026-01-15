@@ -61,19 +61,17 @@ defmodule NavComponent do
             >
               Batches
             </.link>
-            <%= if !ExplorerWeb.Helpers.is_mainnet() do %>
-                <.link
-                class={
-                  active_view_class(@socket.view, [
-                    ExplorerWeb.AggProofs.Index,
-                    ExplorerWeb.AggProof.Index
-                  ])
-                }
-                navigate={~p"/aggregated_proofs"}
-                >
-                Aggregation
-                </.link>
-             <% end %>
+            <.link
+            class={
+              active_view_class(@socket.view, [
+                ExplorerWeb.AggProofs.Index,
+                ExplorerWeb.AggProof.Index
+              ])
+            }
+            navigate={~p"/aggregated_proofs"}
+            >
+            Aggregation
+            </.link>
             <.nav_links_dropdown
               title="Restaking"
               class={
@@ -158,22 +156,20 @@ defmodule NavComponent do
               >
                 Batches
               </.link>
-              <%= if !ExplorerWeb.Helpers.is_mainnet() do %>
-                <.link
-                  class={
-                    classes([
-                      active_view_class(assigns.socket.view, [
-                        ExplorerWeb.AggregatedProofs.Index,
-                        ExplorerWeb.AggregatedProof.Index
-                      ]),
-                      "text-foreground/80 hover:text-foreground font-semibold"
-                    ])
-                  }
-                  navigate={~p"/aggregated_proofs"}
-                >
-                  Aggregation
-                </.link>
-              <% end %>
+              <.link
+                class={
+                  classes([
+                    active_view_class(assigns.socket.view, [
+                      ExplorerWeb.AggregatedProofs.Index,
+                      ExplorerWeb.AggregatedProof.Index
+                    ]),
+                    "text-foreground/80 hover:text-foreground font-semibold"
+                  ])
+                }
+                navigate={~p"/aggregated_proofs"}
+              >
+                Aggregation
+              </.link>
               <.link
                 class="hover:text-foreground"
                 target="_blank"

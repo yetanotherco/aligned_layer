@@ -8,25 +8,13 @@ defmodule ContractsComponent do
   def mount(socket) do
     addresses = Helpers.get_aligned_contracts_addresses()
 
-    proof_aggregator_service =
-      case Helpers.is_mainnet() do
-        true ->
-          []
-
-        false ->
-          [
-            %{
-              contract_name: "AlignedProofAggregationService",
-              address: addresses["alignedProofAggregationService"]
-            }
-          ]
-      end
-
     {:ok,
      assign(socket,
-       contracts:
-         proof_aggregator_service ++
-           [
+       contracts: [
+             %{
+               contract_name: "AlignedProofAggregationService",
+               address: addresses["alignedProofAggregationService"]
+             },
              %{
                contract_name: "AlignedServiceManager",
                address: addresses["alignedLayerServiceManager"]

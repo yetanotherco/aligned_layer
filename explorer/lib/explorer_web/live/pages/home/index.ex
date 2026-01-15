@@ -39,21 +39,6 @@ defmodule ExplorerWeb.Home.Index do
 
     operator_latest_release = ReleasesHelper.get_latest_release()
 
-    # Only show aggregated proof stat for testnet
-    aggregated_proof_stat =
-      if !ExplorerWeb.Helpers.is_mainnet() do
-        [
-          %{
-            title: "Aggregated proofs",
-            value: aggregated_proofs,
-            tooltip_text: nil,
-            link: "/aggregated_proofs"
-          }
-        ]
-      else
-        []
-      end
-
     [
       %{
         title: "Proofs verified",
@@ -74,10 +59,13 @@ defmodule ExplorerWeb.Home.Index do
             _ -> nil
           end,
         link: nil
-      }
-    ] ++
-      aggregated_proof_stat ++
-      [
+      },
+      %{
+        title: "Aggregated proofs",
+        value: aggregated_proofs,
+        tooltip_text: nil,
+        link: "/aggregated_proofs"
+      },
         %{
           title: "AVG proof cost",
           value: "#{avg_fee_per_proof_usd} USD",
