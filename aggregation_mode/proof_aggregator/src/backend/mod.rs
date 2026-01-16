@@ -593,8 +593,7 @@ impl ProofAggregator {
         let suggested_priority_fee = provider
             .get_max_priority_fee_per_gas()
             .await
-            .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?
-            as u128;
+            .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?;
 
         // Calculate priority fee: suggested * (attempt + 1), capped at max
         let priority_fee_multiplier = (attempt + 1) as u128;
