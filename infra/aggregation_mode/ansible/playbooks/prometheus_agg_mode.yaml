@@ -73,10 +73,10 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
 
-    - name: Enable and start Prometheus service
+    - name: Enable and restart Prometheus service
       systemd_service:
         name: prometheus
-        state: started
+        state: restarted
         enabled: true
         scope: user
         daemon_reload: true

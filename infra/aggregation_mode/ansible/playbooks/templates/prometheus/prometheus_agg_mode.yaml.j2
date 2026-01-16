@@ -7,7 +7,7 @@ scrape_configs:
   static_configs:
     - targets: ["{{ gateway_primary_hostname }}:8080"]
       labels:
-        service: "gateway"
+        service: "gateway-http"
         instance: "primary"
 
 - job_name: "gateway-secondary-http"
@@ -15,7 +15,7 @@ scrape_configs:
   static_configs:
     - targets: ["{{ gateway_secondary_hostname }}:8080"]
       labels:
-        service: "gateway"
+        service: "gateway-http"
         instance: "secondary"
 
 - job_name: "gateway-primary"

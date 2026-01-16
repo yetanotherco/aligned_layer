@@ -63,7 +63,7 @@ datasources:
     database: "${MONITOR_DB_DB}"
     user: "${MONITOR_DB_USER}"
     secureJsonData:
-      password: ""
+      password: ${MONITOR_DB_PASSWORD}
     basicAuth: false
     isDefault: false
     editable: true

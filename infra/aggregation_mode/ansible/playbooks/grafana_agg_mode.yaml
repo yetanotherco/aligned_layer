@@ -22,6 +22,9 @@
         grafana_postgres_db: "{{ lookup('ini', 'grafana_postgres_db', file=config_file) }}"
         grafana_postgres_user: "{{ lookup('ini', 'grafana_postgres_user', file=config_file) }}"
         grafana_postgres_password: "{{ lookup('ini', 'grafana_postgres_password', file=config_file) }}"
+        grafana_monitor_host: "{{ lookup('ini', 'grafana_monitor_host', file=config_file) }}"
+        grafana_monitor_port: "{{ lookup('ini', 'grafana_monitor_port', file=config_file, default='5432') }}"
+        grafana_monitor_db: "{{ lookup('ini', 'grafana_monitor_db', file=config_file, default='pg_auto_failover') }}"
       no_log: true
 
     - name: Install required packages
