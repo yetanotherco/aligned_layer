@@ -31,7 +31,564 @@
         "y": 0
       },
       "id": 9,
-      "panels": [],
+      "panels": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "pgaf_monitor_host"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 1,
+                      "text": "DOWN"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 0,
+                      "text": "UP"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 0,
+            "y": 1
+          },
+          "id": 41,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.1.10",
+          "targets": [
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "pgaf_monitor_host"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT\n  CASE\n    WHEN pg_is_in_recovery() = false THEN 1\n    ELSE 0\n  END AS up;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Monitor Status",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "pgaf_monitor_host"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 1,
+                      "text": "DOWN"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 0,
+                      "text": "UP"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 6,
+            "y": 1
+          },
+          "id": 42,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.1.10",
+          "targets": [
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "pgaf_monitor_host"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT node.nodename, health\nFROM pgautofailover.node\nWHERE node.nodename = 'node1';",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Node 1 Status",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "pgaf_monitor_host"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "0": {
+                      "color": "red",
+                      "index": 1,
+                      "text": "DOWN"
+                    },
+                    "1": {
+                      "color": "green",
+                      "index": 0,
+                      "text": "UP"
+                    }
+                  },
+                  "type": "value"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 12,
+            "y": 1
+          },
+          "id": 43,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.1.10",
+          "targets": [
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "pgaf_monitor_host"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT node.nodename, health\nFROM pgautofailover.node\nWHERE node.nodename = 'node2';",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Node 2 Status",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "pgaf_monitor_host"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 18,
+            "y": 1
+          },
+          "id": 44,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "10.1.10",
+          "targets": [
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "pgaf_monitor_host"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT\n  CASE\n    WHEN node.nodename = 'node1' THEN 1\n    WHEN node.nodename = 'node2' THEN 2\n    ELSE NULL\n  END AS primary_db\nFROM pgautofailover.node\nWHERE node.reportedstate = 'primary'\nLIMIT 1;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Selected Primary DB",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "pgaf_monitor_host"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 12,
+            "x": 0,
+            "y": 6
+          },
+          "id": 40,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "reportedpgisrunning"
+              }
+            ]
+          },
+          "pluginVersion": "10.1.10",
+          "targets": [
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "pgaf_monitor_host"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT *\nFROM pgautofailover.node;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Complete monitor state",
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "postgres"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "left",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 12,
+            "x": 12,
+            "y": 6
+          },
+          "id": 45,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "10.1.10",
+          "targets": [
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "postgres"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "rawQuery": true,
+              "rawSql": "SELECT version, description\nFROM _sqlx_migrations\nORDER BY version DESC LIMIT 1;",
+              "refId": "A",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
+            }
+          ],
+          "title": "Schema Version",
+          "type": "table"
+        }
+      ],
       "title": "Database",
       "type": "row"
     },
@@ -107,7 +664,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 10
+            "y": 50
           },
           "id": 3,
           "options": {
@@ -185,8 +742,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -201,7 +757,7 @@
             "h": 8,
             "w": 8,
             "x": 8,
-            "y": 10
+            "y": 50
           },
           "id": 2,
           "options": {
@@ -279,8 +835,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -295,7 +850,7 @@
             "h": 8,
             "w": 8,
             "x": 16,
-            "y": 10
+            "y": 50
           },
           "id": 1,
           "options": {
@@ -358,8 +913,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -374,7 +928,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 18
+            "y": 58
           },
           "id": 10,
           "options": {
@@ -462,8 +1016,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -478,7 +1031,7 @@
             "h": 8,
             "w": 9,
             "x": 6,
-            "y": 18
+            "y": 58
           },
           "id": 4,
           "options": {
@@ -556,8 +1109,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -572,7 +1124,7 @@
             "h": 8,
             "w": 9,
             "x": 15,
-            "y": 18
+            "y": 58
           },
           "id": 5,
           "options": {
@@ -640,8 +1192,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -656,7 +1207,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 3
+            "y": 43
           },
           "id": 7,
           "options": {
@@ -725,8 +1276,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -741,7 +1291,7 @@
             "h": 6,
             "w": 7,
             "x": 12,
-            "y": 3
+            "y": 43
           },
           "id": 6,
           "options": {
@@ -791,8 +1341,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -807,7 +1356,7 @@
             "h": 6,
             "w": 5,
             "x": 19,
-            "y": 3
+            "y": 43
           },
           "id": 15,
           "options": {
@@ -873,8 +1422,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -889,7 +1437,7 @@
             "h": 5,
             "w": 7,
             "x": 0,
-            "y": 9
+            "y": 49
           },
           "id": 39,
           "options": {
@@ -981,7 +1529,7 @@
             "h": 6,
             "w": 8,
             "x": 0,
-            "y": 13
+            "y": 53
           },
           "id": 21,
           "options": {
@@ -1080,7 +1628,7 @@
             "h": 6,
             "w": 8,
             "x": 0,
-            "y": 19
+            "y": 59
           },
           "id": 22,
           "options": {
@@ -1180,8 +1728,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               }
@@ -1192,7 +1739,7 @@
             "h": 3,
             "w": 14,
             "x": 5,
-            "y": 20
+            "y": 60
           },
           "id": 32,
           "options": {
@@ -1281,8 +1828,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1298,7 +1844,7 @@
             "h": 6,
             "w": 6,
             "x": 0,
-            "y": 23
+            "y": 63
           },
           "id": 34,
           "options": {
@@ -1398,8 +1944,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1415,7 +1960,7 @@
             "h": 6,
             "w": 6,
             "x": 6,
-            "y": 23
+            "y": 63
           },
           "id": 33,
           "options": {
@@ -1518,8 +2063,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1535,7 +2079,7 @@
             "h": 6,
             "w": 6,
             "x": 12,
-            "y": 23
+            "y": 63
           },
           "id": 37,
           "options": {
@@ -1619,8 +2163,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1636,7 +2179,7 @@
             "h": 6,
             "w": 6,
             "x": 18,
-            "y": 23
+            "y": 63
           },
           "id": 38,
           "options": {
@@ -1736,8 +2279,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1753,7 +2295,7 @@
             "h": 6,
             "w": 6,
             "x": 0,
-            "y": 29
+            "y": 69
           },
           "id": 35,
           "options": {
@@ -1837,8 +2379,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1854,7 +2395,7 @@
             "h": 3,
             "w": 9,
             "x": 6,
-            "y": 29
+            "y": 69
           },
           "id": 36,
           "options": {
@@ -1947,7 +2488,7 @@
             "h": 6,
             "w": 7,
             "x": 0,
-            "y": 15
+            "y": 55
           },
           "id": 24,
           "options": {
@@ -2052,7 +2593,7 @@
             "h": 6,
             "w": 9,
             "x": 7,
-            "y": 15
+            "y": 55
           },
           "id": 27,
           "options": {
@@ -2132,7 +2673,7 @@
             "h": 3,
             "w": 8,
             "x": 16,
-            "y": 15
+            "y": 55
           },
           "id": 31,
           "options": {
@@ -2221,7 +2762,7 @@
             "h": 6,
             "w": 7,
             "x": 0,
-            "y": 21
+            "y": 61
           },
           "id": 25,
           "options": {
@@ -2326,7 +2867,7 @@
             "h": 6,
             "w": 9,
             "x": 7,
-            "y": 21
+            "y": 61
           },
           "id": 28,
           "options": {
@@ -2421,7 +2962,7 @@
             "h": 6,
             "w": 7,
             "x": 0,
-            "y": 27
+            "y": 67
           },
           "id": 26,
           "options": {
@@ -2516,7 +3057,7 @@
             "h": 6,
             "w": 8,
             "x": 7,
-            "y": 27
+            "y": 67
           },
           "id": 29,
           "options": {
@@ -2611,7 +3152,7 @@
             "h": 6,
             "w": 8,
             "x": 15,
-            "y": 27
+            "y": 67
           },
           "id": 30,
           "options": {

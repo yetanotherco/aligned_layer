@@ -27,6 +27,12 @@ monthly_budget_eth: 15.0
 sp1_chunk_aggregator_vk_hash: "00d6e32a34f68ea643362b96615591c94ee0bf99ee871740ab2337966a4f77af"
 risc0_chunk_aggregator_image_id: "8908f01022827e80a5de71908c16ee44f4a467236df20f62e7c994491629d74c"
 
+# These values modify the bumping behavior after the aggregated proof on-chain submission times out.
+max_bump_retries: 5
+bump_retry_interval_seconds: 120
+max_fee_bump_percentage: 100
+max_priority_fee_upper_limit: 3000000000 # 3 Gwei
+
 ecdsa:
   private_key_store_path: "config-files/anvil.proof-aggregator.ecdsa.key.json"
   private_key_store_password: ""

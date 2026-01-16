@@ -53,3 +53,20 @@ datasources:
     isDefault: false
     jsonData:
       global_queries: []
+
+  - name: pg_auto_failover Monitor
+    type: postgres
+    uid: pgaf_monitor_host
+    access: proxy
+    orgId: 1
+    url: "${MONITOR_DB_HOST}:${MONITOR_DB_PORT}"
+    database: "${MONITOR_DB_DB}"
+    user: "${MONITOR_DB_USER}"
+    secureJsonData:
+      password: ""
+    basicAuth: false
+    isDefault: false
+    editable: true
+    jsonData:
+      sslmode: require
+      postgresVersion: 1700

@@ -1,3 +1,7 @@
+networks:
+  aligned-network:
+    name: aligned-network
+
 services:
 
   localstack:

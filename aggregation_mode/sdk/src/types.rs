@@ -2,14 +2,17 @@ use std::str::FromStr;
 
 use crate::constants::{
     ALIGNED_AGG_MODE_GATEWAY_URL_DEVNET, ALIGNED_AGG_MODE_GATEWAY_URL_HOODI,
-    ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_DEVNET, ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_HOODI,
+    ALIGNED_AGG_MODE_GATEWAY_URL_MAINNET, ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_DEVNET,
+    ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_HOODI, ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_MAINNET,
     ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOODI,
+    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET,
 };
 
 #[derive(Debug, Clone)]
 pub enum Network {
     Devnet,
     Hoodi,
+    Mainnet,
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +26,7 @@ impl FromStr for Network {
         match s.to_lowercase().as_str() {
             "devnet" => Ok(Self::Devnet),
             "hoodi" => Ok(Self::Hoodi),
+            "mainnet" => Ok(Self::Mainnet),
             _ => Err(NetworkError::InvalidNetwork),
         }
     }
@@ -33,6 +37,7 @@ impl Network {
         match self {
             Self::Devnet => 31_337,
             Self::Hoodi => 56_0048,
+            Self::Mainnet => 1,
         }
     }
 
@@ -40,6 +45,7 @@ impl Network {
         match self {
             Self::Hoodi => ALIGNED_AGG_MODE_GATEWAY_URL_HOODI.to_string(),
             Self::Devnet => ALIGNED_AGG_MODE_GATEWAY_URL_DEVNET.to_string(),
+            Self::Mainnet => ALIGNED_AGG_MODE_GATEWAY_URL_MAINNET.to_string(),
         }
     }
 
@@ -47,6 +53,7 @@ impl Network {
         match self {
             Self::Hoodi => ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOODI.to_string(),
             Self::Devnet => ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET.to_string(),
+            Self::Mainnet => ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET.to_string(),
         }
     }
 
@@ -54,6 +61,7 @@ impl Network {
         match self {
             Self::Hoodi => ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_HOODI.to_string(),
             Self::Devnet => ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_DEVNET.to_string(),
+            Self::Mainnet => ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_MAINNET.to_string(),
         }
     }
 }
