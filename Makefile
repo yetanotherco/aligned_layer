@@ -1667,9 +1667,7 @@ AGG_MODE_ANSIBLE_DIR = infra/aggregation_mode/ansible
 AGG_MODE_PLAYBOOKS_DIR = $(AGG_MODE_ANSIBLE_DIR)/playbooks
 AGG_MODE_INI_DIR = $(AGG_MODE_PLAYBOOKS_DIR)/ini
 
-# ------------------------------------------------------------------------------
-# Setup: Create INI configuration files
-# ------------------------------------------------------------------------------
+# TODO: Check and add targets to install gateway, poller and cli binaries locally
 
 # ------------------------------------------------------------------------------
 # PostgreSQL Cluster Deployment
