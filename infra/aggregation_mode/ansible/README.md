@@ -106,111 +106,36 @@ All servers are provisioned via Terraform and connected via Tailscale VPN. They 
 
 ## Initial Setup
 
-All configuration is consolidated into environment-specific files with predefined values. You only need to fill in sensitive values (passwords, certificate paths).
+All configuration is consolidated into environment-specific files with predefined values. You only need to fill in sensitive values at the top of each config file.
 
-### 1. Configure Hoodi Environment
+### Configure Environment
 
-Edit `playbooks/ini/config-hoodi.ini`:
+Edit the config file for your environment:
+- **Hoodi**: `playbooks/ini/config-hoodi.ini`
+- **Mainnet**: `playbooks/ini/config-mainnet.ini`
 
-All non-sensitive values are already pre-filled. You only need to set:
+All non-sensitive values are already pre-filled. Fill in the required values at the top of the file:
 
 ```ini
-[DEFAULT]
-# ... (all values pre-filled) ...
-
-# REQUIRED: Set a strong password before deploying
+# ============================================
+# REQUIRED: Sensitive Values (fill these in)
+# ============================================
+# Database password (used by postgres, gateway, and poller)
 db_password=your_secure_password_here
 
-# REQUIRED: Same password for gateway/poller database access
-gateway_db_password=your_secure_password_here
+# Grafana read-only database user password
+grafana_postgres_password=your_secure_password_here
 
-# REQUIRED: Provide local paths to your TLS certificate files
+# TLS certificates (local paths to copy from)
 tls_cert_source_path=/path/to/your/cert.pem
 tls_key_source_path=/path/to/your/key.pem
 
-# REQUIRED: Same password for Grafana Postgres datasource
-grafana_postgres_password=your_secure_password_here
+# Grafana admin password
+grafana_admin_password=your_grafana_admin_password
 
-# REQUIRED: Private key for task sender (sends proofs to network)
+# Task sender private key (for sending proofs)
 task_sender_private_key=0xYourPrivateKeyHere
 ```
-
-**⚠️ CRITICAL**: All three password fields must be set to the same value before deploying!
-
-### 2. Configure Mainnet Environment (if needed)
-
-Edit `playbooks/ini/config-mainnet.ini`:
-
-Similar to Hoodi, fill in the required values:
-
-```ini
-[DEFAULT]
-# ... (most values pre-filled) ...
-
-# REQUIRED: Set passwords (same as above)
-db_password=your_secure_password_here
-gateway_db_password=your_secure_password_here
-grafana_postgres_password=your_secure_password_here
-
-# REQUIRED: TLS certificate paths
-tls_cert_source_path=/path/to/your/cert.pem
-tls_key_source_path=/path/to/your/key.pem
-
-# REQUIRED: Private key for task sender
-task_sender_private_key=0xYourPrivateKeyHere
-
-# TODO: Update these for mainnet deployment
-gateway_payment_service_address=0xYourMainnetPaymentServiceAddress
-gateway_eth_rpc_url=https://your-mainnet-rpc-url
-grafana_rpc_url=https://your-mainnet-rpc-url
-```
-
-### Configuration File Structure
-
-The consolidated config files contain all settings organized by component:
-
-```ini
-# config-hoodi.ini structure:
-[DEFAULT]
-environment=hoodi
-git_branch=staging
-
-# PostgreSQL Configuration
-postgres_monitor_hostname=agg-mode-hoodi-postgres-monitor
-postgres_primary_hostname=agg-mode-hoodi-postgres-1
-postgres_secondary_hostname=agg-mode-hoodi-postgres-2
-db_name=agg_mode
-db_user=autoctl_node
-db_password=                    # ← FILL THIS IN
-
-# Gateway & Poller Configuration
-gateway_network=Hoodi
-gateway_payment_service_address=0x7222E0183cE1A96619d0c883e9bfc6b76D4e780e
-gateway_eth_rpc_url=https://aligned-hoodi-rpc-geth.tail665ae.ts.net
-gateway_db_password=            # ← FILL THIS IN (same as db_password)
-# ... other gateway settings ...
-
-# TLS Certificate Management
-tls_cert_source_path=           # ← FILL THIS IN
-tls_key_source_path=            # ← FILL THIS IN
-
-# Metrics Configuration
-grafana_postgres_password=      # ← FILL THIS IN (same as db_password)
-# ... other metrics settings ...
-
-# Task Sender Configuration
-task_sender_interval_hours=1
-task_sender_proof_path=scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof
-task_sender_vk_path=scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin
-task_sender_private_key=        # ← FILL THIS IN
-task_sender_network=hoodi
-```
-
-The Ansible templates will automatically generate two separate database connection URLs for failover:
-- `postgres://autoctl_node:password@agg-mode-hoodi-postgres-1:5432/agg_mode`
-- `postgres://autoctl_node:password@agg-mode-hoodi-postgres-2:5432/agg_mode`
-
-The sqlx driver will try them in order for automatic failover
 
 ## Deployment
 
@@ -540,10 +465,7 @@ ssh admin@agg-mode-hoodi-postgres-1 "sudo journalctl -u pgautofailover -n 100"
 
 **Problem: Password authentication fails**
 
-Verify password is set correctly in your environment config file (`config-hoodi.ini` or `config-mainnet.ini`). All three password fields must match:
-- `db_password`
-- `gateway_db_password`
-- `grafana_postgres_password`
+Verify `db_password` is set correctly in your environment config file (`config-hoodi.ini` or `config-mainnet.ini`).
 
 Check pg_hba.conf:
 ```bash
@@ -566,7 +488,7 @@ ssh app@agg-mode-hoodi-gateway-1 "sudo journalctl -u gateway -n 100"
 
 Common issues:
 - Missing TLS certificates → Check paths in `config-{{ env }}.ini` (tls_cert_source_path, tls_key_source_path)
-- Database connection failed → Verify password in `config-{{ env }}.ini` (gateway_db_password)
+- Database connection failed → Verify `db_password` in `config-{{ env }}.ini`
 - Port 443 already in use → Check with `sudo lsof -i :443`
 
 **Problem: TLS certificate errors**
@@ -806,10 +728,9 @@ This always rebuilds binaries from the latest code, even if they already exist. 
 
 ### Rotating Passwords
 
-1. Update all three password fields in your environment config file (`config-hoodi.ini` or `config-mainnet.ini`):
-   - `db_password`
-   - `gateway_db_password`
-   - `grafana_postgres_password`
+1. Update password fields in your environment config file (`config-hoodi.ini` or `config-mainnet.ini`):
+   - `db_password` (used by postgres, gateway, and poller)
+   - `grafana_postgres_password` (separate read-only user)
 2. Run password update on PostgreSQL:
    ```bash
    ssh admin@agg-mode-hoodi-postgres-monitor "sudo -u postgres psql -d pg_auto_failover -c \"ALTER USER autoctl_node PASSWORD 'new_password'\""
