@@ -292,49 +292,7 @@ ssh app@agg-mode-mainnet-sender 'tmux attach -t task_sender'
 # Press Ctrl+B then D to detach without stopping
 ```
 
-**Restart task sender:**
-```bash
-# For Hoodi
-make task_sender_restart ENV=hoodi
-
-# For Mainnet
-make task_sender_restart ENV=mainnet
-```
-
 ## Service Management
-
-### Restart Services
-
-**Gateway:**
-```bash
-# For Hoodi
-make gateway_restart ENV=hoodi HOST=gateway_primary
-make gateway_restart ENV=hoodi HOST=gateway_secondary
-
-# For Mainnet
-make gateway_restart ENV=mainnet HOST=gateway_primary
-make gateway_restart ENV=mainnet HOST=gateway_secondary
-```
-
-**Poller:**
-```bash
-# For Hoodi
-make poller_restart ENV=hoodi HOST=gateway_primary
-make poller_restart ENV=hoodi HOST=gateway_secondary
-
-# For Mainnet
-make poller_restart ENV=mainnet HOST=gateway_primary
-make poller_restart ENV=mainnet HOST=gateway_secondary
-```
-
-**Task Sender:**
-```bash
-# For Hoodi
-make task_sender_restart ENV=hoodi
-
-# For Mainnet
-make task_sender_restart ENV=mainnet
-```
 
 ### Check Service Status
 
@@ -817,15 +775,6 @@ agg_mode_cli deposit \
   --network mainnet \
   --rpc-url https://aligned-mainnet-rpc-1.tail665ae.ts.net \
   --private-key <YOUR_PRIVATE_KEY>
-```
-
-Then restart the task sender:
-```bash
-# For Hoodi
-make task_sender_restart ENV=hoodi
-
-# For Mainnet
-make task_sender_restart ENV=mainnet
 ```
 
 ### General Debugging

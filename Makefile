@@ -1864,17 +1864,6 @@ task_sender_logs: ## View task sender logs. Usage: make task_sender_logs ENV=hoo
 	@echo "Use: ssh app@agg-mode-$(ENV)-task-sender 'tmux attach -t task_sender'"
 	@echo "Or: ssh app@agg-mode-$(ENV)-task-sender 'tmux capture-pane -t task_sender -p'"
 
-.PHONY: task_sender_restart
-task_sender_restart: ## Restart task sender. Usage: make task_sender_restart ENV=hoodi
-	@if [ -z "$(ENV)" ]; then \
-		echo "Error: ENV must be set (hoodi or mainnet)"; \
-		exit 1; \
-	fi
-	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/task_sender.yaml \
-		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-e "host=task_sender" \
-		-e "env=$(ENV)"
-
 # ------------------------------------------------------------------------------
 # Full Deployment
 # ------------------------------------------------------------------------------
@@ -1888,25 +1877,3 @@ agg_mode_deploy_all: ## Deploy entire aggregation mode stack. Usage: make agg_mo
 	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/deploy_all.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
 		-e "env=$(ENV)"
-
-# ------------------------------------------------------------------------------
-# Service Management
-# ------------------------------------------------------------------------------
-
-.PHONY: gateway_restart
-gateway_restart: ## Restart gateway service. Usage: make gateway_restart ENV=hoodi HOST=gateway_primary
-	@if [ -z "$(ENV)" ] || [ -z "$(HOST)" ]; then \
-		echo "Error: ENV and HOST must be set"; \
-		exit 1; \
-	fi
-	@ansible $(HOST) -i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-m shell -a "sudo systemctl restart gateway" --become
-
-.PHONY: poller_restart
-poller_restart: ## Restart poller service. Usage: make poller_restart ENV=hoodi HOST=gateway_primary
-	@if [ -z "$(ENV)" ] || [ -z "$(HOST)" ]; then \
-		echo "Error: ENV and HOST must be set"; \
-		exit 1; \
-	fi
-	@ansible $(HOST) -i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-m shell -a "systemctl --user restart poller"
