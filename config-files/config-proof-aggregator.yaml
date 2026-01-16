@@ -30,7 +30,6 @@ risc0_chunk_aggregator_image_id: "8908f01022827e80a5de71908c16ee44f4a467236df20f
 # These values modify the bumping behavior after the aggregated proof on-chain submission times out.
 max_bump_retries: 5
 bump_retry_interval_seconds: 120
-base_bump_percentage: 10
 max_fee_bump_percentage: 100
 priority_fee_wei: 3000000000 # 3 Gwei
 

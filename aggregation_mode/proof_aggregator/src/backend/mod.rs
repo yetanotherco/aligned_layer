@@ -564,16 +564,15 @@ impl ProofAggregator {
         }
     }
 
-    // Updates the gas fees of a `TransactionRequest` using a fixed bump strategy.
+    // Updates the gas fees of a `TransactionRequest` using EIP-1559 fee parameters.
     // Intended for retrying an on-chain submission after a timeout.
     //
     // Strategy:
-    // - Fetch the current network gas price.
-    // - Apply `base_bump_percentage` to compute a bumped base fee.
-    // - Apply `max_fee_bump_percentage` on top of the bumped base fee to set `max_fee_per_gas`.
-    // - Set `max_priority_fee_per_gas` to a fixed value derived from `priority_fee_wei`.
+    // - Fetch the current base fee from the latest block.
+    // - Set `max_priority_fee_per_gas` to a fixed value from `priority_fee_wei`.
+    // - Compute `max_fee_per_gas` as: (1 + max_fee_bump_percentage/100) * base_fee + priority_fee.
     //
-    // Fees are recomputed on each retry using the latest gas price (no incremental per-attempt bump).
+    // Fees are recomputed on each retry using the latest base fee (no incremental per-attempt bump).
 
     async fn apply_gas_fee_bump(
         &self,
@@ -581,7 +580,6 @@ impl ProofAggregator {
     ) -> Result<TransactionRequest, AggregatedProofSubmissionError> {
         let provider = self.proof_aggregation_service.provider();
 
-        let base_bump_percentage = self.config.base_bump_percentage;
         let max_fee_bump_percentage = self.config.max_fee_bump_percentage;
         let priority_fee_wei = self.config.priority_fee_wei;
 
@@ -596,8 +594,8 @@ impl ProofAggregator {
             .base_fee_per_gas
             .ok_or(AggregatedProofSubmissionError::BaseFeePerGasMissing)?;
 
-        let new_base_fee = current_base_fee as f64 * (1.0 + base_bump_percentage as f64 / 100.0);
-        let new_max_fee = new_base_fee * (1.0 + max_fee_bump_percentage as f64 / 100.0);
+        let max_fee_multiplier = 1.0 + max_fee_bump_percentage as f64 / 100.0;
+        let new_max_fee = max_fee_multiplier * current_base_fee as f64 + priority_fee_wei as f64;
 
         Ok(tx_req
             .with_max_fee_per_gas(new_max_fee as u128)
