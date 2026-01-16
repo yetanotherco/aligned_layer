@@ -9,8 +9,8 @@ This directory contains Ansible playbooks and configuration for automating the d
 - [Prerequisites](#prerequisites)
 - [Initial Setup](#initial-setup)
 - [Deployment](#deployment)
+- [Redeployment](#redeployment)
 - [Service Management](#service-management)
-- [Verification](#verification)
 - [Troubleshooting](#troubleshooting)
 - [Advanced Usage](#advanced-usage)
 
@@ -292,6 +292,154 @@ ssh app@agg-mode-mainnet-sender 'tmux attach -t task_sender'
 # Press Ctrl+B then D to detach without stopping
 ```
 
+## Redeployment
+
+### Idempotent Deployment
+
+Idempotent deployment skips building if the binary already exists. Use this when you only want to update configuration files.
+
+```bash
+# For Hoodi
+make gateway_deploy ENV=hoodi
+
+# For Mainnet
+make gateway_deploy ENV=mainnet
+```
+
+### Force Rebuild
+
+Force rebuild always rebuilds binaries from the latest code, even if they already exist. Use this when you want to deploy code changes.
+
+```bash
+# For Hoodi
+make gateway_deploy ENV=hoodi FORCE_REBUILD=true
+make gateway_primary_deploy ENV=hoodi FORCE_REBUILD=true
+make gateway_secondary_deploy ENV=hoodi FORCE_REBUILD=true
+
+# For Mainnet
+make gateway_deploy ENV=mainnet FORCE_REBUILD=true
+make gateway_primary_deploy ENV=mainnet FORCE_REBUILD=true
+make gateway_secondary_deploy ENV=mainnet FORCE_REBUILD=true
+```
+
+This will:
+1. Pull latest code from the configured branch (staging for hoodi, main for mainnet)
+2. Delete existing binaries
+3. Rebuild gateway and poller from source
+
+### Migrations
+
+To run database migrations:
+
+```bash
+# For Hoodi
+make postgres_migrations ENV=hoodi
+
+# For Mainnet
+make postgres_migrations ENV=mainnet
+```
+
+### Task Sender
+
+To redeploy the task sender:
+
+```bash
+# For Hoodi
+make task_sender_deploy ENV=hoodi
+
+# For Mainnet
+make task_sender_deploy ENV=mainnet
+```
+
+### Metrics Stack
+
+To redeploy the metrics stack (Prometheus and Grafana):
+
+```bash
+# For Hoodi
+make metrics_deploy ENV=hoodi
+make prometheus_deploy ENV=hoodi
+make grafana_deploy ENV=hoodi
+
+# For Mainnet
+make metrics_deploy ENV=mainnet
+make prometheus_deploy ENV=mainnet
+make grafana_deploy ENV=mainnet
+```
+
+### Manual Update
+
+If you prefer to update manually:
+
+**Gateway:**
+```bash
+# Hoodi
+ssh app@agg-mode-hoodi-gateway-1
+cd ~/repos/gateway/aligned_layer
+git pull origin staging
+cargo install --path aggregation_mode/gateway --bin gateway --features tls --locked
+
+# Mainnet
+ssh app@agg-mode-mainnet-gateway-1
+cd ~/repos/gateway/aligned_layer
+git pull origin staging
+cargo install --path aggregation_mode/gateway --bin gateway --features tls --locked
+```
+
+**Poller:**
+```bash
+# Hoodi
+ssh app@agg-mode-hoodi-gateway-1
+cd ~/repos/poller/aligned_layer
+git pull origin staging
+cargo install --path aggregation_mode/payments_poller --bin payments_poller --locked
+
+# Mainnet
+ssh app@agg-mode-mainnet-gateway-1
+cd ~/repos/poller/aligned_layer
+git pull origin staging
+cargo install --path aggregation_mode/payments_poller --bin payments_poller --locked
+```
+
+**Task Sender:**
+```bash
+# Hoodi
+ssh app@agg-mode-hoodi-sender
+cd ~/repos/sender/aligned_layer
+git pull origin staging
+cargo install --path aggregation_mode/cli --bin agg_mode_cli --locked
+
+# Mainnet
+ssh app@agg-mode-mainnet-sender
+cd ~/repos/sender/aligned_layer
+git pull origin staging
+cargo install --path aggregation_mode/cli --bin agg_mode_cli --locked
+```
+
+**Prometheus:**
+```bash
+# Hoodi
+ssh admin@agg-mode-hoodi-metrics
+# Update prometheus.yaml configuration manually
+systemctl --user restart prometheus
+
+# Mainnet
+ssh admin@agg-mode-mainnet-metrics
+# Update prometheus.yaml configuration manually
+systemctl --user restart prometheus
+```
+
+**Grafana:**
+```bash
+# Hoodi
+ssh admin@agg-mode-hoodi-metrics
+sudo systemctl restart grafana-server
+
+# Mainnet
+ssh admin@agg-mode-mainnet-metrics
+sudo systemctl restart grafana-server
+```
+
 ## Service Management
 
 ### Check Service Status
@@ -397,142 +545,6 @@ ssh app@agg-mode-mainnet-sender 'tmux capture-pane -t task_sender -p'
 
 # Press Ctrl+B then D to detach
 ```
-
-## Verification
-
-### PostgreSQL Cluster Health
-
-1. **Check cluster state:**
-   ```bash
-   # For Hoodi
-   make postgres_status ENV=hoodi
-
-   # For Mainnet
-   make postgres_status ENV=mainnet
-   ```
-
-2. **Test password authentication:**
-   ```bash
-   # For Hoodi
-   ssh admin@agg-mode-hoodi-postgres-1 "PGPASSWORD='your_password' psql -U autoctl_node -h localhost -d agg_mode -c 'SELECT 1'"
-   # For Mainnet
-   ssh admin@agg-mode-mainnet-postgres-1 "PGPASSWORD='your_password' psql -U autoctl_node -h localhost -d agg_mode -c 'SELECT 1'"
-   ```
-
-3. **Verify replication:**
-   ```bash
-   # For Hoodi
-   ssh admin@agg-mode-hoodi-postgres-1 "sudo -u postgres psql -d agg_mode -c 'SELECT * FROM pg_stat_replication'"
-
-   # For Mainnet
-   ssh admin@agg-mode-mainnet-postgres-1 "sudo -u postgres psql -d agg_mode -c 'SELECT * FROM pg_stat_replication'"
-   ```
-
-4. **Test failover (optional):**
-   ```bash
-   # For Hoodi
-   ssh admin@agg-mode-hoodi-postgres-1 "sudo systemctl stop pgautofailover"
-   # Wait 30 seconds, check status
-   make postgres_status ENV=hoodi
-   # Secondary should now be primary
-   ssh admin@agg-mode-hoodi-postgres-1 "sudo systemctl start pgautofailover"
-
-   # For Mainnet
-   ssh admin@agg-mode-mainnet-postgres-1 "sudo systemctl stop pgautofailover"
-   # Wait 30 seconds, check status
-   make postgres_status ENV=mainnet
-   # Secondary should now be primary
-   ssh admin@agg-mode-mainnet-postgres-1 "sudo systemctl start pgautofailover"
-   ```
-
-### Gateway Health
-
-1. **Check HTTP health endpoint:**
-   ```bash
-   # For Hoodi
-   curl -k https://agg-mode-hoodi-gateway-1/
-
-   # For Mainnet
-   curl -k https://agg-mode-mainnet-gateway-1/
-   ```
-
-2. **Check metrics:**
-   ```bash
-   # For Hoodi
-   curl http://agg-mode-hoodi-gateway-1:9094/metrics
-
-   # For Mainnet
-   curl http://agg-mode-mainnet-gateway-1:9094/metrics
-   ```
-
-3. **Verify database connectivity:**
-   ```bash
-   # For Hoodi
-   ssh app@agg-mode-hoodi-gateway-1
-   PGPASSWORD='your_password' psql -U autoctl_node -h agg-mode-hoodi-postgres-1 -d agg_mode -c "SELECT 1"
-
-   # For Mainnet
-   ssh app@agg-mode-mainnet-gateway-1
-   PGPASSWORD='your_password' psql -U autoctl_node -h agg-mode-mainnet-postgres-1 -d agg_mode -c "SELECT 1"
-   ```
-
-### Poller Health
-
-1. **Check last processed block:**
-   ```bash
-   # For Hoodi
-   ssh app@agg-mode-hoodi-gateway-1 "cat ~/config/proof-aggregator.last_block_fetched.json"
-
-   # For Mainnet
-   ssh app@agg-mode-mainnet-gateway-1 "cat ~/config/proof-aggregator.last_block_fetched.json"
-   ```
-
-   The block number should increase over time.
-
-2. **Check metrics:**
-   ```bash
-   # For Hoodi
-   curl http://agg-mode-hoodi-gateway-1:9095/metrics
-
-   # For Mainnet
-   curl http://agg-mode-mainnet-gateway-1:9095/metrics
-   ```
-
-### Metrics Stack
-
-1. **Prometheus targets:**
-   - Navigate to `http://<metrics-ip>:9090/targets`
-   - All targets should show as "UP"
-
-2. **Grafana datasources:**
-   - Navigate to `http://<metrics-ip>:3000`
-   - Go to Configuration → Data Sources
-   - Verify Prometheus and PostgreSQL datasources are connected
-
-### Task Sender
-
-1. **Check tmux session is running:**
-   ```bash
-   # For Hoodi
-   make task_sender_status ENV=hoodi
-
-   # For Mainnet
-   make task_sender_status ENV=mainnet
-   ```
-
-2. **View recent logs:**
-   ```bash
-   # For Hoodi
-   ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p'
-
-   # For Mainnet
-   ssh app@agg-mode-mainnet-sender 'tmux capture-pane -t task_sender -p'
-   ```
-
-3. **Verify proof submissions:**
-   - Check logs for successful proof submissions
-   - Look for transaction hashes in the output
-   - Verify proofs are appearing on the network
 
 ## Troubleshooting
 
@@ -849,90 +861,6 @@ ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
   -e "env=mainnet" \
   -e "force_rebuild=true"
 ```
-
-### Updating Services
-
-**Update gateway and poller with latest code:**
-
-The easiest way to update services is using the `FORCE_REBUILD` parameter:
-
-```bash
-# For Hoodi
-make gateway_deploy ENV=hoodi FORCE_REBUILD=true
-make gateway_primary_deploy ENV=hoodi FORCE_REBUILD=true
-make gateway_secondary_deploy ENV=hoodi FORCE_REBUILD=true
-
-# For Mainnet
-make gateway_deploy ENV=mainnet FORCE_REBUILD=true
-make gateway_primary_deploy ENV=mainnet FORCE_REBUILD=true
-make gateway_secondary_deploy ENV=mainnet FORCE_REBUILD=true
-```
-
-This will:
-1. Pull latest code from the configured branch (staging for hoodi, main for mainnet)
-2. Delete existing binaries
-3. Rebuild gateway and poller from source
-4. Restart the services
-
-**Manual update (alternative):**
-
-If you prefer to update manually:
-
-```bash
-# Gateway (Hoodi)
-ssh app@agg-mode-hoodi-gateway-1
-cd ~/repos/gateway/aligned_layer
-git pull origin staging
-cargo install --path aggregation_mode/gateway --bin gateway --features tls --locked
-sudo systemctl restart gateway
-
-# Gateway (Mainnet)
-ssh app@agg-mode-mainnet-gateway-1
-cd ~/repos/gateway/aligned_layer
-git pull origin staging
-cargo install --path aggregation_mode/gateway --bin gateway --features tls --locked
-sudo systemctl restart gateway
-
-# Poller (Hoodi)
-ssh app@agg-mode-hoodi-gateway-1
-cd ~/repos/poller/aligned_layer
-git pull origin staging
-cargo install --path aggregation_mode/payments_poller --bin payments_poller --locked
-systemctl --user restart poller
-
-# Poller (Mainnet)
-ssh app@agg-mode-mainnet-gateway-1
-cd ~/repos/poller/aligned_layer
-git pull origin staging
-cargo install --path aggregation_mode/payments_poller --bin payments_poller --locked
-systemctl --user restart poller
-```
-
-### Redeploy with Latest Code
-
-**Idempotent deployment (skip if binary exists):**
-
-```bash
-# For Hoodi
-make gateway_deploy ENV=hoodi
-
-# For Mainnet
-make gateway_deploy ENV=mainnet
-```
-
-This pulls the latest code but skips building if the binary already exists. Use this when you only want to update configuration files.
-
-**Force rebuild (always rebuild binaries):**
-
-```bash
-# For Hoodi
-make gateway_deploy ENV=hoodi FORCE_REBUILD=true
-
-# For Mainnet
-make gateway_deploy ENV=mainnet FORCE_REBUILD=true
-```
-
-This always rebuilds binaries from the latest code, even if they already exist. Use this when you want to deploy code changes.
 
 ### Changing Configuration
 
