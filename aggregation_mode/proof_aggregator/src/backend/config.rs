@@ -24,7 +24,7 @@ pub struct Config {
     pub max_bump_retries: u16,
     pub bump_retry_interval_seconds: u64,
     pub max_fee_bump_percentage: u64,
-    pub priority_fee_wei: u128,
+    pub max_priority_fee_upper_limit: u128,
 }
 
 impl Config {

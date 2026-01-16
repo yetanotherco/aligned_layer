@@ -379,7 +379,13 @@ impl ProofAggregator {
             // Wrap the entire transaction submission in a result to catch all errors, passing
             // the same nonce to all attempts
             let attempt_result = self
-                .try_submit_transaction(&blob, blob_versioned_hash, aggregated_proof, nonce)
+                .try_submit_transaction(
+                    &blob,
+                    blob_versioned_hash,
+                    aggregated_proof,
+                    nonce,
+                    attempt,
+                )
                 .await;
 
             match attempt_result {
@@ -466,6 +472,7 @@ impl ProofAggregator {
         blob_versioned_hash: [u8; 32],
         aggregated_proof: &AlignedProof,
         nonce: u64,
+        attempt: u16,
     ) -> Result<SubmitOutcome, AggregatedProofSubmissionError> {
         let retry_interval = Duration::from_secs(self.config.bump_retry_interval_seconds);
 
@@ -501,7 +508,7 @@ impl ProofAggregator {
         tx_req = tx_req.with_nonce(nonce);
 
         // Apply gas fee bump for retries
-        tx_req = self.apply_gas_fee_bump(tx_req).await?;
+        tx_req = self.apply_gas_fee_bump(tx_req, attempt).await?;
 
         let provider = self.proof_aggregation_service.provider();
 
@@ -569,19 +576,21 @@ impl ProofAggregator {
     //
     // Strategy:
     // - Fetch the current base fee from the latest block.
-    // - Set `max_priority_fee_per_gas` to a fixed value from `priority_fee_wei`.
+    // - Fetch the suggested priority fee from the network (eth_maxPriorityFeePerGas).
+    // - Compute priority fee as: suggested * (1 + (attempt + 1) * 0.1), capped at `max_priority_fee_upper_limit`.
     // - Compute `max_fee_per_gas` as: (1 + max_fee_bump_percentage/100) * base_fee + priority_fee.
     //
-    // Fees are recomputed on each retry using the latest base fee (no incremental per-attempt bump).
+    // Fees are recomputed on each retry using the latest base fee.
 
     async fn apply_gas_fee_bump(
         &self,
         tx_req: TransactionRequest,
+        attempt: u16,
     ) -> Result<TransactionRequest, AggregatedProofSubmissionError> {
         let provider = self.proof_aggregation_service.provider();
 
         let max_fee_bump_percentage = self.config.max_fee_bump_percentage;
-        let priority_fee_wei = self.config.priority_fee_wei;
+        let max_priority_fee_upper_limit = self.config.max_priority_fee_upper_limit;
 
         let latest_block = provider
             .get_block_by_number(BlockNumberOrTag::Latest)
@@ -592,14 +601,34 @@ impl ProofAggregator {
         let current_base_fee = latest_block
             .header
             .base_fee_per_gas
-            .ok_or(AggregatedProofSubmissionError::BaseFeePerGasMissing)?;
+            .ok_or(AggregatedProofSubmissionError::BaseFeePerGasMissing)?
+            as f64;
+
+        // Fetch suggested priority fee from the network
+        let suggested_priority_fee = provider
+            .get_max_priority_fee_per_gas()
+            .await
+            .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?
+            as f64;
+
+        // Calculate priority fee: suggested * (1 + (attempt + 1) * 0.1), capped at max
+        let priority_fee_multiplier = 1.0 + (attempt + 1) as f64 * 0.1;
+        let max_priority_fee_per_gas = (suggested_priority_fee * priority_fee_multiplier)
+            .min(max_priority_fee_upper_limit as f64);
 
         let max_fee_multiplier = 1.0 + max_fee_bump_percentage as f64 / 100.0;
-        let new_max_fee = max_fee_multiplier * current_base_fee as f64 + priority_fee_wei as f64;
+        let max_fee_per_gas = max_fee_multiplier * current_base_fee + max_priority_fee_per_gas;
+
+        info!(
+            "Base fee: {:.4} Gwei. Applying max_fee_per_gas: {:.4} Gwei and max_priority_fee_per_gas: {:.4} Gwei to tx",
+            current_base_fee / 1e9,
+            max_fee_per_gas / 1e9,
+            max_priority_fee_per_gas / 1e9
+        );
 
         Ok(tx_req
-            .with_max_fee_per_gas(new_max_fee as u128)
-            .with_max_priority_fee_per_gas(priority_fee_wei))
+            .with_max_fee_per_gas(max_fee_per_gas as u128)
+            .with_max_priority_fee_per_gas(max_priority_fee_per_gas as u128))
     }
 
     async fn wait_until_can_submit_aggregated_proof(
