@@ -36,6 +36,10 @@ defmodule AlignedProofAggregationService do
   end
 
   def get_aggregated_proof_event(%{from_block: fromBlock, to_block: toBlock}) do
+    Logger.debug(
+      "[Aggregated Proofs] Querying contract #{@contract_address} for events from block #{fromBlock} to #{toBlock}"
+    )
+
     events =
       AlignedProofAggregationService.EventFilters.aggregated_proof_verified(nil)
       |> Ethers.get_logs(fromBlock: fromBlock, toBlock: toBlock)
@@ -45,6 +49,8 @@ defmodule AlignedProofAggregationService do
         {:ok, []}
 
       {:ok, list} ->
+        Logger.debug("[Aggregated Proofs] Raw events received: #{length(list)}")
+
         {:ok,
          Enum.map(list, fn x ->
            data = x |> Map.get(:data)
@@ -64,6 +70,10 @@ defmodule AlignedProofAggregationService do
          end)}
 
       {:error, reason} ->
+        Logger.error(
+          "[Aggregated Proofs] RPC error querying events from contract #{@contract_address}: #{inspect(reason)}"
+        )
+
         {:error, reason}
     end
   end
@@ -78,11 +88,20 @@ defmodule AlignedProofAggregationService do
     # Note: first two characters are the 0x
     function_signature = String.slice(input, 0..9)
 
-    case function_signature do
-      @verifyRisc0_solidity_signature -> :risc0
-      @verifySp1_solidity_signature -> :sp1
-      _ -> nil
+    aggregator =
+      case function_signature do
+        @verifyRisc0_solidity_signature -> :risc0
+        @verifySp1_solidity_signature -> :sp1
+        _ -> nil
+      end
+
+    if is_nil(aggregator) do
+      Logger.warning(
+        "[Aggregated Proofs] Unknown aggregator function signature: #{function_signature} for tx_hash: #{tx_hash}"
+      )
     end
+
+    aggregator
   end
 
   def get_block_timestamp(block_number) do
@@ -93,6 +112,10 @@ defmodule AlignedProofAggregationService do
   end
 
   def get_blob_data!(aggregated_proof) do
+    Logger.debug(
+      "[Aggregated Proofs] Fetching blob data for block #{aggregated_proof.block_number}, versioned_hash: #{aggregated_proof.blob_versioned_hash}"
+    )
+
     {:ok, block} =
       Explorer.EthClient.get_block_by_number(
         Explorer.Utils.decimal_to_hex(aggregated_proof.block_number)
@@ -100,10 +123,16 @@ defmodule AlignedProofAggregationService do
 
     parent_beacon_block_hash = Map.get(block, "parentBeaconBlockRoot")
 
+    Logger.debug(
+      "[Aggregated Proofs] Got parent beacon block hash: #{parent_beacon_block_hash}"
+    )
+
     {:ok, beacon_block} =
       Explorer.BeaconClient.get_block_header_by_parent_hash(parent_beacon_block_hash)
 
     slot = Explorer.BeaconClient.get_block_slot(beacon_block)
+
+    Logger.debug("[Aggregated Proofs] Fetching blob from beacon slot: #{slot}")
 
     data =
       Explorer.BeaconClient.fetch_blob_by_versioned_hash!(
@@ -111,7 +140,19 @@ defmodule AlignedProofAggregationService do
         aggregated_proof.blob_versioned_hash
       )
 
-    Map.get(data, "blob")
+    blob = Map.get(data, "blob")
+
+    if is_nil(blob) do
+      Logger.error(
+        "[Aggregated Proofs] No blob data returned for versioned_hash: #{aggregated_proof.blob_versioned_hash} at slot #{slot}"
+      )
+    else
+      Logger.debug(
+        "[Aggregated Proofs] Successfully fetched blob data (#{String.length(blob)} chars)"
+      )
+    end
+
+    blob
   end
 
   @doc """
