@@ -398,67 +398,32 @@ impl ProofAggregator {
                 }
                 Ok(SubmitOutcome::Pending(tx_hash)) => {
                     warn!(
-                    "Attempt {} timed out waiting for receipt; storing pending tx and continuing",
-                    attempt + 1
-                );
+                        "Attempt {} timed out waiting for receipt; storing pending tx",
+                        attempt + 1
+                    );
                     pending_hashes.push(tx_hash);
-
                     last_error = Some(
                         AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
                             "Timed out waiting for receipt".to_string(),
                         ),
                     );
-
-                    if attempt < max_retries - 1 {
-                        info!("Retrying with bumped gas fees and same nonce {}...", nonce);
-                        tokio::time::sleep(Duration::from_millis(500)).await;
-                    }
                 }
                 Err(err) => {
                     warn!("Attempt {} failed: {:?}", attempt + 1, err);
                     last_error = Some(err);
-
-                    if attempt < max_retries - 1 {
-                        info!("Retrying with bumped gas fees and same nonce {}...", nonce);
-
-                        tokio::time::sleep(Duration::from_millis(500)).await;
-                    } else {
-                        warn!("Max retries ({}) exceeded", max_retries);
-                    }
                 }
             }
-        }
 
-        // After exhausting all retry attempts, we iterate over every pending transaction hash
-        // that was previously submitted with the same nonce but different gas parameters.
-        // One of these transactions may have been included in a block while we were still
-        // retrying and waiting on others. By explicitly checking the receipt for each hash,
-        // we ensure we don't "lose" a transaction that was actually mined but whose receipt
-        // we never observed due to timeouts during earlier attempts.
-        for (i, tx_hash) in pending_hashes.into_iter().enumerate() {
-            match self
-                .proof_aggregation_service
-                .provider()
-                .get_transaction_receipt(tx_hash)
-                .await
-            {
-                Ok(Some(receipt)) => {
-                    info!("Pending tx #{} confirmed; returning receipt", i + 1);
-                    return Ok(receipt);
-                }
-                Ok(None) => {
-                    warn!(
-                        "Pending tx #{} still no receipt yet (hash {})",
-                        i + 1,
-                        tx_hash
-                    );
-                }
-                Err(err) => {
-                    warn!("Pending tx #{} receipt query failed: {:?}", i + 1, err);
-                }
+            // Check if any pending tx was confirmed before retrying
+            if let Some(receipt) = self.check_pending_txs_confirmed(&pending_hashes).await {
+                return Ok(receipt);
             }
+
+            info!("Retrying with bumped gas fees and same nonce {}...", nonce);
+            tokio::time::sleep(Duration::from_millis(500)).await;
         }
 
+        warn!("Max retries ({}) exceeded", max_retries);
         Err(RetryError::Transient(last_error.unwrap_or_else(|| {
             AggregatedProofSubmissionError::SendVerifyAggregatedProofTransaction(
                 "Max retries exceeded with no error details".to_string(),
@@ -571,6 +536,26 @@ impl ProofAggregator {
         }
     }
 
+    // Checks if any of the pending transactions have been confirmed.
+    // Returns the receipt if one is found, otherwise None.
+    async fn check_pending_txs_confirmed(
+        &self,
+        pending_hashes: &[TxHash],
+    ) -> Option<TransactionReceipt> {
+        for tx_hash in pending_hashes {
+            if let Ok(Some(receipt)) = self
+                .proof_aggregation_service
+                .provider()
+                .get_transaction_receipt(*tx_hash)
+                .await
+            {
+                info!("Pending tx {} confirmed before retry", tx_hash);
+                return Some(receipt);
+            }
+        }
+        None
+    }
+
     // Updates the gas fees of a `TransactionRequest` using EIP-1559 fee parameters.
     // Intended for retrying an on-chain submission after a timeout.
     //
@@ -613,8 +598,8 @@ impl ProofAggregator {
 
         // Calculate priority fee: suggested * (attempt + 1), capped at max
         let priority_fee_multiplier = (attempt + 1) as u128;
-        let max_priority_fee_per_gas = (suggested_priority_fee * priority_fee_multiplier)
-            .min(max_priority_fee_upper_limit);
+        let max_priority_fee_per_gas =
+            (suggested_priority_fee * priority_fee_multiplier).min(max_priority_fee_upper_limit);
 
         // Calculate max fee with cumulative bump per attempt to ensure replacement tx is accepted
         let max_fee_multiplier = 1.0 + max_fee_bump_percentage as f64 / 100.0;
