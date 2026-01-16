@@ -609,13 +609,14 @@ impl ProofAggregator {
             .get_max_priority_fee_per_gas()
             .await
             .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?
-            as f64;
+            as u128;
 
-        // Calculate priority fee: suggested * (1 + (attempt + 1) * 0.1), capped at max
-        let priority_fee_multiplier = 1.0 + (attempt + 1) as f64 * 0.1;
+        // Calculate priority fee: suggested * (1 + (attempt + 1), capped at max
+        let priority_fee_multiplier = attempt + 1;
         let max_priority_fee_per_gas = (suggested_priority_fee * priority_fee_multiplier)
-            .min(max_priority_fee_upper_limit as f64);
+            .min(max_priority_fee_upper_limit);
 
+        // Calculate max fee with cumulative bump per attempt to ensure replacement tx is accepted
         let max_fee_multiplier = 1.0 + max_fee_bump_percentage as f64 / 100.0;
         let max_fee_per_gas = max_fee_multiplier * current_base_fee + max_priority_fee_per_gas;
 
@@ -628,7 +629,7 @@ impl ProofAggregator {
 
         Ok(tx_req
             .with_max_fee_per_gas(max_fee_per_gas as u128)
-            .with_max_priority_fee_per_gas(max_priority_fee_per_gas as u128))
+            .with_max_priority_fee_per_gas(max_priority_fee_per_gas))
     }
 
     async fn wait_until_can_submit_aggregated_proof(
