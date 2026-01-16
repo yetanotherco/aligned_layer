@@ -144,7 +144,11 @@ task_sender_private_key=0xYourPrivateKeyHere
 To deploy everything in one command:
 
 ```bash
+# For Hoodi
 make agg_mode_deploy_all ENV=hoodi
+
+# For Mainnet
+make agg_mode_deploy_all ENV=mainnet
 ```
 
 This will:
@@ -161,8 +165,11 @@ For more control, deploy each component separately:
 #### 1. Deploy PostgreSQL Cluster
 
 ```bash
-# Deploy complete postgres cluster with password authentication
+# For Hoodi
 make postgres_deploy ENV=hoodi
+
+# For Mainnet
+make postgres_deploy ENV=mainnet
 ```
 
 This will:
@@ -174,7 +181,11 @@ This will:
 
 **Verify cluster status:**
 ```bash
+# For Hoodi
 make postgres_status ENV=hoodi
+
+# For Mainnet
+make postgres_status ENV=mainnet
 ```
 
 Expected output:
@@ -189,15 +200,17 @@ node_2    |   3   | 100.x.x.x:5432     |      1: 0/...  | read-only    | seconda
 #### 2. Deploy Gateway & Poller
 
 ```bash
-# Deploy on both servers
+# For Hoodi
 make gateway_deploy ENV=hoodi
-
-# Or deploy individually
 make gateway_primary_deploy ENV=hoodi
 make gateway_secondary_deploy ENV=hoodi
-
-# Force rebuild (always rebuild binaries from latest code)
 make gateway_deploy ENV=hoodi FORCE_REBUILD=true
+
+# For Mainnet
+make gateway_deploy ENV=mainnet
+make gateway_primary_deploy ENV=mainnet
+make gateway_secondary_deploy ENV=mainnet
+make gateway_deploy ENV=mainnet FORCE_REBUILD=true
 ```
 
 **Note:** By default, the deployment is idempotent and skips building if the binary already exists. Use `FORCE_REBUILD=true` to always rebuild from the latest code in the repository.
@@ -210,18 +223,21 @@ ssh app@agg-mode-hoodi-gateway-1 "systemctl --user status poller"
 
 **Test endpoint:**
 ```bash
-curl -k https://agg-mode-hoodi-gateway-1/health
+curl -k https://agg-mode-hoodi-gateway-1/
 ```
 
 #### 3. Deploy Metrics Stack
 
 ```bash
-# Deploy both Prometheus and Grafana
+# For Hoodi
 make metrics_deploy ENV=hoodi
-
-# Or deploy individually
 make prometheus_deploy ENV=hoodi
 make grafana_deploy ENV=hoodi
+
+# For Mainnet
+make metrics_deploy ENV=mainnet
+make prometheus_deploy ENV=mainnet
+make grafana_deploy ENV=mainnet
 ```
 
 **Access dashboards:**
@@ -231,8 +247,11 @@ make grafana_deploy ENV=hoodi
 #### 4. Deploy Task Sender
 
 ```bash
-# Deploy task sender
+# For Hoodi
 make task_sender_deploy ENV=hoodi
+
+# For Mainnet
+make task_sender_deploy ENV=mainnet
 ```
 
 The task sender runs in a tmux session and continuously sends proofs to the network at the configured interval (default: 1 hour).
@@ -253,22 +272,33 @@ The deployment automatically:
 
 **Verify task sender is running:**
 ```bash
+# For Hoodi
 make task_sender_status ENV=hoodi
+
+# For Mainnet
+make task_sender_status ENV=mainnet
 ```
 
 **View task sender logs:**
 ```bash
-# Show how to view logs
+# For Hoodi
 make task_sender_logs ENV=hoodi
-
-# Or directly attach to the tmux session
 ssh app@agg-mode-hoodi-sender 'tmux attach -t task_sender'
+
+# For Mainnet
+make task_sender_logs ENV=mainnet
+ssh app@agg-mode-mainnet-sender 'tmux attach -t task_sender'
+
 # Press Ctrl+B then D to detach without stopping
 ```
 
 **Restart task sender:**
 ```bash
+# For Hoodi
 make task_sender_restart ENV=hoodi
+
+# For Mainnet
+make task_sender_restart ENV=mainnet
 ```
 
 ## Service Management
@@ -277,82 +307,137 @@ make task_sender_restart ENV=hoodi
 
 **Gateway:**
 ```bash
+# For Hoodi
 make gateway_restart ENV=hoodi HOST=gateway_primary
 make gateway_restart ENV=hoodi HOST=gateway_secondary
+
+# For Mainnet
+make gateway_restart ENV=mainnet HOST=gateway_primary
+make gateway_restart ENV=mainnet HOST=gateway_secondary
 ```
 
 **Poller:**
 ```bash
+# For Hoodi
 make poller_restart ENV=hoodi HOST=gateway_primary
 make poller_restart ENV=hoodi HOST=gateway_secondary
+
+# For Mainnet
+make poller_restart ENV=mainnet HOST=gateway_primary
+make poller_restart ENV=mainnet HOST=gateway_secondary
 ```
 
 **Task Sender:**
 ```bash
+# For Hoodi
 make task_sender_restart ENV=hoodi
+
+# For Mainnet
+make task_sender_restart ENV=mainnet
 ```
 
 ### Check Service Status
 
 **PostgreSQL Cluster:**
 ```bash
+# For Hoodi
 make postgres_status ENV=hoodi
+
+# For Mainnet
+make postgres_status ENV=mainnet
 ```
 
 **Gateway:**
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "sudo systemctl status gateway"
 ssh app@agg-mode-hoodi-gateway-1 "sudo journalctl -u gateway -n 50"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "sudo systemctl status gateway"
+ssh app@agg-mode-mainnet-gateway-1 "sudo journalctl -u gateway -n 50"
 ```
 
 **Poller:**
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "systemctl --user status poller"
 ssh app@agg-mode-hoodi-gateway-1 "journalctl --user -u poller -n 50"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "systemctl --user status poller"
+ssh app@agg-mode-mainnet-gateway-1 "journalctl --user -u poller -n 50"
 ```
 
 **Prometheus:**
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-metrics "systemctl --user status prometheus"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-metrics "systemctl --user status prometheus"
 ```
 
 **Grafana:**
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-metrics "sudo systemctl status grafana-server"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-metrics "sudo systemctl status grafana-server"
 ```
 
 **Task Sender:**
 ```bash
+# For Hoodi
 make task_sender_status ENV=hoodi
-# Or check tmux session directly
 ssh app@agg-mode-hoodi-sender "tmux has-session -t task_sender && echo 'Running' || echo 'Not running'"
+
+# For Mainnet
+make task_sender_status ENV=mainnet
+ssh app@agg-mode-mainnet-sender "tmux has-session -t task_sender && echo 'Running' || echo 'Not running'"
 ```
 
 ### View Logs
 
 **Gateway:**
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "sudo journalctl -u gateway -f"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "sudo journalctl -u gateway -f"
 ```
 
 **Poller:**
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "journalctl --user -u poller -f"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "journalctl --user -u poller -f"
 ```
 
 **PostgreSQL:**
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-postgres-1 "sudo journalctl -u pgautofailover -f"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-postgres-1 "sudo journalctl -u pgautofailover -f"
 ```
 
 **Task Sender:**
 ```bash
-# Attach to tmux session to view live logs
+# For Hoodi
 ssh app@agg-mode-hoodi-sender 'tmux attach -t task_sender'
-# Press Ctrl+B then D to detach
-
-# Or capture current pane output
 ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p'
+
+# For Mainnet
+ssh app@agg-mode-mainnet-sender 'tmux attach -t task_sender'
+ssh app@agg-mode-mainnet-sender 'tmux capture-pane -t task_sender -p'
+
+# Press Ctrl+B then D to detach
 ```
 
 ## Verification
@@ -361,62 +446,98 @@ ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p'
 
 1. **Check cluster state:**
    ```bash
+   # For Hoodi
    make postgres_status ENV=hoodi
+
+   # For Mainnet
+   make postgres_status ENV=mainnet
    ```
 
 2. **Test password authentication:**
    ```bash
+   # For Hoodi
    ssh admin@agg-mode-hoodi-postgres-1 "PGPASSWORD='your_password' psql -U autoctl_node -h localhost -d agg_mode -c 'SELECT 1'"
+   # For Mainnet
+   ssh admin@agg-mode-mainnet-postgres-1 "PGPASSWORD='your_password' psql -U autoctl_node -h localhost -d agg_mode -c 'SELECT 1'"
    ```
 
 3. **Verify replication:**
    ```bash
+   # For Hoodi
    ssh admin@agg-mode-hoodi-postgres-1 "sudo -u postgres psql -d agg_mode -c 'SELECT * FROM pg_stat_replication'"
+
+   # For Mainnet
+   ssh admin@agg-mode-mainnet-postgres-1 "sudo -u postgres psql -d agg_mode -c 'SELECT * FROM pg_stat_replication'"
    ```
 
 4. **Test failover (optional):**
    ```bash
-   # Stop primary
+   # For Hoodi
    ssh admin@agg-mode-hoodi-postgres-1 "sudo systemctl stop pgautofailover"
-
    # Wait 30 seconds, check status
    make postgres_status ENV=hoodi
    # Secondary should now be primary
-
-   # Restart original primary
    ssh admin@agg-mode-hoodi-postgres-1 "sudo systemctl start pgautofailover"
+
+   # For Mainnet
+   ssh admin@agg-mode-mainnet-postgres-1 "sudo systemctl stop pgautofailover"
+   # Wait 30 seconds, check status
+   make postgres_status ENV=mainnet
+   # Secondary should now be primary
+   ssh admin@agg-mode-mainnet-postgres-1 "sudo systemctl start pgautofailover"
    ```
 
 ### Gateway Health
 
 1. **Check HTTP health endpoint:**
    ```bash
-   curl -k https://agg-mode-hoodi-gateway-1/health
+   # For Hoodi
+   curl -k https://agg-mode-hoodi-gateway-1/
+
+   # For Mainnet
+   curl -k https://agg-mode-mainnet-gateway-1/
    ```
 
 2. **Check metrics:**
    ```bash
+   # For Hoodi
    curl http://agg-mode-hoodi-gateway-1:9094/metrics
+
+   # For Mainnet
+   curl http://agg-mode-mainnet-gateway-1:9094/metrics
    ```
 
 3. **Verify database connectivity:**
    ```bash
+   # For Hoodi
    ssh app@agg-mode-hoodi-gateway-1
    PGPASSWORD='your_password' psql -U autoctl_node -h agg-mode-hoodi-postgres-1 -d agg_mode -c "SELECT 1"
+
+   # For Mainnet
+   ssh app@agg-mode-mainnet-gateway-1
+   PGPASSWORD='your_password' psql -U autoctl_node -h agg-mode-mainnet-postgres-1 -d agg_mode -c "SELECT 1"
    ```
 
 ### Poller Health
 
 1. **Check last processed block:**
    ```bash
+   # For Hoodi
    ssh app@agg-mode-hoodi-gateway-1 "cat ~/config/proof-aggregator.last_block_fetched.json"
+
+   # For Mainnet
+   ssh app@agg-mode-mainnet-gateway-1 "cat ~/config/proof-aggregator.last_block_fetched.json"
    ```
 
    The block number should increase over time.
 
 2. **Check metrics:**
    ```bash
+   # For Hoodi
    curl http://agg-mode-hoodi-gateway-1:9095/metrics
+
+   # For Mainnet
+   curl http://agg-mode-mainnet-gateway-1:9095/metrics
    ```
 
 ### Metrics Stack
@@ -434,12 +555,20 @@ ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p'
 
 1. **Check tmux session is running:**
    ```bash
+   # For Hoodi
    make task_sender_status ENV=hoodi
+
+   # For Mainnet
+   make task_sender_status ENV=mainnet
    ```
 
 2. **View recent logs:**
    ```bash
+   # For Hoodi
    ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p'
+
+   # For Mainnet
+   ssh app@agg-mode-mainnet-sender 'tmux capture-pane -t task_sender -p'
    ```
 
 3. **Verify proof submissions:**
@@ -455,12 +584,20 @@ ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p'
 
 Check monitor logs:
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-postgres-monitor "sudo journalctl -u pgautofailover -n 100"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-postgres-monitor "sudo journalctl -u pgautofailover -n 100"
 ```
 
 Check node logs:
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-postgres-1 "sudo journalctl -u pgautofailover -n 100"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-postgres-1 "sudo journalctl -u pgautofailover -n 100"
 ```
 
 **Problem: Password authentication fails**
@@ -469,7 +606,11 @@ Verify `db_password` is set correctly in your environment config file (`config-h
 
 Check pg_hba.conf:
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-postgres-1 "sudo -u postgres cat /var/lib/postgresql/node/pg_hba.conf"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-postgres-1 "sudo -u postgres cat /var/lib/postgresql/node/pg_hba.conf"
 ```
 
 Should contain:
@@ -483,7 +624,11 @@ host    all             all             100.64.0.0/10           scram-sha-256
 
 Check logs for errors:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "sudo journalctl -u gateway -n 100"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "sudo journalctl -u gateway -n 100"
 ```
 
 Common issues:
@@ -495,12 +640,20 @@ Common issues:
 
 Verify certificates exist:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "ls -la ~/.ssl/"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "ls -la ~/.ssl/"
 ```
 
 Check certificate validity:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "openssl x509 -in ~/.ssl/cert.pem -text -noout"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "openssl x509 -in ~/.ssl/cert.pem -text -noout"
 ```
 
 ### Poller Issues
@@ -509,12 +662,20 @@ ssh app@agg-mode-hoodi-gateway-1 "openssl x509 -in ~/.ssl/cert.pem -text -noout"
 
 Check logs:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "journalctl --user -u poller -n 100"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "journalctl --user -u poller -n 100"
 ```
 
 Verify RPC connectivity:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-gateway-1 "curl -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' https://aligned-hoodi-rpc-geth.tail665ae.ts.net"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-gateway-1 "curl -X POST -H 'Content-Type: application/json' --data '{\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[],\"id\":1}' https://aligned-mainnet-rpc-1.tail665ae.ts.net"
 ```
 
 ### Metrics Issues
@@ -523,17 +684,29 @@ ssh app@agg-mode-hoodi-gateway-1 "curl -X POST -H 'Content-Type: application/jso
 
 Check Prometheus logs:
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-metrics "journalctl --user -u prometheus -n 100"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-metrics "journalctl --user -u prometheus -n 100"
 ```
 
 Verify targets are reachable from metrics server:
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-metrics "curl http://agg-mode-hoodi-gateway-1:9094/metrics"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-metrics "curl http://agg-mode-mainnet-gateway-1:9094/metrics"
 ```
 
 Check Prometheus config:
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-metrics "cat ~/config/prometheus.yaml"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-metrics "cat ~/config/prometheus.yaml"
 ```
 
 ### Task Sender Issues
@@ -542,37 +715,57 @@ ssh admin@agg-mode-hoodi-metrics "cat ~/config/prometheus.yaml"
 
 Check if tmux session exists:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-sender "tmux list-sessions"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-sender "tmux list-sessions"
 ```
 
 If missing, redeploy:
 ```bash
+# For Hoodi
 make task_sender_deploy ENV=hoodi
+
+# For Mainnet
+make task_sender_deploy ENV=mainnet
 ```
 
 **Problem: Task sender crashes or exits**
 
 Check logs for errors:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-sender 'tmux capture-pane -t task_sender -p -S -100'
+
+# For Mainnet
+ssh app@agg-mode-mainnet-sender 'tmux capture-pane -t task_sender -p -S -100'
 ```
 
 Common issues:
 - Invalid private key → Check `task_sender_private_key` in `config-{{ env }}.ini`
 - Missing proof/vk files → Verify files exist: `task_sender_proof_path`, `task_sender_vk_path`
-- Network connectivity → Test RPC: `curl https://aligned-hoodi-rpc-geth.tail665ae.ts.net`
+- Network connectivity → Test RPC: `curl https://aligned-hoodi-rpc-geth.tail665ae.ts.net` (Hoodi) or `curl https://aligned-mainnet-rpc-1.tail665ae.ts.net` (Mainnet)
 - Insufficient balance → Check account has ETH for gas fees
 
 **Problem: Proofs not being submitted**
 
 Check interval configuration:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-sender "cat ~/repos/sender/aligned_layer/scripts/.agg_mode.task_sender.env"
+
+# For Mainnet
+ssh app@agg-mode-mainnet-sender "cat ~/repos/sender/aligned_layer/scripts/.agg_mode.task_sender.env"
 ```
 
 Verify `INTERVAL_HOURS` is set correctly (default: 1 hour). Attach to session to see live activity:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-sender 'tmux attach -t task_sender'
+
+# For Mainnet
+ssh app@agg-mode-mainnet-sender 'tmux attach -t task_sender'
 ```
 
 **Problem: Deployment fails with insufficient balance**
@@ -581,14 +774,24 @@ The automatic deposit check requires the account to have at least **0.0045 ETH**
 
 Check account balance:
 ```bash
+# For Hoodi
 ssh app@agg-mode-hoodi-sender
 export PATH=$HOME/.foundry/bin:$PATH
-cast balance <YOUR_WALLET_ADDRESS> --rpc-url <RPC_URL>
+cast balance <YOUR_WALLET_ADDRESS> --rpc-url https://aligned-hoodi-rpc-geth.tail665ae.ts.net
+
+# For Mainnet
+ssh app@agg-mode-mainnet-sender
+export PATH=$HOME/.foundry/bin:$PATH
+cast balance <YOUR_WALLET_ADDRESS> --rpc-url https://aligned-mainnet-rpc-1.tail665ae.ts.net
 ```
 
 If balance is insufficient, send ETH to the account and redeploy:
 ```bash
+# For Hoodi
 make task_sender_deploy ENV=hoodi
+
+# For Mainnet
+make task_sender_deploy ENV=mainnet
 ```
 
 **Problem: Automatic deposit fails**
@@ -602,15 +805,27 @@ To manually deposit after fixing the issue:
 ```bash
 ssh app@agg-mode-hoodi-sender
 export PATH=$HOME/.cargo/bin:$PATH
+
+# For Hoodi
 agg_mode_cli deposit \
   --network hoodi \
   --rpc-url https://aligned-hoodi-rpc-geth.tail665ae.ts.net \
+  --private-key <YOUR_PRIVATE_KEY>
+
+# For Mainnet
+agg_mode_cli deposit \
+  --network mainnet \
+  --rpc-url https://aligned-mainnet-rpc-1.tail665ae.ts.net \
   --private-key <YOUR_PRIVATE_KEY>
 ```
 
 Then restart the task sender:
 ```bash
+# For Hoodi
 make task_sender_restart ENV=hoodi
+
+# For Mainnet
+make task_sender_restart ENV=mainnet
 ```
 
 ### General Debugging
@@ -622,13 +837,22 @@ tailscale status
 
 **Test SSH access to servers:**
 ```bash
+# For Hoodi
 ssh admin@agg-mode-hoodi-postgres-monitor "echo 'Connection successful'"
 ssh app@agg-mode-hoodi-gateway-1 "echo 'Connection successful'"
+
+# For Mainnet
+ssh admin@agg-mode-mainnet-postgres-monitor "echo 'Connection successful'"
+ssh app@agg-mode-mainnet-gateway-1 "echo 'Connection successful'"
 ```
 
 **Verify Ansible inventory:**
 ```bash
+# For Hoodi
 ansible-inventory -i infra/aggregation_mode/ansible/hoodi-inventory.yaml --list
+
+# For Mainnet
+ansible-inventory -i infra/aggregation_mode/ansible/mainnet-inventory.yaml --list
 ```
 
 ## Advanced Usage
@@ -638,23 +862,42 @@ ansible-inventory -i infra/aggregation_mode/ansible/hoodi-inventory.yaml --list
 You can run any playbook directly with ansible-playbook:
 
 ```bash
-# Deploy only postgres monitor
+# Deploy only postgres monitor (Hoodi)
 ansible-playbook infra/aggregation_mode/ansible/playbooks/pg_monitor.yaml \
   -i infra/aggregation_mode/ansible/hoodi-inventory.yaml \
   -e "host=postgres_monitor" \
   -e "env=hoodi"
 
-# Deploy only gateway (no poller)
+# Deploy only postgres monitor (Mainnet)
+ansible-playbook infra/aggregation_mode/ansible/playbooks/pg_monitor.yaml \
+  -i infra/aggregation_mode/ansible/mainnet-inventory.yaml \
+  -e "host=postgres_monitor" \
+  -e "env=mainnet"
+
+# Deploy only gateway (no poller) - Hoodi
 ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
   -i infra/aggregation_mode/ansible/hoodi-inventory.yaml \
   -e "host=gateway_primary" \
   -e "env=hoodi"
 
-# Deploy gateway with forced rebuild
+# Deploy only gateway (no poller) - Mainnet
+ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
+  -i infra/aggregation_mode/ansible/mainnet-inventory.yaml \
+  -e "host=gateway_primary" \
+  -e "env=mainnet"
+
+# Deploy gateway with forced rebuild (Hoodi)
 ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
   -i infra/aggregation_mode/ansible/hoodi-inventory.yaml \
   -e "host=gateway_primary" \
   -e "env=hoodi" \
+  -e "force_rebuild=true"
+
+# Deploy gateway with forced rebuild (Mainnet)
+ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
+  -i infra/aggregation_mode/ansible/mainnet-inventory.yaml \
+  -e "host=gateway_primary" \
+  -e "env=mainnet" \
   -e "force_rebuild=true"
 ```
 
@@ -665,12 +908,15 @@ ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
 The easiest way to update services is using the `FORCE_REBUILD` parameter:
 
 ```bash
-# Update both primary and secondary
+# For Hoodi
 make gateway_deploy ENV=hoodi FORCE_REBUILD=true
-
-# Or update individually
 make gateway_primary_deploy ENV=hoodi FORCE_REBUILD=true
 make gateway_secondary_deploy ENV=hoodi FORCE_REBUILD=true
+
+# For Mainnet
+make gateway_deploy ENV=mainnet FORCE_REBUILD=true
+make gateway_primary_deploy ENV=mainnet FORCE_REBUILD=true
+make gateway_secondary_deploy ENV=mainnet FORCE_REBUILD=true
 ```
 
 This will:
@@ -684,14 +930,29 @@ This will:
 If you prefer to update manually:
 
 ```bash
-# Gateway
+# Gateway (Hoodi)
 ssh app@agg-mode-hoodi-gateway-1
 cd ~/repos/gateway/aligned_layer
 git pull origin staging
 cargo install --path aggregation_mode/gateway --bin gateway --features tls --locked
 sudo systemctl restart gateway
 
-# Poller
+# Gateway (Mainnet)
+ssh app@agg-mode-mainnet-gateway-1
+cd ~/repos/gateway/aligned_layer
+git pull origin staging
+cargo install --path aggregation_mode/gateway --bin gateway --features tls --locked
+sudo systemctl restart gateway
+
+# Poller (Hoodi)
+ssh app@agg-mode-hoodi-gateway-1
+cd ~/repos/poller/aligned_layer
+git pull origin staging
+cargo install --path aggregation_mode/payments_poller --bin payments_poller --locked
+systemctl --user restart poller
+
+# Poller (Mainnet)
+ssh app@agg-mode-mainnet-gateway-1
 cd ~/repos/poller/aligned_layer
 git pull origin staging
 cargo install --path aggregation_mode/payments_poller --bin payments_poller --locked
@@ -703,7 +964,11 @@ systemctl --user restart poller
 **Idempotent deployment (skip if binary exists):**
 
 ```bash
+# For Hoodi
 make gateway_deploy ENV=hoodi
+
+# For Mainnet
+make gateway_deploy ENV=mainnet
 ```
 
 This pulls the latest code but skips building if the binary already exists. Use this when you only want to update configuration files.
@@ -711,7 +976,11 @@ This pulls the latest code but skips building if the binary already exists. Use 
 **Force rebuild (always rebuild binaries):**
 
 ```bash
+# For Hoodi
 make gateway_deploy ENV=hoodi FORCE_REBUILD=true
+
+# For Mainnet
+make gateway_deploy ENV=mainnet FORCE_REBUILD=true
 ```
 
 This always rebuilds binaries from the latest code, even if they already exist. Use this when you want to deploy code changes.
@@ -721,9 +990,13 @@ This always rebuilds binaries from the latest code, even if they already exist. 
 1. Update INI files in `playbooks/ini/`
 2. Redeploy the affected service:
    ```bash
+   # For Hoodi
    make gateway_deploy ENV=hoodi
-   # or
    make postgres_deploy ENV=hoodi
+
+   # For Mainnet
+   make gateway_deploy ENV=mainnet
+   make postgres_deploy ENV=mainnet
    ```
 
 ### Rotating Passwords
@@ -733,12 +1006,20 @@ This always rebuilds binaries from the latest code, even if they already exist. 
    - `grafana_postgres_password` (separate read-only user)
 2. Run password update on PostgreSQL:
    ```bash
+   # For Hoodi
    ssh admin@agg-mode-hoodi-postgres-monitor "sudo -u postgres psql -d pg_auto_failover -c \"ALTER USER autoctl_node PASSWORD 'new_password'\""
+   # For Mainnet
+   ssh admin@agg-mode-mainnet-postgres-monitor "sudo -u postgres psql -d pg_auto_failover -c \"ALTER USER autoctl_node PASSWORD 'new_password'\""
    ```
 3. Redeploy gateway and metrics:
    ```bash
+   # For Hoodi
    make gateway_deploy ENV=hoodi
    make metrics_deploy ENV=hoodi
+
+   # For Mainnet
+   make gateway_deploy ENV=mainnet
+   make metrics_deploy ENV=mainnet
    ```
 
 ## File Structure
