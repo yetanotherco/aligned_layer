@@ -611,24 +611,25 @@ impl ProofAggregator {
             .map_err(|e| AggregatedProofSubmissionError::GasPriceError(e.to_string()))?
             as u128;
 
-        // Calculate priority fee: suggested * (1 + (attempt + 1), capped at max
-        let priority_fee_multiplier = attempt + 1;
+        // Calculate priority fee: suggested * (attempt + 1), capped at max
+        let priority_fee_multiplier = (attempt + 1) as u128;
         let max_priority_fee_per_gas = (suggested_priority_fee * priority_fee_multiplier)
             .min(max_priority_fee_upper_limit);
 
         // Calculate max fee with cumulative bump per attempt to ensure replacement tx is accepted
         let max_fee_multiplier = 1.0 + max_fee_bump_percentage as f64 / 100.0;
-        let max_fee_per_gas = max_fee_multiplier * current_base_fee + max_priority_fee_per_gas;
+        let max_fee_per_gas =
+            (max_fee_multiplier * current_base_fee) as u128 + max_priority_fee_per_gas;
 
         info!(
             "Base fee: {:.4} Gwei. Applying max_fee_per_gas: {:.4} Gwei and max_priority_fee_per_gas: {:.4} Gwei to tx",
             current_base_fee / 1e9,
-            max_fee_per_gas / 1e9,
-            max_priority_fee_per_gas / 1e9
+            max_fee_per_gas as f64 / 1e9,
+            max_priority_fee_per_gas as f64 / 1e9
         );
 
         Ok(tx_req
-            .with_max_fee_per_gas(max_fee_per_gas as u128)
+            .with_max_fee_per_gas(max_fee_per_gas)
             .with_max_priority_fee_per_gas(max_priority_fee_per_gas))
     }
 
