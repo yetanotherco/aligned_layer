@@ -43,8 +43,20 @@ datasources:
     editable: true
     basicAuth: false
 
-  # Note: We use this data source for health check calls. The one above is not useful for non-Ethereum calls
-  # because the RPC URL is prepended to the one indicated in the panel.
+  - name: "Gateway"
+    type: "yesoreyeram-infinity-datasource"
+    typeName: "Infinity"
+    uid: "gateway"
+    access: "proxy"
+    url: "${GATEWAY_URL}"
+    isDefault: false
+    jsonData:
+      global_queries: [ ]
+    readOnly: false
+    editable: true
+    basicAuth: false
+
+  # Note: We use this data source for general HTTP calls.
   - name: "HTTP"
     type: "yesoreyeram-infinity-datasource"
     uid: "http"
