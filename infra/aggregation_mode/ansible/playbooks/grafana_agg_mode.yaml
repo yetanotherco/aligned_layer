@@ -28,6 +28,9 @@
         gateway_1_hostname: "{{ lookup('ini', 'gateway_1_hostname', file=config_file) }}"
         gateway_2_hostname: "{{ lookup('ini', 'gateway_2_hostname', file=config_file) }}"
         grafana_gateway_url: "{{ lookup('ini', 'grafana_gateway_url', file=config_file) }}"
+        grafana_var_payments_contract: "{{ lookup('ini', 'grafana_var_payments_contract', file=config_file) }}"
+        grafana_var_proof_aggregator_contract: "{{ lookup('ini', 'grafana_var_proof_aggregator_contract', file=config_file) }}"
+        grafana_var_proof_aggregator_wallet: "{{ lookup('ini', 'grafana_var_proof_aggregator_wallet', file=config_file) }}"
       no_log: true
 
     - name: Install required packages
@@ -38,6 +41,7 @@
           - software-properties-common
           - wget
           - gnupg
+          - jq
         state: latest
         update_cache: true
       vars:
@@ -142,3 +146,32 @@
         daemon_reload: true
       vars:
         ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Wait for Grafana to be ready
+      uri:
+        url: "http://localhost:3000/api/health"
+        status_code: 200
+      register: grafana_health
+      until: grafana_health.status == 200
+      retries: 10
+      delay: 5
+
+    - name: Copy dashboard variables script
+      become: true
+      copy:
+        src: scripts/grafana_set_variables.sh
+        dest: /tmp/grafana_set_variables.sh
+        mode: '0755'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Set dashboard variables via API
+      shell: |
+        /tmp/grafana_set_variables.sh \
+          "http://localhost:3000" \
+          "{{ grafana_admin_password }}" \
+          "Aggregation Mode" \
+          "payments_contract={{ grafana_var_payments_contract }}" \
+          "proof_aggregator_contract={{ grafana_var_proof_aggregator_contract }}" \
+          "proof_aggregator_wallet={{ grafana_var_proof_aggregator_wallet }}"
+      no_log: false

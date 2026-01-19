@@ -3269,56 +3269,7 @@
   "schemaVersion": 42,
   "tags": [],
   "templating": {
-    "list": [
-      {
-        "current": {
-          "text": "0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64",
-          "value": "0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64"
-        },
-        "name": "payments_contract",
-        "options": [
-          {
-            "selected": true,
-            "text": "0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64",
-            "value": "0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64"
-          }
-        ],
-        "query": "0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64",
-        "type": "custom"
-      },
-      {
-        "current": {
-          "text": "0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59",
-          "value": "0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59"
-        },
-        "name": "proof_aggregator_contract",
-        "options": [
-          {
-            "selected": true,
-            "text": "0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59",
-            "value": "0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59"
-          }
-        ],
-        "query": "0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59",
-        "type": "custom"
-      },
-      {
-        "current": {
-          "text": "0x7EB3B63A4F3e7810Cc9bbc346749E2491Da4D7Cc",
-          "value": "0x7EB3B63A4F3e7810Cc9bbc346749E2491Da4D7Cc"
-        },
-        "name": "proof_aggregator_wallet",
-        "options": [
-          {
-            "selected": true,
-            "text": "0x7EB3B63A4F3e7810Cc9bbc346749E2491Da4D7Cc",
-            "value": "0x7EB3B63A4F3e7810Cc9bbc346749E2491Da4D7Cc"
-          }
-        ],
-        "query": "0x7EB3B63A4F3e7810Cc9bbc346749E2491Da4D7Cc",
-        "type": "custom"
-      }
-    ]
+    "list": []
   },
   "time": {
     "from": "now-15m",
@@ -3328,5 +3279,5 @@
   "timezone": "",
   "title": "Aggregation Mode",
   "uid": "a66a5480-6a60-4b87-9d29-4f0f446edafd",
-  "version": 3
+  "version": 4
 }
