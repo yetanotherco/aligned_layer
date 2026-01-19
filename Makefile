@@ -1702,11 +1702,11 @@ postgres_nodes_deploy: ## Deploy PostgreSQL Primary & Secondary. Usage: make pos
 	fi
 	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/pg_node.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-e "host=postgres_primary" \
+		-e "host=postgres_1" \
 		-e "env=$(ENV)"
 	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/pg_node.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-e "host=postgres_secondary" \
+		-e "host=postgres_2" \
 		-e "env=$(ENV)"
 
 .PHONY: postgres_migrations
@@ -1717,7 +1717,7 @@ postgres_migrations: ## Run database migrations. Usage: make postgres_migrations
 	fi
 	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/postgres_migrations.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-e "host=postgres_primary" \
+		-e "host=postgres_1" \
 		-e "env=$(ENV)"
 
 .PHONY: postgres_status
@@ -1745,7 +1745,7 @@ gateway_deploy: ## Deploy Gateway & Poller on both servers. Usage: make gateway_
 	fi; \
 	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-e "host=gateway_primary" \
+		-e "host=gateway_1" \
 		-e "env=$(ENV)" \
 		$$EXTRA_VARS
 	@EXTRA_VARS=""; \
@@ -1754,12 +1754,12 @@ gateway_deploy: ## Deploy Gateway & Poller on both servers. Usage: make gateway_
 	fi; \
 	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-e "host=gateway_secondary" \
+		-e "host=gateway_2" \
 		-e "env=$(ENV)" \
 		$$EXTRA_VARS
 
-.PHONY: gateway_primary_deploy
-gateway_primary_deploy: ## Deploy Gateway & Poller on primary only. Usage: make gateway_primary_deploy ENV=hoodi [FORCE_REBUILD=true]
+.PHONY: gateway_1_deploy
+gateway_1_deploy: ## Deploy Gateway & Poller on gateway 1 only. Usage: make gateway_1_deploy ENV=hoodi [FORCE_REBUILD=true]
 	@if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV must be set (hoodi or mainnet)"; \
 		exit 1; \
@@ -1770,12 +1770,12 @@ gateway_primary_deploy: ## Deploy Gateway & Poller on primary only. Usage: make 
 	fi; \
 	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-e "host=gateway_primary" \
+		-e "host=gateway_1" \
 		-e "env=$(ENV)" \
 		$$EXTRA_VARS
 
-.PHONY: gateway_secondary_deploy
-gateway_secondary_deploy: ## Deploy Gateway & Poller on secondary only. Usage: make gateway_secondary_deploy ENV=hoodi [FORCE_REBUILD=true]
+.PHONY: gateway_2_deploy
+gateway_2_deploy: ## Deploy Gateway & Poller on gateway 2 only. Usage: make gateway_2_deploy ENV=hoodi [FORCE_REBUILD=true]
 	@if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV must be set (hoodi or mainnet)"; \
 		exit 1; \
@@ -1786,7 +1786,7 @@ gateway_secondary_deploy: ## Deploy Gateway & Poller on secondary only. Usage: m
 	fi; \
 	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
 		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
-		-e "host=gateway_secondary" \
+		-e "host=gateway_2" \
 		-e "env=$(ENV)" \
 		$$EXTRA_VARS
 
