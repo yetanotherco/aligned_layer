@@ -15,8 +15,8 @@
     - name: Set config vars from INI file
       set_fact:
         prometheus_version: "{{ lookup('ini', 'prometheus_version', file=config_file, default='3.6.0') }}"
-        gateway_primary_hostname: "{{ lookup('ini', 'gateway_primary_hostname', file=config_file) }}"
-        gateway_secondary_hostname: "{{ lookup('ini', 'gateway_secondary_hostname', file=config_file) }}"
+        gateway_1_hostname: "{{ lookup('ini', 'gateway_1_hostname', file=config_file) }}"
+        gateway_2_hostname: "{{ lookup('ini', 'gateway_2_hostname', file=config_file) }}"
         gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file=config_file, default='9094') }}"
         poller_metrics_port: "{{ lookup('ini', 'poller_metrics_port', file=config_file, default='9095') }}"
 

@@ -23,7 +23,7 @@
         db_name: "{{ lookup('ini', 'db_name', file=config_file) }}"
         db_user: "{{ lookup('ini', 'db_user', file=config_file) }}"
         db_password: "{{ lookup('ini', 'db_password', file=config_file) }}"
-        postgres_primary_hostname: "{{ lookup('ini', 'postgres_primary_hostname', file=config_file) }}"
+        postgres_1_hostname: "{{ lookup('ini', 'postgres_1_hostname', file=config_file) }}"
         git_branch: "{{ lookup('ini', 'git_branch', file=config_file) }}"
       no_log: true
 
@@ -37,7 +37,7 @@
     - name: Run database migrations
       shell: |
         export PATH=$HOME/.cargo/bin:$PATH
-        cargo run --manifest-path /home/{{ ansible_user }}/repos/migrations/aligned_layer/aggregation_mode/Cargo.toml --release --bin migrate -- "postgres://{{ db_user }}:{{ db_password }}@{{ postgres_primary_hostname }}:5432/{{ db_name }}"
+        cargo run --manifest-path /home/{{ ansible_user }}/repos/migrations/aligned_layer/aggregation_mode/Cargo.toml --release --bin migrate -- "postgres://{{ db_user }}:{{ db_password }}@{{ postgres_1_hostname }}:5432/{{ db_name }}"
       register: migration_result
       no_log: true
 

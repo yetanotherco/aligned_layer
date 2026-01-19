@@ -20,7 +20,7 @@ The Ansible automation deploys a complete aggregation mode stack consisting of:
 
 1. **PostgreSQL Auto-Failover Cluster** (3 servers)
    - 1 Monitor node (EC2)
-   - 2 Data nodes (Primary + Secondary) with automatic failover (Scaleway Elastic Metal)
+   - 2 Data nodes with automatic failover (Scaleway Elastic Metal)
    - Password authentication with scram-sha-256
 
 2. **Gateway Service** (2 servers)
@@ -51,7 +51,7 @@ The Ansible automation deploys a complete aggregation mode stack consisting of:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │  PG Monitor  │  │ PG Primary   │  │ PG Secondary │           │
+│  │  PG Monitor  │  │ PG Node 1   │  │ PG Node 2 │           │
 │  │   (EC2)      │  │  (Scaleway)  │  │  (Scaleway)  │           │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘           │
 │         │                  │                  │                 │
@@ -59,7 +59,7 @@ The Ansible automation deploys a complete aggregation mode stack consisting of:
 │                    pg_auto_failover                             │
 │                                                                 │
 │  ┌────────────────────────┐  ┌────────────────────────┐         │
-│  │  Gateway Primary       │  │  Gateway Secondary     │         │
+│  │  Gateway 1       │  │  Gateway 2     │         │
 │  │  ├─ Gateway (8080+443)│  │  ├─ Gateway (8080+443) │         │
 │  │  └─ Poller            │  │  └─ Poller             │         │
 │  └────────────────────────┘  └────────────────────────┘         │
@@ -152,7 +152,7 @@ make agg_mode_deploy_all ENV=mainnet
 ```
 
 This will:
-1. Deploy PostgreSQL cluster (monitor, primary, secondary)
+1. Deploy PostgreSQL cluster (monitor, node 1, node 2)
 2. Run database migrations
 3. Deploy gateway and poller on both servers
 4. Deploy Prometheus and Grafana
@@ -175,7 +175,7 @@ make postgres_deploy ENV=mainnet
 This will:
 - Deploy monitor with scram-sha-256 auth
 - Set password for autoctl_node user
-- Deploy primary and secondary nodes
+- Deploy node 1 and node 2
 - Configure replication with password auth
 - Run database migrations
 
@@ -202,14 +202,14 @@ node_2    |   3   | 100.x.x.x:5432     |      1: 0/...  | read-only    | seconda
 ```bash
 # For Hoodi
 make gateway_deploy ENV=hoodi
-make gateway_primary_deploy ENV=hoodi
-make gateway_secondary_deploy ENV=hoodi
+make gateway_1_deploy ENV=hoodi
+make gateway_2_deploy ENV=hoodi
 make gateway_deploy ENV=hoodi FORCE_REBUILD=true
 
 # For Mainnet
 make gateway_deploy ENV=mainnet
-make gateway_primary_deploy ENV=mainnet
-make gateway_secondary_deploy ENV=mainnet
+make gateway_1_deploy ENV=mainnet
+make gateway_2_deploy ENV=mainnet
 make gateway_deploy ENV=mainnet FORCE_REBUILD=true
 ```
 
@@ -313,13 +313,13 @@ Force rebuild always rebuilds binaries from the latest code, even if they alread
 ```bash
 # For Hoodi
 make gateway_deploy ENV=hoodi FORCE_REBUILD=true
-make gateway_primary_deploy ENV=hoodi FORCE_REBUILD=true
-make gateway_secondary_deploy ENV=hoodi FORCE_REBUILD=true
+make gateway_1_deploy ENV=hoodi FORCE_REBUILD=true
+make gateway_2_deploy ENV=hoodi FORCE_REBUILD=true
 
 # For Mainnet
 make gateway_deploy ENV=mainnet FORCE_REBUILD=true
-make gateway_primary_deploy ENV=mainnet FORCE_REBUILD=true
-make gateway_secondary_deploy ENV=mainnet FORCE_REBUILD=true
+make gateway_1_deploy ENV=mainnet FORCE_REBUILD=true
+make gateway_2_deploy ENV=mainnet FORCE_REBUILD=true
 ```
 
 This will:
@@ -838,26 +838,26 @@ ansible-playbook infra/aggregation_mode/ansible/playbooks/pg_monitor.yaml \
 # Deploy only gateway (no poller) - Hoodi
 ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
   -i infra/aggregation_mode/ansible/hoodi-inventory.yaml \
-  -e "host=gateway_primary" \
+  -e "host=gateway_1" \
   -e "env=hoodi"
 
 # Deploy only gateway (no poller) - Mainnet
 ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
   -i infra/aggregation_mode/ansible/mainnet-inventory.yaml \
-  -e "host=gateway_primary" \
+  -e "host=gateway_1" \
   -e "env=mainnet"
 
 # Deploy gateway with forced rebuild (Hoodi)
 ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
   -i infra/aggregation_mode/ansible/hoodi-inventory.yaml \
-  -e "host=gateway_primary" \
+  -e "host=gateway_1" \
   -e "env=hoodi" \
   -e "force_rebuild=true"
 
 # Deploy gateway with forced rebuild (Mainnet)
 ansible-playbook infra/aggregation_mode/ansible/playbooks/gateway.yaml \
   -i infra/aggregation_mode/ansible/mainnet-inventory.yaml \
-  -e "host=gateway_primary" \
+  -e "host=gateway_1" \
   -e "env=mainnet" \
   -e "force_rebuild=true"
 ```

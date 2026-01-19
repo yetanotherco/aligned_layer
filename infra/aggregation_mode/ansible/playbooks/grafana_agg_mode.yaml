@@ -25,6 +25,9 @@
         grafana_monitor_host: "{{ lookup('ini', 'grafana_monitor_host', file=config_file) }}"
         grafana_monitor_port: "{{ lookup('ini', 'grafana_monitor_port', file=config_file, default='5432') }}"
         grafana_monitor_db: "{{ lookup('ini', 'grafana_monitor_db', file=config_file, default='pg_auto_failover') }}"
+        gateway_1_hostname: "{{ lookup('ini', 'gateway_1_hostname', file=config_file) }}"
+        gateway_2_hostname: "{{ lookup('ini', 'gateway_2_hostname', file=config_file) }}"
+        grafana_gateway_url: "{{ lookup('ini', 'grafana_gateway_url', file=config_file) }}"
       no_log: true
 
     - name: Install required packages

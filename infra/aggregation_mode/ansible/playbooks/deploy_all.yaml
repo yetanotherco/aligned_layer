@@ -3,16 +3,16 @@
   vars:
     env: "{{ env }}"
 
-- name: Deploy Gateway and Poller on Primary
+- name: Deploy Gateway and Poller on Node 1
   ansible.builtin.import_playbook: gateway_stack.yaml
   vars:
-    host: gateway_primary
+    host: gateway_1
     env: "{{ env }}"
 
-- name: Deploy Gateway and Poller on Secondary
+- name: Deploy Gateway and Poller on Node 2
   ansible.builtin.import_playbook: gateway_stack.yaml
   vars:
-    host: gateway_secondary
+    host: gateway_2
     env: "{{ env }}"
 
 - name: Deploy Metrics Stack
