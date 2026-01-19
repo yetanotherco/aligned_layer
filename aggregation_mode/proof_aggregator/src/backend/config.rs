@@ -21,10 +21,6 @@ pub struct Config {
     pub sp1_chunk_aggregator_vk_hash: String,
     pub monthly_budget_eth: f64,
     pub db_connection_urls: Vec<String>,
-    pub max_bump_retries: u16,
-    pub bump_retry_interval_seconds: u64,
-    pub max_fee_bump_percentage: u64,
-    pub max_priority_fee_upper_limit: u128,
 }
 
 impl Config {
