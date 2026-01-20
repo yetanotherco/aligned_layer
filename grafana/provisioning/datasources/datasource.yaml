@@ -19,14 +19,14 @@ datasources:
     access: proxy
     orgId: 1
     url: "${POSTGRES_HOST}:${POSTGRES_PORT}"
-    database: ${POSTGRES_DB}
-    user: ${POSTGRES_USER}
+    user: "${POSTGRES_USER}"
     secureJsonData:
-      password: ${POSTGRES_PASSWORD}
+      password: "${POSTGRES_PASSWORD}"
     basicAuth: false
     isDefault: false
     editable: true
     jsonData:
+      database: "${POSTGRES_DB}"
       sslmode: disable
       postgresVersion: 1600
 
@@ -72,13 +72,13 @@ datasources:
     access: proxy
     orgId: 1
     url: "${MONITOR_DB_HOST}:${MONITOR_DB_PORT}"
-    database: "${MONITOR_DB_DB}"
     user: "${MONITOR_DB_USER}"
     secureJsonData:
-      password: ${MONITOR_DB_PASSWORD}
+      password: "${MONITOR_DB_PASSWORD}"
     basicAuth: false
     isDefault: false
     editable: true
     jsonData:
+      database: "${MONITOR_DB_DB}"
       sslmode: require
-      postgresVersion: 1700
+      postgresVersion: 1600

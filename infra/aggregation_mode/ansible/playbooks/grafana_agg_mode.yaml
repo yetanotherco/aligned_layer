@@ -31,6 +31,8 @@
         grafana_var_payments_contract: "{{ lookup('ini', 'grafana_var_payments_contract', file=config_file) }}"
         grafana_var_proof_aggregator_contract: "{{ lookup('ini', 'grafana_var_proof_aggregator_contract', file=config_file) }}"
         grafana_var_proof_aggregator_wallet: "{{ lookup('ini', 'grafana_var_proof_aggregator_wallet', file=config_file) }}"
+        grafana_slack_webhook_url: "{{ lookup('ini', 'grafana_slack_webhook_url', file=config_file) }}"
+        grafana_pagerduty_integration_key: "{{ lookup('ini', 'grafana_pagerduty_integration_key', file=config_file) }}"
       no_log: true
 
     - name: Install required packages
@@ -134,6 +136,50 @@
         group: grafana
         mode: '0644'
         directory_mode: '0755'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create alerting provisioning directory
+      become: true
+      file:
+        path: /etc/grafana/provisioning/alerting
+        state: directory
+        owner: grafana
+        group: grafana
+        mode: '0755'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Template alerting contact points
+      become: true
+      template:
+        src: grafana/alerting/contact-points.yaml.j2
+        dest: /etc/grafana/provisioning/alerting/contact-points.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Template alerting notification policies
+      become: true
+      template:
+        src: grafana/alerting/notification-policies.yaml.j2
+        dest: /etc/grafana/provisioning/alerting/notification-policies.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Template alerting rules
+      become: true
+      template:
+        src: grafana/alerting/alert-rules.yaml.j2
+        dest: /etc/grafana/provisioning/alerting/alert-rules.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
       vars:
         ansible_ssh_user: "{{ admin_user }}"
 

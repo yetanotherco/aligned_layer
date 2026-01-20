@@ -1,0 +1,18 @@
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: slack-alerts
+    group_by:
+      - alertname
+      - severity
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+{% if grafana_pagerduty_integration_key %}
+    routes:
+      - receiver: pagerduty-critical
+        matchers:
+          - severity = critical
+        continue: true
+{% endif %}
