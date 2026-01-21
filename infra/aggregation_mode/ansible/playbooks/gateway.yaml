@@ -53,6 +53,16 @@
       vars:
         ansible_ssh_user: "{{ admin_user }}"
 
+    - name: Check if TLS certificate exists
+      stat:
+        path: "{{ gateway_tls_cert_path }}"
+      register: tls_cert_stat
+
+    - name: Check if TLS key exists
+      stat:
+        path: "{{ gateway_tls_key_path }}"
+      register: tls_key_stat
+
     - name: Create SSL directory
       file:
         path: /home/{{ ansible_user }}/.ssl
@@ -60,6 +70,7 @@
         mode: '0700'
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
+      when: not tls_cert_stat.stat.exists or not tls_key_stat.stat.exists
 
     - name: Copy TLS certificate
       copy:
@@ -68,6 +79,7 @@
         mode: '0600'
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
+      when: not tls_cert_stat.stat.exists
 
     - name: Copy TLS key
       copy:
@@ -77,6 +89,7 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
       no_log: true
+      when: not tls_key_stat.stat.exists
 
     - name: Clone aligned_layer repository
       git:
