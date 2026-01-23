@@ -2,6 +2,8 @@
 
 ## Mainnet Deployments
 
+### Verification Layer
+
 | Contract                   | Address                                                                                                               |
 |----------------------------|-----------------------------------------------------------------------------------------------------------------------|
 | AlignedLayerServiceManager | [0xeF2A435e5EE44B2041100EF8cbC8ae035166606c](https://etherscan.io/address/0xeF2A435e5EE44B2041100EF8cbC8ae035166606c) |
@@ -12,7 +14,7 @@
 | StakeRegistry              | [0x45F5290a3630Cd6dc277B6f92227526121ca7c22](https://etherscan.io/address/0x45F5290a3630Cd6dc277B6f92227526121ca7c22) |
 | BatcherPaymentService      | [0xb0567184A52cB40956df6333510d6eF35B89C8de](https://etherscan.io/address/0xb0567184A52cB40956df6333510d6eF35B89C8de) |
 
-### Strategies
+#### Strategies
 
 Below is the list of supported strategies available on Aligned Mainnet:
 
@@ -34,21 +36,16 @@ Below is the list of supported strategies available on Aligned Mainnet:
 
 For additional details, refer to the [official EigenLayer documentation](https://github.com/Layr-Labs/eigenlayer-contracts).
 
+### Aggregation Mode
 
-## Holesky Deployments
-
-| Contract                   | Address                                                                                                                       |
-|----------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| AlignedProofAggregationService | [0xe84CD4084d8131841CE6DC265361f81F4C59a1d4](https://holesky.etherscan.io/address/0xe84CD4084d8131841CE6DC265361f81F4C59a1d4) |
-| AlignedLayerServiceManager | [0x58F280BeBE9B34c9939C3C39e0890C81f163B623](https://holesky.etherscan.io/address/0x58F280BeBE9B34c9939C3C39e0890C81f163B623) |
-| BlsApkRegistry             | [0xD0A725d82649f9e4155D7A60B638Fe33b3F25e3b](https://holesky.etherscan.io/address/0xD0A725d82649f9e4155D7A60B638Fe33b3F25e3b) |
-| IndexRegistry              | [0x4A7DE0a9fBBAa4fF0270d31852B363592F68B81F](https://holesky.etherscan.io/address/0x4A7DE0a9fBBAa4fF0270d31852B363592F68B81F) |
-| OperatorStateRetriever     | [0x59755AF41dB1680dC6F47CaFc09e40C0e757C5E9](https://holesky.etherscan.io/address/0x59755AF41dB1680dC6F47CaFc09e40C0e757C5E9) |
-| RegistryCoordinator        | [0x3aD77134c986193c9ef98e55e800B71e72835b62](https://holesky.etherscan.io/address/0x3aD77134c986193c9ef98e55e800B71e72835b62) |
-| StakeRegistry              | [0x51462D5511563A0F97Bb3Ce5475E1c3905b83F4b](https://holesky.etherscan.io/address/0x51462D5511563A0F97Bb3Ce5475E1c3905b83F4b) |
-| BatcherPaymentService      | [0x815aeCA64a974297942D2Bbf034ABEe22a38A003](https://holesky.etherscan.io/address/0x815aeCA64a974297942D2Bbf034ABEe22a38A003) |
+| Contract                       | Address                                                                                                               |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| AlignedProofAggregationService | [0xD0696d3eEebffcAB2D1b358805efAA005A9A8BC0](https://etherscan.io/address/0xD0696d3eEebffcAB2D1b358805efAA005A9A8BC0) |
+| AggregationModePaymentService  | [0xc8631Bc1E60c20db40e474F791126212fA8255F4](https://etherscan.io/address/0xc8631Bc1E60c20db40e474F791126212fA8255F4) |
 
 ## Hoodi Deployments
+
+### Verification Layer
 
 | Contract                       | Address                                                                                                                     |
 |--------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
@@ -61,7 +58,7 @@ For additional details, refer to the [official EigenLayer documentation](https:/
 | StakeRegistry                  | [0xCe3DFA29Ce371ccE673E631213d827157cfe67e0](https://hoodi.etherscan.io/address/0xCe3DFA29Ce371ccE673E631213d827157cfe67e0) |
 | BatcherPaymentService          | [0x041af25Fce2413570aaa0029D36DeA1eFdeff083](https://hoodi.etherscan.io/address/0x041af25Fce2413570aaa0029D36DeA1eFdeff083) |
 
-### Strategies
+#### Strategies
 
 Below is the list of supported strategies available on Aligned Hoodi:
 
@@ -70,3 +67,10 @@ Below is the list of supported strategies available on Aligned Hoodi:
 | [Beacon Chain ETH](https://hoodi.eigenlayer.xyz/token/ETH) | [0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0](https://hoodi.etherscan.io/address/0xbeaC0eeEeeeeEEeEeEEEEeeEEeEeeeEeeEEBEaC0) |  
 | [stETH](https://hoodi.eigenlayer.xyz/token/stETH)          | [0x19536FAd6Eb831e8211B316177979161BBdb2c2B](https://hoodi.etherscan.io/address/0x19536FAd6Eb831e8211B316177979161BBdb2c2B) |
 | [WETH](https://hoodi.eigenlayer.xyz/token/WETH)            | [0x24579aD4fe83aC53546E5c2D3dF5F85D6383420d](https://hoodi.etherscan.io/address/0x24579aD4fe83aC53546E5c2D3dF5F85D6383420d) |
+
+### Aggregation Mode
+
+| Contract                       | Address                                                                                                                     |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| AlignedProofAggregationService | [0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59](https://hoodi.etherscan.io/address/0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59) |
+| AggregationModePaymentService  | [0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64](https://hoodi.etherscan.io/address/0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64) |

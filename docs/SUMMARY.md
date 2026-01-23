@@ -39,8 +39,8 @@
 * [Setup Aligned Agg Mode Infrastructure Locally](3_guides/7_setup_aligned_agg_mode.md)
 * [Contract Addresses](3_guides/8_contract_addresses.md)
 * [Submitting Batch Without Batcher](3_guides/9_submitting_batch_without_batcher.md)
-* [Verification Layer CLI](3_guides/9_aligned_cli.md)
-* [Aggregation Mode CLI](3_guides/9.1_aggregation_mode_cli.md)
+* [Verification Layer CLI](3_guides/10_aligned_cli.md)
+* [Aggregation Mode CLI](3_guides/10.1_aggregation_mode_cli.md)
 
 ## Operators
 
