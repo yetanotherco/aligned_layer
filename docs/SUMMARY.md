@@ -31,14 +31,16 @@
 * [Validating public input](3_guides/3_validating_public_input.md)
 * [Proof Aggregation Service](3_guides/3.1_aggregation_mode.md)
 * [SDK Intro](3_guides/1_SDK_how_to.md)
-* [SDK API Reference](3_guides/1.2_SDK_api_reference.md)
+* [Verification Layer SDK](3_guides/1.2_SDK_api_reference.md)
+* [Aggregation Mode SDK](3_guides/1.3_SDK_api_reference_aggregation.md)
 * [Generating proofs for Aligned](3_guides/4_generating_proofs.md)
 * [Generating & submitting proofs of Rust code with ZKRust](3_guides/5_using_zkrust.md)
 * [Setup Aligned Infrastructure Locally](3_guides/6_setup_aligned.md)
 * [Setup Aligned Agg Mode Infrastructure Locally](3_guides/7_setup_aligned_agg_mode.md)
 * [Contract Addresses](3_guides/8_contract_addresses.md)
 * [Submitting Batch Without Batcher](3_guides/9_submitting_batch_without_batcher.md)
-* [Aligned CLI](3_guides/10_aligned_cli.md)
+* [Verification Layer CLI](3_guides/9_aligned_cli.md)
+* [Aggregation Mode CLI](3_guides/9.1_aggregation_mode_cli.md)
 
 ## Operators
 
