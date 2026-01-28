@@ -325,4 +325,4 @@ Where [`0x19536FAd6Eb831e8211B316177979161BBdb2c2B`](https://hoodi.etherscan.io/
 
 If you don't have Hoodi ETH, these are some useful faucets:
 
-- [Hoodi PoW Faucet](https://hoodi-faucet.pk910.de/)
+- [Hoodi Faucet](https://cloud.google.com/application/web3/faucet/ethereum/hoodi)

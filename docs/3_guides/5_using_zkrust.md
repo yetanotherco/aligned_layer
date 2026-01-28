@@ -59,7 +59,7 @@ cast wallet import --interactive <path_to_keystore.json>
 ```
 
 Make sure to send at least 0.1 Hoodi ETH to the address in the keystore.
-You can get Hoodi ETH from the [faucet](https://hoodi-faucet.pk910.de/)
+You can get Hoodi ETH from the [faucet](https://cloud.google.com/application/web3/faucet/ethereum/hoodi)
 
 ### 3. Generate and submit the proof with zkRust:
 
