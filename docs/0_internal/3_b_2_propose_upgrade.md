@@ -14,13 +14,13 @@ To propose the upgrade transaction you can follow the steps below:
 
    ![Transaction Builder](./images/3_b_2_multisig_2.png)
 
-3. Get the `alignedLayerProxyAdmin` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```, and paste it on `Enter Address or ENS Name`
+3. Get the `alignedLayerProxyAdmin` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/hoodi/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```, and paste it on `Enter Address or ENS Name`
 
 4. Once you paste the address, the ABI should be automatically filled.
 
 5. Choose the method ```upgrade``` in ```Contract method selector```.
 
-6. Get the ```alignedLayerServiceManager``` and ```alignedServiceManagerImplementation``` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```.
+6. Get the ```alignedLayerServiceManager``` and ```alignedServiceManagerImplementation``` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/hoodi/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```.
 
 7. Paste ```alignedLayerServiceManager``` address in ```proxy (address)```
 
@@ -62,13 +62,13 @@ A guide on how to sign the transaction can be found [here](./3_b_3_approve_upgra
 
    ![Transaction Builder](./images/3_b_2_multisig_2.png)
 
-3. Get the `batcherPaymentService` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```, and paste it on `Enter Address or ENS Name`
+3. Get the `batcherPaymentService` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/hoodi/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```, and paste it on `Enter Address or ENS Name`
 
 4. Once you paste the address, the ABI should be automatically filled.
 
 5. Choose the method ```upgradeTo``` in ```Contract method selector```.
 
-6. Get the ```batcherPaymentServiceImplementation``` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```.
+6. Get the ```batcherPaymentServiceImplementation``` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/hoodi/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```.
 
 7. Paste ```batcherPaymentServiceImplementation``` address in ```newImplementation (address)```
 

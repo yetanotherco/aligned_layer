@@ -6,7 +6,7 @@ To deploy a new implementation, you can follow the steps below.
 
 1. Make sure you have set variables as specified in the [Deploy Contracts Guide](./2_deploy_contracts.md).
 
-2. Set ```MULTISIG=true``` on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.sepolia```
+2. Set ```MULTISIG=true``` on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.hoodi``` or ```contracts/scripts/.env.sepolia```
 
 ## Deploy New Implementation for AlignedLayerServiceManager
 
@@ -17,6 +17,12 @@ To deploy a new implementation, you can follow the steps below.
    ```bash
     make upgrade_aligned_contracts NETWORK=mainnet
    ```
+
+    For **Hoodi** deployment:
+
+    ```bash
+     make upgrade_aligned_contracts NETWORK=hoodi
+    ```
 
     For **Sepolia** deployment:
 
@@ -33,7 +39,7 @@ To deploy a new implementation, you can follow the steps below.
    <calldata>
    ```
 
-   Also, the ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json``` file will be updated with the new implementation address depending on the network you are deploying.
+   Also, the ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/hoodi/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json``` file will be updated with the new implementation address depending on the network you are deploying.
 
 2. Create a PR with the new address for the AlignedLayerServiceManagerImplementation.
 
@@ -47,9 +53,15 @@ To deploy a new implementation, you can follow the steps below.
     make upgrade_batcher_payment_service NETWORK=mainnet
     ```
 
-    For **Sepolia** deployment:
+    For **Hoodi** deployment:
 
      ```bash
+     make upgrade_batcher_payment_service NETWORK=hoodi
+     ```
+
+    For **Sepolia** deployment:
+
+     ```bash  
      make upgrade_batcher_payment_service NETWORK=sepolia
      ```
 
@@ -62,7 +74,7 @@ To deploy a new implementation, you can follow the steps below.
    <calldata>
    ```
 
-   Also, the ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json``` file will be updated with the new implementation address depending on the network you are deploying.
+   Also, the ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/hoodi/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json``` file will be updated with the new implementation address depending on the network you are deploying.
 
 2. Create a PR with the new address for the BatcherPaymentServiceImplementation.
 

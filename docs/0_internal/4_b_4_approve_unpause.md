@@ -44,7 +44,7 @@ Once the transaction is proposed, the multisig owners must approve the transacti
 
    ![Check details](images/4_b_2_approve_unpause_3.png)
 
-   Get the `BatcherPaymentService` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
+   Get the `BatcherPaymentService` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/hoodi/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
 4. If the data is correct, click on the `Confirm` button.
 

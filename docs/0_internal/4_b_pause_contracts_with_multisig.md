@@ -1,5 +1,8 @@
 # Pause Contracts with a Multisig
 
+> [!WARNING]
+> Safe Multisig Wallet is not currently supported in Hoodi Testnet.
+
 > [!NOTE]
 > EigenLayer Sepolia contracts information is available in `contracts/script/output/sepolia/eigenlayer_deployment_output.json`.
 
