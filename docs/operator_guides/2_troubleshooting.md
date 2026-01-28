@@ -19,24 +19,46 @@ If your operator is not showing up after 1 hour, please check the following:
 
 - The operator is **whitelisted** on the Aligned AVS, you can run the following command:
 
-    ```bash
-    cast call \
-    --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
-    0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c \
-    "isWhitelisted(address _address)(bool)" <operator_address>
-    ```
-  
+    - Sepolia:
+
+        ```bash
+        cast call \
+        --rpc-url https://ethereum-sepolia-rpc.publicnode.com \
+        0x0Ef1920F089DD02d3A28BF2e34342FD3e74160A3 \
+        "isWhitelisted(address _address)(bool)" <operator_address>
+        ```
+
+    - Hoodi:
+
+        ```bash
+        cast call \
+        --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
+        0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c \
+        "isWhitelisted(address _address)(bool)" <operator_address>
+        ```
+
     If the operator is whitelisted, it will return `true`.
 
 - The operator is **registered** on the Aligned AVS:
-    
-    ```bash
-    cast call \
-    --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
-    0xD06AAf23d136ECBfb5Bdb349Dd7a87aDc74673Dd \
-    "getOperatorId(address operator)(bytes32)" <operator_address>
-    ```
-  
+
+    - Sepolia:
+
+        ```bash
+        cast call \
+        --rpc-url https://ethereum-sepolia-rpc.publicnode.com \
+        0x0Ef1920F089DD02d3A28BF2e34342FD3e74160A3 \
+        "getOperatorId(address operator)(bytes32)" <operator_address>
+        ```
+
+    - Hoodi:
+
+        ```bash
+        cast call \
+        --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
+        0xD06AAf23d136ECBfb5Bdb349Dd7a87aDc74673Dd \
+        "getOperatorId(address operator)(bytes32)" <operator_address>
+        ```
+
     If the operator is not registered, it will return `0x0` otherwise it will return the operator ID.
 
 ### How to resolve the error "Eth ws url or fallback is empty" or "Eth rpc url or fallback is empty"
