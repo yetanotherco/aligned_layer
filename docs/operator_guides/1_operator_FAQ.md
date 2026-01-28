@@ -49,10 +49,10 @@ You can get the registered version of your operator by running the following com
     curl https://mainnet.telemetry.alignedlayer.com/versions/<operator_address>
     ```
 
-- Sepolia:
+- Hoodi:
 
     ```bash
-    curl https://sepolia.telemetry.alignedlayer.com/versions/<operator_address>
+    curl https://hoodi.telemetry.alignedlayer.com/versions/<operator_address>
     ```
 
 Replace `<operator_address>` with your operator address.
@@ -60,7 +60,7 @@ Replace `<operator_address>` with your operator address.
 Also, you can check the operator version in the Explorer:
 
 - [Mainnet Operators Explorer](https://explorer.alignedlayer.com/operators)
-- [Sepolia Operators Explorer](https://sepolia.explorer.alignedlayer.com/operators)
+- [Hoodi Operators Explorer](https://hoodi.explorer.alignedlayer.com/operators)
 
 ### How do I check the operator version locally?
 
@@ -78,7 +78,7 @@ This will show the version of the operator you have built in your filesystem.
 
 You can get the ID of the operator by running the following command:
 
-- Mainnet: 
+- Mainnet:
 
     ```bash
     cast call \
@@ -87,12 +87,12 @@ You can get the ID of the operator by running the following command:
         "getOperatorId(address operator)(bytes32)" <operator_address>
     ```
 
-- Sepolia
+- Hoodi:
 
     ```bash
     cast call \
-        --rpc-url https://ethereum-sepolia-rpc.publicnode.com \
-        0x33b541E0C2725eEa4FB61F5f0E40ef84e764A228 \
+        --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
+        0xD06AAf23d136ECBfb5Bdb349Dd7a87aDc74673Dd \
         "getOperatorId(address operator)(bytes32)" <operator_address>
     ```
 
