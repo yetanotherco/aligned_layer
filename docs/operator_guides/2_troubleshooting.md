@@ -21,8 +21,8 @@ If your operator is not showing up after 1 hour, please check the following:
 
     ```bash
     cast call \
-    --rpc-url https://ethereum-holesky-rpc.publicnode.com \
-    0x3aD77134c986193c9ef98e55e800B71e72835b62 \
+    --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
+    0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c \
     "isWhitelisted(address _address)(bool)" <operator_address>
     ```
   
@@ -32,8 +32,8 @@ If your operator is not showing up after 1 hour, please check the following:
     
     ```bash
     cast call \
-    --rpc-url https://ethereum-holesky-rpc.publicnode.com \
-    0xD0A725d82649f9e4155D7A60B638Fe33b3F25e3b \
+    --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
+    0xD06AAf23d136ECBfb5Bdb349Dd7a87aDc74673Dd \
     "getOperatorId(address operator)(bytes32)" <operator_address>
     ```
   

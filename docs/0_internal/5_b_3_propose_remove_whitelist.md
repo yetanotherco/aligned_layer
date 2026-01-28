@@ -18,7 +18,7 @@ To propose a remove operator from whitelist transaction you can follow the steps
 
    ![Transaction Builder](./images/5_b_3_remove_operator_2.png)
 
-3. Get the `registryCoordinator` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
+3. Get the `registryCoordinator` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
 4. Paste the `registryCoordinator` address on `Enter Address or ENS Name`
 

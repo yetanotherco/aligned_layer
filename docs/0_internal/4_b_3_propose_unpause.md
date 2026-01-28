@@ -18,7 +18,7 @@ To propose the unpause transaction you can follow the steps below:
 
    ![Transaction Builder](./images/4_b_1_unpause_2.png)
 
-3. Get the `AlignedLayerServiceManager` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
+3. Get the `AlignedLayerServiceManager` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
 4. Paste the `AlignedLayerServiceManager` address on `Enter Address or ENS Name`
 
@@ -65,7 +65,7 @@ To propose the unpause transaction you can follow the steps below:
 
    ![Transaction Builder](./images/4_b_1_unpause_2.png)
 
-3. Get the `BatcherPaymentService` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
+3. Get the `BatcherPaymentService` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
 4. Paste the `BatcherPaymentService` address on `Enter Address or ENS Name`
 

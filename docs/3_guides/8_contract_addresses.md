@@ -74,3 +74,23 @@ Below is the list of supported strategies available on Aligned Hoodi:
 |--------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
 | AlignedProofAggregationService | [0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59](https://hoodi.etherscan.io/address/0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59) |
 | AggregationModePaymentService  | [0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64](https://hoodi.etherscan.io/address/0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64) |
+
+## Sepolia Deployments
+
+### Verification Layer
+
+| Contract                   | Address                                                                                                                       |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| AlignedLayerServiceManager | [0xFf731AB7b3653dc66878DC77E851D174f472d137](https://sepolia.etherscan.io/address/0xFf731AB7b3653dc66878DC77E851D174f472d137) |
+| BlsApkRegistry             | [0x33b541E0C2725eEa4FB61F5f0E40ef84e764A228](https://sepolia.etherscan.io/address/0x33b541E0C2725eEa4FB61F5f0E40ef84e764A228) |
+| IndexRegistry              | [0xA5EA732c82f51Bcbff4021c1F6EA3853B6565347](https://sepolia.etherscan.io/address/0xA5EA732c82f51Bcbff4021c1F6EA3853B6565347) |
+| OperatorStateRetriever     | [0xE4BDE5A267a44444E2808c60B4Abf89e74f552c6](https://sepolia.etherscan.io/address/0xE4BDE5A267a44444E2808c60B4Abf89e74f552c6) |
+| RegistryCoordinator        | [0x0Ef1920F089DD02d3A28BF2e34342FD3e74160A3](https://sepolia.etherscan.io/address/0x0Ef1920F089DD02d3A28BF2e34342FD3e74160A3) |
+| StakeRegistry              | [0xe87cB8f9C74264BD446835F899e15c3AE1209C34](https://sepolia.etherscan.io/address/0xe87cB8f9C74264BD446835F899e15c3AE1209C34) |
+| BatcherPaymentService      | [0x403dE630751e148bD71BFFcE762E5667C0825399](https://sepolia.etherscan.io/address/0x403dE630751e148bD71BFFcE762E5667C0825399) |
+
+### Aggregation Mode
+
+| Contract                       | Address                                                                                                                       |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| AlignedProofAggregationService | [0xb5D46304c30B1AeB3a8Da6ab599c336f7946C8A4](https://sepolia.etherscan.io/address/0xb5D46304c30B1AeB3a8Da6ab599c336f7946C8A4) |

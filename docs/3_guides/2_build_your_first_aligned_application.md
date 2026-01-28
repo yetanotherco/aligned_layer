@@ -62,9 +62,8 @@ The keystores are saved in `~/.foundry/keystores`. You can find more information
 Then you need to get some funds to pay for gas and proof verification.
 You can do this by using one of the following faucets:
 
-- [Google Faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
-- [Stakely Faucet](https://stakely.io/faucet/ethereum-holesky-testnet-eth)
-- [Quicknode Faucet](https://faucet.quicknode.com/ethereum/holesky)
+- [Google Faucet](https://cloud.google.com/application/web3/faucet/ethereum/hoodi)
+- [Hoodi Faucet](https://hoodi-faucet.pk910.de/)
 
 #### 3. Answer Quiz
 

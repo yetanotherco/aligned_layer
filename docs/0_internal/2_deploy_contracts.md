@@ -33,13 +33,13 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
 5. ```CD``` into the Aligned repo
 
-6. Set the ```PRIVATE_KEY``` and ```ETHERSCAN_API_KEY```on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.holesky``` or ```contracts/scripts/.env.sepolia```
+6. Set the ```PRIVATE_KEY``` and ```ETHERSCAN_API_KEY```on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.sepolia```
 
-7. Set `aggregator` value of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the address from step 1.
+7. Set `aggregator` value of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the address from step 1.
 
-8. Set `deployer` value of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the address from step 3.
+8. Set `deployer` value of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the address from step 3.
 
-9. Set `owner`, `upgrader`, `churner`, `ejector` and `pauser` values of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/holesky/aligned.holesky.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the multisig controlling this processes, or the owner of the deploying address, depending on what you want.
+9. Set `owner`, `upgrader`, `churner`, `ejector` and `pauser` values of ```contracts/script/deploy/config/mainnet/aligned.mainnet.config.json``` or ```contracts/script/deploy/config/sepolia/aligned.sepolia.config.json``` to the multisig controlling this processes, or the owner of the deploying address, depending on what you want.
 
 10. Deploy the contracts with the following command:
 
@@ -47,12 +47,6 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
     ```bash
     make deploy_aligned_contracts NETWORK=mainnet
-    ```
-
-    For **Holesky** deployment:
-
-    ```bash
-    make deploy_aligned_contracts NETWORK=holesky
     ```
 
     For **Sepolia** deployment:
@@ -64,7 +58,6 @@ Also, you will be able to deploy the Batcher Payment Service contract.
     If the deployment is correct, you will find the deployment information here:
 
     - Mainnet: `contracts/script/output/mainnet/alignedlayer_deployment_output.json`
-    - Holesky: `contracts/script/output/holesky/alignedlayer_deployment_output.json`
     - Sepolia: `contracts/script/output/sepolia/alignedlayer_deployment_output.json`
 
 11. Upgrade the new contracts addresses in docs/3_guides/7_contract_addresses.md
@@ -81,13 +74,13 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
 4. Transfer around 2.5M gas to the ```Address```
 
-5. Set the ```PRIVATE_KEY``` and ```ETHERSCAN_API_KEY```on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.holesky``` or ```contracts/scripts/.env.sepolia```
+5. Set the ```PRIVATE_KEY``` and ```ETHERSCAN_API_KEY```on the ```.env``` used to deploy. ```contracts/scripts/.env.mainnet``` or ```contracts/scripts/.env.sepolia```
 
-6. Set `owner` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/holesky/batcher-payment-service.holesky.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the multisig controlling this contract, or the owner of the deploying address, depending on what you want.
+6. Set `owner` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the multisig controlling this contract, or the owner of the deploying address, depending on what you want.
 
-7. Set `batcherWallet` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/holesky/batcher-payment-service.holesky.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the address from step 1.
+7. Set `batcherWallet` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the address from step 1.
 
-8. Set `alignedLayerServiceManager` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/holesky/batcher-payment-service.holesky.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the address of the AlignedServiceManager contract deployed on [AlignedServiceManager Contracts](#alignedservicemanager-contracts).
+8. Set `alignedLayerServiceManager` value of `contracts/script/deploy/config/mainnet/batcher-payment-service.mainnet.config.json` or `contracts/script/deploy/config/sepolia/batcher-payment-service.sepolia.config.json` to the address of the AlignedServiceManager contract deployed on [AlignedServiceManager Contracts](#alignedservicemanager-contracts).
 
 9. Deploy the contracts with the following command:
 
@@ -95,12 +88,6 @@ Also, you will be able to deploy the Batcher Payment Service contract.
 
     ```bash
     make deploy_batcher_payment_service NETWORK=mainnet
-    ```
-
-    For **Holesky** deployment:
-
-    ```bash
-    make deploy_batcher_payment_service NETWORK=holesky
     ```
 
     For **Sepolia** deployment:
@@ -112,7 +99,6 @@ Also, you will be able to deploy the Batcher Payment Service contract.
     If the deployment is correct, you will find the deployment information here:
 
     - Mainnet: `contracts/script/output/mainnet/alignedlayer_deployment_output.json`
-    - Holesky: `contracts/script/output/holesky/alignedlayer_deployment_output.json`
     - Sepolia: `contracts/script/output/sepolia/alignedlayer_deployment_output.json`
 
 10. Upgrade the new contracts addresses in docs/3_guides/7_contract_addresses.md

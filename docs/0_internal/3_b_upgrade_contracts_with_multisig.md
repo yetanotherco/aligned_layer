@@ -1,9 +1,5 @@
 # Upgrade Contracts using a Multisig
 
-> [!WARNING]  
-> Safe Multisig Wallet is not currently supported in Holesky Testnet.
-> For this reason, we deployed EigenLayer contracts in Sepolia to test the upgrade on AlignedLayer Contracts.
-
 > [!NOTE]
 > EigenLayer Sepolia contracts information is available in `contracts/script/output/sepolia/eigenlayer_deployment_output.json`.
 

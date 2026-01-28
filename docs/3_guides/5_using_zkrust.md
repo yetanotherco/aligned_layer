@@ -58,8 +58,8 @@ Then you can import your created keystore using:
 cast wallet import --interactive <path_to_keystore.json>
 ```
 
-Make sure to send at least 0.1 Holesky ETH to the address in the keystore.
-You can get Holesky ETH from the [faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
+Make sure to send at least 0.1 Hoodi ETH to the address in the keystore.
+You can get Hoodi ETH from the [faucet](https://hoodi-faucet.pk910.de/)
 
 ### 3. Generate and submit the proof with zkRust:
 

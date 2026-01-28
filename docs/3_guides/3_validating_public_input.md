@@ -163,7 +163,7 @@ function bytesToTwoUint32(
 ```
 We have already implemented the contract with these features; you can check it in `contracts/src/FibonacciValidator.sol`.
 
-To test it, you'll need to deploy the contract. First, create a new `.env` file following the format of `.env.example`, ensuring to add the `private_key` you wish to use for deployment. Make sure you have a sufficient balance on the Holesky testnet. For all other values, you can use the default settings provided in the comments.
+To test it, you'll need to deploy the contract. First, create a new `.env` file following the format of `.env.example`, ensuring to add the `private_key` you wish to use for deployment. Make sure you have a sufficient balance on the Hoodi testnet. For all other values, you can use the default settings provided in the comments.
 
 Once your `.env` file is set up, you can deploy the contract using the following command:
 

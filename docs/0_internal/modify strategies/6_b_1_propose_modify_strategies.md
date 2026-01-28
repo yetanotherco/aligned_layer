@@ -18,7 +18,7 @@ To propose the modify Strategy Weight Multipliers transaction you can follow the
 
    ![Transaction Builder](../images/6_b_1_modify_strategies_2.png)
 
-3. . Get the `StakeRegistry` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/holesky/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
+3. . Get the `StakeRegistry` address from ```contracts/script/output/mainnet/alignedlayer_deployment_output.json``` or ```contracts/script/output/sepolia/alignedlayer_deployment_output.json```
 
 4. Paste the `StakeRegistry` address on `Enter Address or ENS Name`
 

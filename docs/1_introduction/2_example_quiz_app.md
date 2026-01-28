@@ -40,7 +40,7 @@ cast wallet import --interactive <path_to_keystore.json>
 ```
 
 Then you need to get some funds to pay for gas and proof verification.
-You can do this by using this [faucet](https://cloud.google.com/application/web3/faucet/ethereum/holesky)
+You can do this by using this [faucet](https://hoodi-faucet.pk910.de/)
 
 ### 2 - Answer Quiz
 

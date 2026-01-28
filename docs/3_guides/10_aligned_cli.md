@@ -51,12 +51,12 @@ Submit a proof to the Aligned Layer batcher.
 - `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
   - Default: `ws://localhost:8080`  
   - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
-  - Holesky: `wss://batcher.alignedlayer.com`
+  - Sepolia: `wss://sepolia.batcher.alignedlayer.com`
   - Hoodi: `wss://hoodi.batcher.alignedlayer.com`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - `--proving_system <proving_system>`: Proof system of the submitted proof  
@@ -78,7 +78,7 @@ Submit a proof to the Aligned Layer batcher.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -124,13 +124,13 @@ Check if a proof was verified by Aligned on Ethereum.
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -183,14 +183,14 @@ Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - `--amount <amount (ether)>`: Amount of Ether to deposit.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -224,7 +224,7 @@ Retrieves the user's balance in the Aligned Layer's contract.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -232,7 +232,7 @@ Retrieves the user's balance in the Aligned Layer's contract.
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - `--user_addr`: User's Ethereum address.
@@ -264,7 +264,7 @@ Retrieves the user's current nonce from the Batcher.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.
     - Default: `devnet`
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -296,7 +296,7 @@ Retrieves the user's current nonce from the Blockhain, in the Batcher Payment Se
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -304,7 +304,7 @@ Retrieves the user's current nonce from the Blockhain, in the Batcher Payment Se
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 
@@ -339,7 +339,7 @@ Read more here: https://docs.alignedlayer.com/architecture/1_proof_verification_
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -350,7 +350,7 @@ Read more here: https://docs.alignedlayer.com/architecture/1_proof_verification_
 ```bash
 aligned get-user-last-max-fee \
 <USER_ETH_ADDRESS> \
---network holesky
+--network hoodi
 ```
 
 #### Notes:
@@ -375,7 +375,7 @@ Retrieves the number of proofs currently queued for a given user in the Batcher.
 - Specify which network to interact with, using one of the following options:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom network, instead of `--network`, provide the following flags:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`: Address of the Aligned Service Manager contract.
     - `--batcher_payment_service <batcher_payment_service_contract_address>`: Address of the Batcher Payment Service contract.
@@ -383,7 +383,7 @@ Retrieves the number of proofs currently queued for a given user in the Batcher.
 - `--rpc_url <rpc_provider_url>`: Ethereum RPC provider URL.  
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - You can also specify your own RPC provider URL
 
@@ -416,13 +416,13 @@ Locks funds in the batcher. Locked balances can be used for proof verification p
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -456,13 +456,13 @@ Unlocks funds from the batcher. After calling this command, users must wait for 
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -496,14 +496,14 @@ Withdraws a specified amount from the user's balance in the batcher. This comman
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - `--amount <amount (ether)>`: Amount of Ether to withdraw.
 - One of the following, to specify which Network to interact with:
   - `--network <working_network_name>`: Network name to interact with.  
     - Default: `devnet`  
-    - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
   - For a custom Network, you must specify the following parameters:
     - `--aligned_service_manager <aligned_service_manager_contract_address>`
     - `--batcher_payment_service <batcher_payment_service_contract_address>`
@@ -536,13 +536,13 @@ Verifies if your proof has been verified by the `Aggregation Mode`.
 - `--vk`: Verification key hash file path.
 - `--public_input`: Your program committed values file path.
 - `--from-block`: From which block to start fetching events. This must no be older than 18 days as blobs will be expired. Defaults to the block corresponding to last 24 hours.
-- `--network <working_network_name>`: Network name to interact with.  
-  - Default: `devnet`  
-  - Possible values: `devnet`, `holesky`, `mainnet`, `hoodi`
+- `--network <working_network_name>`: Network name to interact with.
+  - Default: `devnet`
+  - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
 - `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address.
   - Default: `http://localhost:8545`
   - Mainnet: `https://ethereum-rpc.publicnode.com`
-  - Holesky: `https://ethereum-holesky-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
   - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
   - Also, you can use your own Ethereum RPC providers.
 - `--beacon_client_url <BEACON_CLIENT_URL>`: User's Ethereum Consensus provider connection address. Public nodes don't support this method.

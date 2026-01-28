@@ -30,7 +30,7 @@ use aligned_sdk::verification_layer::{estimate_fee, submit_and_wait, get_nonce_f
 And then you can do a simple call of, for example, `get_nonce_from_ethereum`
 
 ```rust
-const NETWORK: Network = Network::Holesky;
+const NETWORK: Network = Network::Hoodi;
 
 fn main() {
     let rpc_url = args.rpc_url.clone();
@@ -38,7 +38,7 @@ fn main() {
         .expect("Failed to read keystore password");
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
-        .with_chain_id(17000u64);
+        .with_chain_id(560048u64);
 
     // Call to SDK:
     let nonce = get_nonce_from_ethereum(&rpc_url, wallet.address(), NETWORK).await
@@ -65,7 +65,7 @@ fn main() {
         .expect("Failed to read keystore password");
     let wallet = LocalWallet::decrypt_keystore(args.keystore_path, &keystore_password)
         .expect("Failed to decrypt keystore")
-        .with_chain_id(17000u64);
+        .with_chain_id(560048u64);
     let max_fee = estimate_fee(&rpc_url, PriceEstimate::Instant)
         .await
         .expect("failed to fetch gas price from the blockchain");
@@ -73,7 +73,7 @@ fn main() {
     // Call to SDK:
     match submit_and_wait_verification(
         &rpc_url,
-        Network::Holesky,
+        Network::Hoodi,
         &verification_data,
         max_fee,
         wallet.clone(),
