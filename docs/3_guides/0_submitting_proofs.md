@@ -15,6 +15,8 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: SP1 [(v5.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v5.0.0)
 - :white_check_mark: Risc0 [(v3.0.3)](https://github.com/risc0/risc0/releases/tag/v3.0.3). Previous versions are also compatible. 
 - :white_check_mark: Circom [(v2.2.2)](https://github.com/iden3/circom/releases/tag/v2.2.2)
+- :white_check_mark: Mina (Testnet only - Sepolia, Hoodi)
+- :white_check_mark: Mina Account (Testnet only - Sepolia, Hoodi)
 
 Learn more about future verifiers [here](../2_architecture/0_supported_verifiers.md).
 
@@ -284,6 +286,80 @@ aligned submit \
 --proof ./scripts/test_files/circom_groth16_bn256_script/proof.json \
 --public_input ./scripts/test_files/circom_groth16_bn256_script/public.json \
 --vk ./scripts/test_files/circom_groth16_bn256_script/verification_key.json \
+--keystore_path ~/.aligned_keystore/keystore0 \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+### Mina proof
+
+{% hint style="warning" %}
+Mina proofs are only available on testnets (Sepolia, Hoodi). To use this verifier, you need to checkout to the `staging` branch:
+```bash
+git checkout staging
+```
+{% endhint %}
+
+The Mina proof needs the proof file and the public input file.
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system Mina \
+--proof <proof_file> \
+--public_input <public_input_file> \
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
+--keystore_path <path_to_ecdsa_keystore> \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+**Example**
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system Mina \
+--proof ./scripts/test_files/mina/devnet_mina_state.proof \
+--public_input ./scripts/test_files/mina/devnet_mina_state.pub \
+--keystore_path ~/.aligned_keystore/keystore0 \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+### MinaAccount proof
+
+{% hint style="warning" %}
+MinaAccount proofs are only available on testnets (Sepolia, Hoodi). To use this verifier, you need to checkout to the `staging` branch:
+```bash
+git checkout staging
+```
+{% endhint %}
+
+The MinaAccount proof needs the proof file and the public input file.
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system MinaAccount \
+--proof <proof_file> \
+--public_input <public_input_file> \
+--proof_generator_addr [proof_generator_addr] \
+--batch_inclusion_data_directory_path [batch_inclusion_data_directory_path] \
+--keystore_path <path_to_ecdsa_keystore> \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+**Example**
+
+```bash
+rm -rf ./aligned_verification_data/ &&
+aligned submit \
+--proving_system MinaAccount \
+--proof ./scripts/test_files/mina_account/mina_account.proof \
+--public_input ./scripts/test_files/mina_account/mina_account.pub \
 --keystore_path ~/.aligned_keystore/keystore0 \
 --network hoodi \
 --rpc_url https://ethereum-hoodi-rpc.publicnode.com

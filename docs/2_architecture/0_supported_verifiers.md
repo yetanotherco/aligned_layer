@@ -9,6 +9,8 @@ The following is the list of the verifiers currently supported by Aligned:
 - :white_check_mark: SP1 [(v5.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v5.0.0)
 - :white_check_mark: Risc0 [(v3.0.3)](https://github.com/risc0/risc0/releases/tag/v3.0.3). Previous versions are also compatible.
 - :white_check_mark: Circom [(v2.2.2)](https://github.com/iden3/circom/releases/tag/v2.2.2)
+- :white_check_mark: Mina (Testnet only - Sepolia, Hoodi)
+- :white_check_mark: Mina Account (Testnet only - Sepolia, Hoodi)
 - 🏗️ Lambdaworks
 - 🏗️ Kimchi
 
