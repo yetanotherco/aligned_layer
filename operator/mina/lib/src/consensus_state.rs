@@ -32,7 +32,7 @@ pub fn select_secure_chain(
     if is_short_range(candidate, tip)? {
         Ok(select_longer_chain(candidate, tip))
     } else {
-        let tip_density = relative_min_window_density(candidate, tip);
+        let tip_density = relative_min_window_density(tip, candidate);
         let candidate_density = relative_min_window_density(candidate, tip);
         Ok(match candidate_density.cmp(&tip_density) {
             Ordering::Less => ChainResult::Bridge,
