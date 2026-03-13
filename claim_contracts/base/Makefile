@@ -1,6 +1,7 @@
 -include .env
+export
 
-.PHONY: help deploy-base-sepolia deploy-base-mainnet verify bridge-l1-to-base-sepolia bridge-l1-to-base-mainnet
+.PHONY: help deploy-base-sepolia deploy-base-mainnet verify bridge-l1-to-base-sepolia bridge-l1-to-base-mainnet withdraw-base-to-l1-sepolia withdraw-base-to-l1-mainnet prove-withdrawal-sepolia prove-withdrawal-mainnet finalize-withdrawal-sepolia finalize-withdrawal-mainnet withdraw-full-sepolia withdraw-full-mainnet
 
 help: ## Show help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -53,3 +54,57 @@ bridge-l1-to-base-mainnet: ## Bridge ALIGN from Ethereum to Base (requires AMOUN
 	cast send $(L1_BRIDGE_MAINNET) "depositERC20(address,address,uint256,uint32,bytes)" \
 		$(L1_TOKEN_MAINNET) $(L2_TOKEN_MAINNET) $(AMOUNT) 200000 0x \
 		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_MAINNET_RPC_URL)
+
+bridge-l1-to-base-sepolia-to: ## Bridge ALIGN from Sepolia to BaseSepolia to a different address (requires AMOUNT, TO)
+	cast send $(L1_TOKEN_SEPOLIA) "approve(address,uint256)" $(L1_BRIDGE_SEPOLIA) $(AMOUNT) \
+		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_SEPOLIA_RPC_URL)
+	cast send $(L1_BRIDGE_SEPOLIA) "depositERC20To(address,address,address,uint256,uint32,bytes)" \
+		$(L1_TOKEN_SEPOLIA) $(L2_TOKEN_SEPOLIA) $(TO) $(AMOUNT) 200000 0x \
+		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_SEPOLIA_RPC_URL)
+
+bridge-l1-to-base-mainnet-to: ## Bridge ALIGN from Ethereum to Base to a different address (requires AMOUNT, TO)
+	cast send $(L1_TOKEN_MAINNET) "approve(address,uint256)" $(L1_BRIDGE_MAINNET) $(AMOUNT) \
+		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_MAINNET_RPC_URL)
+	cast send $(L1_BRIDGE_MAINNET) "depositERC20To(address,address,address,uint256,uint32,bytes)" \
+		$(L1_TOKEN_MAINNET) $(L2_TOKEN_MAINNET) $(TO) $(AMOUNT) 200000 0x \
+		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_MAINNET_RPC_URL)
+
+# --- Bridging Base -> L1 (withdrawal) ---
+# This initiates the withdrawal on L2. After this, you must:
+#   1. Wait ~1 hour for the L2 output to be proposed
+#   2. Prove the withdrawal on L1 (requires Optimism SDK or Base Bridge UI)
+#   3. Wait 7 days (challenge period)
+#   4. Finalize the withdrawal on L1
+# L2StandardBridge predeploy: 0x4200000000000000000000000000000000000010
+
+withdraw-base-to-l1-sepolia: ## Initiate ALIGN withdrawal from BaseSepolia to Sepolia (requires AMOUNT)
+	cast send 0x4200000000000000000000000000000000000010 \
+		"withdraw(address,uint256,uint32,bytes)" \
+		$(L2_TOKEN_SEPOLIA) $(AMOUNT) 200000 0x \
+		--private-key $(USER_PRIVATE_KEY) --rpc-url $(BASE_SEPOLIA_RPC_URL)
+
+withdraw-base-to-l1-mainnet: ## Initiate ALIGN withdrawal from Base to Ethereum (requires AMOUNT)
+	cast send 0x4200000000000000000000000000000000000010 \
+		"withdraw(address,uint256,uint32,bytes)" \
+		$(L2_TOKEN_MAINNET) $(AMOUNT) 200000 0x \
+		--private-key $(USER_PRIVATE_KEY) --rpc-url $(BASE_MAINNET_RPC_URL)
+
+# --- Prove & Finalize (requires npm install) ---
+
+prove-withdrawal-sepolia: ## Prove withdrawal on L1 Sepolia (requires TX_HASH)
+	npx tsx scripts/withdraw.ts prove --tx-hash $(TX_HASH) --network sepolia
+
+prove-withdrawal-mainnet: ## Prove withdrawal on L1 Mainnet (requires TX_HASH)
+	npx tsx scripts/withdraw.ts prove --tx-hash $(TX_HASH) --network mainnet
+
+finalize-withdrawal-sepolia: ## Finalize withdrawal on L1 Sepolia (requires TX_HASH)
+	npx tsx scripts/withdraw.ts finalize --tx-hash $(TX_HASH) --network sepolia
+
+finalize-withdrawal-mainnet: ## Finalize withdrawal on L1 Mainnet (requires TX_HASH)
+	npx tsx scripts/withdraw.ts finalize --tx-hash $(TX_HASH) --network mainnet
+
+withdraw-full-sepolia: ## Full withdrawal flow: prove + finalize on Sepolia (requires TX_HASH)
+	npx tsx scripts/withdraw.ts full --tx-hash $(TX_HASH) --network sepolia
+
+withdraw-full-mainnet: ## Full withdrawal flow: prove + finalize on Mainnet (requires TX_HASH)
+	npx tsx scripts/withdraw.ts full --tx-hash $(TX_HASH) --network mainnet

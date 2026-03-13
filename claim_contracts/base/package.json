@@ -1,0 +1,12 @@
+{
+  "name": "aligned-base-bridge",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "viem": "^2"
+  },
+  "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

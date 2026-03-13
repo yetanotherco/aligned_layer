@@ -35,6 +35,35 @@ make bridge-l1-to-base-mainnet AMOUNT=1000000000000000000
 
 Tokens appear on Base after ~20 minutes.
 
+## Withdraw (Base -> L1)
+
+Withdrawals are a [multi-step process](https://docs.optimism.io/app-developers/tutorials/bridging/cross-dom-bridge-erc20#withdraw-tokens). No approval is needed. All three steps use the same `TX_HASH` — the **L2 initiation tx hash** from step 1.
+
+1. **Initiate** on L2 (burns tokens on Base):
+
+   ```bash
+   make withdraw-base-to-l1-sepolia AMOUNT=1000000000000000000
+   make withdraw-base-to-l1-mainnet AMOUNT=1000000000000000000
+   ```
+
+   Save the tx hash from this step — it's needed for prove and finalize.
+
+2. **Prove** on L1 — wait ~1 hour for the L2 output to be proposed, then prove:
+
+   ```bash
+   make prove-withdrawal-sepolia TX_HASH=<L2 initiation tx hash>
+   make prove-withdrawal-mainnet TX_HASH=<L2 initiation tx hash>
+   ```
+
+3. **Finalize** on L1 — wait 7 days challenge period (shorter on testnet), then finalize:
+
+   ```bash
+   make finalize-withdrawal-sepolia TX_HASH=<L2 initiation tx hash>
+   make finalize-withdrawal-mainnet TX_HASH=<L2 initiation tx hash>
+   ```
+
+   > **Note:** Prove and finalize use `viem` + `viem/op-stack`. Run `npm install` first.
+
 ## Bridge Addresses
 
 Source: [Base Contracts](https://docs.base.org/chain/base-contracts)
@@ -54,4 +83,5 @@ Source: [Base Contracts](https://docs.base.org/chain/base-contracts)
 ## References
 
 - [OP Standard Bridge Standard Token Tutorial](https://docs.optimism.io/app-developers/tutorials/bridging/standard-bridge-standard-token)
+- [OP Bridge ERC-20 Tutorial (withdraw flow)](https://docs.optimism.io/app-developers/tutorials/bridging/cross-dom-bridge-erc20)
 - [Base Contracts](https://docs.base.org/chain/base-contracts)
