@@ -43,7 +43,6 @@ deploy-token-testnet: ## 🚀 Deploy the token contract
 	--private-key $(DEPLOYER_PRIVATE_KEY) \
 	--rpc-url $(RPC_URL) \
 	--broadcast \
-	--verbosity 3 \
 	--verify \
 	--etherscan-api-key $(ETHERSCAN_API_KEY)
 
