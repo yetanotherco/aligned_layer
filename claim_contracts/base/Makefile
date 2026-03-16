@@ -24,7 +24,7 @@ deploy-base-mainnet: ## Deploy ALIGN on BaseMainnet
 	@L2_TOKEN=$$(cast send $(FACTORY) \
 		"createOptimismMintableERC20(address,string,string)" \
 		$(L1_TOKEN_MAINNET) "Aligned Token" "ALIGN" \
-		--private-key $(DEPLOYER_PRIVATE_KEY) \
+		--interactive \
 		--rpc-url $(BASE_MAINNET_RPC_URL) \
 		--json | jq -r '.logs[0].topics[2]' | cast parse-bytes32-address) && \
 	echo "L2 Token deployed at: $$L2_TOKEN"
@@ -50,10 +50,10 @@ bridge-l1-to-base-sepolia: ## Bridge ALIGN from Sepolia to BaseSepolia (requires
 
 bridge-l1-to-base-mainnet: ## Bridge ALIGN from Ethereum to Base (requires AMOUNT)
 	cast send $(L1_TOKEN_MAINNET) "approve(address,uint256)" $(L1_BRIDGE_MAINNET) $(AMOUNT) \
-		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_MAINNET_RPC_URL)
+		--interactive --rpc-url $(L1_MAINNET_RPC_URL)
 	cast send $(L1_BRIDGE_MAINNET) "depositERC20(address,address,uint256,uint32,bytes)" \
 		$(L1_TOKEN_MAINNET) $(L2_TOKEN_MAINNET) $(AMOUNT) 200000 0x \
-		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_MAINNET_RPC_URL)
+		--interactive --rpc-url $(L1_MAINNET_RPC_URL)
 
 bridge-l1-to-base-sepolia-to: ## Bridge ALIGN from Sepolia to BaseSepolia to a different address (requires AMOUNT, TO)
 	cast send $(L1_TOKEN_SEPOLIA) "approve(address,uint256)" $(L1_BRIDGE_SEPOLIA) $(AMOUNT) \
@@ -64,10 +64,10 @@ bridge-l1-to-base-sepolia-to: ## Bridge ALIGN from Sepolia to BaseSepolia to a d
 
 bridge-l1-to-base-mainnet-to: ## Bridge ALIGN from Ethereum to Base to a different address (requires AMOUNT, TO)
 	cast send $(L1_TOKEN_MAINNET) "approve(address,uint256)" $(L1_BRIDGE_MAINNET) $(AMOUNT) \
-		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_MAINNET_RPC_URL)
+		--interactive --rpc-url $(L1_MAINNET_RPC_URL)
 	cast send $(L1_BRIDGE_MAINNET) "depositERC20To(address,address,address,uint256,uint32,bytes)" \
 		$(L1_TOKEN_MAINNET) $(L2_TOKEN_MAINNET) $(TO) $(AMOUNT) 200000 0x \
-		--private-key $(USER_PRIVATE_KEY) --rpc-url $(L1_MAINNET_RPC_URL)
+		--interactive --rpc-url $(L1_MAINNET_RPC_URL)
 
 # --- Bridging Base -> L1 (withdrawal) ---
 # This initiates the withdrawal on L2. After this, you must:
@@ -87,7 +87,7 @@ withdraw-base-to-l1-mainnet: ## Initiate ALIGN withdrawal from Base to Ethereum 
 	cast send 0x4200000000000000000000000000000000000010 \
 		"withdraw(address,uint256,uint32,bytes)" \
 		$(L2_TOKEN_MAINNET) $(AMOUNT) 200000 0x \
-		--private-key $(USER_PRIVATE_KEY) --rpc-url $(BASE_MAINNET_RPC_URL)
+		--interactive --rpc-url $(BASE_MAINNET_RPC_URL)
 
 withdraw-base-to-l1-sepolia-to: ## Initiate ALIGN withdrawal from BaseSepolia to a different address on Sepolia (requires AMOUNT, TO)
 	cast send 0x4200000000000000000000000000000000000010 \
@@ -99,7 +99,7 @@ withdraw-base-to-l1-mainnet-to: ## Initiate ALIGN withdrawal from Base to a diff
 	cast send 0x4200000000000000000000000000000000000010 \
 		"withdrawTo(address,address,uint256,uint32,bytes)" \
 		$(L2_TOKEN_MAINNET) $(TO) $(AMOUNT) 200000 0x \
-		--private-key $(USER_PRIVATE_KEY) --rpc-url $(BASE_MAINNET_RPC_URL)
+		--interactive --rpc-url $(BASE_MAINNET_RPC_URL)
 
 # --- Prove & Finalize (requires npm install) ---
 
