@@ -7,12 +7,13 @@ help: ## Show help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 # Factory predeploy (same on all OP Stack chains)
-FACTORY=0x4200000000000000000000000000000000000012
+FACTORY_SEPOLIA=0x4200000000000000000000000000000000000012
+FACTORY_MAINNET=0xF10122D428B4bc8A9d050D06a2037259b4c4B83B
 
 # --- Deployment ---
 
 deploy-base-sepolia: ## Deploy ALIGN on BaseSepolia
-	@L2_TOKEN=$$(cast send $(FACTORY) \
+	@L2_TOKEN=$$(cast send $(FACTORY_SEPOLIA) \
 		"createOptimismMintableERC20(address,string,string)" \
 		$(L1_TOKEN_SEPOLIA) "Aligned Token" "ALIGN" \
 		--private-key $(DEPLOYER_PRIVATE_KEY) \
@@ -21,7 +22,7 @@ deploy-base-sepolia: ## Deploy ALIGN on BaseSepolia
 	echo "L2 Token deployed at: $$L2_TOKEN"
 
 deploy-base-mainnet: ## Deploy ALIGN on BaseMainnet
-	@L2_TOKEN=$$(cast send $(FACTORY) \
+	@L2_TOKEN=$$(cast send $(FACTORY_MAINNET) \
 		"createOptimismMintableERC20(address,string,string)" \
 		$(L1_TOKEN_MAINNET) "Aligned Token" "ALIGN" \
 		--interactive \
