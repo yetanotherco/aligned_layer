@@ -35,12 +35,12 @@ deploy-base-mainnet: ## Deploy ALIGN on BaseMainnet
 # --- Verification ---
 
 verify: ## Verify L2 token (requires L2_TOKEN, RPC_URL)
-	cast call $(L2_TOKEN) "name()(string)" --rpc-url $(RPC_URL)
-	cast call $(L2_TOKEN) "symbol()(string)" --rpc-url $(RPC_URL)
-	cast call $(L2_TOKEN) "decimals()(uint8)" --rpc-url $(RPC_URL)
-	cast call $(L2_TOKEN) "REMOTE_TOKEN()(address)" --rpc-url $(RPC_URL)
-	cast call $(L2_TOKEN) "BRIDGE()(address)" --rpc-url $(RPC_URL)
-	cast call $(L2_TOKEN) "totalSupply()(uint256)" --rpc-url $(RPC_URL)
+	@cast call $(L2_TOKEN) "name()(string)" --rpc-url $(RPC_URL)
+	@cast call $(L2_TOKEN) "symbol()(string)" --rpc-url $(RPC_URL)
+	@cast call $(L2_TOKEN) "decimals()(uint8)" --rpc-url $(RPC_URL)
+	@cast call $(L2_TOKEN) "REMOTE_TOKEN()(address)" --rpc-url $(RPC_URL)
+	@cast call $(L2_TOKEN) "BRIDGE()(address)" --rpc-url $(RPC_URL)
+	@cast call $(L2_TOKEN) "totalSupply()(uint256)" --rpc-url $(RPC_URL)
 
 # --- Bridging L1 -> Base ---
 
