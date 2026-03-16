@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: help deploy-base-sepolia deploy-base-mainnet verify bridge-l1-to-base-sepolia bridge-l1-to-base-mainnet withdraw-base-to-l1-sepolia withdraw-base-to-l1-mainnet prove-withdrawal-sepolia prove-withdrawal-mainnet finalize-withdrawal-sepolia finalize-withdrawal-mainnet withdraw-full-sepolia withdraw-full-mainnet
+.PHONY: help deploy-base-sepolia deploy-base-mainnet verify bridge-l1-to-base-sepolia bridge-l1-to-base-mainnet withdraw-base-to-l1-sepolia withdraw-base-to-l1-mainnet prove-withdrawal-sepolia prove-withdrawal-mainnet finalize-withdrawal-sepolia finalize-withdrawal-mainnet
 
 help: ## Show help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
