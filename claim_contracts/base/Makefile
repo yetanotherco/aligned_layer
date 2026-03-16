@@ -6,7 +6,9 @@ export
 help: ## Show help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-# Factory predeploy (same on all OP Stack chains)
+# OptimismMintableERC20Factory
+# Mainnet uses Base-specific factory to avoid address conflicts with Optimism.
+# Source: https://docs.base.org/chain/base-contracts
 FACTORY_SEPOLIA=0x4200000000000000000000000000000000000012
 FACTORY_MAINNET=0xF10122D428B4bc8A9d050D06a2037259b4c4B83B
 
