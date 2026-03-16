@@ -26,7 +26,7 @@ make verify L2_TOKEN=<address> RPC_URL=https://sepolia.base.org
 
 ## Bridge (L1 -> Base)
 
-Approve + deposit in one command. `AMOUNT` is in wei (1e18 = 1 ALIGN).
+Approve + deposit in one command. `AMOUNT` is the token amount with 18 decimals (1000000000000000000 = 1 ALIGN).
 
 ```bash
 make bridge-l1-to-base-sepolia AMOUNT=1000000000000000000
@@ -34,6 +34,13 @@ make bridge-l1-to-base-mainnet AMOUNT=1000000000000000000
 ```
 
 Tokens appear on Base after ~20 minutes.
+
+To bridge to a different L2 address, use the `TO` parameter:
+
+```bash
+make bridge-l1-to-base-sepolia-to AMOUNT=1000000000000000000 TO=0x...
+make bridge-l1-to-base-mainnet-to AMOUNT=1000000000000000000 TO=0x...
+```
 
 ## Withdraw (Base -> L1)
 
@@ -44,6 +51,13 @@ Withdrawals are a [multi-step process](https://docs.optimism.io/app-developers/t
    ```bash
    make withdraw-base-to-l1-sepolia AMOUNT=1000000000000000000
    make withdraw-base-to-l1-mainnet AMOUNT=1000000000000000000
+   ```
+
+   To withdraw to a different L1 address, use the `TO` parameter:
+
+   ```bash
+   make withdraw-base-to-l1-sepolia-to AMOUNT=1000000000000000000 TO=0x...
+   make withdraw-base-to-l1-mainnet-to AMOUNT=1000000000000000000 TO=0x...
    ```
 
    Save the tx hash from this step — it's needed for prove and finalize.

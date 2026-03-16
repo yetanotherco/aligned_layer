@@ -89,6 +89,18 @@ withdraw-base-to-l1-mainnet: ## Initiate ALIGN withdrawal from Base to Ethereum 
 		$(L2_TOKEN_MAINNET) $(AMOUNT) 200000 0x \
 		--private-key $(USER_PRIVATE_KEY) --rpc-url $(BASE_MAINNET_RPC_URL)
 
+withdraw-base-to-l1-sepolia-to: ## Initiate ALIGN withdrawal from BaseSepolia to a different address on Sepolia (requires AMOUNT, TO)
+	cast send 0x4200000000000000000000000000000000000010 \
+		"withdrawTo(address,address,uint256,uint32,bytes)" \
+		$(L2_TOKEN_SEPOLIA) $(TO) $(AMOUNT) 200000 0x \
+		--private-key $(USER_PRIVATE_KEY) --rpc-url $(BASE_SEPOLIA_RPC_URL)
+
+withdraw-base-to-l1-mainnet-to: ## Initiate ALIGN withdrawal from Base to a different address on Ethereum (requires AMOUNT, TO)
+	cast send 0x4200000000000000000000000000000000000010 \
+		"withdrawTo(address,address,uint256,uint32,bytes)" \
+		$(L2_TOKEN_MAINNET) $(TO) $(AMOUNT) 200000 0x \
+		--private-key $(USER_PRIVATE_KEY) --rpc-url $(BASE_MAINNET_RPC_URL)
+
 # --- Prove & Finalize (requires npm install) ---
 
 prove-withdrawal-sepolia: ## Prove withdrawal on L1 Sepolia (requires TX_HASH)
@@ -102,9 +114,3 @@ finalize-withdrawal-sepolia: ## Finalize withdrawal on L1 Sepolia (requires TX_H
 
 finalize-withdrawal-mainnet: ## Finalize withdrawal on L1 Mainnet (requires TX_HASH)
 	npx tsx scripts/withdraw.ts finalize --tx-hash $(TX_HASH) --network mainnet
-
-withdraw-full-sepolia: ## Full withdrawal flow: prove + finalize on Sepolia (requires TX_HASH)
-	npx tsx scripts/withdraw.ts full --tx-hash $(TX_HASH) --network sepolia
-
-withdraw-full-mainnet: ## Full withdrawal flow: prove + finalize on Mainnet (requires TX_HASH)
-	npx tsx scripts/withdraw.ts full --tx-hash $(TX_HASH) --network mainnet
