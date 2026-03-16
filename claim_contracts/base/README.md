@@ -6,7 +6,6 @@ Deployment and bridging of the Aligned Token (ALIGN) on Base using the [OP Stand
 
 ```bash
 cp .env.example .env
-# Fill in DEPLOYER_PRIVATE_KEY and USER_PRIVATE_KEY
 ```
 
 ## Deploy
