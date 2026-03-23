@@ -11,6 +11,7 @@ import {
   publicActionsL1,
   walletActionsL1,
   publicActionsL2,
+  getWithdrawals,
 } from "viem/op-stack";
 
 // --- Config ---
@@ -133,8 +134,9 @@ async function finalize(txHash: Hash, network: Network) {
   }
 
   console.log("Finalizing withdrawal on L1...");
+  const [withdrawal] = getWithdrawals({ logs: receipt.logs });
   const finalizeHash = await walletClientL1.finalizeWithdrawal({
-    receipt,
+    withdrawal,
     targetChain: chains.l2,
   });
 
