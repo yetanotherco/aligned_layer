@@ -11,6 +11,9 @@ FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 FROM chef AS planner
 
+COPY crates/sdk/Cargo.toml /aligned_layer/crates/sdk/Cargo.toml
+COPY crates/sdk/src/lib.rs /aligned_layer/crates/sdk/src/lib.rs
+
 COPY crates/batcher/Cargo.toml /aligned_layer/crates/batcher/Cargo.toml
 COPY crates/batcher/src/main.rs /aligned_layer/crates/batcher/src/main.rs
 WORKDIR /aligned_layer/crates/batcher/
