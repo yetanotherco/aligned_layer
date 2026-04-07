@@ -1,16 +1,16 @@
 services:
 
-  localstack:
+  s3mock:
     extends:
       file: storage-docker-compose.yaml
-      service: localstack
+      service: s3mock
     profiles:
       - base
 
-  localstack2:
+  s3mock2:
     extends:
       file: storage-docker-compose.yaml
-      service: localstack2
+      service: s3mock2
     profiles:
       - base
 
@@ -115,14 +115,14 @@ services:
       AWS_REGION: us-east-2
       AWS_ACCESS_KEY_ID: test
       AWS_BUCKET_NAME: aligned.storage
-      UPLOAD_ENDPOINT: http://localstack:4566
-      DOWNLOAD_ENDPOINT: http://localstack:4566/aligned.storage
+      UPLOAD_ENDPOINT: http://s3mock:9090
+      DOWNLOAD_ENDPOINT: http://s3mock:9090/aligned.storage
       AWS_SECRET_ACCESS_KEY_SECONDARY: test2
       AWS_REGION_SECONDARY: us-west-1
       AWS_ACCESS_KEY_ID_SECONDARY: test2
       AWS_BUCKET_NAME_SECONDARY: aligned.storage
-      UPLOAD_ENDPOINT_SECONDARY: http://localstack2:4567
-      DOWNLOAD_ENDPOINT_SECONDARY: http://localstack2:4567/aligned.storage.secondary
+      UPLOAD_ENDPOINT_SECONDARY: http://s3mock2:9090
+      DOWNLOAD_ENDPOINT_SECONDARY: http://s3mock2:9090/aligned.storage.secondary
       RUST_LOG: info
       RUST_BACKTRACE: 1
     build:

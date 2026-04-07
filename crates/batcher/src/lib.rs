@@ -143,7 +143,7 @@ impl Batcher {
     pub async fn new(config_file: String) -> Self {
         dotenv().ok();
 
-        // https://docs.aws.amazon.com/sdk-for-rust/latest/dg/localstack.html
+        // S3-compatible endpoint (S3Mock for local dev, real S3 in production)
         // Primary S3 configuration
         let s3_config_primary = s3::S3Config {
             access_key_id: env::var("AWS_ACCESS_KEY_ID").ok(),

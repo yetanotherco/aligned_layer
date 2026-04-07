@@ -490,7 +490,7 @@ batcher_start: ./crates/batcher/.env user_fund_payment_service
 	@echo "Starting Batcher..."
 	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env
 
-batcher_start_local: user_fund_payment_service ## Start the Batcher locally. It runs LocalStack as S3 service.
+batcher_start_local: user_fund_payment_service ## Start the Batcher locally. It runs S3Mock as S3 service.
 	@echo "Starting Batcher..."
 	@$(MAKE) storage_start &
 	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env.dev
@@ -500,7 +500,7 @@ batcher_start_local_no_fund:
 	@$(MAKE) storage_start &
 	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher.yaml --env-file ./crates/batcher/.env.dev
 
-batcher_start_ethereum_package: user_fund_payment_service ## Start the Batcher with Ethereum package config. It runs LocalStack as S3 service.
+batcher_start_ethereum_package: user_fund_payment_service ## Start the Batcher with Ethereum package config. It runs S3Mock as S3 service.
 	@echo "Starting Batcher..."
 	@$(MAKE) storage_start &
 	@cargo run --manifest-path ./crates/batcher/Cargo.toml --release -- --config ./config-files/config-batcher-ethereum-package.yaml --env-file ./crates/batcher/.env.dev
