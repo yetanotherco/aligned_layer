@@ -91,7 +91,7 @@ Source: [Base Contracts](https://docs.base.org/chain/base-contracts)
 | Network | L1 Token (Ethereum) | L2 Token (Base) |
 |---------|---------------------|-----------------|
 | Sepolia | `0xd2Fd114f098b355321cB3424400f3CC6a0d75C9A` | `0x4AAcFbc2C31598a560b285dB20966E00B73F9F81` |
-| Mainnet | TBD | TBD |
+| Mainnet | `0x50614cc8e44f7814549c223aa31db9296e58057c` | `0x53f39e5C53EE40bbc3Da97C3B47BD2968d110a8D` |
 
 ## References
 
