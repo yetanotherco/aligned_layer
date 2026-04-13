@@ -30,9 +30,9 @@ contract ClaimableAirdrop is
     /// @notice Merkle root of the claimants.
     bytes32 public claimMerkleRoot;
 
-    /// @notice Mapping of the claimants that have claimed the tokens.
-    /// @dev true if the claimant has claimed the tokens.
-    mapping(address claimer => bool claimed) public hasClaimed;
+    /// @notice Mapping tracking claimed leaves per address.
+    /// @dev Key is keccak256(abi.encode(claimer, leaf)), value is true if claimed.
+    mapping(bytes32 => bool) public hasClaimed;
 
     /// @notice Event emitted when a claimant claims the tokens.
     /// @param to address of the claimant.
@@ -78,41 +78,102 @@ contract ClaimableAirdrop is
         _pause();
     }
 
-    /// @notice Claim the tokens.
-    /// @param amount amount of tokens to claim.
+    /// @notice Claim tokens for a single vesting stage.
+    /// @param amount amount of tokens to claim for this stage.
+    /// @param validFrom timestamp from which this stage is claimable.
     /// @param merkleProof Merkle proof of the claim.
     function claim(
         uint256 amount,
+        uint256 validFrom,
         bytes32[] calldata merkleProof
     ) external nonReentrant whenNotPaused {
-        require(
-            !hasClaimed[msg.sender],
-            "Account has already claimed the drop"
-        );
         require(
             block.timestamp <= limitTimestampToClaim,
             "Drop is no longer claimable"
         );
 
-        bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(msg.sender, amount)))
-        );
-        bool verifies = MerkleProof.verify(merkleProof, claimMerkleRoot, leaf);
-
-        require(verifies, "Invalid Merkle proof");
-
-        // Done before the transfer call to make sure the reentrancy bug is not possible
-        hasClaimed[msg.sender] = true;
+        _verifyAndMark(amount, validFrom, merkleProof);
 
         bool success = IERC20(tokenProxy).transferFrom(
             tokenDistributor,
             msg.sender,
             amount
         );
-
         require(success, "Failed to transfer funds");
 
         emit TokensClaimed(msg.sender, amount);
+    }
+
+    /// @notice Claim tokens for multiple vesting stages in a single transaction.
+    /// @param amounts array of token amounts per stage.
+    /// @param validFroms array of timestamps from which each stage is claimable.
+    /// @param merkleProofs array of Merkle proofs, one per stage.
+    function claimBatch(
+        uint256[] calldata amounts,
+        uint256[] calldata validFroms,
+        bytes32[][] calldata merkleProofs
+    ) external nonReentrant whenNotPaused {
+        require(
+            block.timestamp <= limitTimestampToClaim,
+            "Drop is no longer claimable"
+        );
+        uint256 length = amounts.length;
+        require(
+            length == validFroms.length && length == merkleProofs.length,
+            "Array length mismatch"
+        );
+
+        uint256 totalClaimable = 0;
+
+        for (uint256 i = 0; i < length; i++) {
+            _verifyAndMark(amounts[i], validFroms[i], merkleProofs[i]);
+            totalClaimable += amounts[i];
+        }
+
+        require(totalClaimable > 0, "Nothing to claim");
+
+        bool success = IERC20(tokenProxy).transferFrom(
+            tokenDistributor,
+            msg.sender,
+            totalClaimable
+        );
+        require(success, "Failed to transfer funds");
+
+        emit TokensClaimed(msg.sender, totalClaimable);
+    }
+
+    /// @notice Verify a single-stage Merkle proof and mark the stage as claimed.
+    /// @dev Shared by `claim` and `claimBatch`. Does not perform the token transfer.
+    /// @param amount amount of tokens for this stage.
+    /// @param validFrom timestamp from which this stage is claimable.
+    /// @param merkleProof Merkle proof for this stage.
+    function _verifyAndMark(
+        uint256 amount,
+        uint256 validFrom,
+        bytes32[] calldata merkleProof
+    ) internal {
+        require(
+            block.timestamp >= validFrom,
+            "Stage not yet claimable"
+        );
+
+        bytes32 leaf = keccak256(
+            bytes.concat(
+                keccak256(abi.encode(msg.sender, amount, validFrom))
+            )
+        );
+
+        bytes32 claimKey = keccak256(abi.encode(msg.sender, leaf));
+        require(!hasClaimed[claimKey], "Stage already claimed");
+
+        bool verifies = MerkleProof.verify(
+            merkleProof,
+            claimMerkleRoot,
+            leaf
+        );
+        require(verifies, "Invalid Merkle proof");
+
+        hasClaimed[claimKey] = true;
     }
 
     /// @notice Update the Merkle root.
