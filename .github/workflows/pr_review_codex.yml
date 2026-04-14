@@ -1,0 +1,39 @@
+name: Codex Code Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+jobs:
+  codex-review:
+    if: |
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/codex') &&
+       contains(fromJson('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+    uses: yetanotherco/actions/.github/workflows/pr_review_codex.yml@v1.0.1
+    with:
+      custom_prompt: |
+        1. **Security vulnerabilities** - Label by criticality (Critical/High/Medium/Low)
+           - Solidity: e.g. reentrancy, access control, integer issues, etc.
+           - Rust: e.g. unsafe blocks, error handling, panics, etc.
+           - Web/API: e.g. SQL injection, auth bypass, input validation, sensitive data exposure, CORS/CSRF, etc.
+
+        2. **Potential bugs** - Logic errors, edge cases, incorrect behavior, race conditions
+
+        3. **Performance issues** - Only significant: e.g. O(n²) on unbounded input, N+1 queries, unbounded memory growth
+
+        4. **Simplicity** - Prefer simple, readable code over clever abstractions
+
+        Guidelines:
+        - Be concise and to the point
+        - Do NOT suggest micro-optimizations or premature abstractions
+        - Always prefer simplicity over complexity when performance gains are marginal
+        - Focus on real issues, not hypothetical improvements
+        - Be concise and actionable
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
