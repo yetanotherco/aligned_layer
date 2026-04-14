@@ -30,8 +30,8 @@ contract ClaimableAirdrop is
     /// @notice Merkle root of the claimants.
     bytes32 public claimMerkleRoot;
 
-    /// @notice Mapping tracking claimed leaves per address.
-    /// @dev Key is keccak256(abi.encode(claimer, leaf)), value is true if claimed.
+    /// @notice Mapping tracking claimed leaves.
+    /// @dev Key is the Merkle leaf itself.
     mapping(bytes32 => bool) public hasClaimed;
 
     /// @notice Event emitted when a claimant claims the tokens.
@@ -163,8 +163,7 @@ contract ClaimableAirdrop is
             )
         );
 
-        bytes32 claimKey = keccak256(abi.encode(msg.sender, leaf));
-        require(!hasClaimed[claimKey], "Stage already claimed");
+        require(!hasClaimed[leaf], "Stage already claimed");
 
         bool verifies = MerkleProof.verify(
             merkleProof,
@@ -173,7 +172,7 @@ contract ClaimableAirdrop is
         );
         require(verifies, "Invalid Merkle proof");
 
-        hasClaimed[claimKey] = true;
+        hasClaimed[leaf] = true;
     }
 
     /// @notice Update the Merkle root.
