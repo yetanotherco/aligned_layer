@@ -1,112 +1,141 @@
-#
+# ALIGN Claim Contracts
 
-## Local
+This repo deploys the **AlignedToken** (ALIGN) and the **ClaimableAirdrop** contract (both behind
+Transparent proxies). The airdrop is split across **Ethereum and Base** — each network has its own
+claim contract and its own merkle root (the `ethereum` root and the `base` root produced by the
+merkle generator in `aligned_airdrop_web`).
 
-### Requisites
+Each environment below is a single flow: **deploy → enable claiming**.
 
-- Foundry
+## Prerequisites
 
-### Run
+- [Foundry](https://book.getfoundry.sh/getting-started/installation).
+- A funded deployer account private key (a keystore for mainnet).
+- An Etherscan API key to verify the deployed contract (the same key works for Base via the
+  Etherscan v2 API).
 
-1. Run anvil in one terminal:
-   ```
-   anvil
-   ```
-2. Deploy the token
-   ```
-   make deploy-token
-   ```
-3. Write down the token proxy address that is printed in the console output. Do this in the `config.example.json` file, under the `tokenProxy` key.
-4. Deploy the claimable contract
-   ```
-   make deploy-claimable-local
-   ```
-5. Write down the claimable contract proxy address that is printed in the console output.
+## Local (anvil)
 
-## Testnet (Sepolia)
+A single anvil chain that deploys the token + claim contract and turns claiming on.
 
-### Requisites
+One-shot (deploy everything and enable claiming):
 
-- Foundry
-- Etherscan API key
+```
+make deploy-example MERKLE_ROOT=<claims-merkle-root> TIMESTAMP=<claim-deadline>
+```
 
-### Run
+This runs `deploy-token` → `deploy-claimable-local` → set root → set deadline → approve → unpause.
 
-1. Create a file `script-config/config.sepolia.json` following the example in `script-config/config.sepolia.example.json`.
-2. Deploy the token
-   ```
-   make deploy-token-testnet RPC_URL=<sepolia-rpc-url> PRIVATE_KEY=<sepolia-funded-account-private-key>
-   ```
-3. Write down the `token-proxy-address` that is printed in the console output. Do this in the `config.sepolia.json` file, under the `tokenProxy` key.
-4. Deploy the claimable contract
-   ```
-   make deploy-claimable-testnet RPC_URL=<sepolia-rpc-url> DEPLOYER_PRIVATE_KEY=<sepolia-funded-account-private-key> ETHERSCAN_API_KEY=<etherscan-api-key>
-   ```
-5. Write down the `claimable-proxy-address` that is printed in the console output.
+Or step by step, if you need the deployed addresses along the way:
 
-## Enabling Claimability
+1. Start anvil in another terminal: `anvil`
+2. Deploy the token: `make deploy-token`
+3. Copy the printed token proxy address into `script-config/config.example.json`, under `tokenProxy`.
+4. Deploy the claim contract: `make deploy-claimable-local`
+5. Enable claiming: `make enable-claimability MERKLE_ROOT=<root> TIMESTAMP=<deadline>`
 
-### By Calldata
+## Sepolia (testnet)
+
+> [!NOTE]
+> The ALIGN token is already deployed on both testnets (Ethereum Sepolia
+> `0xd2Fd114f098b355321cB3424400f3CC6a0d75C9A`, Base Sepolia
+> `0x4AAcFbc2C31598a560b285dB20966E00B73F9F81`) and the configs already point `tokenProxy` at it,
+> so you only deploy and enable `ClaimableAirdrop` — on **both** chains.
+>
+> Need to (re)deploy the token? On Ethereum Sepolia run
+> `make deploy-token-sepolia DEPLOYER_PRIVATE_KEY=<key> ETHERSCAN_API_KEY=<key>`; on Base Sepolia the
+> L2 token is created through the OP bridge factory, not forge (see [`base/`](base/README.md)). Then
+> put the new address under `tokenProxy` in the config.
+
+### 1. Deploy
+
+**Ethereum Sepolia** — fill `foundation` (contract owner) and `tokenDistributor` (the account
+holding ALIGN to distribute) in `script-config/config.sepolia.json`, then:
+
+```
+make deploy-claimable-sepolia DEPLOYER_PRIVATE_KEY=<key> ETHERSCAN_API_KEY=<key>
+```
+
+**Base Sepolia** — bridge ALIGN to your `tokenDistributor` first (see [`base/`](base/README.md)),
+fill `foundation` and `tokenDistributor` in `script-config/config.base-sepolia.json`, then:
+
+```
+make deploy-claimable-base-sepolia DEPLOYER_PRIVATE_KEY=<key> ETHERSCAN_API_KEY=<key>
+```
+
+Note the claimable proxy address printed for each.
+
+### 2. Enable claiming
+
+Run once per network (the owner/distributor are plain accounts on testnet):
+
+```
+make enable-claimability \
+  AIRDROP=<claimable-proxy> TOKEN=<token-proxy> \
+  MERKLE_ROOT=<network-root> TIMESTAMP=<claim-deadline> \
+  OWNER_PRIVATE_KEY=<owner-key> DISTRIBUTOR_PRIVATE_KEY=<distributor-key> \
+  RPC_URL=<network-rpc>
+```
+
+> [!IMPORTANT]
+> Use the **ethereum** root on the Sepolia contract and the **base** root on the Base Sepolia
+> contract.
+
+This runs, in order: `updateMerkleRoot` → `extendClaimPeriod` → `approve` (2.6B by default,
+override with `APPROVE_AMOUNT=`) → `unpause`. The contract must be paused for the first two steps,
+which it is right after deployment. Each step is also available as its own target
+(`claimable-update-root`, `claimable-update-timestamp`, `approve-claimable`, `claimable-unpause`).
+
+## Mainnet
+
+Covers Ethereum mainnet today. **Base mainnet: to be added later** (no claim target yet).
+
+### 1. Deploy (Ethereum mainnet)
+
+Fill `script-config/config.mainnet.json` with `foundation`, `tokenDistributor`, and `tokenProxy`
+(the mainnet ALIGN token), then:
+
+```
+make deploy-claimable-mainnet KEYSTORE_PATH=<keystore-path> ETHERSCAN_API_KEY=<key>
+```
+
+Note the claimable proxy address printed in the output.
+
+> [!NOTE]
+> The mainnet ALIGN token already exists — use its address as `tokenProxy`. To deploy the token
+> from scratch on Ethereum: `make deploy-token-mainnet KEYSTORE_PATH=<keystore-path>`.
+
+### 2. Enable claiming (foundation multisig)
+
+On mainnet the owner is the foundation safe, so you generate the calldata for each step and execute
+it from the multisig rather than sending the transactions directly.
 
 > [!IMPORTANT]
 >
-> - This step-by-step **assumes** that the claimable proxy contract **is already deployed** and that **is already paused**. If it is not paused, the first transaction should be to pause it using this calldata `cast calldata "pause()"`.
-> - This method **only** generates the necessary calldata to call the methods through transactions. It does **not** actually call the methods. This method is useful for copy-pasting the calldata into a multisig wallet.
-> - Steps 1, 2, and 4 can be batched into a single transaction in a multisig wallet. This multisig must be the `ClaimableAirdrop` contract owner.
-> - Step 3 must be done by the token distributor multisig as it is the one that has the tokens to be claimed.
+> - This assumes the claim proxy is **already deployed** and **paused** (it is right after deploy).
+>   If it is not paused, pause it first with `make calldata-pause`.
+> - These targets only **generate calldata** to copy into a multisig transaction; they do not send
+>   anything.
+> - Steps 1, 2 and 4 are owner actions and can be batched in one multisig transaction. Step 3 must
+>   be done by the token-distributor safe (it holds the tokens).
 
 > [!WARNING]
-> - Double-check the data you passing into the commands, any mistake can lead to undesired behavior.
+> Double-check the data you pass into these commands — any mistake can lead to undesired behavior.
 
-1. Update the merkle root
-   ```
-   // Example merkle_root = 0x97619aea42a289b94acc9fb98f5030576fa7449f1dd6701275815a6e99441927
-   cast calldata "updateMerkleRoot(bytes32)" <merkle_root>
-   ```
-2. Update the claim time limit
-   ```
-   // Example timestamp = 2733427549
-   cast calldata "extendClaimPeriod(uint256)" <timestamp>
-   ```
-3. Approve the claimable proxy contract to spend the token from the distributor (_2.6B, taking into account the 18 decimals_)
-   ```
-   // Example claim_proxy_address = 0x0234947ce63d1a5E731e5700b911FB32ec54C3c6
-   cast calldata "approve(address,uint256)" <claim_proxy_address> 2600000000000000000000000000
-   ```
-4. Unpause the claimable contract (it is paused by default)
-   ```
-   cast calldata "unpause()"
-   ```
+1. Merkle root (use the **ethereum** root for the mainnet contract):
+   `make calldata-update-merkle-root MERKLE_ROOT=<root>`
+2. Claim deadline: `make calldata-update-limit-timestamp LIMIT_TIMESTAMP=<timestamp>`
+3. Approve spending, run by the token-distributor safe:
+   `make calldata-approve-spending CLAIM_PROXY_ADDRESS=<claimable-proxy>`
+4. Unpause: `make calldata-unpause`
 
-### Local
+Submit each piece of calldata as a transaction from the appropriate safe. The same per-network root
+mapping (ethereum root on the Ethereum contract, base root on the Base contract) applies once Base
+mainnet is added.
 
-1. Deploy the claimable contract as explained above.
-2. Set the correct merkle root
-   ```
-   make claimable-update-root MERKLE_ROOT=<claims-merkle-root>
-   ```
-3. Set the correct claim time limit
-   ```
-   make claimable-update-timestamp TIMESTAMP=2733427549
-   ```
-4. Approve the claimable contract to spend the token from the distributor
-   ```
-   make approve-claimable
-   ```
-5. Unpause the claimable contract
-   ```
-   make claimable-unpause
-   ```
+## Upgrades
 
-or
-
-```
-make deploy-example MERKLE_ROOT=<claims-merkle-root> TIMESTAMP=2733427549
-```
-
-# Contract upgrade instructions
-
-To upgrade a contract, first make sure you pause the contract if it's not paused already (NOTE: the erc20 cannot be paused, the claim contract can though). Once that's done, clone the `aligned_layer` repo and go into the `claim_contracts` directory:
+To upgrade a contract, first make sure you pause the contract if it's not paused already. Once that's done, clone the `aligned_layer` repo and go into the `claim_contracts` directory:
 
 > [!NOTE]
 > The ERC20 cannot be paused. Only the claimable airdrop proxy can be paused.
@@ -115,7 +144,7 @@ To upgrade a contract, first make sure you pause the contract if it's not paused
 git clone git@github.com:yetanotherco/aligned_layer.git && cd aligned_layer/claim_contracts
 ```
 
-## Write the new contract implementation
+### Write the new contract implementation
 
 This implementation will most likely be a copy paste of the old implementation, only with one or few changes. In addition to that, there is one thing that MUST be done on this new contract:
 
@@ -134,7 +163,7 @@ function reinitialize() public reinitializer(2) {
 
 Put the new implementation in a file inside the `src` directory with an appropriate name.
 
-## Write the deployment script
+### Write the deployment script
 
 Under the `script` directory, create a new forge script (with the `.s.sol` extension) with a name like `UpgradeContract.s.sol`, with this code in it:
 
@@ -216,7 +245,7 @@ Go into the `config.mainnet.json` file inside the `script-config` directory and 
 - `foundation` is the address of the foundation safe.
 - `contractProxy` is the address of the contract proxy to upgrade.
 
-## Run the deployment script
+### Run the deployment script
 
 Run the script with
 
