@@ -132,18 +132,19 @@ cp ./infra/aggregation_mode/run.sh $HOME/run.sh
 chmod 744 $HOME/run.sh
 
 # Setup systemd service
+# The service is enabled to run on every boot (no timer). The machine is started
+# once a day by the GitHub Actions workflow (.github/workflows/aggregation_mode.yml),
+# runs the aggregation on startup and then shuts itself down (see run.sh).
 cp ./infra/aggregation_mode/aggregation_mode.service $HOME/.config/systemd/user/aggregation_mode.service
-cp ./infra/aggregation_mode/aggregation_mode.timer $HOME/.config/systemd/user/aggregation_mode.timer
 
-#sudo systemctl enable aggregation_mode.service
-systemctl --user enable aggregation_mode.timer
-systemctl --user start aggregation_mode.timer
+systemctl --user daemon-reload
+systemctl --user enable aggregation_mode.service
 
 # Run the proof_aggregator manually if you want
 systemctl --user start aggregation_mode.service
 
-# Check timer status
-systemctl --user status aggregation_mode.timer
+# Check service status
+systemctl --user status aggregation_mode.service
 
 # Check logs
 journalctl -xfeu aggregation_mode.service --user -n10
