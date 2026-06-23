@@ -16,6 +16,8 @@ jobs:
   start-server:
     name: Start Paperspace aggregation server
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
     steps:
       - name: Start Paperspace machine
         env:
@@ -30,16 +32,19 @@ jobs:
           fi
 
           echo "Starting Paperspace machine ${MACHINE_ID}..."
-          http_code=$(curl -sS -o response.json -w "%{http_code}" \
+          http_code=$(curl -sS --max-time 30 -o response.json -w "%{http_code}" \
             -X PATCH "https://api.paperspace.com/v1/machines/${MACHINE_ID}/start" \
             -H "Authorization: Bearer ${PAPERSPACE_API_KEY}")
 
           echo "Paperspace API responded with HTTP ${http_code}"
-          cat response.json || true
 
           # 2xx means the start request was accepted.
           if [ "${http_code}" -lt 200 ] || [ "${http_code}" -ge 300 ]; then
+            # Only dump the response body on failure: a successful start response
+            # contains the full machine object (public IP, network details, etc.),
+            # which GitHub Actions would not mask in the log.
             echo "::error::Failed to start Paperspace machine (HTTP ${http_code})."
+            cat response.json || true
             exit 1
           fi
 
