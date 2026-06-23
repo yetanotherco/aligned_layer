@@ -19,13 +19,13 @@ jobs:
     steps:
       - name: Start Paperspace machine
         env:
-          PAPERSPACE_API_KEY: ${{ vars.PAPERSPACE_API_KEY }}
-          MACHINE_ID: ${{ vars.PAPERSPACE_MACHINE_ID }}
+          PAPERSPACE_API_KEY: ${{ secrets.PAPERSPACE_API_KEY }}
+          MACHINE_ID: ${{ secrets.PAPERSPACE_MACHINE_ID }}
         run: |
           set -euo pipefail
 
           if [ -z "${PAPERSPACE_API_KEY}" ] || [ -z "${MACHINE_ID}" ]; then
-            echo "::error::PAPERSPACE_API_KEY and PAPERSPACE_MACHINE_ID variables must be set."
+            echo "::error::PAPERSPACE_API_KEY and PAPERSPACE_MACHINE_ID secrets must be set."
             exit 1
           fi
 

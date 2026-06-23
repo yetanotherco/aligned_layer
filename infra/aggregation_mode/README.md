@@ -15,8 +15,8 @@ The aggregation mode runs on a Paperspace GPU server. To avoid paying for the GP
 
 The workflow needs:
 
-- `PAPERSPACE_API_KEY` repository **variable** — a Paperspace API key.
-- `PAPERSPACE_MACHINE_ID` repository **variable** — the id of the GPU machine.
+- `PAPERSPACE_API_KEY` repository **secret** — a Paperspace API key.
+- `PAPERSPACE_MACHINE_ID` repository **secret** — the id of the GPU machine.
 
 ## Setup on Server with GPU
 

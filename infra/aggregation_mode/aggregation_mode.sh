@@ -122,6 +122,7 @@ read -p "Enter a block number for Risc0 (last_aggregated_block): " num && echo "
 mkdir -p $HOME/repos/aggregation_mode/mainnet
 cd $HOME/repos/aggregation_mode/mainnet
 git clone https://github.com/yetanotherco/aligned_layer.git
+cd aligned_layer # Subsequent relative paths (cargo --path, ./infra/...) resolve from the repo root
 # Build the proof_aggregator
 #make proof_aggregator_install
 cargo install --path aggregation_mode/proof_aggregator --features prove,gpu --bin proof_aggregator_gpu --locked
