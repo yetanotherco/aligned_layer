@@ -44,4 +44,3 @@ jobs:
           fi
 
           echo "Start request accepted. The machine will run the aggregation on boot and shut itself down afterwards."
-          
