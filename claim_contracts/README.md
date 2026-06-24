@@ -1,48 +1,44 @@
-#
+# Aligned Token Claim Contracts
 
-## Local
+## How to run locally
 
-### Requisites
+> [!IMPORTANT]
+> Foundry must be installed and running.
 
-- Foundry
+1. Run `anvil` in one terminal.
+2. Get your local **foundation** and **token distributor** wallet addresses and write them down in the `claim_contracts/script-config/config.example.json` file. **Only the `foundation` and `tokenDistributor` fields should be modified in this step**.
+3. Run `make deploy-token-local DEPLOYER_PRIVATE_KEY=<deployer_private_key>` in another terminal.
+4. Write down the forge script's output (the addresses of the token proxy and its admin preferably).
+5. From the output of the previous step, complete the `claim_contracts/script-config/config.example.json` file with the token proxy address. **Only the `tokenProxy` field should be modified in this step**.
+6. Run `make deploy-claimable DEPLOYER_PRIVATE_KEY=<deployer_private_key>`.
+7. Write down the forge script's output (the addresses of the claimable proxy and its admin preferably).
+8. From the output of the previous step, complete the `claim_contracts/script-config/config.example.json` file with the claimable proxy address. **Only the `claimableProxy` field should be modified in this step**.
+9. Run `make claimable-update-root RPC_URL=http://localhost:8545 OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address> MERKLE_ROOT=<merkle_root>`.
+10. Run `make claimable-update-timestamp RPC_URL=http://localhost:8545 OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address> TIMESTAMP=2733427549`.
+11. Run `make approve-claimable RPC_URL=http://localhost:8545 DISTRIBUTOR_PRIVATE_KEY=<token_distributor_private_key> TOKEN=<token_proxy_address> AIRDROP=<claimable_proxy_address>`.
+12. Run `make claimable-unpause RPC_URL=http://localhost:8545 OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address>`.
 
-### Run
+> [!NOTE]
+> You can do the previous steps in one run with `make deploy-example MERKLE_ROOT=<merkle_root> TIMESTAMP=2733427549`.
+> Remember to write down the addresses of the proxies and their admins.
 
-1. Run anvil in one terminal:
-   ```
-   anvil
-   ```
-2. Deploy the token
-   ```
-   make deploy-token
-   ```
-3. Write down the token proxy address that is printed in the console output. Do this in the `config.example.json` file, under the `tokenProxy` key.
-4. Deploy the claimable contract
-   ```
-   make deploy-claimable-local
-   ```
-5. Write down the claimable contract proxy address that is printed in the console output.
+## How to run in Sepolia testnet
 
-## Testnet (Sepolia)
+> [!IMPORTANT]
+> Foundry must be installed and running.
+> You must have an Etherscan API key.
 
-### Requisites
-
-- Foundry
-- Etherscan API key
-
-### Run
-
-1. Create a file `script-config/config.sepolia.json` following the example in `script-config/config.sepolia.example.json`.
-2. Deploy the token
-   ```
-   make deploy-token-testnet RPC_URL=<sepolia-rpc-url> PRIVATE_KEY=<sepolia-funded-account-private-key>
-   ```
-3. Write down the `token-proxy-address` that is printed in the console output. Do this in the `config.sepolia.json` file, under the `tokenProxy` key.
-4. Deploy the claimable contract
-   ```
-   make deploy-claimable-testnet RPC_URL=<sepolia-rpc-url> DEPLOYER_PRIVATE_KEY=<sepolia-funded-account-private-key> ETHERSCAN_API_KEY=<etherscan-api-key>
-   ```
-5. Write down the `claimable-proxy-address` that is printed in the console output.
+1. Get your **foundation** and **token distributor** wallet addresses and write them down in the `claim_contracts/script-config/config.sepolia.json` file (as it is done in the `claim_contracts/script-config/config.example.json` file). **Only the `foundation` and `tokenDistributor` fields should be modified in this step**.
+2. Run `make deploy-token-testnet DEPLOYER_PRIVATE_KEY=<deployer_private_key> RPC_URL=<sepolia_rpc_url> ETHERSCAN_API_KEY=<your_etherscan_api_key>`.
+3. Write down the forge script's output (the addresses of the token proxy and its admin preferably).
+4. From the output of the previous step, complete the `claim_contracts/script-config/config.sepolia.json` file with the token proxy address. **Only the `tokenProxy` field should be modified in this step**.
+5. Run `make deploy-claimable-testnet DEPLOYER_PRIVATE_KEY=<deployer_private_key> RPC_URL=<sepolia_rpc_url> ETHERSCAN_API_KEY=<your_etherscan_api_key>`.
+6. Write down the forge script's output (the addresses of the claimable proxy and its admin preferably).
+7. From the output of the previous step, complete the `claim_contracts/script-config/config.sepolia.json` file with the claimable proxy address. **Only the `claimableProxy` field should be modified in this step**.
+8. Run `make claimable-update-root RPC_URL=<sepolia_rpc_url> OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address> MERKLE_ROOT=<merkle_root>`.
+9. Run `make claimable-update-timestamp RPC_URL=<sepolia_rpc_url> OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address> TIMESTAMP=2733427549`.
+10. Run `make approve-claimable RPC_URL=<sepolia_rpc_url> DISTRIBUTOR_PRIVATE_KEY=<token_distributor_private_key> TOKEN=<token_proxy_address> AIRDROP=<claimable_proxy_address>`.
+11. Run `make claimable-unpause RPC_URL=<sepolia_rpc_url> OWNER_PRIVATE_KEY=<foundation_private_key> AIRDROP=<claimable_proxy_address>`.
 
 ## Enabling Claimability
 
@@ -56,6 +52,7 @@
 > - Step 3 must be done by the token distributor multisig as it is the one that has the tokens to be claimed.
 
 > [!WARNING]
+>
 > - Double-check the data you passing into the commands, any mistake can lead to undesired behavior.
 
 1. Update the merkle root

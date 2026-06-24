@@ -23,16 +23,19 @@ calldata-pause: ## 💾 Calldata for the method `pause` to use in a transaction
 
 # Deployments
 
+# Requires MERKLE_ROOT, TIMESTAMP
+# CONFIG, RPC_URL, DEPLOYER_PRIVATE_KEY are optional
+deploy-example: deploy-token-local deploy-claimable-local claimable-update-root claimable-update-timestamp approve-claimable claimable-unpause
+
 RPC_URL?=http://localhost:8545
 DEPLOYER_PRIVATE_KEY?=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 CONFIG?=example
-deploy-token: ## 🚀 Deploy the token contract
+deploy-token-local: ## 🚀 Deploy the token contract
 	cd script && \
 	forge script DeployAlignedToken.s.sol \
-	--sig "run(string)" \
-	$(CONFIG) \
+	--sig "run(string)" example \
 	--private-key $(DEPLOYER_PRIVATE_KEY) \
-	--rpc-url $(RPC_URL) \
+	--rpc-url http://localhost:8545 \
 	--broadcast \
 	--verbosity 3
 
@@ -185,6 +188,3 @@ OWNER_PRIVATE_KEY?=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f
 test-airdrop:
 	cast call $(AIRDROP) "paused()(bool)" --rpc-url $(RPC_URL)
 	cast call $(AIRDROP) "owner()(address)" --rpc-url $(RPC_URL)
-
-# Requires MERKLE_ROOT, TIMESTAMP
-deploy-example: deploy-token deploy-claimable-local claimable-update-root claimable-update-timestamp approve-claimable claimable-unpause
