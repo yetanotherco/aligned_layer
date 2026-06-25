@@ -1,0 +1,18 @@
+[package]
+name = "merkle_fixture_gen"
+version = "0.1.0"
+edition = "2021"
+
+# Generates the Merkle proof fixture consumed by the Solidity test suite
+# (test/ClaimableAirdrop.t.sol). It uses the SAME merkle-tree-rs revision as the
+# production proof generator (aligned_airdrop_web/merkle_proof_generator) so the
+# fixture matches what real claimants receive byte-for-byte.
+
+[[bin]]
+name = "merkle_fixture_gen"
+path = "src/main.rs"
+
+[dependencies]
+merkle-tree-rs = { git = "https://github.com/lambdaclass/merkle-tree-rs", rev = "e52c7aa5d0517636c7a4706e21e6e52d07266ef1" }
+ethers = "2"
+serde_json = "1"

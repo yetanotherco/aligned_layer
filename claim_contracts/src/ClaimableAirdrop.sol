@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity 0.8.35;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -11,6 +12,15 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 /// @title Claimable Airdrop
 /// @notice This contract is the implementation of the Claimable Airdrop
 /// @dev This contract is upgradeable and should be used only through the proxy contract
+/// @dev Operational edge cases that cannot be enforced on-chain (the contract only
+///      stores the Merkle root, never the full set of leaves):
+///      - Revoking unclaimed approvals: the owner can call `updateMerkleRoot` (while
+///        paused) to replace the root with one that no longer contains previously valid
+///        but unclaimed approvals, effectively revoking them.
+///      - First-come, first-served distribution: the contract cannot verify that
+///        `tokenDistributor` holds (and has approved) enough tokens to cover every
+///        approval. If the distributor is underfunded, later claims revert until it is
+///        topped up, so claimants should claim as early as possible.
 /// @custom:security-contact security@alignedfoundation.org
 contract ClaimableAirdrop is
     Initializable,
@@ -18,6 +28,8 @@ contract ClaimableAirdrop is
     PausableUpgradeable,
     Ownable2StepUpgradeable
 {
+    using SafeERC20 for IERC20;
+
     /// @notice Address of the token contract to claim.
     address public tokenProxy;
 
@@ -94,12 +106,7 @@ contract ClaimableAirdrop is
 
         _verifyAndMark(amount, validFrom, merkleProof);
 
-        bool success = IERC20(tokenProxy).transferFrom(
-            tokenDistributor,
-            msg.sender,
-            amount
-        );
-        require(success, "Failed to transfer funds");
+        IERC20(tokenProxy).safeTransferFrom(tokenDistributor, msg.sender, amount);
 
         emit TokensClaimed(msg.sender, amount);
     }
@@ -132,12 +139,11 @@ contract ClaimableAirdrop is
 
         require(totalClaimable > 0, "Nothing to claim");
 
-        bool success = IERC20(tokenProxy).transferFrom(
+        IERC20(tokenProxy).safeTransferFrom(
             tokenDistributor,
             msg.sender,
             totalClaimable
         );
-        require(success, "Failed to transfer funds");
 
         emit TokensClaimed(msg.sender, totalClaimable);
     }
@@ -205,5 +211,12 @@ contract ClaimableAirdrop is
     /// @notice Unpause the contract.
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    /// @notice Prevents the owner from renouncing ownership.
+    /// @dev Renouncing would set the owner to address(0), permanently disabling
+    ///      `updateMerkleRoot`, `extendClaimPeriod`, `pause`, and `unpause`.
+    function renounceOwnership() public view override onlyOwner {
+        revert("Cannot renounce ownership");
     }
 }

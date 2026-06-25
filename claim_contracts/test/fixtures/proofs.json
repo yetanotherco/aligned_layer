@@ -1,0 +1,86 @@
+{
+  "count": 8,
+  "leaves": [
+    {
+      "account": "0x00000000000000000000000000000000000000a1",
+      "amount": "100000000000000000000",
+      "proof": [
+        "0xb46d5842e1f1ef456cc2a1fefde2818fd9f20b8833385cfb7e6f8163b440836e",
+        "0x599220f14a217f7a7d0c3c43436f62c6595ac7c2eaf6d9328b83b9b2a6a0c818",
+        "0xea2422f772538edc01973b75e4b4ca33cb5a4263569a4ad1bb3ebc112d6b48a3"
+      ],
+      "validFrom": "0"
+    },
+    {
+      "account": "0x00000000000000000000000000000000000000a1",
+      "amount": "200000000000000000000",
+      "proof": [
+        "0xc467e73a71c5f8ebe66a92658b4a000b9c9a5a1d87c3f1e0a627a74ce0d5cfc6",
+        "0x599220f14a217f7a7d0c3c43436f62c6595ac7c2eaf6d9328b83b9b2a6a0c818",
+        "0xea2422f772538edc01973b75e4b4ca33cb5a4263569a4ad1bb3ebc112d6b48a3"
+      ],
+      "validFrom": "1000"
+    },
+    {
+      "account": "0x00000000000000000000000000000000000000a1",
+      "amount": "300000000000000000000",
+      "proof": [
+        "0x253335eb5fab5fa7d58667a676a2ab84a5777e74e7ab786e44dd7ff3b29a19ff",
+        "0x266a1ecb1de2422506a620ef109b0e3651ee9f287c433a3cce8447d9d3154aae",
+        "0xcfddf82fde9a123f4a6304e74b0498b0425d4a75cd711a2b8c2cc020ceac4fac"
+      ],
+      "validFrom": "2000"
+    },
+    {
+      "account": "0x00000000000000000000000000000000000000b2",
+      "amount": "400000000000000000000",
+      "proof": [
+        "0x183589af610c4b71737b995e05cebbda0966df567f40ced11a052a12a80b0313",
+        "0x9e7a53fb112a76f949cd345775870d18f9091df04b8f6f97ac55fb2405d09213",
+        "0xcfddf82fde9a123f4a6304e74b0498b0425d4a75cd711a2b8c2cc020ceac4fac"
+      ],
+      "validFrom": "0"
+    },
+    {
+      "account": "0x00000000000000000000000000000000000000c3",
+      "amount": "500000000000000000000",
+      "proof": [
+        "0x987dfe898f09ee095a14c0ecd2ed4c57baa61cd8a9b4a7087dbe991e17be2f07",
+        "0x266a1ecb1de2422506a620ef109b0e3651ee9f287c433a3cce8447d9d3154aae",
+        "0xcfddf82fde9a123f4a6304e74b0498b0425d4a75cd711a2b8c2cc020ceac4fac"
+      ],
+      "validFrom": "0"
+    },
+    {
+      "account": "0x00000000000000000000000000000000000000d4",
+      "amount": "600000000000000000000",
+      "proof": [
+        "0x9a842f466032b4c0113ddb97fafd600e894bf38ff0b48287eb0095c88fe1151a",
+        "0x43a04549f5b08d1bf3be7517ba4fc5b738ff082cfaa209795ac5315c044002c8",
+        "0xea2422f772538edc01973b75e4b4ca33cb5a4263569a4ad1bb3ebc112d6b48a3"
+      ],
+      "validFrom": "0"
+    },
+    {
+      "account": "0x00000000000000000000000000000000000000e5",
+      "amount": "700000000000000000000",
+      "proof": [
+        "0x9f54213bf196538a6687f572962aa2aa28296481bf6fabbabe38a17d939da3ee",
+        "0x43a04549f5b08d1bf3be7517ba4fc5b738ff082cfaa209795ac5315c044002c8",
+        "0xea2422f772538edc01973b75e4b4ca33cb5a4263569a4ad1bb3ebc112d6b48a3"
+      ],
+      "validFrom": "0"
+    },
+    {
+      "account": "0x00000000000000000000000000000000000000f6",
+      "amount": "800000000000000000000",
+      "proof": [
+        "0x109c9584f6e0b7b07c114251e372b2740f1010385fbf4b4dbd9d31bd53f70efd",
+        "0x9e7a53fb112a76f949cd345775870d18f9091df04b8f6f97ac55fb2405d09213",
+        "0xcfddf82fde9a123f4a6304e74b0498b0425d4a75cd711a2b8c2cc020ceac4fac"
+      ],
+      "validFrom": "0"
+    }
+  ],
+  "root": "0x05a130477c9b4bdbd1f927669bf6d5fe86b7be70e9b512304835ec3588929ebf"
+}
