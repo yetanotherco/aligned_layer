@@ -1,0 +1,51 @@
+name: "Start Aggregation Mode Server"
+
+# Starts the Paperspace GPU server that runs the aggregation mode.
+#
+# The server is kept powered off to avoid 24/7 billing. This workflow boots it
+# once a day; on boot the machine runs `aggregation_mode.service`, which executes
+# the SP1 aggregations and then powers the machine off again
+# (see infra/aggregation_mode/run.sh).
+on:
+  schedule:
+    # 15:00 UTC == 12:00 GMT-3, every day. GitHub Actions cron is always in UTC.
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  start-server:
+    name: Start Paperspace aggregation server
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Start Paperspace machine
+        env:
+          PAPERSPACE_API_KEY: ${{ secrets.PAPERSPACE_API_KEY }}
+          MACHINE_ID: ${{ secrets.PAPERSPACE_MACHINE_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PAPERSPACE_API_KEY}" ] || [ -z "${MACHINE_ID}" ]; then
+            echo "::error::PAPERSPACE_API_KEY and PAPERSPACE_MACHINE_ID secrets must be set."
+            exit 1
+          fi
+
+          echo "Starting Paperspace machine ${MACHINE_ID}..."
+          http_code=$(curl -sS --max-time 30 -o response.json -w "%{http_code}" \
+            -X PATCH "https://api.paperspace.com/v1/machines/${MACHINE_ID}/start" \
+            -H "Authorization: Bearer ${PAPERSPACE_API_KEY}")
+
+          echo "Paperspace API responded with HTTP ${http_code}"
+
+          # 2xx means the start request was accepted.
+          if [ "${http_code}" -lt 200 ] || [ "${http_code}" -ge 300 ]; then
+            # Only dump the response body on failure: a successful start response
+            # contains the full machine object (public IP, network details, etc.),
+            # which GitHub Actions would not mask in the log.
+            echo "::error::Failed to start Paperspace machine (HTTP ${http_code})."
+            cat response.json || true
+            exit 1
+          fi
+
+          echo "Start request accepted. The machine will run the aggregation on boot and shut itself down afterwards."
