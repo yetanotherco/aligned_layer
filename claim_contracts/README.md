@@ -10,9 +10,26 @@ Each environment below is a single flow: **deploy → enable claiming**.
 ## Prerequisites
 
 - [Foundry](https://book.getfoundry.sh/getting-started/installation).
-- A funded deployer account private key (a keystore for mainnet).
+- A funded deployer account private key. The mainnet targets sign with `--interactive`, so they
+  prompt for the key rather than reading a variable or a keystore path.
 - An Etherscan API key to verify the deployed contract (the same key works for Base via the
   Etherscan v2 API).
+
+### Who signs what on mainnet
+
+On mainnet every privileged action goes through a Safe, and **each chain has its own pair of safes**.
+The Ethereum foundation safe may not be the Base foundation safe; the same holds for the
+distributors. Don't assume they match — fill each chain's config from that chain's safes rather than
+copying addresses across.
+
+| | Ethereum mainnet | Base mainnet |
+| --- | --- | --- |
+| **Foundation** safe — claim contract owner + proxy admin owner | `foundation` in `config.mainnet.json` | `foundation` in `config.base-mainnet.json` |
+| **Distributor** safe — holds the tokens, approves the claim contract | `tokenDistributor` in `config.mainnet.json` | `tokenDistributor` in `config.base-mainnet.json` |
+
+Deployment is the one exception: `forge script` signs with an ordinary **hot EOA**, which needs no
+privileges at all — ownership is assigned from the config's `foundation` at initialization, not from
+the deployer. Don't try to run a deploy from a Safe.
 
 ## Local (anvil)
 
@@ -88,27 +105,90 @@ which it is right after deployment. Each step is also available as its own targe
 
 ## Mainnet
 
-Covers Ethereum mainnet today. **Base mainnet: to be added later** (no claim target yet).
+Both chains: **Ethereum mainnet** and **Base mainnet**. Each needs its own claim contract, its own
+merkle root, and its own pair of safes (see [Who signs what on mainnet](#who-signs-what-on-mainnet)).
+The ALIGN token already exists on both — you only deploy and enable `ClaimableAirdrop`.
 
-### 1. Deploy (Ethereum mainnet)
+Run Ethereum first, then Base; the two are independent apart from sharing the same
+`START_TIMESTAMP` and claim deadline.
 
-Fill `script-config/config.mainnet.json` with `foundation`, `tokenDistributor`, and `tokenProxy`
-(the mainnet ALIGN token), then:
+### Ethereum mainnet
+
+#### 1. Deploy
+
+Fill `script-config/config.mainnet.json` with the Ethereum `foundation` and `tokenDistributor` safes.
+`tokenProxy` is already the mainnet ALIGN token.
 
 ```
-make deploy-claimable-mainnet KEYSTORE_PATH=<keystore-path> ETHERSCAN_API_KEY=<key>
+make deploy-claimable-mainnet ETHERSCAN_API_KEY=<key>
+```
+
+Prompts for the deployer key. Note the claimable **proxy** address printed in the output (not the
+implementation).
+
+> [!NOTE]
+> To deploy the token from scratch on Ethereum: `make deploy-token-mainnet ETHERSCAN_API_KEY=<key>`.
+> You should not need this — the ALIGN token is already deployed.
+
+#### 2. Enable claiming
+
+Follow [Enable claiming from the safes](#enable-claiming-from-the-safes) with:
+
+- `AIRDROP` = the claim proxy you just deployed, `TOKEN` = the mainnet ALIGN token
+- `MERKLE_ROOT` = the **ethereum** root
+- Owner steps from the **Ethereum foundation** safe, approve from the **Ethereum distributor** safe
+
+### Base mainnet
+
+#### 1. Token — already deployed, but its supply has to be bridged
+
+The Base ALIGN token is an `OptimismMintableERC20` created through the OP factory, not with forge —
+see [`base/`](base/README.md). It is pre-filled as `tokenProxy` in
+`script-config/config.base-mainnet.json`.
+
+Its balance on Base only exists to the extent it has been **bridged from Ethereum**. Claims call
+`safeTransferFrom` on the distributor, so before enabling claiming the **Base distributor safe** must
+hold at least the total claimable on Base.
+
+#### 2. Fund the Base distributor safe
+
+The **Ethereum distributor** safe bridges to the **Base distributor** safe. Since the two may be
+different addresses, the deposit has to name the destination explicitly — otherwise the tokens land
+at whatever address matches the sender on Base, which may be one nobody controls. Full walkthrough in
+[`base/`](base/README.md#bridge-l1---base).
+
+Takes ~20 minutes to land. Verify before continuing:
+
+```
+cast call <base-align-token> 'balanceOf(address)(uint256)' <base-distributor-safe> \
+  --rpc-url https://mainnet.base.org
+```
+
+#### 3. Deploy
+
+Fill `script-config/config.base-mainnet.json` with the **Base** `foundation` and `tokenDistributor`
+safes, then:
+
+```
+make deploy-claimable-base-mainnet ETHERSCAN_API_KEY=<key>
 ```
 
 Note the claimable proxy address printed in the output.
 
-> [!NOTE]
-> The mainnet ALIGN token already exists — use its address as `tokenProxy`. To deploy the token
-> from scratch on Ethereum: `make deploy-token-mainnet KEYSTORE_PATH=<keystore-path>`.
+#### 4. Enable claiming
 
-### 2. Enable claiming (foundation multisig)
+Follow [Enable claiming from the safes](#enable-claiming-from-the-safes) with:
 
-On mainnet the owner is the foundation safe, so you generate the calldata for each step and execute
-it from the multisig rather than sending the transactions directly.
+- `AIRDROP` = the Base claim proxy, `TOKEN` = the Base ALIGN token
+- `MERKLE_ROOT` = the **base** root
+- Owner steps from the **Base foundation** safe, approve from the **Base distributor** safe
+- `APPROVE_AMOUNT` = the amount actually bridged, not the 2.6B default
+
+### Enable claiming from the safes
+
+The owner is a Safe, so you generate the calldata for each step and execute it from the multisig
+rather than sending transactions directly. This section applies to **either** chain — use that
+chain's safes, root, token and claim proxy throughout.
 
 > [!IMPORTANT]
 >
@@ -118,20 +198,38 @@ it from the multisig rather than sending the transactions directly.
 >   anything.
 > - Steps 1, 2 and 4 are owner actions and can be batched in one multisig transaction. Step 3 must
 >   be done by the token-distributor safe (it holds the tokens).
+> - `unpause` goes **last**: `updateMerkleRoot` and `extendClaimPeriod` are `whenPaused`.
 
 > [!WARNING]
 > Double-check the data you pass into these commands — any mistake can lead to undesired behavior.
+> In particular, use the **ethereum** root on the Ethereum contract and the **base** root on the
+> Base contract. Crossed roots deploy and enable without complaint and fail only when a user claims,
+> with `Invalid Merkle proof`.
 
-1. Merkle root (use the **ethereum** root for the mainnet contract):
-   `make calldata-update-merkle-root MERKLE_ROOT=<root>`
-2. Claim deadline: `make calldata-update-limit-timestamp LIMIT_TIMESTAMP=<timestamp>`
-3. Approve spending, run by the token-distributor safe:
-   `make calldata-approve-spending CLAIM_PROXY_ADDRESS=<claimable-proxy>`
-4. Unpause: `make calldata-unpause`
+1. Merkle root, from the foundation safe:
+   `make calldata-update-merkle-root MERKLE_ROOT=<that-chain's-root>`
+2. Claim deadline, from the foundation safe:
+   `make calldata-update-limit-timestamp LIMIT_TIMESTAMP=<timestamp>`
+3. Approve spending, from the token-distributor safe, **sent to that chain's token contract**:
+   `make calldata-approve-spending CLAIM_PROXY_ADDRESS=<claimable-proxy> APPROVE_AMOUNT=<amount>`
+   (`APPROVE_AMOUNT` defaults to 2.6B; on Base pass the bridged amount instead)
+4. Unpause, from the foundation safe: `make calldata-unpause`
 
-Submit each piece of calldata as a transaction from the appropriate safe. The same per-network root
-mapping (ethereum root on the Ethereum contract, base root on the Base contract) applies once Base
-mainnet is added.
+Submit each piece of calldata as a transaction from the appropriate safe.
+
+### Verify (either chain, read-only)
+
+```
+make claimable-get-root      AIRDROP=<claim-proxy> RPC_URL=<rpc>   # that chain's root
+make claimable-get-timestamp AIRDROP=<claim-proxy> RPC_URL=<rpc>   # the claim deadline
+make test-airdrop            AIRDROP=<claim-proxy> RPC_URL=<rpc>   # paused()=false, owner()=safe
+
+cast call <token> 'allowance(address,address)(uint256)' \
+  <distributor-safe> <claim-proxy> --rpc-url <rpc>
+```
+
+`RPC_URL` has no mainnet default — pass `https://ethereum-rpc.publicnode.com` or
+`https://mainnet.base.org` explicitly, or the read hits `http://localhost:8545`.
 
 ## Upgrades
 
@@ -139,6 +237,14 @@ To upgrade a contract, first make sure you pause the contract if it's not paused
 
 > [!NOTE]
 > The ERC20 cannot be paused. Only the claimable airdrop proxy can be paused.
+
+> [!IMPORTANT]
+> Upgrades are **per chain**. Ethereum mainnet and Base mainnet have separate proxies, separate proxy
+> admins and separate foundation safes, so an upgrade has to be repeated on each chain with that
+> chain's config (`config.mainnet.json` / `config.base-mainnet.json`), and the final transaction must
+> be submitted from that chain's foundation safe. Note the upgrade script below reads a different
+> shape from the deploy scripts — `foundation` plus `contractProxy` — so don't overwrite the
+> `tokenDistributor`/`tokenProxy` values a redeploy would need.
 
 ```
 git clone git@github.com:yetanotherco/aligned_layer.git && cd aligned_layer/claim_contracts

@@ -1,7 +1,7 @@
 .PHONY: help \
 	calldata-update-merkle-root calldata-update-limit-timestamp calldata-approve-spending calldata-unpause calldata-pause \
 	deploy-token deploy-token-sepolia deploy-token-mainnet \
-	deploy-claimable-local deploy-claimable-sepolia deploy-claimable-base-sepolia deploy-claimable-mainnet \
+	deploy-claimable-local deploy-claimable-sepolia deploy-claimable-base-sepolia deploy-claimable-mainnet deploy-claimable-base-mainnet \
 	update_token_proxy upgrade-token enable-claimability \
 	approve-claimable claimable-update-root claimable-get-root claimable-update-timestamp claimable-get-timestamp claimable-pause claimable-unpause \
 	upgrade-aligned-token-implementation \
@@ -12,8 +12,10 @@
 # ============================================================================
 # Configuration — override any of these on the command line, e.g.
 #   make deploy-claimable-sepolia DEPLOYER_PRIVATE_KEY=0x... ETHERSCAN_API_KEY=...
-# (ETHERSCAN_API_KEY, KEYSTORE_PATH, MERKLE_ROOT, TIMESTAMP, CLAIM_PROXY_ADDRESS,
+# (ETHERSCAN_API_KEY, MERKLE_ROOT, TIMESTAMP, CLAIM_PROXY_ADDRESS,
 #  LIMIT_TIMESTAMP, etc. have no default and are passed in per invocation.)
+# The mainnet deploy targets sign with --interactive, so they prompt for the key instead of
+# reading it from a variable or a keystore path.
 # ============================================================================
 
 # RPC endpoints (per network)
@@ -21,6 +23,7 @@ RPC_URL ?= http://localhost:8545
 SEPOLIA_RPC_URL ?= https://ethereum-sepolia-rpc.publicnode.com
 BASE_SEPOLIA_RPC_URL ?= https://sepolia.base.org
 MAINNET_RPC_URL ?= https://ethereum-rpc.publicnode.com
+BASE_MAINNET_RPC_URL ?= https://mainnet.base.org
 
 # Signing keys (anvil defaults, for local use)
 DEPLOYER_PRIVATE_KEY ?= 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
@@ -48,8 +51,8 @@ calldata-update-merkle-root: ## 💾 Calldata for the method `updateMerkleRoot` 
 calldata-update-limit-timestamp: ## 💾 Calldata for the method `extendClaimPeriod` to use in a transaction
 	cast calldata "extendClaimPeriod(uint256)" $(LIMIT_TIMESTAMP)
 
-calldata-approve-spending: ## 💾 Calldata for the method `approve` to use in a transaction
-	cast calldata "approve(address,uint256)" $(CLAIM_PROXY_ADDRESS) 2600000000000000000000000000
+calldata-approve-spending: ## 💾 Calldata for the method `approve` to use in a transaction (override APPROVE_AMOUNT)
+	cast calldata "approve(address,uint256)" $(CLAIM_PROXY_ADDRESS) $(APPROVE_AMOUNT)
 
 calldata-unpause: ## 💾 Calldata for the method `unpause` to use in a transaction
 	cast calldata "unpause()"
@@ -83,9 +86,11 @@ deploy-token-mainnet: ## 🚀 Deploy the token contract in Mainnet
 	forge script DeployAlignedToken.s.sol \
 	--sig "run(string)" \
 	mainnet \
-	--keystore $(KEYSTORE_PATH) \
+	--interactive \
 	--rpc-url $(MAINNET_RPC_URL) \
 	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY) \
 	--verbosity 3
 
 deploy-claimable-local: ## 🚀 Deploy the airdrop contract in localnet
@@ -120,8 +125,18 @@ deploy-claimable-mainnet: ## 🚀 Deploy the airdrop contract in Mainnet
 	cd script && \
 	forge script DeployClaimableAirdrop.s.sol \
 	--sig "run(string)" mainnet \
-	--keystore $(KEYSTORE_PATH) \
+	--interactive \
 	--rpc-url $(MAINNET_RPC_URL) \
+	--broadcast \
+	--verify \
+	--etherscan-api-key $(ETHERSCAN_API_KEY)
+
+deploy-claimable-base-mainnet: ## 🚀 Deploy the airdrop contract in Base Mainnet
+	cd script && \
+	forge script DeployClaimableAirdrop.s.sol \
+	--sig "run(string)" base-mainnet \
+	--interactive \
+	--rpc-url $(BASE_MAINNET_RPC_URL) \
 	--broadcast \
 	--verify \
 	--etherscan-api-key $(ETHERSCAN_API_KEY)
