@@ -20,11 +20,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@1.88.0
         with:
-          toolchain: 1.88.0
           components: rustfmt, clippy
-          override: true
 
       # Reference: https://github.com/succinctlabs/sp1/actions/runs/8886659400/workflow#L61-L65
       - name: Install sp1 toolchain
@@ -40,7 +38,7 @@ jobs:
           ~/.risc0/bin/rzup install
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -106,7 +104,7 @@ jobs:
           ~/.risc0/bin/rzup install
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
