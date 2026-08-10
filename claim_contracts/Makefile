@@ -1,4 +1,4 @@
-.PHONY: help \
+.PHONY: help launch-env \
 	calldata-update-merkle-root calldata-update-limit-timestamp calldata-approve-spending calldata-unpause calldata-pause \
 	deploy-token deploy-token-sepolia deploy-token-mainnet \
 	deploy-claimable-local deploy-claimable-sepolia deploy-claimable-base-sepolia deploy-claimable-mainnet deploy-claimable-base-mainnet \
@@ -40,8 +40,51 @@ APPROVE_AMOUNT ?= 2600000000000000000000000000
 AMOUNT_TO_CLAIM = $(shell curl -S -H "Content-Type: application/json" http://localhost:4000/api/proof/\$(CLAIMER) | jq -r .amount)
 MERKLE_PROOF_TO_CLAIM = $(shell curl -S -H "Content-Type: application/json" http://localhost:4000/api/proof/\$(CLAIMER) | jq .proof | tr -d '"\n ')
 
+# Mainnet launch environment — the file the launch runbook tells the operator to keep and source.
+# The mainnet deploy targets depend on `launch-env`, so its values (and anything still MISSING) are
+# printed right before the deploy prompts for the key, instead of relying on the operator having
+# sourced the right file in the right shell.
+LAUNCH_ENV ?= $(HOME)/align-launch.env
+LAUNCH_ENV_VARS = ETH_RPC BASE_RPC ETH_TOKEN BASE_TOKEN CLAIM_ADMIN_SAFE ETH_DISTRIBUTOR_SAFE \
+	BASE_DISTRIBUTOR_SAFE ETH_TREASURY_SAFE DEPLOYER START_TIMESTAMP ETH_DEADLINE \
+	BASE_DEADLINE SMOKE_TEST_ADDRESS ETH_AMOUNT BASE_AMOUNT ETH_CLAIM BASE_CLAIM \
+	ETH_ROOT BASE_ROOT
+# Reported as set/MISSING only — never printed. The deploy targets read ETHERSCAN_API_KEY straight
+# from the environment, so an unset one only surfaces as a forge argument error.
+LAUNCH_ENV_SECRETS = ETHERSCAN_API_KEY
+
 help: ## 📚 Show help for each of the Makefile recipes
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+launch-env: ## 🔎 Print the launch runbook variables from $(LAUNCH_ENV) (MISSING when unset)
+	@if [ ! -r "$(LAUNCH_ENV)" ]; then \
+		echo "launch env file not found: $(LAUNCH_ENV)"; \
+		echo "Create it from the 'Environment' section of the launch runbook,"; \
+		echo "or pass LAUNCH_ENV=/dev/null to run without it."; \
+		exit 1; \
+	fi; \
+	echo "launch env: $(LAUNCH_ENV)"; \
+	. "$(LAUNCH_ENV)"; \
+	missing=0; \
+	for v in $(LAUNCH_ENV_VARS); do \
+		eval "val=\$${$$v:-}"; \
+		if [ -n "$$val" ]; then \
+			printf '  %-24s %s\n' "$$v" "$$val"; \
+		else \
+			printf '  %-24s MISSING\n' "$$v"; \
+			missing=$$((missing + 1)); \
+		fi; \
+	done; \
+	for v in $(LAUNCH_ENV_SECRETS); do \
+		eval "val=\$${$$v:-}"; \
+		if [ -n "$$val" ]; then \
+			printf '  %-24s set\n' "$$v"; \
+		else \
+			printf '  %-24s MISSING\n' "$$v"; \
+			missing=$$((missing + 1)); \
+		fi; \
+	done; \
+	echo "($$missing missing — expected for values a later runbook step still has to produce)"
 
 # Calldata
 
@@ -121,7 +164,7 @@ deploy-claimable-base-sepolia: ## 🚀 Deploy the airdrop contract in Base Sepol
 	--verify \
 	--etherscan-api-key $(ETHERSCAN_API_KEY)
 
-deploy-claimable-mainnet: ## 🚀 Deploy the airdrop contract in Mainnet
+deploy-claimable-mainnet: launch-env ## 🚀 Deploy the airdrop contract in Mainnet
 	cd script && \
 	forge script DeployClaimableAirdrop.s.sol \
 	--sig "run(string)" mainnet \
@@ -131,7 +174,7 @@ deploy-claimable-mainnet: ## 🚀 Deploy the airdrop contract in Mainnet
 	--verify \
 	--etherscan-api-key $(ETHERSCAN_API_KEY)
 
-deploy-claimable-base-mainnet: ## 🚀 Deploy the airdrop contract in Base Mainnet
+deploy-claimable-base-mainnet: launch-env ## 🚀 Deploy the airdrop contract in Base Mainnet
 	cd script && \
 	forge script DeployClaimableAirdrop.s.sol \
 	--sig "run(string)" base-mainnet \
