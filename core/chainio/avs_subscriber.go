@@ -120,22 +120,31 @@ func (s *AvsSubscriber) SubscribeToNewTasksV3(newTaskCreatedChan chan *servicema
 		s.logger.Info("Starting error handling goroutine")
 		var errMain, errFallback error
 		var auxSub, auxSubFallback event.Subscription
+
+		// Guard against nil subscriptions: if a subscription failed on startup,
+		// replace its Err() channel with a never-sending channel so the select
+		// below never blocks on a nil interface (which would panic).
+		subErrCh := nilSafeErrCh(sub)
+		subFallbackErrCh := nilSafeErrCh(subFallback)
+
 		for errMain == nil || errFallback == nil { //while one is active
 			select {
-			case err := <-sub.Err():
+			case err := <-subErrCh:
 				s.logger.Warn("Error in new task subscription of main connection", "err", err)
 
 				auxSub, errMain = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManager, internalChannel, nil, retry.NetworkRetryParams())
 				if errMain == nil {
 					sub = auxSub // update the subscription only if it was successful
+					subErrCh = nilSafeErrCh(sub)
 					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
-			case err := <-subFallback.Err():
+			case err := <-subFallbackErrCh:
 				s.logger.Warn("Error in new task subscription of fallback connection", "err", err)
 
 				auxSubFallback, errFallback = SubscribeToNewTasksV3Retryable(&bind.WatchOpts{}, s.AvsContractBindings.ServiceManagerFallback, internalChannel, nil, retry.NetworkRetryParams())
 				if errFallback == nil {
 					subFallback = auxSubFallback // update the subscription only if it was successful
+					subFallbackErrCh = nilSafeErrCh(subFallback)
 					s.logger.Info("Resubscribed to fallback new task subscription")
 				}
 			}
@@ -219,6 +228,16 @@ func (s *AvsSubscriber) getLatestNotRespondedTaskFromEthereumV3() (*servicemanag
 	}
 
 	return lastLog, nil
+}
+
+// nilSafeErrCh returns sub.Err() if sub is non-nil, otherwise a channel that
+// never sends. This prevents a nil-interface method call panic in the
+// error-handling goroutine when one of the two subscriptions failed on startup.
+func nilSafeErrCh(sub event.Subscription) <-chan error {
+	if sub == nil {
+		return make(chan error) // never sends; effectively disables this case
+	}
+	return sub.Err()
 }
 
 func (s *AvsSubscriber) WaitForOneBlock(startBlock uint64) error {
