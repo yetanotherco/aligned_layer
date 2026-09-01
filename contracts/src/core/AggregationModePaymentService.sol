@@ -247,7 +247,7 @@ contract AggregationModePaymentService is Initializable, UUPSUpgradeable, Access
         }
 
 
-        emit UserPayment(msg.sender, amount, block.timestamp, block.timestamp + paymentExpirationTimeSeconds);
+        emit UserPayment(msg.sender, amount, block.timestamp, newExpiration);
     }
 
     /**
