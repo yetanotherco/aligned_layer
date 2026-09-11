@@ -1,4 +1,4 @@
-# Rollup-as-a-Service (RaaS) platform
+# Rollup as a Service (RaaS) platform
 
 Aligned's RaaS platform integrates RISC-V zkVMs, the new [Ethrex execution client](https://github.com/lambdaclass/ethrex), and our ZK Verification Layer to offer fast, reliable, and secure one-click ZK-rollup deployment — including full support for based rollups — making it as simple as launching a Web2 service.
 

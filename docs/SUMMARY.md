@@ -29,6 +29,6 @@
     * [Sepolia Explorer](https://sepolia.explorer.alignedlayer.com)
     * [Hoodi Explorer](https://hoodi.explorer.alignedlayer.com)
 
-## Rollup-as-a-Service
+## Rollup as a Service
 
 * [RaaS Platform](3_raas/1_raas_platform.md)
