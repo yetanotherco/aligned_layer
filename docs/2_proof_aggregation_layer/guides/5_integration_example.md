@@ -1,6 +1,6 @@
-# Integrating your application with Aligned Aggregation Mode
+# Integration example: a toy L2
 
-This guide demonstrates how to build a toy L2 application that integrates with Aligned Aggregation Mode. The L2 does not post state diffs or any data to Ethereum, only commitments. The prover has to prove that:
+This guide demonstrates how to build a dummy L2 application that integrates with Aligned's Proof Aggregation Service. The L2 does not post state diffs or any data to Ethereum, only commitments. The prover has to prove that:
 
 1. The state database used in the proof must match the commitment stored in the on-chain contract. This is validated by computing the commitment of the received data in the zkvm and then exposing it as a public input.
 2. The users performing the transfers have enough balance
@@ -9,11 +9,13 @@ After processing the transfers, the vm computes the commitment of the post state
 
 Notice a lot of checks that a real L2 should have are missing, since the focus are on the integration of Aligned.
 
+The code can be viewed at `examples/l2`.
+
 ## L2 workflow overview
 
 This Layer 2 (L2) system operates in two main steps:
 
--   Off-chain execution and proof generation, then submission to Aligned Aggregation Mode.
+-   Off-chain execution and proof generation, then submission to Aligned's Proof Aggregation Service.
 -   On-chain state update via proof inclusion verification against the aggregated proof.
 
 In Step 1, we execute user transfers and generate a zkVM-based proof of the state transition, which is submitted to the Aggregation Mode Gateway.
@@ -57,8 +59,8 @@ make submodules
 
 You can run the example on:
 
-- [Hoodi](#setup-hoodi)
-- [Localnet](#setup-localnet)
+-   [Hoodi](#setup-hoodi)
+-   [Localnet](#setup-localnet)
 
 ## Setup Hoodi
 
@@ -77,60 +79,51 @@ cast wallet import --interactive <path_to_keystore.json>
 ```
 
 Then you need to obtain some funds to pay for gas and proof verification.
-You can do this by using this [faucet](https://hoodi-faucet.pk910.de/)
+You can do this by using this [faucet](https://cloud.google.com/application/web3/faucet/ethereum/hoodi)
 
-*This same wallet is used to send the proof via aligned, so you'll also need to fund it on aligned. Follow this [guide](https://docs.alignedlayer.com/guides/0_submitting_proofs#id-2.-send-funds-to-aligned).*
-
-- Transfer funds to the aggregation mode payments contract:
-
-```shell
-cd aggregation_mode/cli
-
-cargo run --release -- deposit \
- --private-key <your-private-key> \
- --network hoodi \
- --rpc-url https://ethereum-hoodi-rpc.publicnode.com
-```
+_This same wallet is used to send the proof to Aligned, so you also need to fund your quota on Aligned with the [`deposit` command](3_cli.md#deposit) of the Aggregation Mode CLI._
 
 ### 2. Deploy the contract
 
-- Generate the base `.env`:
+-   Generate the base `.env`:
 
-    ```shell
-        make gen_env_contract_hoodi
-    ```
+```shell
+make gen_env_contract_hoodi
+```
 
-- Get the program ID of the l2 program you are proving:
+-   Get the program ID of the l2 program you are proving:
 
-    ```shell
-        make generate_program_id
-    ```
+```shell
+make generate_program_id
+```
 
-- Complete the following fields `contracts/.env` file:
-  - `PROGRAM_ID=` (use the previously generated ID, you can re check with a `cat ./crates/l2/programs_ids.json` )
-  - `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
-  - `OWNER_ADDRESS`: you have to provide the *address of the wallet created in step `1.`*.
+-   Complete the following fields `contracts/.env` file:
 
-- Deploy the contracts with:
+    -   `PROGRAM_ID=` (use the previously generated ID, you can re check with a `cat ./crates/l2/programs_ids.json` )
+    -   `PRIVATE_KEY`: the private key used for the deployment, it needs to have some funds to pay for the deployment.
+    -   `OWNER_ADDRESS`: you have to provide the _address of the wallet created in step `1.`_.
 
-    ```shell
-        make deploy_contract
-    ```
+-   Deploy the contracts with:
 
-*Save the output contract address.*
+```shell
+make deploy_contract
+```
+
+_Save the output contract address._
 
 ### 3. Setup the L2
 
-- Generate the base `.env` run:
+-   Generate the base `.env` run:
 
-    ```shell
-    make gen_env_l2_hoodi
-    ```
+```shell
+make gen_env_l2_hoodi
+```
 
-- Complete the missing fields on the `.env`:
-  - `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
-  - `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
-  - `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
+-   Complete the missing fields on the `.env`:
+
+    -   `PRIVATE_KEY_STORE_PATH`: The path to the keystore created in `1.`.
+    -   `PRIVATE_KEY_STORE_PASSWORD`: The password of the keystore crated in step `1.`.
+    -   `STATE_TRANSITION_CONTRACT_ADDRESS`: The address of the contract deployed in step `2.`
 
 Finally [run the l2](#running-the-l2).
 
@@ -138,70 +131,60 @@ Finally [run the l2](#running-the-l2).
 
 You can also run this example on a local devnet. To get started, navigate to the root of the Aligned repository
 
-- Start the Ethereum package and the Aggregation Mode services
+-   Start the Ethereum package and the Aggregation Mode services. Each of these runs in its own terminal:
 
 ```shell
 # This will start the local net
 make ethereum_package_start
-# Start the payments poller
-make agg_mode_payments_poller_start_ethereum_package
-# Start the gateway
+# Start the gateway that receives proofs
 make agg_mode_gateway_start_ethereum_package
+# Start the poller that credits deposits to your quota
+make agg_mode_payments_poller_start_ethereum_package
 ```
 
-- Navigate back to the example directory:
+See [Running the Proof Aggregation Layer locally](6_local_setup.md) for more detail on each service.
+
+-   Navigate back to the example directory:
 
 ```shell
 cd examples/l2
-``` 
+```
 
-- Generate the `.env` files for the contracts and L2:
+-   Generate the `.env` files for the contracts and L2:
 
 ```shell
 make gen_env_contract_devnet
 make gen_env_l2_devnet
 ```
 
-- Generate a pre funded wallet (or create one as specified [previously here](#1-create-keystore)):
+-   Generate a pre funded wallet (or create one as specified [previously here](#1-create-keystore)):
 
 ```shell
 # This will generate the keystore and fund it on aligned
 make gen_devnet_owner_wallet
 ```
 
-- Transfer funds to the aggregation mode payments contract:
-
-```shell
-cd aggregation_mode/cli
-
-cargo run --release -- deposit \
- --private-key 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a \
- --network devnet \
- --rpc-url http://localhost:8545
-```
-
-- Generate the program ID of the program that is going to be proven:
+-   Generate the program ID of the program that is going to be proven:
 
 ```shell
 make generate_program_id
 ```
 
-- Set the generated program ID on `contracts/.env`.
+-   Set the generated program ID on `contracts/.env`.
 
-- Deploy the contract
+-   Deploy the contract
 
 ```shell
 make deploy_contract
 ```
 
-- Set the output address of the contract in `.env`
+-   Set the output address of the contract in `.env`
 
-- [run the l2](#running-the-l2)
-
+-   [run the l2](#running-the-l2)
 
 ## Running the L2
 
-- Set up the initial State
+-   Set up the initial State
 
 ```shell
 make init_state
@@ -213,11 +196,12 @@ make init_state
 make prove_state_transition
 ```
 
-- Wait 24 hs for the proof to be aggregated, or if running locally, run the aggregator with either:
+-   Wait 24 hs for the proof to be aggregated, or if running locally, run the aggregator with either:
 
-    ```make proof_aggregator_start_ethereum_package AGGREGATOR=sp1``` 
-or with cuda:
-    ```make proof_aggregator_start_gpu_ethereum_package AGGREGATOR=sp1```
+        ```make proof_aggregator_start_ethereum_package AGGREGATOR=sp1```
+
+    or with cuda:
+    `make proof_aggregator_start_gpu_ethereum_package AGGREGATOR=sp1`
 
 -   Update state transition on chain:
 

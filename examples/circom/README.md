@@ -74,7 +74,7 @@ make run
 
 ## How to run it locally
 
-Set up all the components of aligned locally following the [aligned setup guide](../../docs/3_guides/6_setup_aligned.md).
+Set up all the components of aligned locally following the [aligned setup guide](../../docs/archive/3_guides/6_setup_aligned.md).
 
 1.  Generate the trusted setup:
 

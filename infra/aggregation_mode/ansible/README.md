@@ -323,7 +323,7 @@ make gateway_2_deploy ENV=mainnet FORCE_REBUILD=true
 ```
 
 This will:
-1. Pull latest code from the configured branch (staging for hoodi, main for mainnet)
+1. Pull latest code from the configured branch (`git_branch` in `playbooks/ini/config-<env>.ini`; currently `staging` for both hoodi and mainnet)
 2. Delete existing binaries
 3. Rebuild gateway and poller from source
 

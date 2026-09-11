@@ -1,3 +1,5 @@
+# About Aligned
+
 ## What is Aligned?
 
 Aligned is a vertically integrated stack for building applications on a verifiable internet. Whether it's financial infrastructure or AI systems, we provide the foundation for provable execution with one-click solutions for wallets, rollups, interoperability, and ZK services in a world where trust is no longer a given.
@@ -9,7 +11,7 @@ Aligned is creating the foundation for a trustless, verifiable internet. Our ver
 By providing the tools for trust to be integrated into every layer of application infrastructure, we’re enabling developers to create verifiable systems that can be trusted across a wide range of use cases. Aligned is here to enable a future where trust is not assumed, but proven by design.
 
 {% hint style="info" %}
-If you are unfamiliar with ZK and why this is useful, see [Why ZK and Aligned?](./4_why_zk.md)
+If you are unfamiliar with ZK and why this is useful, see [Why ZK and Aligned?](3_why_zk.md)
 {% endhint %}
 
 ## What real value does Aligned bring to the table?
@@ -18,7 +20,7 @@ Aligned is building a full stack of vertically integrated infrastructure designe
 
 Aligned suite of products and services includes:
 
-- ZK Verification Layer (offering Proof Verification Layer and Proof Aggregation Service)
+- ZK Verification Layer (the Proof Aggregation Service)
 - Rollup-as-a-Service (RaaS) Platform
 - Meta-Proving Services
 - Interoperability Protocol
@@ -26,7 +28,7 @@ Aligned suite of products and services includes:
 
 ![Figure 1: Aligned Suite of Products](../images/aligned_suite_of_products.png)
 
-Read more: [The Aligned Roadmap](https://roadmap.alignedlayer.com)
+Read more: [The Aligned Roadmap](https://roadmap.alignedlayer.com) and [the Aligned Manifesto](https://blog.alignedlayer.com/aligned-manifesto/)
 
 By vertically integrating our stack we can provide the best developer experience and highest performance at the lowest possible cost.
 
@@ -45,24 +47,15 @@ The main limitation for building complex applications on top of blockchains has 
 
 ZK solves this, but due to slow and complex-to-use proving and expensive verification, progress has been limited. In the case of proving, before the development of general-purpose zero-knowledge virtual machines (zkVMs), users had to express their computation as arithmetic circuits, making the developer experience something like coding in assembler, error-prone, and complex. Moreover, proof systems depended on trusted setups, adding additional trust guarantees, the need to carry out special ceremonies to initialize parameters, and delaying go-to-market times. Besides, having high verification costs (on the order of 10's to 100's of dollars per proof) meant that only those projects with a huge capital could afford to build such applications.
 
-## How much can Aligned Aligned’s ZK Verification Layer reduce costs?
+## How much can Aligned’s ZK Verification Layer reduce costs?
 
-Aligned’s ZK Verification Layer operates using two operation modes: Proof Verification Layer and Proof Aggregation Service. The cost reduction depends on throughput, proof system, and mode used. For the least expensive systems, such as Groth16, this can amount to nearly 90%, while STARKs can be nearly 99%. Moreover, Aligned’s stack allows the verification of proofs that cannot be currently verified in Ethereum due to cost or size, such as Kimchi or Binius. The verification cost using Aligned services is independent of the proof system, giving the choice of the proof system back to developers.
+Aligned’s ZK Verification Layer is the Proof Aggregation Service. The cost reduction depends on throughput and the number of proofs aggregated together: the cost of verifying the aggregated proof on Ethereum is amortized across every proof in it, so the more proofs are aggregated, the cheaper each one becomes.
 
 ## How does Aligned’s stack compare to other solutions?
 
-Aligned has created a new category in crypto: ZK verification layer. It is the only solution for now offering Proof Verification and Proof Aggregation modes while being linked to Ethereum via EigenLayer. The Proof Verification Layer provides very high throughput (over two orders of magnitude more than Ethereum), low latency, and lower costs than the Proof Aggregation Layer. The security is provided by restaking, and this mode is well suited for applications with tight limits on latency and costs. The Proof Aggregation Layer works using the slower proof recursion strategy, also used in rollups to compress proofs. Another key feature is that Aligned’s approach is stateless, simplifying the process greatly.
+Aligned's Proof Aggregation Service compresses many proofs into a single recursive proof that is verified directly on Ethereum. Because the final proof is checked by an Ethereum smart contract, it inherits the full cryptographic security of Ethereum — there is no separate trust assumption to reason about, and no new economic security to bootstrap.
 
-Other solutions focus on building a separate L1 for proof verification (which sets them apart from Ethereum and requires bootstrapping the economic security, which can be lowered and subject to volatility, as opposed to that provided by restaking) or focus on the aggregation of proofs from a few proof systems. This last approach adds latency, higher operational costs, and constrains the developer's choice of the proof system.
-
-The following table contains cost estimates for Aligned, assuming a batch size of 20 proofs.
-
-| Proof system | Ethereum   | Aligned's Proof Verification Layer | Aligned's Proof Aggregation Service |
-| ------------ | ---------- | ------------------- | --------------------- |
-| Groth16      | 250,000    | 40,000              | TBD                   |
-| STARKs       | >1,000,000 | 40,000              | TBD                   |
-| Kimchi-IPA   | ??????     | 40,000              | TBD                   |
-| Binius.      | ??????     | 40,000              | TBD                   |
+Other solutions focus on building a separate L1 for proof verification, which sets them apart from Ethereum and requires bootstrapping economic security that can be subject to volatility. Another key feature is that Aligned's approach is stateless, simplifying the process greatly.
 
 ## Why is Aligned building its stack?
 
@@ -74,20 +67,11 @@ Currently, proof verification in Ethereum is expensive and throughput is limited
 
 Proof technology has been evolving over the last decade, with new arguments, fields, commitments and other tools appearing every day. It is hard to try new ideas if verification costs are high, and there is a considerable go-to-market time, as a consequence of development time of new, gas-optimized smart contracts, or the inclusion of new precompiles to make them affordable.
 
-Aligned’s stack provides an alternative to reduce costs and increase throughput significantly. This is achieved by two different products: Proof Verification Layer and Proof Aggregation Service.
+Aligned’s stack provides an alternative to reduce costs and increase throughput significantly. This is achieved by the Proof Aggregation Service.
 
-The Proof Verification Layer works with a subset of Ethereum’s validators via restaking. Validators (also known as Operators) receive proofs, verify them using the verification code written in Rust or any other higher-level language, and then sign messages with BLS signatures. If a two-thirds (2/3) majority agrees, the results are posted in Ethereum.
+The Proof Aggregation Service enables cost-efficient ZK proof verification by combining multiple proofs into one using recursive proof aggregation. Users submit their proofs to the service, which aggregates them into a single recursive proof attesting to the validity of all of them, and verifies that proof on Ethereum. The cost of the on-chain verification is then amortized across every proof in the batch.
 
-Since Aligned’s operators only need to run the verification code on bare metal, we have several advantages compared to running it on top of the EVM:
-
-- The code can be optimized for speed, not gas consumption.
-- We can leverage parallelization to increase throughput.
-- Since the gas limit does not constrain us, we can verify proof systems that are too expensive for Ethereum, such as Kimchi or Binius.
-- Adding new proof systems is straightforward.
-
-Preliminary numbers show that Aligned’s Verification Layer can verify more than 1000 proofs per second, over two orders of magnitude more than the EVM at nominal capacity. Using effective batching techniques, we can split the task creation and verification cost between thousands of proofs.
-
-On the other hand, Aligned’s Proof Aggregation service enables cost-efficient ZK proof verification by combining multiple proofs into one using recursive proof aggregation. It can be used standalone or with our Proof Verification Layer. Ideal for services like rollups that require Ethereum’s full security but can tolerate higher latency.
+Because the final proof is verified by an Ethereum smart contract, this achieves Ethereum's full security. It is ideal for services like rollups that require Ethereum's full security but can tolerate higher latency.
 
 To complement these verification capabilities, Aligned’s Meta-proving Services offers an easy interface for accessing centralized and decentralized proving from external providers. Many developers building programs on Aligned with zkVMs will want to delegate proving to different service providers. To address this, we will have a simple SDK that allows developers to code in Rust and easily send their programs for proving to their preferred services.
 

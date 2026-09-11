@@ -60,7 +60,7 @@ This will:
 
 If you want to test the zk quiz on a local network follow these steps:
 
-1. Setup Aligned locally following [this guide](../../docs/3_guides/6_setup_aligned.md)
+1. Setup Aligned locally following [this guide](../../docs/archive/3_guides/6_setup_aligned.md)
 
 3. Move into the zkquiz example:
     ```

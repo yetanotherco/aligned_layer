@@ -2,7 +2,7 @@
 
 ## Testing locally
 
-Set up all the components of aligned locally following the [aligned setup guide](../../docs/3_guides/6_setup_aligned.md).
+Set up all the components of aligned locally following the [aligned setup guide](../../docs/archive/3_guides/6_setup_aligned.md).
 
 This example is designed to do either with SP1 or risc0 proofs these are the commands to use depending on which verifier want to be used.
 
