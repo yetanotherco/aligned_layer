@@ -81,6 +81,17 @@ You can do this by using this [faucet](https://hoodi-faucet.pk910.de/)
 
 *This same wallet is used to send the proof via aligned, so you'll also need to fund it on aligned. Follow this [guide](https://docs.alignedlayer.com/guides/0_submitting_proofs#id-2.-send-funds-to-aligned).*
 
+- Transfer funds to the aggregation mode payments contract:
+
+```shell
+cd aggregation_mode/cli
+
+cargo run --release -- deposit \
+ --private-key <your-private-key> \
+ --network hoodi \
+ --rpc-url https://ethereum-hoodi-rpc.publicnode.com
+```
+
 ### 2. Deploy the contract
 
 - Generate the base `.env`:
@@ -132,8 +143,10 @@ You can also run this example on a local devnet. To get started, navigate to the
 ```shell
 # This will start the local net
 make ethereum_package_start
-# Start the batcher
-make batcher_start_ethereum_package
+# Start the payments poller
+make agg_mode_payments_poller_start_ethereum_package
+# Start the gateway
+make agg_mode_gateway_start_ethereum_package
 ```
 
 - Navigate back to the example directory:
@@ -154,6 +167,17 @@ make gen_env_l2_devnet
 ```shell
 # This will generate the keystore and fund it on aligned
 make gen_devnet_owner_wallet
+```
+
+- Transfer funds to the aggregation mode payments contract:
+
+```shell
+cd aggregation_mode/cli
+
+cargo run --release -- deposit \
+ --private-key 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a \
+ --network devnet \
+ --rpc-url http://localhost:8545
 ```
 
 - Generate the program ID of the program that is going to be proven:

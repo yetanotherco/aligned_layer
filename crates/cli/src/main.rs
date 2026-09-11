@@ -8,8 +8,6 @@ use std::time::Duration;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
-use aligned_sdk::aggregation_layer;
-use aligned_sdk::aggregation_layer::AggregationModeVerificationData;
 use aligned_sdk::common::types::FeeEstimationType;
 use aligned_sdk::common::{
     errors::{AlignedError, FeeEstimateError, SubmitError},
@@ -106,8 +104,6 @@ pub enum AlignedCommands {
         name = "get-user-amount-of-queued-proofs"
     )]
     GetUserAmountOfQueuedProofs(GetUserAmountOfQueuedProofsArgs),
-    #[clap(about = "", name = "verify-agg-proof")]
-    VerifyProofInAggMode(VerifyProofInAggModeArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -423,6 +419,10 @@ pub enum ProvingSystemArg {
     Risc0,
     #[clap(name = "CircomGroth16Bn256")]
     CircomGroth16Bn256,
+    #[clap(name = "Mina")]
+    Mina,
+    #[clap(name = "MinaAccount")]
+    MinaAccount,
 }
 
 const ANVIL_PRIVATE_KEY: &str = "2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"; // Anvil address 9
@@ -436,6 +436,8 @@ impl From<ProvingSystemArg> for ProvingSystemId {
             ProvingSystemArg::SP1 => ProvingSystemId::SP1,
             ProvingSystemArg::Risc0 => ProvingSystemId::Risc0,
             ProvingSystemArg::CircomGroth16Bn256 => ProvingSystemId::CircomGroth16Bn256,
+            ProvingSystemArg::Mina => ProvingSystemId::Mina,
+            ProvingSystemArg::MinaAccount => ProvingSystemId::MinaAccount,
         }
     }
 }
@@ -1091,64 +1093,6 @@ async fn main() -> Result<(), AlignedError> {
             );
             return Ok(());
         }
-        AlignedCommands::VerifyProofInAggMode(args) => {
-            let program_id_key = read_file(args.program_id_file)?
-                .try_into()
-                .expect("Invalid hexadecimal encoded vk hash");
-
-            let Some(pub_inputs_file_name) = args.pub_input_file_name else {
-                error!("Public input file not provided");
-                return Ok(());
-            };
-            let public_inputs = read_file(pub_inputs_file_name)?;
-
-            let proof_data = match args.proving_system {
-                ProvingSystemArg::SP1 => AggregationModeVerificationData::SP1 {
-                    vk: program_id_key,
-                    public_inputs,
-                },
-                ProvingSystemArg::Risc0 => AggregationModeVerificationData::Risc0 {
-                    image_id: program_id_key,
-                    public_inputs,
-                },
-                _ => {
-                    error!("Proving system not supported in aggregation mode");
-                    return Ok(());
-                }
-            };
-
-            let proof_status = match aggregation_layer::check_proof_verification(
-                &proof_data,
-                args.network.into(),
-                args.eth_rpc_url,
-                args.beacon_client_url,
-                args.from_block,
-            )
-            .await
-            {
-                Ok(res) => res,
-                Err(e) => {
-                    error!("Error while trying to verify proof {:?}", e);
-                    return Ok(());
-                }
-            };
-
-            match proof_status {
-                aggregation_layer::ProofStatus::Verified { merkle_root, .. } => {
-                    info!("Your proof has been verified in the aggregated proof with merkle root 0x{}", hex::encode(merkle_root));
-                }
-                aggregation_layer::ProofStatus::Invalid => {
-                    error!(
-                        "Your proof was found in the blob but the Merkle Root verification failed."
-                    )
-                }
-                aggregation_layer::ProofStatus::NotFound => {
-                    error!("Your proof wasn't found in the logs. Try specifying an earlier `from_block` to search further back in history.")
-                }
-            }
-
-            return Ok(());
-        }
     }
 
     Ok(())
@@ -1217,6 +1161,18 @@ fn verification_data_from_args(args: &SubmitArgs) -> Result<VerificationData, Su
             })?;
 
             pub_input = Some(decode_inputs);
+        }
+        ProvingSystemId::Mina => {
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name.clone(),
+            )?)
+        }
+        ProvingSystemId::MinaAccount => {
+            pub_input = Some(read_file_option(
+                "--public_input",
+                args.pub_input_file_name.clone(),
+            )?)
         }
     }
 

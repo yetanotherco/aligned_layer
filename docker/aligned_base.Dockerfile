@@ -59,6 +59,18 @@ COPY operator/merkle_tree/lib/src/ /aligned_layer/operator/merkle_tree/lib/src/
 WORKDIR operator/merkle_tree/lib
 RUN cargo chef prepare --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe.json
 
+# build_mina_linux
+COPY operator/mina/lib/Cargo.toml /aligned_layer/operator/mina/lib/Cargo.toml
+COPY operator/mina/lib/src/ /aligned_layer/operator/mina/lib/src/
+WORKDIR operator/mina/lib
+RUN cargo chef prepare --recipe-path /aligned_layer/operator/mina/lib/recipe.json
+
+# build_mina_account_linux
+COPY operator/mina_account/lib/Cargo.toml /aligned_layer/operator/mina_account/lib/Cargo.toml
+COPY operator/mina_account/lib/src/ /aligned_layer/operator/mina_account/lib/src/
+WORKDIR operator/mina_account/lib
+RUN cargo chef prepare --recipe-path /aligned_layer/operator/mina_account/lib/recipe.json
+
 FROM chef AS chef_builder
 
 COPY crates/sdk /aligned_layer/crates/sdk/
@@ -80,6 +92,18 @@ COPY operator/merkle_tree/ /aligned_layer/operator/merkle_tree/
 COPY --from=planner /aligned_layer/operator/merkle_tree/lib/recipe.json /aligned_layer/operator/merkle_tree/lib/recipe.json
 WORKDIR /aligned_layer/operator/merkle_tree/lib/
 RUN cargo chef cook --release --recipe-path /aligned_layer/operator/merkle_tree/lib/recipe.json
+
+# build_mina_linux
+COPY operator/mina/ /aligned_layer/operator/mina/
+COPY --from=planner /aligned_layer/operator/mina/lib/recipe.json /aligned_layer/operator/mina/lib/recipe.json
+WORKDIR /aligned_layer/operator/mina/lib/
+RUN cargo chef cook --release --recipe-path /aligned_layer/operator/mina/lib/recipe.json
+
+# build_mina_account_linux
+COPY operator/mina_account/ /aligned_layer/operator/mina_account/
+COPY --from=planner /aligned_layer/operator/mina_account/lib/recipe.json /aligned_layer/operator/mina_account/lib/recipe.json
+WORKDIR /aligned_layer/operator/mina_account/lib/
+RUN cargo chef cook --release --recipe-path /aligned_layer/operator/mina_account/lib/recipe.json
 
 FROM base AS builder
 
@@ -109,3 +133,15 @@ WORKDIR /aligned_layer/operator/merkle_tree/lib
 RUN cargo build ${RELEASE_FLAG}
 RUN cp /aligned_layer/operator/merkle_tree/lib/target/${TARGET_REL_PATH}/libmerkle_tree.so /aligned_layer/operator/merkle_tree/lib/libmerkle_tree.so
 RUN cp /aligned_layer/operator/merkle_tree/lib/target/${TARGET_REL_PATH}/libmerkle_tree.a /aligned_layer/operator/merkle_tree/lib/libmerkle_tree.a
+
+# build_mina_linux
+COPY --from=chef_builder /aligned_layer/operator/mina/lib/target/ /aligned_layer/operator/mina/lib/target/
+WORKDIR /aligned_layer/operator/mina/lib
+RUN cargo build ${RELEASE_FLAG}
+RUN cp /aligned_layer/operator/mina/lib/target/${TARGET_REL_PATH}/libmina_state_verifier_ffi.so /aligned_layer/operator/mina/lib/libmina_state_verifier_ffi.so
+
+# build_mina_account_linux
+COPY --from=chef_builder /aligned_layer/operator/mina_account/lib/target/ /aligned_layer/operator/mina_account/lib/target/
+WORKDIR /aligned_layer/operator/mina_account/lib
+RUN cargo build ${RELEASE_FLAG}
+RUN cp /aligned_layer/operator/mina_account/lib/target/${TARGET_REL_PATH}/libmina_account_verifier_ffi.so /aligned_layer/operator/mina_account/lib/libmina_account_verifier_ffi.so

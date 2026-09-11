@@ -1,6 +1,7 @@
 pragma solidity ^0.8.12;
 
 import {AlignedProofAggregationService} from "../../src/core/AlignedProofAggregationService.sol";
+import {IAlignedProofAggregationService} from "../../src/core/IAlignedProofAggregationService.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "forge-std/Script.sol";

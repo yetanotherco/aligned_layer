@@ -1,15 +1,21 @@
-use crate::aligned::{check_proof_proof_aggregation_status, send_proof_to_be_verified_on_aligned};
 use crate::config::Config;
 use crate::db::{generate_random_transfers, DB};
 use crate::eth::send_state_transition_to_chain;
 use crate::prover::{self, prove_state_transition, PROGRAM_ELF};
+use agg_mode_sdk::blockchain::provider::ProofAggregationServiceProvider;
+use agg_mode_sdk::blockchain::{AggregationModeVerificationData, ProofStatus};
+use agg_mode_sdk::gateway::provider::AggregationModeGatewayProvider;
 use alloy::hex;
+use alloy::signers::k256::ecdsa::SigningKey;
+use alloy::signers::local::LocalSigner;
 use primitive_types::U256;
-use sp1_sdk::SP1ProofWithPublicValues;
+use sp1_sdk::{HashableKey, SP1ProofWithPublicValues};
 use sp1_state_transition_program::ProgramOutput;
 use tracing::info;
 
 pub struct L2 {
+    aligned_agg_mode_gateway_provider: AggregationModeGatewayProvider<LocalSigner<SigningKey>>,
+    aligned_proof_agg_service: ProofAggregationServiceProvider,
     config: Config,
     db: DB,
 }
@@ -17,9 +23,26 @@ pub struct L2 {
 impl L2 {
     pub fn new(config: Config) -> Self {
         let db_path = config.db_path.clone().unwrap_or("./db".to_string());
+        let signer = LocalSigner::decrypt_keystore(
+            config.private_key_store_path.clone(),
+            config.private_key_store_password.clone(),
+        )
+        .expect("failed to parse private key");
+
+        let gatewat_provider =
+            AggregationModeGatewayProvider::new_with_signer(config.network.clone(), signer)
+                .expect("to build gateway provider");
+
+        let proof_agg_service = ProofAggregationServiceProvider::new(
+            config.network.clone(),
+            config.eth_rpc_url.clone(),
+            config.beacon_client_url.clone(),
+        );
 
         Self {
             config,
+            aligned_agg_mode_gateway_provider: gatewat_provider,
+            aligned_proof_agg_service: proof_agg_service,
             db: DB::new(db_path),
         }
     }
@@ -32,7 +55,7 @@ impl L2 {
 
         // 2. Call zkvm and transfer to perform and verify
         info!("Starting prover...");
-        let (mut proof, _vk) = prove_state_transition(&self.db, transfers.clone());
+        let (mut proof, vk) = prove_state_transition(&self.db, transfers.clone());
         let ProgramOutput {
             initial_state_merkle_root,
             post_state_merkle_root,
@@ -71,10 +94,13 @@ impl L2 {
         // Once aligned aggregates the proof we will be notified and we'll send the new state commitment on chain
 
         // 4. Send the proof to aligned and wait for verification
-        info!("Sending proof to aligned batcher...");
-        let _ =
-            send_proof_to_be_verified_on_aligned(&self.config, &proof, PROGRAM_ELF.to_vec()).await;
-        info!("Proof submitted");
+        info!("Sending proof to aligned gateway...");
+        let res = self
+            .aligned_agg_mode_gateway_provider
+            .submit_sp1_proof(&proof, &vk)
+            .await
+            .expect("Failed to send proof to aggregation mode gateway");
+        info!("Response from gateway: {:?}", res);
 
         self.db.save().unwrap();
 
@@ -85,9 +111,20 @@ impl L2 {
         let vk = prover::vk_from_elf(PROGRAM_ELF);
         // 5. Check if proof has been aggregated
         info!("Checking if proof has been aggregated in the last 24 hours...");
-        let proof_status = check_proof_proof_aggregation_status(&self.config, &proof, &vk).await;
+        let proof_status = self
+            .aligned_proof_agg_service
+            .check_proof_verification(
+                None,
+                AggregationModeVerificationData::SP1 {
+                    vk: vk.hash_bytes(),
+                    public_inputs: proof.public_values.to_vec(),
+                },
+            )
+            .await
+            .expect("To be able to check proof status");
+
         let merkle_path = match proof_status {
-            aligned_sdk::aggregation_layer::ProofStatus::Verified {
+            ProofStatus::Verified {
                 merkle_root,
                 merkle_path,
             } => {
@@ -97,10 +134,10 @@ impl L2 {
                 );
                 merkle_path
             }
-            aligned_sdk::aggregation_layer::ProofStatus::Invalid => {
+            ProofStatus::Invalid => {
                 panic!("Proof did pass merkle root verification");
             }
-            aligned_sdk::aggregation_layer::ProofStatus::NotFound => {
+            ProofStatus::NotFound => {
                 panic!("Proof not found in the last 24 hours logs");
             }
         };

@@ -1,0 +1,136 @@
+- name: Import pg_autofailover_common playbook
+  ansible.builtin.import_playbook: pg_autofailover_common.yaml
+  vars:
+    host: "{{ host }}"
+
+- name: PostgreSQL Monitor Setup
+  hosts: "{{ host }}"
+  vars:
+    ansible_common_remote_group: postgres
+
+  tasks:
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
+
+    - name: Debug config file
+      debug:
+        msg: "Using config file: {{ config_file }}"
+
+    - name: Set config vars from INI file
+      set_fact:
+        db_password: "{{ lookup('ini', 'db_password', file=config_file) }}"
+        monitor_pgdata: "{{ lookup('ini', 'monitor_pgdata', file=config_file, default='/var/lib/postgresql/monitor') }}"
+        monitor_port: "{{ lookup('ini', 'monitor_port', file=config_file, default='5432') }}"
+        grafana_postgres_user: "{{ lookup('ini', 'grafana_postgres_user', file=config_file) }}"
+        grafana_postgres_password: "{{ lookup('ini', 'grafana_postgres_password', file=config_file) }}"
+      no_log: true
+
+    - name: Debug vars
+      debug:
+        msg: "env={{ env }}, monitor_pgdata={{ monitor_pgdata }}"
+
+    - name: Install postgresql-16-auto-failover
+      become: true
+      apt:
+        pkg:
+          - postgresql-16-auto-failover
+        state: latest
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Check if monitor is already initialized
+      stat:
+        path: "{{ monitor_pgdata }}/PG_VERSION"
+      register: monitor_initialized
+      become: true
+      become_user: postgres
+
+    - name: Get Tailscale IP
+      shell: tailscale ip --4
+      register: tailscale_ip
+      when: not monitor_initialized.stat.exists
+
+    - name: Create pg_autoctl monitor
+      become: true
+      become_user: postgres
+      shell: |
+        pg_autoctl create monitor \
+          --pgdata {{ monitor_pgdata }} \
+          --pgctl /usr/lib/postgresql/16/bin/pg_ctl \
+          --auth scram-sha-256 \
+          --ssl-self-signed \
+          --pgport {{ monitor_port }} \
+          --hostname {{ tailscale_ip.stdout }}
+      when: not monitor_initialized.stat.exists
+      args:
+        creates: "{{ monitor_pgdata }}/PG_VERSION"
+
+    - name: Update pg_hba.conf for Tailscale network
+      become: true
+      become_user: postgres
+      blockinfile:
+        path: "{{ monitor_pgdata }}/pg_hba.conf"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Tailscale"
+        block: |
+          # Tailscale network connections
+          host    all             all             100.64.0.0/10           scram-sha-256
+          host    replication     all             100.64.0.0/10           scram-sha-256
+
+    - name: Generate systemd service file
+      become: true
+      become_user: postgres
+      shell: |
+        pg_autoctl show systemd --pgdata {{ monitor_pgdata }}
+      register: systemd_service_content
+
+    - name: Create pgautofailover systemd service
+      become: true
+      copy:
+        content: "{{ systemd_service_content.stdout }}"
+        dest: /etc/systemd/system/pgautofailover.service
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Enable and start pgautofailover service
+      become: true
+      systemd_service:
+        name: pgautofailover
+        state: started
+        enabled: true
+        daemon_reload: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Wait for monitor to be ready
+      wait_for:
+        port: "{{ monitor_port }}"
+        delay: 5
+        timeout: 60
+
+    - name: Set password for autoctl_node user
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d pg_auto_failover -c "ALTER USER autoctl_node PASSWORD '{{ db_password }}';"
+      no_log: true
+
+    - name: Create Grafana read-only user on monitor
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d pg_auto_failover << 'EOF'
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '{{ grafana_postgres_user }}') THEN
+            CREATE USER {{ grafana_postgres_user }} WITH PASSWORD '{{ grafana_postgres_password }}';
+          ELSE
+            ALTER USER {{ grafana_postgres_user }} WITH PASSWORD '{{ grafana_postgres_password }}';
+          END IF;
+        END
+        $$;
+        GRANT CONNECT ON DATABASE pg_auto_failover TO {{ grafana_postgres_user }};
+        GRANT pg_read_all_data TO {{ grafana_postgres_user }};
+        EOF
+      no_log: true

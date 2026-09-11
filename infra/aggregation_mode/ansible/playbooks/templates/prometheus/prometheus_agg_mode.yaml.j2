@@ -1,0 +1,51 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+- job_name: "gateway-1-http"
+  scrape_interval: 60s
+  static_configs:
+    - targets: ["{{ gateway_1_hostname }}:8080"]
+      labels:
+        service: "gateway-http"
+        instance: "1"
+
+- job_name: "gateway-2-http"
+  scrape_interval: 60s
+  static_configs:
+    - targets: ["{{ gateway_2_hostname }}:8080"]
+      labels:
+        service: "gateway-http"
+        instance: "2"
+
+- job_name: "gateway-1"
+  scrape_interval: 15s
+  static_configs:
+    - targets: ["{{ gateway_1_hostname }}:{{ gateway_metrics_port }}"]
+      labels:
+        service: "gateway"
+        instance: "1"
+
+- job_name: "gateway-2"
+  scrape_interval: 15s
+  static_configs:
+    - targets: ["{{ gateway_2_hostname }}:{{ gateway_metrics_port }}"]
+      labels:
+        service: "gateway"
+        instance: "2"
+
+- job_name: "poller-1"
+  scrape_interval: 15s
+  static_configs:
+    - targets: ["{{ gateway_1_hostname }}:{{ poller_metrics_port }}"]
+      labels:
+        service: "poller"
+        instance: "1"
+
+- job_name: "poller-2"
+  scrape_interval: 15s
+  static_configs:
+    - targets: ["{{ gateway_2_hostname }}:{{ poller_metrics_port }}"]
+      labels:
+        service: "poller"
+        instance: "2"

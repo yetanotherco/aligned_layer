@@ -1,0 +1,223 @@
+- name: Import setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Grafana Setup for Aggregation Mode
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
+
+    - name: Set config vars from INI file
+      set_fact:
+        grafana_admin_password: "{{ lookup('ini', 'grafana_admin_password', file=config_file) }}"
+        grafana_prometheus_url: "{{ lookup('ini', 'grafana_prometheus_url', file=config_file) }}"
+        grafana_rpc_url: "{{ lookup('ini', 'grafana_rpc_url', file=config_file) }}"
+        grafana_postgres_host: "{{ lookup('ini', 'grafana_postgres_host', file=config_file) }}"
+        grafana_postgres_port: "{{ lookup('ini', 'grafana_postgres_port', file=config_file, default='5432') }}"
+        grafana_postgres_db: "{{ lookup('ini', 'grafana_postgres_db', file=config_file) }}"
+        grafana_postgres_user: "{{ lookup('ini', 'grafana_postgres_user', file=config_file) }}"
+        grafana_postgres_password: "{{ lookup('ini', 'grafana_postgres_password', file=config_file) }}"
+        grafana_monitor_host: "{{ lookup('ini', 'grafana_monitor_host', file=config_file) }}"
+        grafana_monitor_port: "{{ lookup('ini', 'grafana_monitor_port', file=config_file, default='5432') }}"
+        grafana_monitor_db: "{{ lookup('ini', 'grafana_monitor_db', file=config_file, default='pg_auto_failover') }}"
+        gateway_1_hostname: "{{ lookup('ini', 'gateway_1_hostname', file=config_file) }}"
+        gateway_2_hostname: "{{ lookup('ini', 'gateway_2_hostname', file=config_file) }}"
+        grafana_gateway_url: "{{ lookup('ini', 'grafana_gateway_url', file=config_file) }}"
+        grafana_var_payments_contract: "{{ lookup('ini', 'grafana_var_payments_contract', file=config_file) }}"
+        grafana_var_proof_aggregator_contract: "{{ lookup('ini', 'grafana_var_proof_aggregator_contract', file=config_file) }}"
+        grafana_var_proof_aggregator_wallet: "{{ lookup('ini', 'grafana_var_proof_aggregator_wallet', file=config_file) }}"
+        grafana_slack_webhook_url: "{{ lookup('ini', 'grafana_slack_webhook_url', file=config_file) }}"
+        grafana_pagerduty_integration_key: "{{ lookup('ini', 'grafana_pagerduty_integration_key', file=config_file) }}"
+      no_log: true
+
+    - name: Install required packages
+      become: true
+      apt:
+        pkg:
+          - apt-transport-https
+          - software-properties-common
+          - wget
+          - gnupg
+          - jq
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create apt keyrings directory
+      become: true
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Download Grafana GPG key
+      become: true
+      get_url:
+        url: https://apt.grafana.com/gpg.key
+        dest: /tmp/grafana.key
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Add Grafana GPG key
+      become: true
+      shell: |
+        gpg --dearmor < /tmp/grafana.key > /etc/apt/keyrings/grafana.gpg
+      args:
+        creates: /etc/apt/keyrings/grafana.gpg
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Add Grafana APT repository
+      become: true
+      lineinfile:
+        path: /etc/apt/sources.list.d/grafana.list
+        line: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+        create: yes
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Update apt cache
+      become: true
+      apt:
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Install Grafana
+      become: true
+      apt:
+        name: grafana
+        state: latest
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Template Grafana environment configuration
+      become: true
+      template:
+        src: grafana/grafana_env.j2
+        dest: /etc/default/grafana-server-custom
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Append custom environment to grafana-server defaults
+      become: true
+      shell: |
+        cat /etc/default/grafana-server-custom >> /etc/default/grafana-server
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Set Grafana admin password
+      become: true
+      lineinfile:
+        path: /etc/grafana/grafana.ini
+        regexp: '^;?admin_password\s*='
+        line: 'admin_password = {{ grafana_admin_password }}'
+        insertafter: '^\[security\]'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+      no_log: true
+
+    - name: Copy provisioning directory
+      become: true
+      copy:
+        src: ../../../../grafana/provisioning/
+        dest: /etc/grafana/provisioning/
+        owner: grafana
+        group: grafana
+        mode: '0644'
+        directory_mode: '0755'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create alerting provisioning directory
+      become: true
+      file:
+        path: /etc/grafana/provisioning/alerting
+        state: directory
+        owner: grafana
+        group: grafana
+        mode: '0755'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Template alerting contact points
+      become: true
+      template:
+        src: grafana/alerting/contact-points.yaml.j2
+        dest: /etc/grafana/provisioning/alerting/contact-points.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Template alerting notification policies
+      become: true
+      template:
+        src: grafana/alerting/notification-policies.yaml.j2
+        dest: /etc/grafana/provisioning/alerting/notification-policies.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Template alerting rules
+      become: true
+      template:
+        src: grafana/alerting/alert-rules.yaml.j2
+        dest: /etc/grafana/provisioning/alerting/alert-rules.yaml
+        owner: grafana
+        group: grafana
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Enable and start Grafana service
+      become: true
+      systemd_service:
+        name: grafana-server
+        state: restarted
+        enabled: true
+        daemon_reload: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Wait for Grafana to be ready
+      uri:
+        url: "http://localhost:3000/api/health"
+        status_code: 200
+      register: grafana_health
+      until: grafana_health.status == 200
+      retries: 10
+      delay: 5
+
+    - name: Copy dashboard variables script
+      become: true
+      copy:
+        src: scripts/grafana_set_variables.sh
+        dest: /tmp/grafana_set_variables.sh
+        mode: '0755'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Set dashboard variables via API
+      shell: |
+        /tmp/grafana_set_variables.sh \
+          "http://localhost:3000" \
+          "{{ grafana_admin_password }}" \
+          "Aggregation Mode" \
+          "payments_contract={{ grafana_var_payments_contract }}" \
+          "proof_aggregator_contract={{ grafana_var_proof_aggregator_contract }}" \
+          "proof_aggregator_wallet={{ grafana_var_proof_aggregator_wallet }}"
+      no_log: false

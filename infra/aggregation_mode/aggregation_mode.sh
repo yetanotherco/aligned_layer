@@ -24,7 +24,8 @@ done
 sudo loginctl enable-linger user
 
 # Install other dependencies
-sudo apt install -y gcc pkg-config libssl-dev build-essential apt-transport-https ca-certificates curl software-properties-common nvtop
+sudo apt install -y gcc pkg-config libssl-dev build-essential apt-transport-https ca-certificates curl software-properties-common nvtop clang
+sudo apt-get install -y protobuf-compiler
 
 # Install docker
 sudo apt-get update
@@ -52,14 +53,24 @@ sudo tailscale up --ssh --advertise-tags=tag:server && sudo tailscale set --auto
 # Install CUDA
 sudo add-apt-repository ppa:graphics-drivers/ppa
 sudo apt update
-sudo apt install nvidia-driver-570
+sudo apt install -y nvidia-driver-580
+
+sudo apt autoremove
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt update
+sudo apt install -y cuda-toolkit-12-9
+## Add to ~/.bashrc
+export PATH=/usr/local/cuda-12.9/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-12.9/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 # If see errors
-sudo apt-mark unhold cuda-drivers cuda-toolkit-12-6 nvidia-dkms-565-server nvidia-fabricmanager-565 nvidia-headless-565-server nvidia-utils-565-server
-sudo apt update
-sudo apt install nvidia-driver-570
-sudo apt autoremove
-sudo apt autoclean
+#sudo apt-mark unhold cuda-drivers cuda-toolkit-12-6 nvidia-dkms-565-server nvidia-fabricmanager-565 nvidia-headless-565-server nvidia-utils-565-server
+#sudo apt update
+#sudo apt install nvidia-driver-570
+#sudo apt autoremove
+#sudo apt autoclean
+
 sudo reboot
 nvidia-smi # To check if the driver is installed correctly
 
@@ -108,26 +119,33 @@ read -p "Enter a block number for SP1 (last_aggregated_block): " num && echo "{\
 ./infra/aggregation_mode/config_file.sh ./infra/aggregation_mode/config-proof-aggregator-risc0.template.yaml $HOME/config/config-proof-aggregator-risc0.yaml
 read -p "Enter a block number for Risc0 (last_aggregated_block): " num && echo "{\"last_aggregated_block\":$num}" > $HOME/config/proof-aggregator-risc0.last_aggregated_block.json
 
+mkdir -p $HOME/repos/aggregation_mode/mainnet
+cd $HOME/repos/aggregation_mode/mainnet
+git clone https://github.com/yetanotherco/aligned_layer.git
+cd aligned_layer # Subsequent relative paths (cargo --path, ./infra/...) resolve from the repo root
 # Build the proof_aggregator
-make proof_aggregator_install
+#make proof_aggregator_install
+cargo install --path aggregation_mode/proof_aggregator --features prove,gpu --bin proof_aggregator_gpu --locked
+cargo install --path aggregation_mode/proof_aggregator --features prove --bin proof_aggregator_cpu --locked # This builds risc0 with CPU but sp1 is runnable with GPU
 
 # Copy run script
 cp ./infra/aggregation_mode/run.sh $HOME/run.sh
 chmod 744 $HOME/run.sh
 
 # Setup systemd service
+# The service is enabled to run on every boot (no timer). The machine is started
+# once a day by the GitHub Actions workflow (.github/workflows/aggregation_mode.yml),
+# runs the aggregation on startup and then shuts itself down (see run.sh).
 cp ./infra/aggregation_mode/aggregation_mode.service $HOME/.config/systemd/user/aggregation_mode.service
-cp ./infra/aggregation_mode/aggregation_mode.timer $HOME/.config/systemd/user/aggregation_mode.timer
 
-#sudo systemctl enable aggregation_mode.service
-systemctl --user enable aggregation_mode.timer
-systemctl --user start aggregation_mode.timer
+systemctl --user daemon-reload
+systemctl --user enable aggregation_mode.service
 
 # Run the proof_aggregator manually if you want
 systemctl --user start aggregation_mode.service
 
-# Check timer status
-systemctl --user status aggregation_mode.timer
+# Check service status
+systemctl --user status aggregation_mode.service
 
 # Check logs
 journalctl -xfeu aggregation_mode.service --user -n10

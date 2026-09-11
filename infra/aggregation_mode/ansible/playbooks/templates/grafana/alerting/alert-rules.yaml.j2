@@ -1,0 +1,514 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: service-availability
+    folder: Aggregation Mode Alerts
+    interval: 1m
+    rules:
+      # All Gateways Down - CRITICAL
+      - uid: all-gateways-down
+        title: All Gateways Down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(up{service="gateway"}) or vector(0)
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: critical
+          service: gateway
+        annotations:
+          summary: All Gateway services are down
+          description: All Gateway instances have been down for more than 2 minutes. No gateway is available to process requests.
+
+      # Gateway Instance Down - WARNING (fires per down instance)
+      - uid: gateway-instance-down
+        title: Gateway Instance Down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up{service="gateway"}
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: warning
+          service: gateway
+        annotations:
+          summary: "Gateway {% raw %}{{ $labels.instance }}{% endraw %} is down"
+          description: "Gateway instance {% raw %}{{ $labels.instance }}{% endraw %} has been down for more than 2 minutes. Redundancy is degraded."
+
+      # All Pollers Down - CRITICAL
+      - uid: all-pollers-down
+        title: All Pollers Down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(up{service="poller"}) or vector(0)
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: critical
+          service: poller
+        annotations:
+          summary: All Poller services are down
+          description: All Poller instances have been down for more than 2 minutes. No poller is available to process proofs.
+
+      # Poller Instance Down - WARNING (fires per down instance)
+      - uid: poller-instance-down
+        title: Poller Instance Down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up{service="poller"}
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: warning
+          service: poller
+        annotations:
+          summary: "Poller {% raw %}{{ $labels.instance }}{% endraw %} is down"
+          description: "Poller instance {% raw %}{{ $labels.instance }}{% endraw %} has been down for more than 2 minutes. Redundancy is degraded."
+
+  - orgId: 1
+    name: database-health
+    folder: Aggregation Mode Alerts
+    interval: 1m
+    rules:
+      - uid: postgres-replication-unhealthy
+        title: PostgreSQL Replication Unhealthy
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: pgaf_monitor_host
+            model:
+              rawSql: |
+                SELECT
+                  CASE
+                    WHEN COUNT(*) FILTER (WHERE reportedstate = 'primary') >= 1
+                     AND COUNT(*) FILTER (WHERE reportedstate = 'secondary') >= 1
+                    THEN 1
+                    ELSE 0
+                  END as healthy
+                FROM pgautofailover.node
+                WHERE nodehost IS NOT NULL
+              refId: A
+              format: table
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 5m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: PostgreSQL replication is unhealthy
+          description: The PostgreSQL cluster does not have both primary and secondary nodes healthy for more than 5 minutes
+
+  - orgId: 1
+    name: error-rates
+    folder: Aggregation Mode Alerts
+    interval: 1m
+    rules:
+      - uid: high-error-rate
+        title: High Proof Verification Error Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(proof_verification_errors_total[5m])) or vector(0)
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.1
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        labels:
+          severity: warning
+          service: proof-verification
+        annotations:
+          summary: High proof verification error rate detected
+          description: The proof verification error rate has exceeded 0.1 errors/second for more than 5 minutes
+
+  - orgId: 1
+    name: wallet-health
+    folder: Aggregation Mode Alerts
+    interval: 5m
+    rules:
+      # Balance check using hex string length as proxy
+      # eth_getBalance returns hex like "0x38D7EA4C68000"
+      # Using $length() since direct hex conversion is not supported
+      # Threshold: length < 16 means balance < 0x10000000000000
+      #   - 0xFFFFFFFFFFFFF (15 chars) = 4,503,599,627,370,495 wei ≈ 0.0045 ETH ≈ $13 USD
+      #   - Alert fires when balance drops below ~0.0045 ETH
+      - uid: low-wallet-balance
+        title: Low Proof Aggregator Wallet Balance
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: ethereum_rpc
+            model:
+              columns: []
+              datasource:
+                type: yesoreyeram-infinity-datasource
+                uid: ethereum_rpc
+              filters: []
+              format: table
+              global_query_id: ""
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              parser: backend
+              refId: A
+              root_selector: "$length($.result)"
+              source: url
+              type: json
+              url: ""
+              url_options:
+                body_content_type: application/json
+                body_type: raw
+                data: '{"jsonrpc":"2.0","id":"1","method":"eth_getBalance","params":["{{ grafana_var_proof_aggregator_wallet }}","latest"]}'
+                method: POST
+          - refId: reducer
+            queryType: expression
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: reducer
+              type: reduce
+          # Threshold: 16 chars = 0x10000000000000 ≈ 0.0045 ETH ≈ $13 USD
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 16
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: reducer
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        labels:
+          severity: warning
+          service: wallet
+        annotations:
+          summary: Proof Aggregator wallet balance is low
+          description: The proof aggregator wallet balance is low. Please top up the wallet.

@@ -1,3 +1,4 @@
+use aligned_sdk::common::types::ProvingSystemId;
 use ethers::{core::k256::ecdsa::SigningKey, signers::Wallet, types::Address};
 use serde::Deserialize;
 
@@ -54,6 +55,7 @@ pub struct BatcherConfigFromYaml {
     pub amount_of_proofs_for_min_max_fee: usize,
     pub min_bump_percentage: u64,
     pub balance_unlock_polling_interval_seconds: u64,
+    pub disabled_verifiers: Vec<ProvingSystemId>,
 }
 
 #[derive(Debug, Deserialize)]

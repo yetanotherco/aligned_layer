@@ -1,0 +1,166 @@
+- name: Import setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Import rust playbook
+  ansible.builtin.import_playbook: rust.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Gateway Setup
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
+
+    - name: Set config vars from INI file
+      set_fact:
+        git_branch: "{{ lookup('ini', 'git_branch', file=config_file) }}"
+        gateway_port: "{{ lookup('ini', 'gateway_port', file=config_file, default='8080') }}"
+        gateway_tls_enabled: "{{ lookup('ini', 'gateway_tls_enabled', file=config_file, default='true') }}"
+        gateway_tls_port: "{{ lookup('ini', 'gateway_tls_port', file=config_file, default='443') }}"
+        gateway_tls_cert_path: "{{ lookup('ini', 'gateway_tls_cert_path', file=config_file) }}"
+        gateway_tls_key_path: "{{ lookup('ini', 'gateway_tls_key_path', file=config_file) }}"
+        gateway_db_user: "{{ lookup('ini', 'db_user', file=config_file) }}"
+        gateway_db_password: "{{ lookup('ini', 'db_password', file=config_file) }}"
+        gateway_db_name: "{{ lookup('ini', 'db_name', file=config_file) }}"
+        gateway_postgres_1: "{{ lookup('ini', 'gateway_postgres_1', file=config_file) }}"
+        gateway_postgres_2: "{{ lookup('ini', 'gateway_postgres_2', file=config_file) }}"
+        gateway_postgres_port: "{{ lookup('ini', 'gateway_postgres_port', file=config_file, default='5432') }}"
+        gateway_eth_rpc_url: "{{ lookup('ini', 'gateway_eth_rpc_url', file=config_file) }}"
+        gateway_payment_service_address: "{{ lookup('ini', 'gateway_payment_service_address', file=config_file) }}"
+        gateway_network: "{{ lookup('ini', 'gateway_network', file=config_file) }}"
+        gateway_max_daily_proofs: "{{ lookup('ini', 'gateway_max_daily_proofs', file=config_file, default='100') }}"
+        gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file=config_file, default='9094') }}"
+        tls_cert_source_path: "{{ lookup('ini', 'tls_cert_source_path', file=config_file) }}"
+        tls_key_source_path: "{{ lookup('ini', 'tls_key_source_path', file=config_file) }}"
+      no_log: true
+
+    - name: Install required system packages
+      become: true
+      apt:
+        pkg:
+          - pkg-config
+          - libssl-dev
+          - build-essential
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Check if TLS certificate exists
+      stat:
+        path: "{{ gateway_tls_cert_path }}"
+      register: tls_cert_stat
+
+    - name: Check if TLS key exists
+      stat:
+        path: "{{ gateway_tls_key_path }}"
+      register: tls_key_stat
+
+    - name: Create SSL directory
+      file:
+        path: /home/{{ ansible_user }}/.ssl
+        state: directory
+        mode: '0700'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      when: not tls_cert_stat.stat.exists or not tls_key_stat.stat.exists
+
+    - name: Copy TLS certificate
+      copy:
+        src: "{{ tls_cert_source_path }}"
+        dest: "{{ gateway_tls_cert_path }}"
+        mode: '0600'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      when: not tls_cert_stat.stat.exists
+
+    - name: Copy TLS key
+      copy:
+        src: "{{ tls_key_source_path }}"
+        dest: "{{ gateway_tls_key_path }}"
+        mode: '0600'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      no_log: true
+      when: not tls_key_stat.stat.exists
+
+    - name: Clone aligned_layer repository
+      git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ ansible_user }}/repos/gateway/aligned_layer
+        version: "{{ git_branch }}"
+        update: yes
+
+    - name: Remove existing gateway binary (if force rebuild)
+      file:
+        path: /home/{{ ansible_user }}/.cargo/bin/gateway
+        state: absent
+      when: force_rebuild | default(false) | bool
+
+    - name: Build gateway with TLS
+      shell: |
+        export PATH=$HOME/.cargo/bin:$PATH
+        cargo install --path /home/{{ ansible_user }}/repos/gateway/aligned_layer/aggregation_mode/gateway --bin gateway --features tls --locked
+      args:
+        creates: /home/{{ ansible_user }}/.cargo/bin/gateway
+
+    - name: Create config directory
+      file:
+        path: /home/{{ ansible_user }}/config
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Template gateway config file
+      template:
+        src: config-files/config-agg-mode-gateway.yaml.j2
+        dest: /home/{{ ansible_user }}/config/config-agg-mode-gateway.yaml
+        mode: '0644'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Template gateway systemd service
+      become: true
+      template:
+        src: services/gateway.service.j2
+        dest: /etc/systemd/system/gateway.service
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Allow port 443 (TLS) through UFW
+      become: true
+      ufw:
+        rule: allow
+        port: '443'
+        proto: tcp
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create sudoers file for gateway service management
+      become: true
+      template:
+        src: sudoers/gateway-service.j2
+        dest: /etc/sudoers.d/gateway-service
+        mode: '0440'
+        validate: 'visudo -cf %s'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Enable and start gateway service
+      become: true
+      systemd_service:
+        name: gateway
+        state: started
+        enabled: true
+        daemon_reload: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

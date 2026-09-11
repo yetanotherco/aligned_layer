@@ -19,19 +19,15 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 
 use super::constants::{
-    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY,
-    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY_STAGE, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOODI,
-    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET, ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE,
-    ALIGNED_PROOF_AGG_SERVICE_ADDRESS_SEPOLIA, ALIGNED_SERVICE_MANAGER_DEVNET,
-    ALIGNED_SERVICE_MANAGER_HOLESKY, ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE,
-    ALIGNED_SERVICE_MANAGER_HOODI, ALIGNED_SERVICE_MANAGER_MAINNET,
-    ALIGNED_SERVICE_MANAGER_MAINNET_STAGE, ALIGNED_SERVICE_MANAGER_SEPOLIA,
-    BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY,
-    BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_HOODI,
-    BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE,
-    BATCHER_PAYMENT_SERVICE_ADDRESS_SEPOLIA, BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY,
-    BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_HOODI, BATCHER_URL_MAINNET, BATCHER_URL_MAINNET_STAGE,
-    BATCHER_URL_SEPOLIA,
+    ALIGNED_SERVICE_MANAGER_DEVNET, ALIGNED_SERVICE_MANAGER_HOLESKY,
+    ALIGNED_SERVICE_MANAGER_HOLESKY_STAGE, ALIGNED_SERVICE_MANAGER_HOODI,
+    ALIGNED_SERVICE_MANAGER_MAINNET, ALIGNED_SERVICE_MANAGER_MAINNET_STAGE,
+    ALIGNED_SERVICE_MANAGER_SEPOLIA, BATCHER_PAYMENT_SERVICE_ADDRESS_DEVNET,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY, BATCHER_PAYMENT_SERVICE_ADDRESS_HOLESKY_STAGE,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_HOODI, BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET,
+    BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE, BATCHER_PAYMENT_SERVICE_ADDRESS_SEPOLIA,
+    BATCHER_URL_DEVNET, BATCHER_URL_HOLESKY, BATCHER_URL_HOLESKY_STAGE, BATCHER_URL_HOODI,
+    BATCHER_URL_MAINNET, BATCHER_URL_MAINNET_STAGE, BATCHER_URL_SEPOLIA,
 };
 use super::errors::VerifySignatureError;
 
@@ -51,6 +47,8 @@ pub enum ProvingSystemId {
     SP1,
     Risc0,
     CircomGroth16Bn256,
+    Mina,
+    MinaAccount,
 }
 
 impl Display for ProvingSystemId {
@@ -62,6 +60,26 @@ impl Display for ProvingSystemId {
             ProvingSystemId::SP1 => write!(f, "SP1"),
             ProvingSystemId::Risc0 => write!(f, "Risc0"),
             ProvingSystemId::CircomGroth16Bn256 => write!(f, "CircomGroth16Bn256"),
+            ProvingSystemId::Mina => write!(f, "Mina"),
+            ProvingSystemId::MinaAccount => write!(f, "MinaAccount"),
+        }
+    }
+}
+
+impl FromStr for ProvingSystemId {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "GnarkPlonkBls12_381" => Ok(ProvingSystemId::GnarkPlonkBls12_381),
+            "GnarkPlonkBn254" => Ok(ProvingSystemId::GnarkPlonkBn254),
+            "GnarkGroth16Bn254" => Ok(ProvingSystemId::GnarkGroth16Bn254),
+            "SP1" => Ok(ProvingSystemId::SP1),
+            "Risc0" => Ok(ProvingSystemId::Risc0),
+            "CircomGroth16Bn256" => Ok(ProvingSystemId::CircomGroth16Bn256),
+            "Mina" => Ok(ProvingSystemId::Mina),
+            "MinaAccount" => Ok(ProvingSystemId::MinaAccount),
+            _ => Err(format!("Invalid ProvingSystemId: {}", s)),
         }
     }
 }
@@ -513,23 +531,6 @@ impl Network {
                 H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE).unwrap()
             }
             Self::Sepolia => H160::from_str(BATCHER_PAYMENT_SERVICE_ADDRESS_SEPOLIA).unwrap(),
-            Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
-        }
-    }
-
-    pub fn get_aligned_proof_agg_service_address(&self) -> ethers::types::H160 {
-        match self {
-            Self::Devnet => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET).unwrap(),
-            Self::Holesky => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY).unwrap(),
-            Self::HoleskyStage => {
-                H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOLESKY_STAGE).unwrap()
-            }
-            Self::Hoodi => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOODI).unwrap(),
-            Self::Mainnet => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET).unwrap(),
-            Self::MainnetStage => {
-                H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE).unwrap()
-            }
-            Self::Sepolia => H160::from_str(ALIGNED_PROOF_AGG_SERVICE_ADDRESS_SEPOLIA).unwrap(),
             Self::Custom(_, s, _) => H160::from_str(s.as_str()).unwrap(),
         }
     }

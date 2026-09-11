@@ -1,0 +1,11 @@
+db_connection_urls:
+  - "postgres://{{ poller_db_user }}:{{ poller_db_password }}@{{ poller_postgres_1 }}:{{ poller_postgres_port }}/{{ poller_db_name }}"
+  - "postgres://{{ poller_db_user }}:{{ poller_db_password }}@{{ poller_postgres_2 }}:{{ poller_postgres_port }}/{{ poller_db_name }}"
+eth_rpc_url: "{{ poller_eth_rpc_url }}"
+payment_service_address: "{{ poller_payment_service_address }}"
+network: "{{ poller_network }}"
+max_daily_proofs_per_user: {{ poller_max_daily_proofs }}
+last_block_fetched_filepath: "{{ poller_last_block_fetched_filepath }}"
+
+# Metrics
+poller_metrics_port: {{ poller_metrics_port }}

@@ -6,9 +6,79 @@ datasources:
     uid: prometheus
     access: proxy
     orgId: 1
-    url: http://prometheus:9090
+    url: "${PROMETHEUS_URL}"
     basicAuth: false
     isDefault: true
     editable: true
     jsonData:
       timeInterval: 1s
+
+  - name: PostgreSQL
+    type: postgres
+    uid: postgres
+    access: proxy
+    orgId: 1
+    url: "${POSTGRES_HOST}:${POSTGRES_PORT}"
+    user: "${POSTGRES_USER}"
+    secureJsonData:
+      password: "${POSTGRES_PASSWORD}"
+    basicAuth: false
+    isDefault: false
+    editable: true
+    jsonData:
+      database: "${POSTGRES_DB}"
+      sslmode: disable
+      postgresVersion: 1600
+
+  - name: "Ethereum RPC"
+    type: "yesoreyeram-infinity-datasource"
+    typeName: "Infinity"
+    uid: "ethereum_rpc"
+    access: "proxy"
+    url: "${RPC_URL}"
+    isDefault: false
+    jsonData:
+      global_queries: []
+    readOnly: false
+    editable: true
+    basicAuth: false
+
+  - name: "Gateway"
+    type: "yesoreyeram-infinity-datasource"
+    typeName: "Infinity"
+    uid: "gateway"
+    access: "proxy"
+    url: "${GATEWAY_URL}"
+    isDefault: false
+    jsonData:
+      global_queries: [ ]
+    readOnly: false
+    editable: true
+    basicAuth: false
+
+  # Note: We use this data source for general HTTP calls.
+  - name: "HTTP"
+    type: "yesoreyeram-infinity-datasource"
+    uid: "http"
+    access: "proxy"
+    url: ""
+    isDefault: false
+    jsonData:
+      global_queries: []
+
+  - name: pg_auto_failover Monitor
+    type: postgres
+    uid: pgaf_monitor_host
+    access: proxy
+    orgId: 1
+    url: "${MONITOR_DB_HOST}:${MONITOR_DB_PORT}"
+    user: "${MONITOR_DB_USER}"
+    secureJsonData:
+      password: "${MONITOR_DB_PASSWORD}"
+    basicAuth: false
+    isDefault: false
+    editable: true
+    jsonData:
+      database: "${MONITOR_DB_DB}"
+      sslmode: require
+      postgresVersion: 1600

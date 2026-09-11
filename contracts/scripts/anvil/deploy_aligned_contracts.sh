@@ -69,21 +69,22 @@ make proof_aggregator_write_program_ids
 
 # Copy new values to config file
 jq '.programs_id.risc0AggregationProgramImageId = $input[0].risc0_chunk_aggregator_image_id | .programs_id.sp1AggregationProgramVKHash = $input[0].sp1_chunk_aggregator_vk_hash' \
-  --slurpfile input aggregation_mode/programs_ids.json \
+  --slurpfile input aggregation_mode/proof_aggregator/programs_ids.json \
   contracts/script/deploy/config/devnet/proof-aggregator-service.devnet.config.json \
   > temp.json && mv temp.json contracts/script/deploy/config/devnet/proof-aggregator-service.devnet.config.json
 
 jq '.programs_id.risc0AggregationProgramImageId = $input[0].risc0_chunk_aggregator_image_id | .programs_id.sp1AggregationProgramVKHash = $input[0].sp1_chunk_aggregator_vk_hash' \
-  --slurpfile input aggregation_mode/programs_ids.json \
+  --slurpfile input aggregation_mode/proof_aggregator/programs_ids.json \
   contracts/script/deploy/config/devnet/proof-aggregator-service.devnet.mock.config.json \
   > temp.json && mv temp.json contracts/script/deploy/config/devnet/proof-aggregator-service.devnet.mock.config.json
 
 cd contracts
 
-# Deploy proof aggregation service contract with SP1 Verifier
+# Deploy proof aggregation service contract with SP1|Risc0 Verifier
+proof_aggregation_service_output=./script/output/devnet/proof_aggregation_service_deployment_output.json
 forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
     ./script/deploy/config/devnet/proof-aggregator-service.devnet.config.json \
-    ./script/output/devnet/proof_aggregation_service_deployment_output.json \
+    $proof_aggregation_service_output \
     --rpc-url "http://localhost:8545" \
     --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
     --broadcast \
@@ -99,6 +100,33 @@ forge script script/deploy/AlignedProofAggregationServiceDeployer.s.sol \
     --broadcast \
     --sig "run(string configPath, string outputPath)" \
     --via-ir
+
+# Deploy Aggregation mode payment service
+aggregation_mode_payment_service_output=./script/output/devnet/aggregation_mode_payment_service_deployment_output.json
+proof_aggregation_service_temp1=$proof_aggregation_service_output.temp1.json
+proof_aggregation_service_temp2=$proof_aggregation_service_output.temp2.json
+
+forge script script/deploy/AggregationModePaymentServiceDeployer.s.sol \
+    ./script/deploy/config/devnet/proof-aggregator-service.devnet.config.json \
+    $aggregation_mode_payment_service_output \
+    --rpc-url "http://localhost:8545" \
+    --private-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+    --broadcast \
+    --sig "run(string configPath, string outputPath)"
+
+aggregation_mode_payment_service_proxy=$(jq -r '.addresses.aggregationModePaymentService' $aggregation_mode_payment_service_output)
+aggregation_mode_payment_service_implementation=$(jq -r '.addresses.aggregationModePaymentServiceImplementation' $aggregation_mode_payment_service_output)
+
+jq --arg aggregation_mode_payment_service "$aggregation_mode_payment_service_proxy" \
+  '.addresses.aggregationModePaymentService = $aggregation_mode_payment_service' \
+  "$proof_aggregation_service_output" > "$proof_aggregation_service_temp1"
+
+jq --arg aggregation_mode_payment_service_implementation "$aggregation_mode_payment_service_implementation" \
+  '.addresses.aggregationModePaymentServiceImplementation = $aggregation_mode_payment_service_implementation' \
+  "$proof_aggregation_service_temp1" > "$proof_aggregation_service_temp2"
+
+mv "$proof_aggregation_service_temp2" "$proof_aggregation_service_output"
+rm -f "$aggregation_mode_payment_service_output" "$proof_aggregation_service_temp1" "$proof_aggregation_service_temp2"
 
 # Kill the anvil process to save state
 pkill anvil

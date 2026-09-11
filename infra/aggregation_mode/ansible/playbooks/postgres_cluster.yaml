@@ -1,0 +1,23 @@
+- name: Deploy PostgreSQL Monitor
+  ansible.builtin.import_playbook: pg_monitor.yaml
+  vars:
+    host: postgres_monitor
+    env: "{{ env }}"
+
+- name: Deploy PostgreSQL Node 1
+  ansible.builtin.import_playbook: pg_node.yaml
+  vars:
+    host: postgres_1
+    env: "{{ env }}"
+
+- name: Deploy PostgreSQL Node 2
+  ansible.builtin.import_playbook: pg_node.yaml
+  vars:
+    host: postgres_2
+    env: "{{ env }}"
+
+- name: Run Database Migrations
+  ansible.builtin.import_playbook: postgres_migrations.yaml
+  vars:
+    host: postgres_1
+    env: "{{ env }}"

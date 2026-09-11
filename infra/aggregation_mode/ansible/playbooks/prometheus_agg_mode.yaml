@@ -1,0 +1,88 @@
+- name: Import setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Prometheus Setup for Aggregation Mode
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
+
+    - name: Set config vars from INI file
+      set_fact:
+        prometheus_version: "{{ lookup('ini', 'prometheus_version', file=config_file, default='3.6.0') }}"
+        gateway_1_hostname: "{{ lookup('ini', 'gateway_1_hostname', file=config_file) }}"
+        gateway_2_hostname: "{{ lookup('ini', 'gateway_2_hostname', file=config_file) }}"
+        gateway_metrics_port: "{{ lookup('ini', 'gateway_metrics_port', file=config_file, default='9094') }}"
+        poller_metrics_port: "{{ lookup('ini', 'poller_metrics_port', file=config_file, default='9095') }}"
+
+    - name: Check if Prometheus is installed
+      stat:
+        path: /home/{{ ansible_user }}/prometheus-{{ prometheus_version }}.linux-amd64/prometheus
+      register: prometheus_exists
+
+    - name: Download Prometheus
+      when: not prometheus_exists.stat.exists
+      get_url:
+        url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+        mode: '0644'
+
+    - name: Extract Prometheus
+      when: not prometheus_exists.stat.exists
+      unarchive:
+        src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+        dest: /home/{{ ansible_user }}/
+        remote_src: yes
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Create config directory
+      file:
+        path: /home/{{ ansible_user }}/config
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Template Prometheus config file
+      template:
+        src: prometheus/prometheus_agg_mode.yaml.j2
+        dest: /home/{{ ansible_user }}/config/prometheus.yaml
+        mode: '0644'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Create systemd user directory
+      file:
+        path: /home/{{ ansible_user }}/.config/systemd/user
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Template Prometheus systemd service
+      template:
+        src: services/prometheus_agg_mode.service.j2
+        dest: /home/{{ ansible_user }}/.config/systemd/user/prometheus.service
+        mode: '0644'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Enable and restart Prometheus service
+      systemd_service:
+        name: prometheus
+        state: restarted
+        enabled: true
+        scope: user
+        daemon_reload: true
+
+    - name: Clean up Prometheus tar
+      when: not prometheus_exists.stat.exists
+      file:
+        path: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+        state: absent

@@ -1,0 +1,26 @@
+// AggregationModePaymentService contract address for each chain
+pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET: &str =
+    "0xD0696d3eEebffcAB2D1b358805efAA005A9A8BC0";
+pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_MAINNET_STAGE: &str = "0x0";
+pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_SEPOLIA: &str = "0x0";
+pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_HOODI: &str =
+    "0x6B34AAaE780A5EAB4c91AB8F54f2a421E9c2FB59";
+pub const ALIGNED_PROOF_AGG_SERVICE_ADDRESS_DEVNET: &str =
+    "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc";
+
+// AggregationModePaymentService contract address for each chain
+pub const ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_MAINNET: &str =
+    "0xc8631Bc1E60c20db40e474F791126212fA8255F4";
+pub const ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_MAINNET_STAGE: &str = "0x0";
+pub const ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_SEPOLIA: &str = "0x0";
+pub const ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_HOODI: &str =
+    "0xe6C9D0cf87cdaA8B2093c4b3830dde7267843F64";
+pub const ALIGNED_AGG_PAYMENT_SERVICE_ADDRESS_DEVNET: &str =
+    "0x922D6956C99E12DFeB3224DEA977D0939758A1Fe";
+
+// AggregationMode Gateway urls for chain
+pub const ALIGNED_AGG_MODE_GATEWAY_URL_MAINNET: &str = "https://mainnet.gateway.alignedlayer.com";
+pub const ALIGNED_AGG_MODE_GATEWAY_URL_MAINNET_STAGE: &str = "";
+pub const ALIGNED_AGG_MODE_GATEWAY_URL_SEPOLIA: &str = "";
+pub const ALIGNED_AGG_MODE_GATEWAY_URL_HOODI: &str = "https://hoodi.gateway.alignedlayer.com";
+pub const ALIGNED_AGG_MODE_GATEWAY_URL_DEVNET: &str = "http://127.0.0.1:8089";

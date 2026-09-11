@@ -1,0 +1,165 @@
+- name: Import pg_autofailover_common playbook
+  ansible.builtin.import_playbook: pg_autofailover_common.yaml
+  vars:
+    host: "{{ host }}"
+
+- name: PostgreSQL Node Setup
+  hosts: "{{ host }}"
+  vars:
+    ansible_common_remote_group: postgres
+
+  tasks:
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
+
+    - name: Set config vars from INI file
+      set_fact:
+        db_name: "{{ lookup('ini', 'db_name', file=config_file) }}"
+        db_user: "{{ lookup('ini', 'db_user', file=config_file) }}"
+        db_password: "{{ lookup('ini', 'db_password', file=config_file) }}"
+        postgres_monitor_hostname: "{{ lookup('ini', 'postgres_monitor_hostname', file=config_file) }}"
+        node_pgdata: "{{ lookup('ini', 'node_pgdata', file=config_file, default='/var/lib/postgresql/node') }}"
+        node_port: "{{ lookup('ini', 'node_port', file=config_file, default='5432') }}"
+        backup_dir: "{{ lookup('ini', 'backup_dir', file=config_file, default='/var/lib/backup') }}"
+        grafana_postgres_user: "{{ lookup('ini', 'grafana_postgres_user', file=config_file) }}"
+        grafana_postgres_password: "{{ lookup('ini', 'grafana_postgres_password', file=config_file) }}"
+      no_log: true
+
+    - name: Create backup directory
+      become: true
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0700'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Check if node is already initialized
+      stat:
+        path: "{{ node_pgdata }}/PG_VERSION"
+      register: node_initialized
+      become: true
+      become_user: postgres
+
+    - name: Debug node_initialized
+      debug:
+        msg: "Node initialized: {{ node_initialized.stat.exists }}, path: {{ node_pgdata }}/PG_VERSION"
+
+    - name: Get Tailscale IP
+      shell: tailscale ip --4
+      register: tailscale_ip
+      when: not node_initialized.stat.exists
+
+    - name: Create pg_autoctl postgres node
+      become: true
+      become_user: postgres
+      shell: |
+        PGPASSWORD='{{ db_password }}' pg_autoctl create postgres \
+          --pgdata {{ node_pgdata }} \
+          --pgctl /usr/lib/postgresql/16/bin/pg_ctl \
+          --auth scram-sha-256 \
+          --ssl-self-signed \
+          --username {{ db_user }} \
+          --dbname {{ db_name }} \
+          --pgport {{ node_port }} \
+          --hostname {{ tailscale_ip.stdout }} \
+          --monitor 'postgres://{{ db_user }}:{{ db_password }}@{{ postgres_monitor_hostname }}:5432/pg_auto_failover?sslmode=require'
+      when: not node_initialized.stat.exists
+      args:
+        creates: "{{ node_pgdata }}/PG_VERSION"
+
+    - name: Set replication password
+      become: true
+      become_user: postgres
+      shell: |
+        pg_autoctl config set replication.password '{{ db_password }}' --pgdata {{ node_pgdata }}
+      no_log: true
+
+    - name: Update pg_hba.conf for Tailscale network
+      become: true
+      become_user: postgres
+      blockinfile:
+        path: "{{ node_pgdata }}/pg_hba.conf"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Tailscale"
+        block: |
+          # Tailscale network connections
+          host    all             all             100.64.0.0/10           scram-sha-256
+
+    - name: Generate systemd service file
+      become: true
+      become_user: postgres
+      shell: |
+        pg_autoctl show systemd --pgdata {{ node_pgdata }}
+      register: systemd_service_content
+
+    - name: Create pgautofailover systemd service
+      become: true
+      copy:
+        content: "{{ systemd_service_content.stdout }}"
+        dest: /etc/systemd/system/pgautofailover.service
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Enable and start pgautofailover service
+      become: true
+      systemd_service:
+        name: pgautofailover
+        state: started
+        enabled: true
+        daemon_reload: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Wait for node to join cluster
+      wait_for:
+        port: "{{ node_port }}"
+        delay: 5
+        timeout: 60
+
+    - name: Check if node is writable (primary)
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d {{ db_name }} -tAc "SELECT NOT pg_is_in_recovery();"
+      register: is_writable
+      changed_when: false
+
+    - name: Set password for autoctl_node user in agg_mode database
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d {{ db_name }} -c "ALTER USER {{ db_user }} PASSWORD '{{ db_password }}';"
+      when: is_writable.stdout == 't'
+      no_log: true
+
+    - name: Set password for pgautofailover_replicator user
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d {{ db_name }} -c "ALTER USER pgautofailover_replicator PASSWORD '{{ db_password }}';"
+      when: is_writable.stdout == 't'
+      no_log: true
+
+    - name: Create Grafana read-only user
+      become: true
+      become_user: postgres
+      shell: |
+        psql -d {{ db_name }} << 'EOF'
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '{{ grafana_postgres_user }}') THEN
+            CREATE USER {{ grafana_postgres_user }} WITH PASSWORD '{{ grafana_postgres_password }}';
+          ELSE
+            ALTER USER {{ grafana_postgres_user }} WITH PASSWORD '{{ grafana_postgres_password }}';
+          END IF;
+        END
+        $$;
+        GRANT CONNECT ON DATABASE {{ db_name }} TO {{ grafana_postgres_user }};
+        GRANT pg_read_all_data TO {{ grafana_postgres_user }};
+        EOF
+      when: is_writable.stdout == 't'
+      no_log: true

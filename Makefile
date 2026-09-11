@@ -32,8 +32,8 @@ ifeq ($(OS),Darwin)
 endif
 
 ifeq ($(OS),Linux)
-	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib
-	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib
+	export LD_LIBRARY_PATH+=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
+	OPERATOR_FFIS=$(CURDIR)/operator/risc_zero/lib:$(CURDIR)/operator/sp1/lib:$(CURDIR)/operator/mina/lib:$(CURDIR)/operator/mina_account/lib
 endif
 
 ifeq ($(OS),Linux)
@@ -132,6 +132,10 @@ anvil_upgrade_aligned_contracts: ## Upgrade Aligned Contracts (Verification Laye
 anvil_upgrade_batcher_payment_service: ## Upgrade BatcherPaymentService contract on ANVIL
 	@echo "Upgrading BatcherPayments contract..."
 	. contracts/scripts/anvil/upgrade_batcher_payment_service.sh
+
+anvil_upgrade_aggregation_mode_payment_service: ## Upgrade AggregationModePaymentService contract on ANVIL
+	@echo "Upgrading AggregationModePaymentService contract..."
+	. contracts/scripts/anvil/upgrade_aggregation_mode_payment_service.sh
 
 anvil_upgrade_registry_coordinator: ## Upgrade Registry Coordinator Contracts on ANVIL
 	@echo "Upgrading Registry Coordinator Contracts..."
@@ -240,7 +244,7 @@ reset_last_aggregated_block:
 	@echo "Resetting last aggregated block..."
 	@echo '{"last_aggregated_block":0}' > config-files/proof-aggregator.last_aggregated_block.json
 
-AGGREGATION_MODE_SOURCES = $(wildcard ./aggregation_mode/Cargo.toml) $(wildcard ./aggregation_mode/src/**) $(wildcard ./aggregation_mode/aggregation_programs/risc0/Cargo.toml) $(wildcard ./aggregation_mode/aggregation_programs/risc0/src/**) $(wildcard ./aggregation_mode/aggregation_programs/sp1/Cargo.toml) $(wildcard ./aggregation_mode/aggregation_programs/sp1/src/**)
+AGGREGATION_MODE_SOURCES = $(wildcard ./aggregation_mode/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/src/**) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/risc0/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/risc0/src/**) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/sp1/Cargo.toml) $(wildcard ./aggregation_mode/proof_aggregator/aggregation_programs/sp1/src/**)
 
 ### All Dev proof aggregator receipts with no real proving
 ./aggregation_mode/target/release/proof_aggregator_dev: $(AGGREGATION_MODE_SOURCES)
@@ -251,6 +255,9 @@ proof_aggregator_start_dev: is_aggregator_set reset_last_aggregated_block ./aggr
 
 proof_aggregator_start_dev_ethereum_package: is_aggregator_set reset_last_aggregated_block ./aggregation_mode/target/release/proof_aggregator_dev ## Starts proof aggregator with mock proofs (DEV mode) in ethereum package. Parameters: AGGREGATOR=<sp1|risc0>
 	AGGREGATOR=$(AGGREGATOR) RISC0_DEV_MODE=1 ./aggregation_mode/target/release/proof_aggregator_dev config-files/config-proof-aggregator-mock-ethereum-package.yaml
+
+proof_aggregator_test_without_compiling_agg_programs:
+	cd aggregation_mode && SKIP_AGG_PROGRAMS_BUILD=1 cargo test -p proof_aggregator --tests -- --nocapture
 
 ### All CPU proof aggregator receipts
 ./aggregation_mode/target/release/proof_aggregator_cpu: $(AGGREGATION_MODE_SOURCES)
@@ -274,33 +281,68 @@ proof_aggregator_start_gpu_ethereum_package: is_aggregator_set reset_last_aggreg
 
 verify_aggregated_proof_sp1: 
 	@echo "Verifying SP1 in aggregated proofs on $(NETWORK)..."
-	@cd crates/cli/ && \
-	cargo run verify-agg-proof \
+	@cd aggregation_mode/cli/ && \
+	cargo run verify-on-chain \
 		--network $(NETWORK) \
+		--beacon-url $(BEACON_URL) \
+		--rpc-url $(RPC_URL) \
 		--from-block $(FROM_BLOCK) \
-		--proving_system SP1 \
-		--public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
-		--program-id-file ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
-		--beacon_url $(BEACON_URL) \
-		--rpc_url $(RPC_URL)
-
-verify_aggregated_proof_risc0: 
-	@echo "Verifying RISC0 in aggregated proofs on $(NETWORK)..."
-	@cd crates/cli/ && \
-	cargo run verify-agg-proof \
-		--network $(NETWORK) \
-		--from-block $(FROM_BLOCK) \
-		--proving_system Risc0 \
-		--program-id-file ../../scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
-		--public_input ../../scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
-		--beacon_url $(BEACON_URL) \
-		--rpc_url $(RPC_URL)
+		--proving-system SP1 \
+		--vk-hash ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
+		--public-inputs ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
-	cargo install --path aggregation_mode --features prove,gpu --bin proof_aggregator_gpu --locked
+	cargo install --path aggregation_mode/proof_aggregator --features prove,gpu --bin proof_aggregator_gpu --locked
 
 proof_aggregator_write_program_ids: ## Write proof aggregator zkvm programs ids
-	@cd aggregation_mode && ./scripts/build_programs.sh
+	@cd aggregation_mode/proof_aggregator && ./scripts/build_programs.sh
+
+agg_mode_docker_up:
+	@cd aggregation_mode && docker compose up -d
+
+agg_mode_docker_down:
+	@cd aggregation_mode && docker compose down
+
+agg_mode_docker_clean: agg_mode_docker_down
+	docker volume rm aggregation-mode_postgres_data
+
+agg_mode_run_migrations: agg_mode_docker_up
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin migrate -- postgres://postgres:postgres@localhost:5435/
+
+agg_mode_gateway_start_local: agg_mode_run_migrations
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin gateway -- config-files/config-agg-mode-gateway.yaml
+
+agg_mode_gateway_start_ethereum_package: agg_mode_run_migrations
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin gateway -- config-files/config-agg-mode-gateway-ethereum-package.yaml
+
+agg_mode_payments_poller_start_local: agg_mode_run_migrations
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin payments_poller -- config-files/config-agg-mode-gateway.yaml
+
+agg_mode_payments_poller_start_ethereum_package: agg_mode_run_migrations
+	cargo run --manifest-path ./aggregation_mode/Cargo.toml --release --bin payments_poller -- config-files/config-agg-mode-gateway-ethereum-package.yaml
+
+AGG_MODE_SENDER ?= 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+agg_mode_gateway_send_payment:
+	@cd aggregation_mode/cli && \
+	cargo run --release -- deposit \
+	 --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d \
+	 --network devnet \
+	 --rpc-url http://localhost:8545
+
+agg_mode_gateway_send_sp1_proof:
+	@cargo run --manifest-path aggregation_mode/cli/Cargo.toml -- submit sp1 \
+		--proof scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
+		--vk scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin \
+		--private-key "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+
+agg_mode_install_cli: ## Install the aggregation mode CLI
+	@cargo install --path aggregation_mode/cli
+
+agg_mode_task_sender_start: agg_mode_install_cli ## Send proofs to agg mode gateway
+	@. scripts/.agg_mode.task_sender.env && . ./scripts/agg_mode_send_sp1_proof_interval.sh
+
+agg_mode_get_quotas:
+	curl -X GET http://127.0.0.1:8089/quotas/0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 
 __AGGREGATOR__: ## ____
 
@@ -703,6 +745,58 @@ batcher_send_circom_groth16_bn256_no_pub_input_burst: crates/target/release/alig
 		--rpc_url $(RPC_URL) \
 		--network $(NETWORK)
 
+batcher_send_mina_task:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_task_bad_hash:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/mina_state_bad_hash.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system Mina \
+		--proof ../../scripts/test_files/mina/devnet_mina_state.proof \
+		--public_input ../../scripts/test_files/mina/devnet_mina_state.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_account_task:
+	@echo "Sending Mina account task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system MinaAccount \
+		--proof ../../scripts/test_files/mina_account/mina_account.proof \
+		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
+batcher_send_mina_account_burst:
+	@echo "Sending Mina account task to Batcher..."
+	@cd crates/cli/ && cargo run --release -- submit \
+		--proving_system MinaAccount \
+		--proof ../../scripts/test_files/mina_account/mina_account.proof \
+		--public_input ../../scripts/test_files/mina_account/mina_account.pub \
+		--proof_generator_addr 0x66f9664f97F2b50F62D13eA064982f936dE76657 \
+		--repetitions $(BURST_SIZE) \
+		--rpc_url $(RPC_URL) \
+		--network $(NETWORK)
+
 batcher_send_proof_with_random_address: ## Send a proof with a random address to Batcher. Parameters: RPC_URL, NETWORK, PROOF_TYPE, REPETITIONS
 	@cd crates/cli/ && ./send_proof_with_random_address.sh
 
@@ -903,6 +997,14 @@ upgrade_proof_aggregator: ## Upgrade ProofAggregator contract. Parameters: NETWO
 	@echo "Upgrading ProofAggregator Contract on $(NETWORK) network..."
 	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_proof_aggregator.sh
 
+upgrade_aggregation_mode_payment_service: ## Upgrade AggregationModePaymentService. Parameters: NETWORK=<mainnet|holesky|sepolia>
+	@echo "Upgrading AggregationModePaymentService Contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/upgrade_aggregation_mode_payment_service.sh
+
+deploy_agg_mode_payment_service:
+	@echo "Deploying Agg Mode Payment Service contract on $(NETWORK) network..."
+	@. contracts/scripts/.env.$(NETWORK) && . contracts/scripts/deploy_agg_mode_payment_service.sh
+
 __SP1_FFI__: ##
 build_sp1_macos:
 	@cd operator/sp1/lib && cargo build $(RELEASE_FLAG)
@@ -968,6 +1070,48 @@ test_merkle_tree_go_bindings_linux: build_merkle_tree_linux
 	@echo "Testing Merkle Tree Go bindings..."
 	go test ./operator/merkle_tree/... -v
 
+__MINA_FFI__: ##
+build_mina_macos:
+	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.dylib operator/mina/lib/libmina_state_verifier_ffi.dylib
+
+build_mina_linux:
+	@cd operator/mina/lib && cargo build --release ${MINA_FEATURES_FLAG}
+	@cp operator/mina/lib/target/release/libmina_state_verifier_ffi.so operator/mina/lib/libmina_state_verifier_ffi.so
+
+test_mina_rust_ffi:
+	@echo "Testing Mina Rust FFI source code..."
+	@cd operator/mina/lib && cargo t --release
+
+test_mina_go_bindings_macos: build_mina_macos
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
+
+test_mina_go_bindings_linux: build_mina_linux
+	@echo "Testing Mina Go bindings..."
+	go test ./operator/mina/... -v
+
+__MINA_ACCOUNT_FFI__: ##
+build_mina_account_macos:
+	@cd operator/mina_account/lib && cargo build --release
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.dylib operator/mina_account/lib/libmina_account_verifier_ffi.dylib
+
+build_mina_account_linux:
+	@cd operator/mina_account/lib && cargo build --release
+	@cp operator/mina_account/lib/target/release/libmina_account_verifier_ffi.so operator/mina_account/lib/libmina_account_verifier_ffi.so
+
+test_mina_account_rust_ffi:
+	@echo "Testing Mina Account Rust FFI source code..."
+	@cd operator/mina_account/lib && cargo t --release
+
+test_mina_account_go_bindings_macos: build_mina_account_macos
+	@echo "Testing Mina Account Go bindings..."
+	go test ./operator/mina_account/... -v
+
+test_mina_account_go_bindings_linux: build_mina_account_linux
+	@echo "Testing Mina Account Go bindings..."
+	go test ./operator/mina_account/... -v
+
 __FFI__: ## ____
 
 build_all_ffi: ## Build all FFIs
@@ -979,6 +1123,8 @@ build_all_ffi_macos: ## Build all FFIs for macOS
 	@$(MAKE) build_sp1_macos
 	@$(MAKE) build_risc_zero_macos
 	@$(MAKE) build_merkle_tree_macos
+	@$(MAKE) build_mina_macos
+	@$(MAKE) build_mina_account_macos
 	@echo "All macOS FFIs built successfully."
 
 build_all_ffi_linux: ## Build all FFIs for Linux
@@ -986,6 +1132,8 @@ build_all_ffi_linux: ## Build all FFIs for Linux
 	@$(MAKE) build_sp1_linux
 	@$(MAKE) build_risc_zero_linux
 	@$(MAKE) build_merkle_tree_linux
+	@$(MAKE) build_mina_linux
+	@$(MAKE) build_mina_account_linux
 	@echo "All Linux FFIs built successfully."
 
 __EXPLORER__: ## ____
@@ -1193,6 +1341,30 @@ docker_batcher_send_circom_groth16_bn256_no_pub_input_burst:
 			  --rpc_url $(DOCKER_RPC_URL) \
 			  --max_fee 0.1ether
 
+docker_batcher_send_mina_burst:
+	@echo "Sending Mina state task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system Mina \
+              --proof ./scripts/test_files/mina/devnet_mina_state.proof \
+              --public_input ./scripts/test_files/mina/devnet_mina_state.pub \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
+docker_batcher_send_mina_account_burst:
+	@echo "Sending Mina account task to Batcher..."
+	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') aligned submit \
+              --private_key $(DOCKER_PROOFS_PRIVATE_KEY) \
+              --proving_system MinaAccount \
+              --proof ./scripts/test_files/mina_account/mina_account.proof \
+              --public_input ./scripts/test_files/mina_account/mina_account.pub \
+              --repetitions $(DOCKER_BURST_SIZE) \
+              --proof_generator_addr $(PROOF_GENERATOR_ADDRESS) \
+              --rpc_url $(DOCKER_RPC_URL) \
+			  --max_fee 0.1ether
+
 # Update target as new proofs are supported.
 docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_sp1_burst
@@ -1202,6 +1374,8 @@ docker_batcher_send_all_proofs_burst:
 	@$(MAKE) docker_batcher_send_gnark_groth16_burst
 	@$(MAKE) docker_batcher_send_circom_groth16_bn256_burst
 	@$(MAKE) docker_batcher_send_circom_groth16_bn256_no_pub_input_burst
+	@$(MAKE) docker_batcher_send_mina_burst
+	@$(MAKE) docker_batcher_send_mina_account_burst
 
 docker_batcher_send_infinite_groth16:
 	docker exec $(shell docker ps | grep batcher | awk '{print $$1}') \
@@ -1239,7 +1413,7 @@ docker_verify_proofs_onchain:
 	  '
 
 DOCKER_PROOFS_WAIT_TIME=60
-DOCKER_SENT_PROOFS=7
+DOCKER_SENT_PROOFS=9
 
 docker_verify_proof_submission_success: 
 	@echo "Verifying proofs were successfully submitted..."
@@ -1484,3 +1658,220 @@ __NODE_EXPORTER_:
 
 install_node_exporter:
 	@./scripts/install_node_exporter.sh
+
+# ==============================================================================
+# Aggregation Mode Ansible Deployment
+# ==============================================================================
+
+AGG_MODE_ANSIBLE_DIR = infra/aggregation_mode/ansible
+AGG_MODE_PLAYBOOKS_DIR = $(AGG_MODE_ANSIBLE_DIR)/playbooks
+AGG_MODE_INI_DIR = $(AGG_MODE_PLAYBOOKS_DIR)/ini
+
+# TODO: Check and add targets to install gateway, poller and cli binaries locally
+
+# ------------------------------------------------------------------------------
+# PostgreSQL Cluster Deployment
+# ------------------------------------------------------------------------------
+
+.PHONY: postgres_deploy
+postgres_deploy: ## Deploy PostgreSQL Auto-Failover Cluster. Usage: make postgres_deploy ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/postgres_cluster.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "env=$(ENV)"
+
+.PHONY: postgres_monitor_deploy
+postgres_monitor_deploy: ## Deploy PostgreSQL Monitor only. Usage: make postgres_monitor_deploy ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/pg_monitor.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=postgres_monitor" \
+		-e "env=$(ENV)"
+
+.PHONY: postgres_nodes_deploy
+postgres_nodes_deploy: ## Deploy PostgreSQL Primary & Secondary. Usage: make postgres_nodes_deploy ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/pg_node.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=postgres_1" \
+		-e "env=$(ENV)"
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/pg_node.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=postgres_2" \
+		-e "env=$(ENV)"
+
+.PHONY: postgres_migrations
+postgres_migrations: ## Run database migrations. Usage: make postgres_migrations ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/postgres_migrations.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=postgres_1" \
+		-e "env=$(ENV)"
+
+.PHONY: postgres_status
+postgres_status: ## Check PostgreSQL cluster status. Usage: make postgres_status ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible postgres_monitor -i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-m shell -a "sudo -u postgres pg_autoctl show state --monitor postgres://autoctl_node@localhost:5432/pg_auto_failover" --become
+
+# ------------------------------------------------------------------------------
+# Gateway & Poller Deployment
+# ------------------------------------------------------------------------------
+
+.PHONY: gateway_deploy
+gateway_deploy: ## Deploy Gateway & Poller on both servers. Usage: make gateway_deploy ENV=hoodi [FORCE_REBUILD=true]
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@EXTRA_VARS=""; \
+	if [ -n "$(FORCE_REBUILD)" ]; then \
+		EXTRA_VARS="-e force_rebuild=true"; \
+	fi; \
+	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=gateway_1" \
+		-e "env=$(ENV)" \
+		$$EXTRA_VARS
+	@EXTRA_VARS=""; \
+	if [ -n "$(FORCE_REBUILD)" ]; then \
+		EXTRA_VARS="-e force_rebuild=true"; \
+	fi; \
+	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=gateway_2" \
+		-e "env=$(ENV)" \
+		$$EXTRA_VARS
+
+.PHONY: gateway_1_deploy
+gateway_1_deploy: ## Deploy Gateway & Poller on gateway 1 only. Usage: make gateway_1_deploy ENV=hoodi [FORCE_REBUILD=true]
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@EXTRA_VARS=""; \
+	if [ -n "$(FORCE_REBUILD)" ]; then \
+		EXTRA_VARS="-e force_rebuild=true"; \
+	fi; \
+	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=gateway_1" \
+		-e "env=$(ENV)" \
+		$$EXTRA_VARS
+
+.PHONY: gateway_2_deploy
+gateway_2_deploy: ## Deploy Gateway & Poller on gateway 2 only. Usage: make gateway_2_deploy ENV=hoodi [FORCE_REBUILD=true]
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@EXTRA_VARS=""; \
+	if [ -n "$(FORCE_REBUILD)" ]; then \
+		EXTRA_VARS="-e force_rebuild=true"; \
+	fi; \
+	ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/gateway_stack.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=gateway_2" \
+		-e "env=$(ENV)" \
+		$$EXTRA_VARS
+
+# ------------------------------------------------------------------------------
+# Metrics Deployment
+# ------------------------------------------------------------------------------
+
+.PHONY: metrics_deploy
+metrics_deploy: ## Deploy Prometheus & Grafana. Usage: make metrics_deploy ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/metrics_stack.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=metrics" \
+		-e "env=$(ENV)"
+
+.PHONY: prometheus_deploy
+prometheus_deploy: ## Deploy Prometheus only. Usage: make prometheus_deploy ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/prometheus_agg_mode.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=metrics" \
+		-e "env=$(ENV)"
+
+.PHONY: grafana_deploy
+grafana_deploy: ## Deploy Grafana only. Usage: make grafana_deploy ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/grafana_agg_mode.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=metrics" \
+		-e "env=$(ENV)"
+
+# ------------------------------------------------------------------------------
+# Task Sender Deployment
+# ------------------------------------------------------------------------------
+
+.PHONY: task_sender_deploy
+task_sender_deploy: ## Deploy task sender. Usage: make task_sender_deploy ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/task_sender.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "host=task_sender" \
+		-e "env=$(ENV)"
+
+.PHONY: task_sender_status
+task_sender_status: ## Check task sender status. Usage: make task_sender_status ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@echo "Checking task sender tmux session..."
+	@ansible -i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml task_sender \
+		-m shell \
+		-a "tmux has-session -t task_sender && echo 'Task sender is running' || echo 'Task sender is not running'"
+
+.PHONY: task_sender_logs
+task_sender_logs: ## View task sender logs. Usage: make task_sender_logs ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@echo "Use: ssh app@agg-mode-$(ENV)-task-sender 'tmux attach -t task_sender'"
+	@echo "Or: ssh app@agg-mode-$(ENV)-task-sender 'tmux capture-pane -t task_sender -p'"
+
+# ------------------------------------------------------------------------------
+# Full Deployment
+# ------------------------------------------------------------------------------
+
+.PHONY: agg_mode_deploy_all
+agg_mode_deploy_all: ## Deploy entire aggregation mode stack. Usage: make agg_mode_deploy_all ENV=hoodi
+	@if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV must be set (hoodi or mainnet)"; \
+		exit 1; \
+	fi
+	@ansible-playbook $(AGG_MODE_PLAYBOOKS_DIR)/deploy_all.yaml \
+		-i $(AGG_MODE_ANSIBLE_DIR)/$(ENV)-inventory.yaml \
+		-e "env=$(ENV)"

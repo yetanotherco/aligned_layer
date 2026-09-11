@@ -88,59 +88,116 @@ defmodule Explorer.Periodically do
   end
 
   def process_aggregated_proofs(from_block, to_block) do
-    "Processing aggregated proofs from #{from_block} to #{to_block}" |> Logger.debug()
+    Logger.info("[Aggregated Proofs] Starting fetch from block #{from_block} to #{to_block}")
 
-    {:ok, proofs} =
-      AlignedProofAggregationService.get_aggregated_proof_event(%{
-        from_block: from_block,
-        to_block: to_block
-      })
+    case AlignedProofAggregationService.get_aggregated_proof_event(%{
+           from_block: from_block,
+           to_block: to_block
+         }) do
+      {:ok, []} ->
+        Logger.info("[Aggregated Proofs] No events found in block range #{from_block}-#{to_block}")
 
-    blob_data =
-      proofs
-      |> Enum.map(&AlignedProofAggregationService.get_blob_data!/1)
-
-    proof_hashes =
-      blob_data
-      |> Enum.map(fn x ->
-        AlignedProofAggregationService.decode_blob(
-          to_charlist(String.replace_prefix(x, "0x", ""))
+      {:ok, proofs} ->
+        Logger.info(
+          "[Aggregated Proofs] Found #{length(proofs)} events in block range #{from_block}-#{to_block}"
         )
-      end)
 
-    # Store aggregated proofs to db
-    proofs =
-      proofs
-      |> Enum.zip(proof_hashes)
-      |> Enum.map(fn {agg_proof, hashes} ->
-        aggregator = AlignedProofAggregationService.get_aggregator!(agg_proof)
+        process_aggregated_proof_events(proofs)
 
-        agg_proof =
-          agg_proof
-          |> Map.merge(%{aggregator: aggregator})
-          |> Map.merge(%{number_of_proofs: length(hashes)})
+      {:error, reason} ->
+        Logger.error(
+          "[Aggregated Proofs] Failed to fetch events from block #{from_block} to #{to_block}: #{inspect(reason)}"
+        )
+    end
+  end
 
-        {:ok, %{id: id}} = AggregatedProofs.insert_or_update(agg_proof)
-
-        Map.merge(agg_proof, %{id: id})
-      end)
-
-    # Store each individual proof
+  defp process_aggregated_proof_events(proofs) do
     proofs
-    |> Enum.zip(proof_hashes)
-    |> Enum.each(fn {agg_proof, hashes} ->
-      hashes
-      |> Enum.with_index()
-      |> Enum.each(fn {hash, index} ->
-        AggregationModeProof.insert_or_update(%{
-          agg_proof_id: agg_proof.id,
-          proof_hash: "0x" <> List.to_string(hash),
-          index: index
-        })
-      end)
+    |> Enum.each(fn proof ->
+      Logger.info(
+        "[Aggregated Proofs] Processing proof at block #{proof.block_number}, merkle_root: #{proof.merkle_root}"
+      )
+
+      try do
+        # Fetch blob data
+        Logger.debug(
+          "[Aggregated Proofs] Fetching blob data for versioned_hash: #{proof.blob_versioned_hash}"
+        )
+
+        blob_data = AlignedProofAggregationService.get_blob_data!(proof)
+
+        # Decode blob to get proof hashes
+        proof_hashes =
+          AlignedProofAggregationService.decode_blob(
+            to_charlist(String.replace_prefix(blob_data, "0x", ""))
+          )
+
+        Logger.info(
+          "[Aggregated Proofs] Decoded #{length(proof_hashes)} proof hashes from blob"
+        )
+
+        # Get aggregator type
+        aggregator = AlignedProofAggregationService.get_aggregator!(proof)
+
+        Logger.debug(
+          "[Aggregated Proofs] Aggregator type: #{inspect(aggregator)} for merkle_root: #{proof.merkle_root}"
+        )
+
+        # Store aggregated proof to db
+        agg_proof =
+          proof
+          |> Map.merge(%{aggregator: aggregator})
+          |> Map.merge(%{number_of_proofs: length(proof_hashes)})
+
+        case AggregatedProofs.insert_or_update(agg_proof) do
+          {:ok, %{id: id}} ->
+            Logger.info(
+              "[Aggregated Proofs] Stored aggregated proof id=#{id}, merkle_root: #{proof.merkle_root}, proofs_count: #{length(proof_hashes)}"
+            )
+
+            # Store each individual proof hash
+            store_individual_proofs(id, proof_hashes, proof.merkle_root)
+
+          {:error, reason} ->
+            Logger.error(
+              "[Aggregated Proofs] Failed to store aggregated proof merkle_root: #{proof.merkle_root}: #{inspect(reason)}"
+            )
+        end
+      rescue
+        error ->
+          Logger.error(
+            "[Aggregated Proofs] Error processing proof at block #{proof.block_number}, merkle_root: #{proof.merkle_root}: #{Exception.message(error)}"
+          )
+
+          Logger.debug(
+            "[Aggregated Proofs] Stacktrace: #{Exception.format_stacktrace(__STACKTRACE__)}"
+          )
+      end
     end)
 
-    "Done processing aggregated proofs from #{from_block} to #{to_block}" |> Logger.debug()
+    Logger.info("[Aggregated Proofs] Finished processing #{length(proofs)} events")
+  end
+
+  defp store_individual_proofs(agg_proof_id, proof_hashes, merkle_root) do
+    proof_hashes
+    |> Enum.with_index()
+    |> Enum.each(fn {hash, index} ->
+      proof_hash = "0x" <> List.to_string(hash)
+
+      case AggregationModeProof.insert_or_update(%{
+             agg_proof_id: agg_proof_id,
+             proof_hash: proof_hash,
+             index: index
+           }) do
+        {:ok, _} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error(
+            "[Aggregated Proofs] Failed to store individual proof hash #{proof_hash} for merkle_root: #{merkle_root}: #{inspect(reason)}"
+          )
+      end
+    end)
   end
 
   def process_batches(fromBlock, toBlock) do

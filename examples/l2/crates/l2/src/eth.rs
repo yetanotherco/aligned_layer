@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use aligned_sdk::aggregation_layer::AggregationModeProvingSystem;
+use agg_mode_sdk::blockchain::AggregationModeProvingSystem;
 use alloy::{
     network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
     rpc::types::TransactionReceipt, signers::local::LocalSigner, sol,

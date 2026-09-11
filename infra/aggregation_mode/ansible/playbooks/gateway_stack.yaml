@@ -1,0 +1,11 @@
+- name: Deploy Gateway
+  ansible.builtin.import_playbook: gateway.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Deploy Poller
+  ansible.builtin.import_playbook: poller.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"

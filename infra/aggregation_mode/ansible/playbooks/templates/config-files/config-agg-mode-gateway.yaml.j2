@@ -1,0 +1,17 @@
+ip: "0.0.0.0"
+port: {{ gateway_port }}
+{% if gateway_tls_enabled == 'true' %}
+tls_cert_path: "{{ gateway_tls_cert_path }}"
+tls_key_path: "{{ gateway_tls_key_path }}"
+tls_port: {{ gateway_tls_port }}
+{% endif %}
+db_connection_urls:
+  - "postgres://{{ gateway_db_user }}:{{ gateway_db_password }}@{{ gateway_postgres_1 }}:{{ gateway_postgres_port }}/{{ gateway_db_name }}"
+  - "postgres://{{ gateway_db_user }}:{{ gateway_db_password }}@{{ gateway_postgres_2 }}:{{ gateway_postgres_port }}/{{ gateway_db_name }}"
+eth_rpc_url: "{{ gateway_eth_rpc_url }}"
+payment_service_address: "{{ gateway_payment_service_address }}"
+network: "{{ gateway_network }}"
+max_daily_proofs_per_user: {{ gateway_max_daily_proofs }}
+
+# Metrics
+gateway_metrics_port: {{ gateway_metrics_port }}

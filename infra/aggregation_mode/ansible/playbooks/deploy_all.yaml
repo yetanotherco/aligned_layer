@@ -1,0 +1,28 @@
+- name: Deploy PostgreSQL Cluster
+  ansible.builtin.import_playbook: postgres_cluster.yaml
+  vars:
+    env: "{{ env }}"
+
+- name: Deploy Gateway and Poller on Node 1
+  ansible.builtin.import_playbook: gateway_stack.yaml
+  vars:
+    host: gateway_1
+    env: "{{ env }}"
+
+- name: Deploy Gateway and Poller on Node 2
+  ansible.builtin.import_playbook: gateway_stack.yaml
+  vars:
+    host: gateway_2
+    env: "{{ env }}"
+
+- name: Deploy Metrics Stack
+  ansible.builtin.import_playbook: metrics_stack.yaml
+  vars:
+    host: metrics
+    env: "{{ env }}"
+
+- name: Deploy Task Sender
+  ansible.builtin.import_playbook: task_sender.yaml
+  vars:
+    host: task_sender
+    env: "{{ env }}"

@@ -1,0 +1,101 @@
+- name: PostgreSQL Auto-Failover Common Setup
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Install postgresql-common and ca-certificates
+      become: true
+      apt:
+        pkg:
+          - postgresql-common
+          - ca-certificates
+          - curl
+          - acl
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Download PostgreSQL APT repository setup script
+      become: true
+      get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /tmp/postgresql.asc
+        mode: '0644'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Add PostgreSQL APT key
+      become: true
+      shell: |
+        cat /tmp/postgresql.asc | gpg --dearmor | tee /etc/apt/keyrings/postgresql.gpg > /dev/null
+      args:
+        creates: /etc/apt/keyrings/postgresql.gpg
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Add PostgreSQL APT repository
+      become: true
+      lineinfile:
+        path: /etc/apt/sources.list.d/pgdg.list
+        line: "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main"
+        create: yes
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Set create_main_cluster to false
+      become: true
+      lineinfile:
+        path: /etc/postgresql-common/createcluster.conf
+        line: "create_main_cluster = false"
+        create: yes
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Update apt cache
+      become: true
+      apt:
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Install postgresql-16 and pg-auto-failover-cli
+      become: true
+      apt:
+        pkg:
+          - postgresql-16
+          - pg-auto-failover-cli
+        state: latest
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Stop and disable default PostgreSQL service
+      become: true
+      systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      with_items:
+        - postgresql
+        - postgresql@16-main
+      ignore_errors: yes
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Remove default PostgreSQL data directory
+      become: true
+      file:
+        path: /var/lib/postgresql
+        state: absent
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Create PostgreSQL data directory
+      become: true
+      file:
+        path: /var/lib/postgresql
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0700'
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

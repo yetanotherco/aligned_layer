@@ -9,4 +9,4 @@ ExecStartPre=sleep 60
 ExecStart=/home/user/run.sh
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

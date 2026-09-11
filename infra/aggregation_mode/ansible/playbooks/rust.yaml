@@ -1,0 +1,39 @@
+- name: Rust Setup
+  hosts: "{{ host }}"
+  vars:
+    rust_version: 1.92.0
+
+  tasks:
+    - name: Check if cargo is installed
+      stat:
+        path: /home/{{ ansible_user }}/.cargo/bin/cargo
+      register: cargo_exists
+
+    - name: Download Rust installer
+      when: not cargo_exists.stat.exists
+      get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/rustup-init.sh
+        mode: '0755'
+
+    - name: Install Rust
+      when: not cargo_exists.stat.exists
+      shell: |
+        /tmp/rustup-init.sh -y --default-toolchain {{ rust_version }}
+      args:
+        creates: /home/{{ ansible_user }}/.cargo/bin/cargo
+
+    - name: Update user PATH
+      when: not cargo_exists.stat.exists
+      lineinfile:
+        path: "/home/{{ ansible_user }}/.bashrc"
+        line: "{{ item }}"
+        state: present
+      with_items:
+        - 'export PATH=$HOME/.cargo/bin:$PATH'
+
+    - name: Clean up Rust installer
+      when: not cargo_exists.stat.exists
+      file:
+        path: /tmp/rustup-init.sh
+        state: absent

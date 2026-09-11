@@ -1,0 +1,16 @@
+[Unit]
+Description=Prometheus
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/{{ ansible_user }}
+ExecStart=/home/{{ ansible_user }}/prometheus-{{ prometheus_version }}.linux-amd64/prometheus \
+    --config.file=/home/{{ ansible_user }}/config/prometheus.yaml \
+    --storage.tsdb.retention.time=90d
+Restart=always
+RestartSec=1
+StartLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target

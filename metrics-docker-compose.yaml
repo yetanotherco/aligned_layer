@@ -2,8 +2,8 @@ version: "3"
 
 networks:
   aligned-network:
+    external: true
     name: aligned-network
-    driver: bridge
 
 services:
   grafana:
@@ -16,9 +16,24 @@ services:
       # See https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#override-configuration-with-environment-variables
       # and https://grafana.com/docs/grafana/latest/setup-grafana/configure-docker/
       # They recommend using env vars instead of overwriting config.ini
+      - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource
       - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - RPC_URL=http://host.docker.internal:8545
+      # Postgres datasource
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PROMETHEUS_URL=http://prometheus:9090
+      - MONITOR_DB_HOST=host.docker.internal
+      - MONITOR_DB_PORT=5436
+      - MONITOR_DB_DB=pg_auto_failover
+      - MONITOR_DB_USER=autoctl_node
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     ports:
       - "3000:3000"

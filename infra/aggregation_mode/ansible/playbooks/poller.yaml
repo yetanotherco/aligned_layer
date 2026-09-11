@@ -1,0 +1,123 @@
+- name: Import setup playbook
+  ansible.builtin.import_playbook: setup.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Import rust playbook
+  ansible.builtin.import_playbook: rust.yaml
+  vars:
+    host: "{{ host }}"
+    env: "{{ env }}"
+
+- name: Poller Setup
+  hosts: "{{ host }}"
+
+  tasks:
+    - name: Set config file path
+      set_fact:
+        config_file: "ini/config-{{ env }}.ini"
+
+    - name: Set config vars from INI file
+      set_fact:
+        git_branch: "{{ lookup('ini', 'git_branch', file=config_file) }}"
+        poller_db_user: "{{ lookup('ini', 'db_user', file=config_file) }}"
+        poller_db_password: "{{ lookup('ini', 'db_password', file=config_file) }}"
+        poller_db_name: "{{ lookup('ini', 'db_name', file=config_file) }}"
+        poller_postgres_1: "{{ lookup('ini', 'gateway_postgres_1', file=config_file) }}"
+        poller_postgres_2: "{{ lookup('ini', 'gateway_postgres_2', file=config_file) }}"
+        poller_postgres_port: "{{ lookup('ini', 'gateway_postgres_port', file=config_file, default='5432') }}"
+        poller_eth_rpc_url: "{{ lookup('ini', 'gateway_eth_rpc_url', file=config_file) }}"
+        poller_payment_service_address: "{{ lookup('ini', 'gateway_payment_service_address', file=config_file) }}"
+        poller_network: "{{ lookup('ini', 'gateway_network', file=config_file) }}"
+        poller_max_daily_proofs: "{{ lookup('ini', 'gateway_max_daily_proofs', file=config_file, default='100') }}"
+        poller_last_block_fetched_filepath: "{{ lookup('ini', 'poller_last_block_fetched_filepath', file=config_file) }}"
+        last_block_fetched_initial_value: "{{ lookup('ini', 'last_block_fetched_initial_value', file=config_file, default='0') }}"
+        poller_metrics_port: "{{ lookup('ini', 'poller_metrics_port', file=config_file, default='9095') }}"
+      no_log: true
+
+    - name: Install required system packages
+      become: true
+      apt:
+        pkg:
+          - pkg-config
+          - libssl-dev
+          - build-essential
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    - name: Clone aligned_layer repository
+      git:
+        repo: https://github.com/yetanotherco/aligned_layer.git
+        dest: /home/{{ ansible_user }}/repos/poller/aligned_layer
+        version: "{{ git_branch }}"
+        update: yes
+
+    - name: Remove existing poller binary (if force rebuild)
+      file:
+        path: /home/{{ ansible_user }}/.cargo/bin/payments_poller
+        state: absent
+      when: force_rebuild | default(false) | bool
+
+    - name: Build poller
+      shell: |
+        export PATH=$HOME/.cargo/bin:$PATH
+        cargo install --path /home/{{ ansible_user }}/repos/poller/aligned_layer/aggregation_mode/payments_poller --bin payments_poller --locked
+      args:
+        creates: /home/{{ ansible_user }}/.cargo/bin/payments_poller
+
+    - name: Create config directory
+      file:
+        path: /home/{{ ansible_user }}/config
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Check if last_block_fetched file exists and get size
+      stat:
+        path: "{{ poller_last_block_fetched_filepath }}"
+      register: last_block_file
+
+    - name: Create or fix last_block_fetched file if empty or missing
+      copy:
+        content: '{"last_block_fetched": {{ last_block_fetched_initial_value }}}'
+        dest: "{{ poller_last_block_fetched_filepath }}"
+        mode: '0644'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      when: not last_block_file.stat.exists or last_block_file.stat.size == 0
+
+    - name: Template poller config file
+      template:
+        src: config-files/config-agg-mode-poller.yaml.j2
+        dest: /home/{{ ansible_user }}/config/config-agg-mode-poller.yaml
+        mode: '0644'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Create systemd user directory
+      file:
+        path: /home/{{ ansible_user }}/.config/systemd/user
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Template poller systemd service
+      template:
+        src: services/poller.service.j2
+        dest: /home/{{ ansible_user }}/.config/systemd/user/poller.service
+        mode: '0644'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Enable and start poller service
+      systemd_service:
+        name: poller
+        state: started
+        enabled: true
+        scope: user
+        daemon_reload: true

@@ -1,0 +1,40 @@
+- name: Server setup
+  hosts: "{{ host }}"
+
+  tasks:
+    # Install required packages
+    - name: Update apt and install required system packages
+      become: true
+      apt:
+        pkg:
+          - curl
+          - vim
+          - git
+          - make
+          - gcc
+        state: latest
+        update_cache: true
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"
+
+    # Create basic directories
+    - name: Create basic directories if do not exist
+      ansible.builtin.file:
+        path: /home/{{ ansible_user }}/{{ item }}
+        state: directory
+        mode: '0755'
+        owner: '{{ ansible_user }}'
+        group: '{{ ansible_user }}'
+      loop:
+        - repos
+        - config
+        - services
+        - .keystores
+
+    - name: Enable linger for {{ ansible_user }}
+      become: true
+      command: sudo loginctl enable-linger {{ ansible_user }}
+      args:
+        creates: /var/lib/systemd/linger/{{ ansible_user }}
+      vars:
+        ansible_ssh_user: "{{ admin_user }}"

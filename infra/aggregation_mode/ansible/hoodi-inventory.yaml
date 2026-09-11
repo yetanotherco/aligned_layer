@@ -1,0 +1,83 @@
+# PostgreSQL Monitor
+postgres_monitor:
+  hosts:
+    agg-mode-hoodi-postgres-monitor:
+      ansible_host: agg-mode-hoodi-postgres-monitor
+      admin_user: admin
+      ansible_user: admin
+      ansible_python_interpreter: /usr/bin/python3
+
+# PostgreSQL Node 1
+postgres_1:
+  hosts:
+    agg-mode-hoodi-postgres-1:
+      ansible_host: agg-mode-hoodi-postgres-1
+      admin_user: admin
+      ansible_user: admin
+      ansible_python_interpreter: /usr/bin/python3
+
+# PostgreSQL Node 2
+postgres_2:
+  hosts:
+    agg-mode-hoodi-postgres-2:
+      ansible_host: agg-mode-hoodi-postgres-2
+      admin_user: admin
+      ansible_user: admin
+      ansible_python_interpreter: /usr/bin/python3
+
+# PostgreSQL Cluster (all postgres nodes)
+postgres_cluster:
+  children:
+    postgres_monitor:
+    postgres_1:
+    postgres_2:
+
+# Gateway Node 1
+gateway_1:
+  hosts:
+    agg-mode-hoodi-gateway-1:
+      ansible_host: agg-mode-hoodi-gateway-1
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+# Gateway Node 2
+gateway_2:
+  hosts:
+    agg-mode-hoodi-gateway-2:
+      ansible_host: agg-mode-hoodi-gateway-2
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+# Gateway Cluster (all gateway nodes)
+gateway_cluster:
+  children:
+    gateway_1:
+    gateway_2:
+
+# Metrics Server
+metrics:
+  hosts:
+    agg-mode-hoodi-metrics:
+      ansible_host: agg-mode-hoodi-metrics
+      admin_user: admin
+      ansible_user: admin
+      ansible_python_interpreter: /usr/bin/python3
+
+# Task Sender
+task_sender:
+  hosts:
+    agg-mode-hoodi-sender:
+      ansible_host: agg-mode-hoodi-sender
+      admin_user: admin
+      ansible_user: app
+      ansible_python_interpreter: /usr/bin/python3
+
+# All aggregation mode servers
+aggregation_mode:
+  children:
+    postgres_cluster:
+    gateway_cluster:
+    metrics:
+    task_sender:
