@@ -1,0 +1,82 @@
+# Troubleshooting
+
+> **Deprecated.** The Aligned Verification Layer is no longer active and is not
+> accepting new operators. This guide is kept for historical reference only.
+> Aligned's active product is the
+> [Proof Aggregation Service](../../2_proof_aggregation_layer/architecture/1_overview.md).
+
+### How to resolve the error "Error in new task subscription"
+
+This error is caused by the operator not being able to subscribe to the task.
+
+Make sure you have configured the RPC correctly and verify that the node is running.
+
+The following RPC providers are known to have issues:
+
+- [dRPC](https://drpc.org/)
+
+### My operator is not showing up on the Aligned Explorer
+
+The [explorer](https://explorer.alignedlayer.com/) does not update the operator status in real time. 
+The explorer updates the operators' list every 1 hour.
+
+If your operator is not showing up after 1 hour, please check the following:
+
+- The operator is **whitelisted** on the Aligned AVS, you can run the following command:
+
+    - Sepolia:
+
+        ```bash
+        cast call \
+        --rpc-url https://ethereum-sepolia-rpc.publicnode.com \
+        0x0Ef1920F089DD02d3A28BF2e34342FD3e74160A3 \
+        "isWhitelisted(address _address)(bool)" <operator_address>
+        ```
+
+    - Hoodi:
+
+        ```bash
+        cast call \
+        --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
+        0x87CD431F160e88EC34fA48EC6F6cF7F2C0E8248c \
+        "isWhitelisted(address _address)(bool)" <operator_address>
+        ```
+
+    If the operator is whitelisted, it will return `true`.
+
+- The operator is **registered** on the Aligned AVS:
+
+    - Sepolia:
+
+        ```bash
+        cast call \
+        --rpc-url https://ethereum-sepolia-rpc.publicnode.com \
+        0x0Ef1920F089DD02d3A28BF2e34342FD3e74160A3 \
+        "getOperatorId(address operator)(bytes32)" <operator_address>
+        ```
+
+    - Hoodi:
+
+        ```bash
+        cast call \
+        --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
+        0xD06AAf23d136ECBfb5Bdb349Dd7a87aDc74673Dd \
+        "getOperatorId(address operator)(bytes32)" <operator_address>
+        ```
+
+    If the operator is not registered, it will return `0x0` otherwise it will return the operator ID.
+
+### How to resolve the error "Eth ws url or fallback is empty" or "Eth rpc url or fallback is empty"
+
+This error is caused by the operator not being able to get the RPC urls.
+
+Make sure you have configured the RPC correctly in the [config file](0_running_an_operator.md#step-3---update-the-configuration-for-your-specific-operator).
+
+### How to update Rust
+
+In case you have an unsupported version of Rust, you can update it following the [official page](https://www.rust-lang.org/tools/install)
+
+
+### Compiler family detection failed due to error: ToolNotFound: failed to find tool "c++": No such file or directory (os error 2)
+
+Run `sudo apt update && sudo apt install g++` to install the GNU C++ compiler.

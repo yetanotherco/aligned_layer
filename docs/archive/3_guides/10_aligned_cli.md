@@ -1,0 +1,565 @@
+# Aligned CLI Documentation
+
+> **Deprecated.** This page documents the Aligned Verification Layer, which is no
+> longer active. It is kept for historical reference only. Aligned's active
+> product is the [Proof Aggregation Service](../../2_proof_aggregation_layer/architecture/1_overview.md).
+
+The Aligned CLI serves as an interface for users to interact with Aligned Layer.
+
+This document serves as a reference for the commands of the Aligned CLI.
+
+## Installation:
+
+1. Download and install Aligned from the Aligned GitHub repo `https://github.com/yetanotherco/aligned_layer`:
+
+    ```bash
+    curl -L https://raw.githubusercontent.com/yetanotherco/aligned_layer/main/crates/cli/install_aligned.sh | bash
+    ```
+
+2. A source command will be printed in your terminal after installation. Execute that command to update your shell environment.
+
+3. Verify that the installation was successful:
+
+    ```bash
+    aligned --version
+    ```
+
+## Help:
+
+To see the available commands, run:
+
+```bash
+aligned --help
+```
+
+To see the usage of a command, run:
+
+```bash
+aligned [COMMAND] --help
+```
+
+## CLI Commands
+
+### **submit**
+
+#### Description:
+
+Submit a proof to the Aligned Layer batcher.
+
+#### Command:
+
+`submit [OPTIONS] --proving_system <proving_system> --proof <proof_file_path>`
+
+#### Options:
+
+- `--batcher_url <batcher_connection_address>`: Websocket URL for the Aligned Layer batcher  
+  - Default: `ws://localhost:8080`  
+  - Mainnet: `wss://mainnet.batcher.alignedlayer.com`
+  - Sepolia: `wss://sepolia.batcher.alignedlayer.com`
+  - Hoodi: `wss://hoodi.batcher.alignedlayer.com`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--proving_system <proving_system>`: Proof system of the submitted proof  
+  - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`, `CircomGroth16Bn256`
+- `--proof <proof_file_path>`: Path to the proof file.
+- `--public_input <public_input_file_path>`: Path to the public input file.
+- `--vk <verification_key_file_path>`: Path to the verification key file (required for specific proof systems).
+- `--vm_program <vm_program_code_file_path>`: Path to the VM program code file (required for some specific proof systems).
+- `--repetitions <n>`: Number of repetitions of the proof submission.  
+  - Default: `1`
+- `--proof_generator_addr <proof_generator_address>`: Proof generator address.  
+  - Default: `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (Anvil prefunded account 0)
+- `--aligned_verification_data_path <aligned_verification_data_directory_path>`: Directory for aligned verification data.  
+  - Default: `./aligned_verification_data/`
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--nonce <n>`: Proof nonce.
+  - By default, the nonce is set automatically. By setting the nonce manually, you can perform a proof replacement. To perform a valid replacement, the new proof must have a max_fee 10% higher than the previous one.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+- Max Fee allowed to be spent for each proof verification, use one of the following:
+  - `--max_fee <max_fee (ether)>`: Specifies a `max_fee` in Ether.
+  - `--default_fee_estimate`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size 10.
+  - `--instant_fee_estimate`: Specifies a `max_fee` that ensures the proof is included instantly, equivalent to the cost of a proof in a batch of size 1.
+  - `--custom_fee_estimate <amount_of_proofs_in_batch>`: Specifies a `max_fee` equivalent to the cost of 1 proof in a batch of size `num_proofs_in_batch`.
+- `random_address`: If set, random addresses will be used as `proof_generator_addr` for each proof.  
+  - Default: `false`
+
+#### Example:
+
+```bash
+aligned submit  \
+--proving_system Risc0 \
+--proof ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.proof \
+--vm_program ./scripts/test_files/risc_zero/fibonacci_proof_generator/fibonacci_id_3_0_3.bin \
+--public_input ./scripts/test_files/risc_zero/fibonacci_proof_generator/risc_zero_fibonacci_3_0_3.pub \
+--repetitions <BURST_SIZE> \
+--keystore_path <KEYSTORE_PATH> \
+--batcher_url wss://batcher.alignedlayer.com \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--max_fee 0.0013ether
+```
+
+---
+### **verify-proof-onchain**
+
+#### Description:
+
+Check if a proof was verified by Aligned on Ethereum.
+
+#### Command:
+
+`verify-proof-onchain [OPTIONS] --aligned-verification-data <aligned_verification_data>`
+
+#### Options:
+
+- `--aligned-verification-data <aligned_verification_data>`: Path to the aligned verification data file.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned verify-proof-onchain \
+--aligned-verification-data ./aligned_verification_data/<VERIFICATION_DATA_FILE> \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+---
+
+### **get-vk-commitment**
+
+#### Description:
+
+Computes the verification data commitment from the verification data file.
+
+#### Command:
+
+`get-vk-commitment [OPTIONS] --verification_key_file <verification_key_file_path> --proving_system <proving_system>`
+
+#### Options:
+
+- `--verification_key_file <path_to_file>`: Path to the verification key file.
+- `--proving_system <proving_system>`: Proof system of the verification data file.  
+  - Possible values: `GnarkPlonkBls12_381`, `GnarkPlonkBn254`, `Groth16Bn254`, `SP1`, `Risc0`
+- `--output <path_to_file>`: File path to write the output.
+
+---
+
+### **deposit-to-batcher**
+
+#### Description:
+
+Deposits Ethereum into the Aligned Layer's `BatcherPaymentService.sol` contract.
+
+#### Command:
+
+`deposit-to-batcher [OPTIONS] --keystore_path <path_to_local_keystore> --amount <amount_to_deposit>`
+
+#### Options:
+
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--amount <amount (ether)>`: Amount of Ether to deposit.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+  
+#### Example:
+
+```bash
+aligned deposit-to-batcher \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--amount 0.5ether \
+--keystore_path <KEYSTORE_PATH>
+```
+
+---
+
+### **get-user-balance**
+
+#### Description:
+
+Retrieves the user's balance in the Aligned Layer's contract.
+
+#### Command:
+
+`get-user-balance [OPTIONS] --user_addr <user_ethereum_address>`
+
+
+#### Options:
+
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--user_addr`: User's Ethereum address.
+
+#### Example:
+
+```bash
+aligned get-user-balance \
+--user_addr <WALLET_ADDRESS> \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+---
+
+### **get-user-nonce**
+
+#### Description:
+
+Retrieves the user's current nonce from the Batcher.
+
+#### Command:
+
+`get-user-nonce [OPTIONS] --user_addr <user_ethereum_address>`
+
+#### Options:
+
+- `--user_addr <user_address>`: User's Ethereum address.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.
+    - Default: `devnet`
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned get-user-nonce \
+--user_addr <USER_ETH_ADDRESS> \
+--network hoodi
+```
+
+---
+
+### **get-user-nonce-from-ethereum**
+
+#### Description:
+
+Retrieves the user's current nonce from the Blockhain, in the Batcher Payment Service Contract.
+
+#### Command:
+
+`get-user-nonce-from-ethereum [OPTIONS] --user_addr <user_ethereum_address>`
+
+#### Options:
+
+- `--user_addr <user_address>`: User's Ethereum address.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+
+#### Example:
+
+```bash
+aligned get-user-nonce-from-ethereum \
+--user_addr <USER_ETH_ADDRESS> \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+---
+
+### **get-user-last-max-fee**
+
+#### Description:
+
+Retrieves the `max_fee` of the proof with the highest nonce in the batcher queue for a given address.
+
+This value represents the maximum fee limit that can be used when submitting the next proof. To increase the fee limit for a new proof, you must first bump the fee of the previous proofs queued in the batcher.
+
+Read more here: https://docs.alignedlayer.com/architecture/1_proof_verification_layer/1_batcher#max-fee-priority-queue
+
+#### Command:
+
+`get-user-last-max-fee [OPTIONS] <user_ethereum_address>`
+
+#### Options:
+
+- `<user_ethereum_address>`: User's Ethereum address.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned get-user-last-max-fee \
+<USER_ETH_ADDRESS> \
+--network hoodi
+```
+
+#### Notes:
+
+- Returns `U256::MAX` (2^256 - 1) when no proofs are present in the queue for the user.
+
+---
+
+### **get-user-amount-of-queued-proofs**
+
+#### Description:
+
+Retrieves the number of proofs currently queued for a given user in the Batcher.
+
+#### Command:
+
+`get-user-amount-of-queued-proofs [OPTIONS] --user_addr <user_ethereum_address>`
+
+#### Options:
+
+- `--user_addr <user_address>`: User's Ethereum address.
+- Specify which network to interact with, using one of the following options:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom network, instead of `--network`, provide the following flags:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`: Address of the Aligned Service Manager contract.
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`: Address of the Batcher Payment Service contract.
+    - `--batcher_url <batcher_websocket_url>`: WebSocket URL for the Aligned batcher.
+- `--rpc_url <rpc_provider_url>`: Ethereum RPC provider URL.  
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - You can also specify your own RPC provider URL
+
+#### Example:
+
+```bash
+aligned get-user-amount-of-queued-proofs  \
+--user_addr <USER_ETH_ADDRESS> \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+
+---
+
+### **lock-funds**
+
+#### Description:
+
+Locks funds in the batcher. Locked balances can be used for proof verification payments but cannot be withdrawn until they are unlocked and the lock period expires.
+
+#### Command:
+
+`lock-funds [OPTIONS]`
+
+#### Options:
+
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned lock-funds \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--keystore_path <KEYSTORE_PATH>
+```
+
+---
+
+### **unlock-funds**
+
+#### Description:
+
+Unlocks funds from the batcher. After calling this command, users must wait for the lock period before they can withdraw their funds using `withdraw-funds`.
+
+#### Command:
+
+`unlock-funds [OPTIONS]`
+
+#### Options:
+
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned unlock-funds \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--keystore_path <KEYSTORE_PATH>
+```
+
+---
+
+### **withdraw-funds**
+
+#### Description:
+
+Withdraws a specified amount from the user's balance in the batcher. This command can only be used after the balance has been unlocked using `unlock-funds` and the lock period has expired.
+
+#### Command:
+
+`withdraw-funds [OPTIONS] --amount <amount_to_withdraw>`
+
+#### Options:
+
+- `--keystore_path <path_to_local_keystore>`: Path to the local keystore.
+- `--private_key <private_key>`: User's wallet private key.
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address. 
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--amount <amount (ether)>`: Amount of Ether to withdraw.
+- One of the following, to specify which Network to interact with:
+  - `--network <working_network_name>`: Network name to interact with.  
+    - Default: `devnet`  
+    - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+  - For a custom Network, you must specify the following parameters:
+    - `--aligned_service_manager <aligned_service_manager_contract_address>`
+    - `--batcher_payment_service <batcher_payment_service_contract_address>`
+    - `--batcher_url <batcher_websocket_url>`
+
+#### Example:
+
+```bash
+aligned withdraw-funds \
+--network hoodi \
+--rpc_url https://ethereum-hoodi-rpc.publicnode.com \
+--amount 0.5ether \
+--keystore_path <KEYSTORE_PATH>
+```
+
+---
+
+### **verify-agg-proof**
+
+#### Description:
+
+Verifies if your proof has been verified by the `Aggregation Mode`.
+
+#### Command:
+
+`aligned verify-agg-proof [OPTIONS] --proving_system <proving_system>`
+
+#### Options:
+
+- `--vk`: Verification key hash file path.
+- `--public_input`: Your program committed values file path.
+- `--from-block`: From which block to start fetching events. This must no be older than 18 days as blobs will be expired. Defaults to the block corresponding to last 24 hours.
+- `--network <working_network_name>`: Network name to interact with.
+  - Default: `devnet`
+  - Possible values: `devnet`, `sepolia`, `mainnet`, `hoodi`
+- `--rpc_url <RPC_provider_url>`: User's Ethereum RPC provider connection address.
+  - Default: `http://localhost:8545`
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Sepolia: `https://ethereum-sepolia-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+  - Also, you can use your own Ethereum RPC providers.
+- `--beacon_client_url <BEACON_CLIENT_URL>`: User's Ethereum Consensus provider connection address. Public nodes don't support this method.
+
+#### Example:
+
+```bash
+aligned verify-agg-proof \
+  --network hoodi \
+  --from-block 3638552 \
+  --proving_system SP1 \
+  --public_input ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub \
+  --vk ./scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
+  --beacon_url <YOUR_BEACON_CLIENT> \
+  --rpc_url https://ethereum-hoodi-rpc.publicnode.com
+```

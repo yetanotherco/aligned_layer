@@ -1,0 +1,160 @@
+# Aggregation Mode CLI
+
+The Aggregation Mode CLI serves as an interface for users to interact with Aligned Aggregation Mode.
+
+This document serves as a reference for the commands of the Aggregation Mode CLI.
+
+## Installation
+
+1. Clone the Aligned Layer repository:
+
+    ```bash
+    git clone https://github.com/yetanotherco/aligned_layer.git
+    cd aligned_layer
+    ```
+
+2. Build and install the Aggregation Mode CLI using the Makefile:
+
+    ```bash
+    make agg_mode_install_cli
+    ```
+
+3. Verify that the installation was successful:
+
+    ```bash
+    agg_mode_cli --help
+    ```
+
+> **Note:** A standalone installation script will be available soon for easier installation without cloning the repository.
+
+## Help
+
+To see the available commands, run:
+
+```bash
+agg_mode_cli --help
+```
+
+To see the usage of a command, run:
+
+```bash
+agg_mode_cli [COMMAND] --help
+```
+
+## CLI Commands
+
+### **deposit**
+
+#### Description
+
+Send ether to the Aggregation Mode payment service to fund your proof submission quota.
+
+The deposit amount is currently fixed at **0.0035 ether** per call; there is no amount option. Run the command more than once to add more quota.
+
+#### Command
+
+`deposit [OPTIONS] --rpc-url <rpc_url>`
+
+#### Options
+
+- `--keystore-path <keystore_path>`: Path to the local keystore file.
+- `--private-key <private_key>`: User's wallet private key.
+  - Note: Either `--keystore-path` or `--private-key` must be provided, but not both.
+- `-n, --network <network>`: Network to interact with.
+  - Default: `devnet`
+  - Possible values: `devnet`, `hoodi`, `mainnet`
+- `--rpc-url <rpc_url>`: Ethereum RPC provider URL.
+  - Mainnet: `https://ethereum-rpc.publicnode.com`
+  - Hoodi: `https://ethereum-hoodi-rpc.publicnode.com`
+
+#### Example
+
+```bash
+agg_mode_cli deposit \
+  --keystore-path ~/.ethereum/keystore/my-key.json \
+  --network hoodi \
+  --rpc-url https://ethereum-hoodi-rpc.publicnode.com
+```
+
+---
+
+### **submit sp1**
+
+#### Description
+
+Submit an SP1 proof to the Aggregation Mode Gateway for verification.
+
+#### Command
+
+`submit sp1 [OPTIONS] --proof <proof_path> --vk <verifying_key_path>`
+
+#### Options
+
+- `-p, --proof <proof_path>`: Path to the SP1 proof file (bincode serialized).
+- `--vk <verifying_key_path>`: Path to the SP1 verifying key file (bincode serialized).
+- `--keystore-path <keystore_path>`: Path to the local keystore file.
+- `--private-key <private_key>`: User's wallet private key.
+  - Note: Either `--keystore-path` or `--private-key` must be provided, but not both.
+- `-n, --network <network>`: Network to interact with.
+  - Default: `devnet`
+  - Possible values: `devnet`, `hoodi`, `mainnet`
+
+#### Example
+
+```bash
+agg_mode_cli submit sp1 \
+  --proof ./my_proof.proof \
+  --vk ./my_vk.bin \
+  --keystore-path ~/.ethereum/keystore/my-key.json \
+  --network hoodi
+```
+
+#### Notes
+
+- The proof will be aggregated and settled to L1 within the configured aggregation window (default: 24 hours).
+- A task ID is returned upon successful submission, which can be used to track the proof status.
+
+---
+
+### **verify-on-chain**
+
+#### Description
+
+Check whether a proof has been verified on the AlignedProofAggregationService contract.
+
+#### Command
+
+`verify-on-chain [OPTIONS] --rpc-url <rpc_url> --beacon-url <beacon_url> --proving-system <proving_system> --vk-hash <vk_hash_path>`
+
+#### Options
+
+- `-n, --network <network>`: Network to interact with.
+  - Default: `devnet`
+  - Possible values: `devnet`, `hoodi`, `mainnet`
+- `--rpc-url <rpc_url>`: Ethereum RPC provider URL.
+- `--beacon-url <beacon_url>`: Beacon chain client URL.
+- `--from-block <block_number>`: Block number to start searching from.
+  - Default: Current block minus 7500 blocks (~25 hours)
+- `--proving-system <proving_system>`: The proving system used.
+  - Possible values: `SP1`, `Risc0`
+  - Only `SP1` is functional today. `Risc0` is accepted by the argument parser but the check is still performed as SP1, so it will not report correctly.
+- `--vk-hash <vk_hash_path>`: Path to the file containing the program verification key hash (32 bytes).
+- `--public-inputs <public_inputs_path>`: Path to the public inputs file.
+  - Required in practice: the command exits with `Public input file not provided` if omitted.
+
+#### Example
+
+```bash
+agg_mode_cli verify-on-chain \
+  --network hoodi \
+  --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
+  --beacon-url https://ethereum-hoodi-beacon-api.publicnode.com \
+  --proving-system SP1 \
+  --vk-hash ./my_vk_hash.bin \
+  --public-inputs ./my_public_inputs.bin
+```
+
+#### Notes
+
+- If your proof isn't found, try specifying an earlier `--from-block` to search further back in history.
+- The command verifies the proof's inclusion in the Merkle tree of the aggregated batch.

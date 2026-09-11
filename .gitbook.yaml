@@ -1,1 +1,52 @@
 root: ./docs/
+
+# Redirects for the Verification Layer deprecation and the Proof Aggregation
+# Layer restructure. Keys are old published URL paths, values are file paths
+# relative to `root`.
+redirects:
+  # Introduction
+  introduction/2_use_cases: 1_introduction/1_use_cases.md
+  introduction/3_faq: 1_introduction/2_faq.md
+  introduction/4_why_zk: 1_introduction/3_why_zk.md
+  introduction/1_try_aligned: 2_proof_aggregation_layer/guides/1_quickstart.md
+
+  # Architecture -> Proof Aggregation Layer
+  architecture/2_aggregation_mode: 2_proof_aggregation_layer/architecture/1_overview.md
+  architecture/2_aggregation_mode/1_deep_dive: 2_proof_aggregation_layer/architecture/2_deep_dive.md
+  architecture/0_supported_verifiers: 2_proof_aggregation_layer/architecture/4_supported_verifiers.md
+  architecture/0b_key_terms: 2_proof_aggregation_layer/architecture/5_key_terms.md
+  architecture/3_raas_platform: 3_raas/1_raas_platform.md
+
+  # Guides -> Proof Aggregation Layer
+  guides/3.1_aggregation_mode: 2_proof_aggregation_layer/guides/5_integration_example.md
+  guides/10.1_aggregation_mode_cli: 2_proof_aggregation_layer/guides/3_cli.md
+  guides/1.3_SDK_api_reference_aggregation: 2_proof_aggregation_layer/guides/4_sdk.md
+  guides/4_generating_proofs: 2_proof_aggregation_layer/guides/2_generating_proofs.md
+  guides/7_setup_aligned_agg_mode: 2_proof_aggregation_layer/guides/6_local_setup.md
+  guides/8_contract_addresses: 2_proof_aggregation_layer/guides/7_contract_addresses.md
+
+  # Deprecated Verification Layer pages. These are no longer published, so they
+  # land on the Proof Aggregation Layer overview rather than 404.
+  architecture/1_proof_verification_layer: 2_proof_aggregation_layer/architecture/1_overview.md
+  architecture/1_proof_verification_layer/1_batcher: 2_proof_aggregation_layer/architecture/1_overview.md
+  architecture/1_proof_verification_layer/2_payment_service_contract: 2_proof_aggregation_layer/architecture/1_overview.md
+  architecture/1_proof_verification_layer/3_service_manager_contract: 2_proof_aggregation_layer/architecture/1_overview.md
+  architecture/1_proof_verification_layer/4_operator: 2_proof_aggregation_layer/architecture/1_overview.md
+  architecture/1_proof_verification_layer/5_aggregator: 2_proof_aggregation_layer/architecture/1_overview.md
+  architecture/1_proof_verification_layer/6_explorer: 2_proof_aggregation_layer/architecture/3_explorer.md
+  guides/0_submitting_proofs: 2_proof_aggregation_layer/guides/1_quickstart.md
+  guides/9_submitting_batch_without_batcher: 2_proof_aggregation_layer/guides/1_quickstart.md
+  guides/10_aligned_cli: 2_proof_aggregation_layer/guides/3_cli.md
+  guides/1_SDK_how_to: 2_proof_aggregation_layer/guides/4_sdk.md
+  guides/1.2_SDK_api_reference: 2_proof_aggregation_layer/guides/4_sdk.md
+  guides/2_build_your_first_aligned_application: 2_proof_aggregation_layer/guides/5_integration_example.md
+  guides/2_build_your_first_aligned_application/2.2_modify_zkquiz_questions: 2_proof_aggregation_layer/guides/5_integration_example.md
+  guides/3_validating_public_input: 2_proof_aggregation_layer/guides/5_integration_example.md
+  guides/5_using_zkrust: 2_proof_aggregation_layer/guides/2_generating_proofs.md
+  guides/6_setup_aligned: 2_proof_aggregation_layer/guides/6_local_setup.md
+  operators/0_running_an_operator: 1_introduction/0_about_aligned.md
+  operators/1_operator_FAQ: 1_introduction/2_faq.md
+  operators/2_troubleshooting: 1_introduction/0_about_aligned.md
+  operators/upgrading-guides/v0_14_0: 1_introduction/0_about_aligned.md
+  operators/upgrading-guides/v0_10_2: 1_introduction/0_about_aligned.md
+  operators/upgrading-guides/v0_9_2: 1_introduction/0_about_aligned.md
