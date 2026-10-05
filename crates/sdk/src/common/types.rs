@@ -113,6 +113,26 @@ pub struct VerificationData {
     pub proof_generator_addr: Address,
 }
 
+impl VerificationData {
+    pub fn new(
+        proving_system: ProvingSystemId,
+        proof: Vec<u8>,
+        pub_input: Option<Vec<u8>>,
+        verification_key: Option<Vec<u8>>,
+        vm_program_code: Option<Vec<u8>>,
+        proof_generator_addr: Address,
+    ) -> Self {
+        Self {
+            proving_system,
+            proof,
+            pub_input,
+            verification_key,
+            vm_program_code,
+            proof_generator_addr,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NoncedVerificationData {
     pub verification_data: VerificationData,
@@ -586,14 +606,14 @@ mod tests {
         let verification_key = Some([8, 8, 8, 8].to_vec());
         let proving_system = ProvingSystemId::GnarkGroth16Bn254;
 
-        let verification_data = VerificationData {
+        let verification_data = VerificationData::new(
             proving_system,
             proof,
             pub_input,
             verification_key,
-            vm_program_code: None,
-            proof_generator_addr: wallet.address(),
-        };
+            None,
+            wallet.address(),
+        );
 
         let nonced_verification_data = NoncedVerificationData::new(
             verification_data,
