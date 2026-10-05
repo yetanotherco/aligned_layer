@@ -11,7 +11,7 @@ if [[ "$ARCH" == "x86_64" ]]; then
 fi
 
 BASE_DIR="$HOME"
-NODE_EXPORTER_DIR="${NODE_EXPORTER_DIR-"$BASE_DIR/.node_exporter"}"
+NODE_EXPORTER_DIR="${NODE_EXPORTER_DIR:-"$BASE_DIR/.node_exporter"}"
 NODE_EXPORTER_BIN_DIR="$NODE_EXPORTER_DIR/bin"
 NODE_EXPORTER_BIN_PATH="$NODE_EXPORTER_BIN_DIR/node_exporter"
 
@@ -29,7 +29,7 @@ else
 fi
 
 echo "Extracting Node Exporter..."
-if tar xvfz $FILE; then
+if tar -xvzf $FILE; then
     mv "node_exporter-$VERSION.$OS-$ARCH/node_exporter" "$NODE_EXPORTER_BIN_PATH"
     chmod +x "$NODE_EXPORTER_BIN_PATH"
     rm -rf "node_exporter-$VERSION.$OS-$ARCH" $FILE
