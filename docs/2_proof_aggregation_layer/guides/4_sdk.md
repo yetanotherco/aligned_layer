@@ -18,6 +18,10 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
 {% hint style="info" %}
+Building the SDK requires [protoc](https://protobuf.dev/installation/), which the SP1 SDK needs.
+{% endhint %}
+
+{% hint style="info" %}
 The SDK is not yet part of a tagged release, so the dependency tracks the `testnet` branch. Pin it to a tag once one is published.
 {% endhint %}
 

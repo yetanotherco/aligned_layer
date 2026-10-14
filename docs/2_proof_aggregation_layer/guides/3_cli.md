@@ -13,7 +13,7 @@ This document serves as a reference for the commands of the Aggregation Mode CLI
     cd aligned_layer
     ```
 
-2. Build and install the Aggregation Mode CLI using the Makefile:
+2. Build and install the Aggregation Mode CLI using the Makefile. Building it requires [protoc](https://protobuf.dev/installation/), which the SP1 SDK needs:
 
     ```bash
     make agg_mode_install_cli

@@ -42,6 +42,12 @@ jobs:
           source ~/.bashrc
           ~/.risc0/bin/rzup install
 
+      # Required to build sp1-sdk (sp1-prover-types compiles protobuf definitions)
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
       - name: Cache Rust dependencies
         uses: actions/cache@v3
         with:

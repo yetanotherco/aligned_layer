@@ -48,6 +48,8 @@
           - pkg-config
           - libssl-dev
           - build-essential
+          # Required to build sp1-sdk
+          - protobuf-compiler
         state: latest
         update_cache: true
       vars:
