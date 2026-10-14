@@ -13,6 +13,7 @@ pub enum TaskStatus {
     Pending,
     Processing,
     Verified,
+    Failed,
 }
 
 #[derive(Debug, Clone, FromRow)]

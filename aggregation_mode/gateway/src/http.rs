@@ -35,6 +35,9 @@ use crate::{
     verifiers::{verify_sp1_proof, VerificationError},
 };
 
+const SP1_UNSUPPORTED_PROOF_MESSAGE: &str =
+    "Invalid SP1 proof. Only SP1 v6 compressed proofs (sp1-sdk >= 6.1.0) are supported";
+
 #[derive(Clone, Debug)]
 pub struct GatewayServer {
     db: Db,
@@ -281,22 +284,29 @@ impl GatewayServer {
             ));
         }
         let Ok(proof) = bincode::deserialize::<SP1ProofWithPublicValues>(&proof_content) else {
-            return HttpResponse::BadRequest()
-                .json(AppResponse::new_unsucessfull("Invalid SP1 proof", 400));
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                SP1_UNSUPPORTED_PROOF_MESSAGE,
+                400,
+            ));
         };
 
         let Ok(vk) = bincode::deserialize::<SP1VerifyingKey>(&vk_content) else {
-            return HttpResponse::BadRequest()
-                .json(AppResponse::new_unsucessfull("Invalid vk", 400));
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(
+                "Invalid vk. Only SP1 v6 verifying keys (sp1-sdk >= 6.1.0) are supported",
+                400,
+            ));
         };
 
-        if let Err(e) = verify_sp1_proof(&proof, &vk) {
+        if let Err(e) = verify_sp1_proof(&proof, &vk).await {
             let message = match e {
-                VerificationError::InvalidProof => "Proof verification failed",
-                VerificationError::UnsupportedProof => "Unsupported proof",
+                VerificationError::InvalidProof => "Proof verification failed".to_string(),
+                VerificationError::UnsupportedProof => "Unsupported proof".to_string(),
+                VerificationError::UnsupportedVersion(version) => {
+                    format!("Unsupported SP1 version {version}. Re-prove with sp1-sdk >= 6.1.0")
+                }
             };
 
-            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(message, 400));
+            return HttpResponse::BadRequest().json(AppResponse::new_unsucessfull(&message, 400));
         };
 
         let query_started_at = Instant::now();

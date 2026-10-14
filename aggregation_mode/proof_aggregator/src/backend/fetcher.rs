@@ -1,6 +1,7 @@
 use crate::{
     aggregators::{
-        risc0_aggregator::Risc0ProofReceiptAndImageId, sp1_aggregator::SP1ProofWithPubValuesAndVk,
+        risc0_aggregator::Risc0ProofReceiptAndImageId,
+        sp1_aggregator::{self, SP1ProofWithPubValuesAndVk},
         AlignedProof, ZKVMEngine,
     },
     backend::db::{Db, DbError},
@@ -36,13 +37,15 @@ impl ProofsFetcher {
 
         let (proofs_to_aggregate, tasks_id): (Vec<AlignedProof>, Vec<Uuid>) = match engine {
             ZKVMEngine::SP1 => {
+                // The client is built before entering rayon since its construction is async
+                let verifier = sp1_aggregator::verifier_client().await;
                 let pairs: Vec<(AlignedProof, Uuid)> = tasks
                     .into_par_iter()
                     .filter_map(|task| {
                         let vk = bincode::deserialize(&task.program_commitment).ok()?;
                         let proof_with_pub_values = bincode::deserialize(&task.proof).ok()?;
 
-                        match SP1ProofWithPubValuesAndVk::new(proof_with_pub_values, vk) {
+                        match SP1ProofWithPubValuesAndVk::new(proof_with_pub_values, vk, verifier) {
                             Ok(proof) => Some((AlignedProof::SP1(proof.into()), task.task_id)),
                             Err(err) => {
                                 error!("Could not add proof, verification failed: {:?}", err);

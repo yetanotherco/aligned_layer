@@ -91,7 +91,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 # Install SP1
 curl -L https://sp1.succinct.xyz | bash
 source $HOME/.bashrc
-sp1up
+sp1up -v 6.9.0
 
 # Install Risc0
 curl -L https://risczero.com/install | bash

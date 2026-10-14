@@ -66,7 +66,7 @@ cast logs 0xc351628EB244ec633d5f21fBD6621e1a683B1181 'AggregatedProofVerified(by
 
 ## Compiling programs
 
-Whenever any of the programs change, you must recompile them and update their corresponding program ids in `aggregation_mode/program_ids.json`. To do this, run the following command:
+Whenever any of the programs change, you must recompile them and update their corresponding program ids in `aggregation_mode/proof_aggregator/programs_ids.json`. To do this, run the following command:
 
 ```shell
 make proof_aggregator_write_program_ids
@@ -80,5 +80,5 @@ If the verifier program commitments have changed, you will also need to add the 
 
 You can fetch the verifier program commitment values from the following:
 
-- Risc0: Use the value of `risc0_chunk_aggregator_image_id` from `aggregation_mode/program_ids.json`.
-- SP1: Use the value of `sp1_chunk_aggregator_vk_hash` from `aggregation_mode/program_ids.json`.
+- Risc0: Use the value of `risc0_chunk_aggregator_image_id` from `aggregation_mode/proof_aggregator/programs_ids.json`.
+- SP1: Use the value of `sp1_chunk_aggregator_vk_hash` from `aggregation_mode/proof_aggregator/programs_ids.json`.

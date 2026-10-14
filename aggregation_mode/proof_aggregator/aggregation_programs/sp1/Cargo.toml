@@ -5,9 +5,9 @@ edition = "2021"
 resolver = "2"
 
 [dependencies]
-sp1-zkvm = { version = "5.0.0", features = ["verify"] }
-sha2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "sha2-v0.10.8-patch-v1" }
-sha3 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "sha3-v0.10.8-patch-v1" }
+sp1-zkvm = { version = "6.9.0", features = ["verify"] }
+sha2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "patch-sha2-0.10.8-sp1-6.0.0" }
+sha3 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "patch-sha3-0.10.8-sp1-6.0.0" }
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.117"
 lambdaworks-crypto = { git = "https://github.com/lambdaclass/lambdaworks.git", rev = "5f8f2cfcc8a1a22f77e8dff2d581f1166eefb80b", features = ["serde"]}
