@@ -1,20 +1,24 @@
 use alloy::hex;
 use serde_json::json;
-use sp1_sdk::{HashableKey, Prover};
+use sp1_sdk::{Elf, HashableKey, Prover, ProvingKey};
 use std::{fs, path::Path};
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 
-const SP1_PROGRAM_ELF: &[u8] = include_bytes!("../sp1/elf/sp1_state_transition_program");
+const SP1_PROGRAM_ELF: Elf = Elf::Static(include_bytes!("../sp1/elf/sp1_state_transition_program"));
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let subscriber = FmtSubscriber::builder().finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     info!("About to write sp1 program vk hash bytes");
-    let client = sp1_sdk::ProverClient::builder().cpu().build();
-    let (_pk, vk) = client.setup(SP1_PROGRAM_ELF);
-    let sp1_vk_hash = vk.hash_bytes();
+    let client = sp1_sdk::ProverClient::builder().light().build().await;
+    let pk = client
+        .setup(SP1_PROGRAM_ELF)
+        .await
+        .expect("Prover setup to run well");
+    let sp1_vk_hash = pk.verifying_key().hash_bytes();
     let sp1_vk_hash_hex = hex::encode(sp1_vk_hash);
 
     let dest_path = Path::new("programs_ids.json");

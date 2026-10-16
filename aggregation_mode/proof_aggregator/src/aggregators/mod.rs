@@ -62,7 +62,7 @@ impl ZKVMEngine {
     /// `proofs_per_chunk`` and uses the `user_proofs_aggregator` to aggregate the proofs.
     /// Then, the `chunk_aggregator` takes the resulting proofs and their corresponding leaves commitments
     /// to produce the final aggregated proof.
-    pub fn aggregate_proofs(
+    pub async fn aggregate_proofs(
         &self,
         proofs: Vec<AlignedProof>,
         proofs_per_chunk: u16,
@@ -93,6 +93,7 @@ impl ZKVMEngine {
                     let leaves_commitment =
                         chunk.iter().map(|e| e.hash_vk_and_pub_inputs()).collect();
                     let agg_proof = sp1_aggregator::run_user_proofs_aggregator(chunk)
+                        .await
                         .map_err(ProofAggregationError::SP1Aggregation)?;
                     agg_proofs.push((agg_proof, leaves_commitment));
 
@@ -101,6 +102,7 @@ impl ZKVMEngine {
 
                 info!("All chunks have been aggregated, performing last aggregation...");
                 let mut agg_proof = sp1_aggregator::run_chunk_aggregator(&agg_proofs)
+                    .await
                     .map_err(ProofAggregationError::SP1Aggregation)?;
 
                 let merkle_root: [u8; 32] = agg_proof
@@ -221,5 +223,27 @@ impl IsMerkleTreeBackend for AlignedProof {
             hasher.update(child_1);
         }
         hasher.finalize().into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lambdaworks_crypto::merkle_tree::merkle::MerkleTree;
+
+    // Runs both SP1 aggregation programs with the mock prover, so it only executes them
+    #[cfg(not(feature = "prove"))]
+    #[tokio::test]
+    async fn sp1_aggregation_merkle_root_matches_off_vm_merkle_root() {
+        let proofs = vec![
+            AlignedProof::SP1(sp1_aggregator::tests::load_fibonacci_proof().await.into()),
+            AlignedProof::SP1(sp1_aggregator::tests::load_fibonacci_proof().await.into()),
+        ];
+        let expected_root = MerkleTree::<AlignedProof>::build(&proofs).unwrap().root;
+
+        // One proof per chunk, so the chunk aggregator receives two chunks
+        let (_, zkvm_root) = ZKVMEngine::SP1.aggregate_proofs(proofs, 1).await.unwrap();
+
+        assert_eq!(zkvm_root, expected_root);
     }
 }

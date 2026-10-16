@@ -175,6 +175,7 @@ impl ProofAggregator {
         let (aggregated_proof, zkvm_merkle_root) = self
             .engine
             .aggregate_proofs(proofs, self.config.proofs_per_chunk)
+            .await
             .map_err(AggregatedProofSubmissionError::ZKVMAggregation)?;
         info!("Proof aggregation program finished");
 

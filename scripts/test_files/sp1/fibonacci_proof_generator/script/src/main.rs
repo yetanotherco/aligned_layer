@@ -1,13 +1,16 @@
-use sp1_sdk::{include_elf, utils, HashableKey, ProverClient, SP1Stdin};
+use sp1_sdk::{
+    include_elf, utils, Elf, HashableKey, ProveRequest, Prover, ProverClient, ProvingKey, SP1Stdin,
+};
 use std::io::Write;
 
 /// The ELF we want to execute inside the zkVM.
 // const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf");
-const ELF: &[u8] = include_elf!("fibonacci-program");
+const ELF: Elf = include_elf!("fibonacci-program");
 
-const SP1_VERSION: &str = "5_0_0";
+const SP1_VERSION: &str = "6_1_0";
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // Setup logging.
     utils::setup_logger();
 
@@ -18,9 +21,10 @@ fn main() {
     stdin.write(&n);
 
     // Generate the proof for the given program and input.
-    let client = ProverClient::from_env();
-    let (pk, vk) = client.setup(ELF);
-    let mut proof = client.prove(&pk, &stdin).compressed().run().unwrap();
+    let client = ProverClient::from_env().await;
+    let pk = client.setup(ELF).await.expect("setup failed");
+    let vk = pk.verifying_key().clone();
+    let mut proof = client.prove(&pk, stdin).compressed().await.unwrap();
 
     println!("Fibonacci program proof generated");
 
@@ -33,7 +37,9 @@ fn main() {
     println!("b: {}", b);
 
     // Verify proof and public values
-    client.verify(&proof, &vk).expect("verification failed");
+    client
+        .verify(&proof, &vk, None)
+        .expect("verification failed");
 
     // Save the proof.
     let proof_file_path = format!("../../sp1_fibonacci_{}.proof", SP1_VERSION);
@@ -59,7 +65,7 @@ fn main() {
 
     let elf_file_path = format!("../../sp1_fibonacci_{}.elf", SP1_VERSION);
     let mut file = std::fs::File::create(elf_file_path).unwrap();
-    file.write_all(ELF).unwrap();
+    file.write_all(&ELF).unwrap();
 
     println!("Successfully generated and verified proof for the program!")
 }

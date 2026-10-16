@@ -7,6 +7,7 @@ This guide walks through running Aligned's Proof Aggregation Service locally: th
 Ensure you have the following installed:
 
 -   [Rust](https://www.rust-lang.org/tools/install)
+-   [protoc](https://protobuf.dev/installation/) (required to build the SP1 SDK)
 -   [Docker](https://docs.docker.com/get-docker/)
 -   [Kurtosis](https://docs.kurtosis.com/install/)
 

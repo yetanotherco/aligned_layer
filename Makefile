@@ -129,6 +129,10 @@ anvil_upgrade_aligned_contracts: ## Upgrade Aligned Contracts (Verification Laye
 	@echo "Upgrading Aligned Contracts..."
 	. contracts/scripts/anvil/upgrade_aligned_contracts.sh
 
+anvil_upgrade_proof_aggregator_sp1: ## Add the current SP1 verifier route and allow the SP1 aggregation program on ANVIL
+	@echo "Upgrading Proof Aggregator SP1 setup..."
+	. contracts/scripts/anvil/upgrade_proof_aggregator_sp1.sh
+
 anvil_upgrade_batcher_payment_service: ## Upgrade BatcherPaymentService contract on ANVIL
 	@echo "Upgrading BatcherPayments contract..."
 	. contracts/scripts/anvil/upgrade_batcher_payment_service.sh
@@ -288,8 +292,8 @@ verify_aggregated_proof_sp1:
 		--rpc-url $(RPC_URL) \
 		--from-block $(FROM_BLOCK) \
 		--proving-system SP1 \
-		--vk-hash ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
-		--public-inputs ../../scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
+		--vk-hash ../../scripts/test_files/sp1/sp1_fibonacci_6_1_0.vk \
+		--public-inputs ../../scripts/test_files/sp1/sp1_fibonacci_6_1_0.pub
 
 proof_aggregator_install: ## Install the aggregation mode with proving enabled
 	cargo install --path aggregation_mode/proof_aggregator --features prove,gpu --bin proof_aggregator_gpu --locked
@@ -331,8 +335,8 @@ agg_mode_gateway_send_payment:
 
 agg_mode_gateway_send_sp1_proof:
 	@cargo run --manifest-path aggregation_mode/cli/Cargo.toml -- submit sp1 \
-		--proof scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
-		--vk scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin \
+		--proof scripts/test_files/sp1/sp1_fibonacci_6_1_0.proof \
+		--vk scripts/test_files/sp1/sp1_fibonacci_6_1_0_vk.bin \
 		--private-key "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 
 agg_mode_install_cli: ## Install the aggregation mode CLI

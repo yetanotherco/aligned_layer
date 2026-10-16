@@ -2,7 +2,7 @@
 
 The following proving systems can be submitted to Aligned's Proof Aggregation Service:
 
-- :white_check_mark: SP1 [(v5.0.0)](https://github.com/succinctlabs/sp1/releases/tag/v5.0.0) — **compressed** proofs only
+- :white_check_mark: SP1 [(v6, sp1-sdk >= 6.1.0)](https://github.com/succinctlabs/sp1/releases/tag/v6.9.0) — **compressed** proofs only. SP1 v5 and v6.0.x proofs are not accepted.
 
 The following are in the roadmap to be added:
 

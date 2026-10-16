@@ -13,26 +13,34 @@ This guide assumes that:
 ## Generating a compressed proof
 
 {% hint style="warning" %}
+Proofs must be generated with **sp1-sdk >= 6.1.0**. SP1 v5 and v6.0.x proofs are rejected by the gateway.
+{% endhint %}
+
+{% hint style="warning" %}
 Only **compressed** SP1 proofs can be aggregated. In your proving script, the proof must be built with `.compressed()` — a default or Groth16/Plonk proof will be rejected by the aggregator.
 {% endhint %}
 
 In your SP1 script, generate the proof and write out the four files Aligned works with:
 
 ```rust
-use sp1_sdk::{include_elf, HashableKey, ProverClient, SP1Stdin};
+use sp1_sdk::{
+    include_elf, Elf, HashableKey, ProveRequest, Prover, ProverClient, ProvingKey, SP1Stdin,
+};
 
-const ELF: &[u8] = include_elf!("your-program");
+const ELF: Elf = include_elf!("your-program");
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let mut stdin = SP1Stdin::new();
     // ...write your program inputs into `stdin`...
 
-    let client = ProverClient::from_env();
-    let (pk, vk) = client.setup(ELF);
+    let client = ProverClient::from_env().await;
+    let pk = client.setup(ELF).await.expect("setup failed");
+    let vk = pk.verifying_key().clone();
 
     // `.compressed()` is required — Aligned aggregates compressed proofs only.
-    let proof = client.prove(&pk, &stdin).compressed().run().unwrap();
-    client.verify(&proof, &vk).expect("verification failed");
+    let proof = client.prove(&pk, stdin).compressed().await.unwrap();
+    client.verify(&proof, &vk, None).expect("verification failed");
 
     // 1. The proof itself — passed to `--proof` when submitting.
     proof.save("./my_proof.proof").expect("saving proof failed");

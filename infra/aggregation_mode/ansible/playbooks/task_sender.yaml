@@ -30,11 +30,13 @@
         gateway_eth_rpc_url: "{{ lookup('ini', 'gateway_eth_rpc_url', file=config_file) }}"
       no_log: true
 
-    - name: Install tmux
+    - name: Install required system packages
       become: true
       apt:
         pkg:
           - tmux
+          # Required to build sp1-sdk
+          - protobuf-compiler
         state: latest
         update_cache: true
       vars:

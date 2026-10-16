@@ -54,8 +54,8 @@ From the root of the repository:
 
 ```bash
 agg_mode_cli submit sp1 \
-  --proof scripts/test_files/sp1/sp1_fibonacci_5_0_0.proof \
-  --vk scripts/test_files/sp1/sp1_fibonacci_5_0_0_vk.bin \
+  --proof scripts/test_files/sp1/sp1_fibonacci_6_1_0.proof \
+  --vk scripts/test_files/sp1/sp1_fibonacci_6_1_0_vk.bin \
   --keystore-path <KEYSTORE_PATH> \
   --network hoodi
 ```
@@ -81,8 +81,8 @@ agg_mode_cli verify-on-chain \
   --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
   --beacon-url https://ethereum-hoodi-beacon-api.publicnode.com \
   --proving-system SP1 \
-  --vk-hash scripts/test_files/sp1/sp1_fibonacci_5_0_0.vk \
-  --public-inputs scripts/test_files/sp1/sp1_fibonacci_5_0_0.pub
+  --vk-hash scripts/test_files/sp1/sp1_fibonacci_6_1_0.vk \
+  --public-inputs scripts/test_files/sp1/sp1_fibonacci_6_1_0.pub
 ```
 
 This reads the result of the aggregated proof verification from Ethereum and checks your proof's inclusion in it.

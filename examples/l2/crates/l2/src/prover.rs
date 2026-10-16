@@ -1,12 +1,13 @@
-use sp1_sdk::{Prover, SP1VerifyingKey};
+use sp1_sdk::{Elf, ProveRequest, Prover, ProvingKey, SP1VerifyingKey};
 use types::Transfer;
 
 use crate::db::DB;
 
-pub const PROGRAM_ELF: &[u8] =
-    include_bytes!("../zkvm_programs/sp1/elf/sp1_state_transition_program");
+pub const PROGRAM_ELF: Elf = Elf::Static(include_bytes!(
+    "../zkvm_programs/sp1/elf/sp1_state_transition_program"
+));
 
-pub fn prove_state_transition(
+pub async fn prove_state_transition(
     db: &DB,
     transfers: Vec<Transfer>,
 ) -> (sp1_sdk::SP1ProofWithPublicValues, sp1_sdk::SP1VerifyingKey) {
@@ -17,19 +18,23 @@ pub fn prove_state_transition(
     };
     stdin.write(&program_input);
 
-    let prover = sp1_sdk::ProverClient::from_env();
-    let (pk, vk) = prover.setup(PROGRAM_ELF);
+    let prover = sp1_sdk::ProverClient::from_env().await;
+    let pk = prover
+        .setup(PROGRAM_ELF)
+        .await
+        .expect("Prover setup to run well");
+    let vk = pk.verifying_key().clone();
     let proof = prover
-        .prove(&pk, &stdin)
+        .prove(&pk, stdin)
         .compressed()
-        .run()
+        .await
         .expect("Prover to run well");
 
     (proof, vk)
 }
 
-pub fn vk_from_elf(elf: &[u8]) -> SP1VerifyingKey {
-    let prover = sp1_sdk::ProverClient::builder().cpu().build();
-    let (_pk, vk) = prover.setup(elf);
-    vk
+pub async fn vk_from_elf(elf: Elf) -> SP1VerifyingKey {
+    let prover = sp1_sdk::ProverClient::builder().light().build().await;
+    let pk = prover.setup(elf).await.expect("Prover setup to run well");
+    pk.verifying_key().clone()
 }

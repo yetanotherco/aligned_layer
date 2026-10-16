@@ -1,28 +1,36 @@
 use alloy::hex;
 use proof_aggregator::aggregators::{risc0_aggregator, sp1_aggregator};
 use serde_json::json;
-use sp1_sdk::HashableKey;
+use sp1_sdk::{Elf, HashableKey};
 use std::{fs, path::Path};
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 
-const SP1_USER_PROOFS_AGGREGATOR_PROGRAM_ELF: &[u8] =
-    include_bytes!("../aggregation_programs/sp1/elf/sp1_user_proofs_aggregator_program");
+const SP1_USER_PROOFS_AGGREGATOR_PROGRAM_ELF: Elf = Elf::Static(include_bytes!(
+    "../aggregation_programs/sp1/elf/sp1_user_proofs_aggregator_program"
+));
 
-const SP1_CHUNK_AGGREGATOR_PROGRAM_ELF: &[u8] =
-    include_bytes!("../aggregation_programs/sp1/elf/sp1_chunk_aggregator_program");
+const SP1_CHUNK_AGGREGATOR_PROGRAM_ELF: Elf = Elf::Static(include_bytes!(
+    "../aggregation_programs/sp1/elf/sp1_chunk_aggregator_program"
+));
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let subscriber = FmtSubscriber::builder().finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     info!("About to write sp1 programs vk hash bytes + risc0 programs image id bytes");
-    let sp1_user_proofs_aggregator_vk_hash =
-        sp1_aggregator::vk_from_elf(SP1_USER_PROOFS_AGGREGATOR_PROGRAM_ELF).bytes32_raw();
-    let sp1_user_proofs_aggregator_vk_hash_words =
-        sp1_aggregator::vk_from_elf(SP1_USER_PROOFS_AGGREGATOR_PROGRAM_ELF).hash_u32();
+    let sp1_user_proofs_aggregator_vk =
+        sp1_aggregator::vk_from_elf(SP1_USER_PROOFS_AGGREGATOR_PROGRAM_ELF)
+            .await
+            .expect("Failed to compute the SP1 user proofs aggregator vk");
+    let sp1_user_proofs_aggregator_vk_hash = sp1_user_proofs_aggregator_vk.bytes32_raw();
+    let sp1_user_proofs_aggregator_vk_hash_words = sp1_user_proofs_aggregator_vk.hash_u32();
     let sp1_chunk_aggregator_vk_hash =
-        sp1_aggregator::vk_from_elf(SP1_CHUNK_AGGREGATOR_PROGRAM_ELF).bytes32_raw();
+        sp1_aggregator::vk_from_elf(SP1_CHUNK_AGGREGATOR_PROGRAM_ELF)
+            .await
+            .expect("Failed to compute the SP1 chunk aggregator vk")
+            .bytes32_raw();
 
     let risc0_user_proofs_aggregator_image_id_bytes =
         risc0_aggregator::RISC0_USER_PROOFS_AGGREGATOR_PROGRAM_ID_BYTES;

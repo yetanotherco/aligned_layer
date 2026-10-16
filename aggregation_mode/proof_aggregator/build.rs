@@ -37,6 +37,9 @@ fn main() {
             // We use Docker to generate a reproducible ELF that will be identical across all platforms
             // (https://docs.succinct.xyz/docs/sp1/writing-programs/compiling#production-builds)
             docker: true,
+            // Pin the builder image so the ELF (and therefore the VK) does not change when sp1-build is bumped.
+            // It must match the sp1-zkvm version of the aggregation programs.
+            tag: "v6.9.0".to_string(),
             ..Default::default()
         }
     });

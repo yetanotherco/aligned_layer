@@ -55,7 +55,7 @@ impl L2 {
 
         // 2. Call zkvm and transfer to perform and verify
         info!("Starting prover...");
-        let (mut proof, vk) = prove_state_transition(&self.db, transfers.clone());
+        let (mut proof, vk) = prove_state_transition(&self.db, transfers.clone()).await;
         let ProgramOutput {
             initial_state_merkle_root,
             post_state_merkle_root,
@@ -108,7 +108,7 @@ impl L2 {
     }
 
     pub async fn update_state_on_chain(&mut self, proof: SP1ProofWithPublicValues) {
-        let vk = prover::vk_from_elf(PROGRAM_ELF);
+        let vk = prover::vk_from_elf(PROGRAM_ELF).await;
         // 5. Check if proof has been aggregated
         info!("Checking if proof has been aggregated in the last 24 hours...");
         let proof_status = self

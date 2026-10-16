@@ -11,6 +11,6 @@ bincode = "1.3.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 alloy = { workspace = true }
 agg_mode_sdk = { path = "../sdk"}
-sp1-sdk = "5.0.0"
+sp1-sdk = { workspace = true }
 clap = { version = "4.5.4", features = ["derive"] }
 rpassword = "7.3.1"
