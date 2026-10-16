@@ -83,7 +83,7 @@ dependencies = [
 
 [[package]]
 name = "aligned"
-version = "0.20.0"
+version = "0.22.0"
 dependencies = [
  "aligned-sdk 0.1.0",
  "clap",

@@ -6,7 +6,7 @@
 > [Proof Aggregation Service](../../2_proof_aggregation_layer/architecture/1_overview.md).
 
 > **CURRENT VERSION:**
-> Aligned Operator [v0.20.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.20.0)
+> Aligned Operator [v0.22.0](https://github.com/yetanotherco/aligned_layer/releases/tag/v0.22.0)
 
 > **IMPORTANT:** 
 > You must be [whitelisted](https://docs.google.com/forms/d/e/1FAIpQLSdH9sgfTz4v33lAvwj6BvYJGAeIshQia3FXz36PFfF-WQAWEQ/viewform) to become an Aligned operator.
@@ -35,7 +35,7 @@ The list of supported strategies can be found [here](../3_guides/8_contract_addr
 To start with, clone the Aligned repository and move inside it
 
 ```bash
-git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.20.0
+git clone https://github.com/yetanotherco/aligned_layer.git --branch v0.22.0
 cd aligned_layer
 ```
 
