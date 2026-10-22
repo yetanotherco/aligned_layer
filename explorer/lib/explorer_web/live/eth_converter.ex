@@ -1,6 +1,4 @@
 defmodule EthConverter do
-  use HTTPoison.Base
-
   @wei_per_eth 1_000_000_000_000_000_000
   @cache_ttl :timer.minutes(5)
 
@@ -123,18 +121,19 @@ defmodule EthConverter do
   end
 
   defp fetch_and_cache_eth_price do
-    case get("/simple/price?ids=ethereum&vs_currencies=usd") do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+    case Finch.build(:get, "#{@base_url}/simple/price?ids=ethereum&vs_currencies=usd")
+         |> Finch.request(Explorer.Finch) do
+      {:ok, %Finch.Response{status: 200, body: body}} ->
         with {:ok, price} <- parse_response(body) do
           Cachex.put(:eth_price_cache, :eth_price, price, ttl: @cache_ttl)
           {:ok, price}
         end
 
-      {:ok, %HTTPoison.Response{status_code: status_code}} ->
+      {:ok, %Finch.Response{status: status_code}} ->
         {:error, "Request failed with status code: #{status_code}"}
 
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, "HTTP request failed: #{reason}"}
+      {:error, reason} ->
+        {:error, "HTTP request failed: #{Exception.message(reason)}"}
     end
   end
 
@@ -146,13 +145,5 @@ defmodule EthConverter do
       _ ->
         {:error, "Failed to parse response"}
     end
-  end
-
-  def process_url(url) do
-    @base_url <> url
-  end
-
-  def process_response_body(body) do
-    body
   end
 end
