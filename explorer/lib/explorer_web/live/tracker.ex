@@ -12,12 +12,12 @@ defmodule OperatorVersionTracker do
   defp get_operators_version(url) do
     clean_url = String.trim_trailing(url, "/")
 
-    case HTTPoison.get("#{clean_url}/versions") do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+    case Finch.build(:get, "#{clean_url}/versions") |> Finch.request(Explorer.Finch) do
+      {:ok, %Finch.Response{status: 200, body: body}} ->
         body
         |> parse_as_map()
 
-      {:ok, %HTTPoison.Response{status_code: _, body: _}} ->
+      {:ok, %Finch.Response{}} ->
         Logger.debug("Operator versions not found.")
         %{}
 
@@ -50,12 +50,12 @@ defmodule OperatorVersionTracker do
   defp get_operator_version(url, address) do
     clean_url = String.trim_trailing(url, "/")
 
-    case HTTPoison.get("#{clean_url}/versions/#{address}") do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+    case Finch.build(:get, "#{clean_url}/versions/#{address}") |> Finch.request(Explorer.Finch) do
+      {:ok, %Finch.Response{status: 200, body: body}} ->
         body
         |> parse_version()
 
-      {:ok, %HTTPoison.Response{status_code: _, body: _}} ->
+      {:ok, %Finch.Response{}} ->
         Logger.debug("Operator version not found.")
         nil
 
