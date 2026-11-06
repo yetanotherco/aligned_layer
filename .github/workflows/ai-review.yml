@@ -1,0 +1,105 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  claude-review:
+    if: >
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      (startsWith(github.event.comment.body, '/claude') || github.event.comment.body == '/review' || startsWith(github.event.comment.body, '/review ') || startsWith(github.event.comment.body, fromJSON('"/review\n"')) || startsWith(github.event.comment.body, fromJSON('"/review\r"'))))
+    uses: yetanotherco/actions/.github/workflows/pr_review_claude.yml@4a4279fdc553ad030894c98698582baaeb40327a # v2.0.0
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  codex-review:
+    if: >
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      (startsWith(github.event.comment.body, '/codex') || github.event.comment.body == '/review' || startsWith(github.event.comment.body, '/review ') || startsWith(github.event.comment.body, fromJSON('"/review\n"')) || startsWith(github.event.comment.body, fromJSON('"/review\r"'))))
+    uses: yetanotherco/actions/.github/workflows/pr_review_codex.yml@4a4279fdc553ad030894c98698582baaeb40327a # v2.0.0
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  kimi-review:
+    if: >
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      (startsWith(github.event.comment.body, '/kimi') || github.event.comment.body == '/review' || startsWith(github.event.comment.body, '/review ') || startsWith(github.event.comment.body, fromJSON('"/review\n"')) || startsWith(github.event.comment.body, fromJSON('"/review\r"'))))
+    uses: yetanotherco/actions/.github/workflows/pr_review_kimi.yml@4a4279fdc553ad030894c98698582baaeb40327a # v2.0.0
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+
+  deepseek-review:
+    if: >
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      (startsWith(github.event.comment.body, '/deepseek') || github.event.comment.body == '/review' || startsWith(github.event.comment.body, '/review ') || startsWith(github.event.comment.body, fromJSON('"/review\n"')) || startsWith(github.event.comment.body, fromJSON('"/review\r"'))))
+    uses: yetanotherco/actions/.github/workflows/pr_review_openrouter.yml@4a4279fdc553ad030894c98698582baaeb40327a # v2.0.0
+    permissions:
+      contents: read
+      pull-requests: write
+    with:
+      model: deepseek/deepseek-v4-pro-0813
+      reasoning_effort: high
+      max_bytes: 2400000
+    secrets:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+  grok-review:
+    if: >
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      (startsWith(github.event.comment.body, '/grok') || github.event.comment.body == '/review' || startsWith(github.event.comment.body, '/review ') || startsWith(github.event.comment.body, fromJSON('"/review\n"')) || startsWith(github.event.comment.body, fromJSON('"/review\r"'))))
+    uses: yetanotherco/actions/.github/workflows/pr_review_openrouter.yml@4a4279fdc553ad030894c98698582baaeb40327a # v2.0.0
+    permissions:
+      contents: read
+      pull-requests: write
+    with:
+      model: x-ai/grok-4.7
+    secrets:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+  gemini-review:
+    if: >
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      (startsWith(github.event.comment.body, '/gemini') || github.event.comment.body == '/review' || startsWith(github.event.comment.body, '/review ') || startsWith(github.event.comment.body, fromJSON('"/review\n"')) || startsWith(github.event.comment.body, fromJSON('"/review\r"'))))
+    uses: yetanotherco/actions/.github/workflows/pr_review_openrouter.yml@4a4279fdc553ad030894c98698582baaeb40327a # v2.0.0
+    permissions:
+      contents: read
+      pull-requests: write
+    with:
+      model: google/gemini-4-argon
+      max_bytes: 2400000
+    secrets:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
